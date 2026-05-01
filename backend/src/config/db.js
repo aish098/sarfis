@@ -13,10 +13,4 @@ if (environment === 'production' && config.connection && typeof config.connectio
 
 const db = knex(config);
 
-db.raw('SELECT 1').then(() => {
-  console.log(`[DB] Successfully connected to database.`);
-}).catch(err => {
-  console.error(`[DB] Connection FAILED:`, err.message);
-});
-
 module.exports = db;
