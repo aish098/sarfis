@@ -11,10 +11,10 @@ module.exports = {
       database: process.env.DB_NAME || 'safrs',
     },
     migrations: {
-      directory: './src/db/migrations'
+      directory: require('path').join(__dirname, 'src/db/migrations')
     },
     seeds: {
-      directory: './src/db/seeds'
+      directory: require('path').join(__dirname, 'src/db/seeds')
     }
   },
   production: {
@@ -33,10 +33,10 @@ module.exports = {
     },
     acquireConnectionTimeout: 10000,
     migrations: {
-      directory: './src/db/migrations'
+      directory: require('path').join(__dirname, 'src/db/migrations')
     },
     seeds: {
-      directory: './src/db/seeds'
+      directory: require('path').join(__dirname, 'src/db/seeds')
     }
   }
 };
