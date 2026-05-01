@@ -145,11 +145,11 @@ function Hero() {
 
           {/* faint circuit lines (top-right) */}
           <svg style={{ position: "absolute", top: 0, right: 0, width: 200, height: 260, opacity: 0.07, pointerEvents: "none" }}>
-            <polyline points="60,0 60,80 160,80 160,160 200,160" fill="none" stroke="#4a7fa5" strokeWidth="1.2" />
-            <polyline points="100,0 100,40 180,40 180,120" fill="none" stroke="#4a7fa5" strokeWidth="1.2" />
-            <circle cx="60" cy="80" r="3" fill="#4a7fa5" />
-            <circle cx="160" cy="160" r="3" fill="#4a7fa5" />
-            <circle cx="100" cy="40" r="3" fill="#4a7fa5" />
+            <polyline points="60,0 60,80 160,80 160,160 200,160" fill="none" stroke="#10b981" strokeWidth="1.2" />
+            <polyline points="100,0 100,40 180,40 180,120" fill="none" stroke="#10b981" strokeWidth="1.2" />
+            <circle cx="60" cy="80" r="3" fill="#10b981" />
+            <circle cx="160" cy="160" r="3" fill="#10b981" />
+            <circle cx="100" cy="40" r="3" fill="#10b981" />
           </svg>
 
           <Reveal delay={0.1} tx={-20} ty={0}>
@@ -273,7 +273,7 @@ function Mentors() {
               <line x1="0" y1="28" x2="32" y2="28" stroke="#10b981" strokeWidth="1.5" strokeDasharray="5 3" />
               <rect x="32" y="15" width="56" height="26" rx="6" fill="#1a2540" stroke="#10b981" strokeWidth="1.5" />
               <text x="60" y="25" textAnchor="middle" fontSize="6" fill="#06b6d4" fontFamily="'Montserrat',sans-serif" fontWeight="800" letterSpacing="0.4">CONNECTION</text>
-              <text x="60" y="33" textAnchor="middle" fontSize="6" fill="#7a8fa8" fontFamily="'Montserrat',sans-serif" fontWeight="600" letterSpacing="0.4">TO CENTRE</text>
+              <text x="60" y="33" textAnchor="middle" fontSize="6" fill="#06b6d4" fontFamily="'Montserrat',sans-serif" fontWeight="600" letterSpacing="0.4">TO CENTRE</text>
               <line x1="88" y1="28" x2="120" y2="28" stroke="#10b981" strokeWidth="1.5" strokeDasharray="5 3" />
               <circle cx="0" cy="28" r="3.5" fill="#10b981" />
               <circle cx="120" cy="28" r="3.5" fill="#10b981" />
@@ -283,7 +283,7 @@ function Mentors() {
           {/* card 2 */}
           <Reveal delay={0.16} tx={24} ty={0} className="flex-1">
             <MentorCard
-              initials="MR" border="#3b82f6"
+              initials="MR" border="#06b6d4"
               name="Professor Muhammed Rehan Anjum"
               role="Accounting Specialist"
               desc="Lorem ipsum dolor sit amet, consectetur adipiscing elit, sed do eiusmod tempor incididunt ut labore et dolore magna aliqua. Ut enim ad minim veniam, quis nostrud exercitation ullamco laboris nisi ut aliquip ex ea commodo consequat."
@@ -476,7 +476,7 @@ function Team() {
             textAlign: "center",
           }}>
             <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 7.5, fontWeight: 700, color: "#10b981", letterSpacing: "0.12em", margin: 0 }}>SARFIS</p>
-            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 6.5, color: "#7a8fa8", letterSpacing: "0.1em", margin: 0 }}>TEAM MEMBERS</p>
+            <p style={{ fontFamily: "'Montserrat',sans-serif", fontSize: 6.5, color: "#06b6d4", letterSpacing: "0.1em", margin: 0 }}>TEAM MEMBERS</p>
           </div>
 
           <div className="flex flex-wrap md:flex-nowrap items-start relative z-10 gap-y-8">
