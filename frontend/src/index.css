@@ -1,0 +1,335 @@
+@import url('https://fonts.googleapis.com/css2?family=Sora:wght@400;500;600;700;800;900&family=DM+Sans:wght@400;500;600;700&family=JetBrains+Mono:wght@400;500;600;700;800&display=swap');
+
+@import "tailwindcss";
+@config "../tailwind.config.js";
+
+/* ─── Global Reset & Base ─── */
+*, *::before, *::after {
+  box-sizing: border-box;
+}
+
+html {
+  position: relative;
+  scroll-behavior: smooth;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+body {
+  position: relative;
+  min-height: 100%;
+  background: #030b1a;
+  color: #e2e8f0;
+  font-family: 'DM Sans', system-ui, sans-serif;
+  overflow-x: hidden;
+}
+
+#root {
+  position: relative;
+  min-height: 100%;
+}
+
+/* ─── Custom Scrollbar ─── */
+::-webkit-scrollbar {
+  width: 6px;
+}
+::-webkit-scrollbar-track {
+  background: #030b1a;
+}
+::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.25);
+  border-radius: 99px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.45);
+}
+
+/* ─── Selection ─── */
+::selection {
+  background: rgba(16, 185, 129, 0.25);
+  color: #fff;
+}
+
+/* ─── Typography ─── */
+.font-display {
+  font-family: 'Sora', 'DM Sans', system-ui, sans-serif;
+}
+
+/* ─── Glassmorphism Utility ─── */
+.glass {
+  background: rgba(255, 255, 255, 0.025);
+  backdrop-filter: blur(16px);
+  -webkit-backdrop-filter: blur(16px);
+  border: 1px solid rgba(255, 255, 255, 0.07);
+}
+
+.glass-strong {
+  background: rgba(255, 255, 255, 0.05);
+  backdrop-filter: blur(24px);
+  -webkit-backdrop-filter: blur(24px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* ─── Gradient Text ─── */
+.gradient-text {
+  background: linear-gradient(135deg, #10b981 0%, #06b6d4 100%);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+}
+
+/* ─── Gradient Border ─── */
+.gradient-border {
+  position: relative;
+}
+.gradient-border::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  padding: 1px;
+  background: linear-gradient(135deg, rgba(16,185,129,0.4), rgba(6,182,212,0.4));
+  -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+  -webkit-mask-composite: xor;
+  mask-composite: exclude;
+  pointer-events: none;
+}
+
+/* ─── Glow Button ─── */
+.btn-glow {
+  position: relative;
+  overflow: hidden;
+}
+.btn-glow::after {
+  content: '';
+  position: absolute;
+  inset: -1px;
+  background: linear-gradient(135deg, #10b981, #06b6d4);
+  opacity: 0;
+  filter: blur(12px);
+  transition: opacity 0.3s;
+  pointer-events: none;
+}
+.btn-glow:hover::after {
+  opacity: 0.4;
+}
+
+/* ─── Section separator ─── */
+.section-sep {
+  height: 1px;
+  width: 100%;
+  background: linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent);
+}
+
+/* ─── Animate pulse (used inline) ─── */
+@keyframes pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.4; }
+}
+
+/* ─── Hide scrollbar utility ─── */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* ─── Noise overlay (optional premium texture) ─── */
+.noise-overlay {
+  position: relative;
+}
+.noise-overlay::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 256 256' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noise'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='4' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noise)' opacity='0.03'/%3E%3C/svg%3E");
+  opacity: 0.015;
+  pointer-events: none;
+  border-radius: inherit;
+}
+
+/* ─── Dashboard Layout Utilities ─── */
+.app-scroll {
+  overflow-y: auto;
+  height: 100%;
+  -webkit-overflow-scrolling: touch;
+}
+
+.app-page {
+  padding: 2rem;
+  width: 100%;
+  margin: 0;
+}
+
+/* ──────────────────────────────────────────────────────────────────────────
+   DESIGN SYSTEM: PRESCRIBED ENTERPRISE STYLES
+   ────────────────────────────────────────────────────────────────────────── */
+
+:root {
+  --blue-950: #04091a;
+  --blue-900: #060d24;
+  --blue-800: #0b1535;
+  --blue-700: #0f1e4a;
+  --surface-2: #f8fafc;
+  --emerald: #059669;
+}
+
+/* Base resets & typography */
+body {
+  @apply text-slate-900 antialiased selection:bg-emerald-100 selection:text-emerald-900 font-sans;
+  background: var(--surface-2);
+}
+
+/* Layout Utilities */
+.hide-scrollbar::-webkit-scrollbar { display: none; }
+.hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+
+/* Components: Buttons */
+.btn {
+  @apply inline-flex items-center justify-center gap-2 px-5 rounded-xl font-bold text-[14px] 
+         transition-all duration-200 active:scale-95 disabled:opacity-50 disabled:pointer-events-none;
+  height: 40px;
+  line-height: 40px;
+}
+.btn-primary {
+  @apply bg-emerald-600 text-white shadow-lg shadow-emerald-500/20 hover:bg-emerald-500 hover:shadow-emerald-500/30;
+}
+.btn-secondary {
+  @apply bg-white text-slate-600 border border-slate-200 hover:bg-slate-50 hover:text-slate-900;
+}
+.btn-danger {
+  @apply bg-rose-500 text-white shadow-lg shadow-rose-500/20 hover:bg-rose-400;
+}
+.btn-sm { @apply px-3.5 py-2 text-[12.5px] rounded-lg; }
+
+/* Components: Cards */
+.card {
+  @apply bg-white rounded-3xl border border-slate-100 shadow-sm transition-all duration-300;
+}
+.card:hover { @apply shadow-md border-slate-200/50; }
+
+/* Components: Inputs */
+.input-enterprise {
+  @apply w-full bg-white border-2 border-slate-100 rounded-xl px-4 text-[14px] 
+         text-slate-900 placeholder:text-slate-400 transition-all outline-none
+         focus:border-emerald-500/30 focus:ring-4 focus:ring-emerald-500/5;
+  height: 40px;
+  line-height: 20px; /* Reduced to allow flex/padding centering */
+  display: flex;
+  align-items: center;
+}
+
+/* Components: Tables */
+.data-table {
+  @apply w-full text-left border-collapse;
+}
+.data-table thead th {
+  @apply px-5 py-4 text-[11px] font-extrabold uppercase tracking-widest text-slate-400 border-b border-slate-50;
+}
+.data-table tbody td {
+  @apply px-5 py-4 border-b border-slate-50/50 align-middle;
+}
+.data-table tfoot td {
+  @apply px-6 py-5 bg-slate-50/50 font-bold border-t border-slate-100;
+}
+
+/* Components: Badges */
+.badge {
+  @apply inline-flex items-center px-2.5 py-1 rounded-lg text-[11px] font-extrabold uppercase tracking-wider;
+}
+.badge-asset { @apply bg-blue-50 text-blue-600 border border-blue-100; }
+.badge-liability { @apply bg-rose-50 text-rose-600 border border-rose-100; }
+.badge-equity { @apply bg-violet-50 text-violet-600 border border-violet-100; }
+.badge-revenue { @apply bg-emerald-50 text-emerald-600 border border-emerald-100; }
+.badge-expense { @apply bg-amber-50 text-amber-600 border border-amber-100; }
+
+/* Variance badges */
+.var-good { @apply bg-emerald-50 text-emerald-600; }
+.var-bad { @apply bg-rose-50 text-rose-600; }
+.var-neutral { @apply bg-slate-50 text-slate-400; }
+
+/* Balance badges */
+.balance-badge {
+  @apply flex items-center gap-1.5 px-3 py-1.5 rounded-full text-[11px] font-bold uppercase tracking-wider;
+}
+.balance-ok { @apply bg-emerald-50 text-emerald-600; }
+.balance-diff { @apply bg-rose-50 text-rose-600 animate-pulse; }
+
+/* Components: Modals */
+.modal-overlay {
+  @apply fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm;
+}
+.modal-box {
+  @apply bg-white rounded-[32px] shadow-2xl shadow-slate-900/20 overflow-hidden border border-white;
+}
+
+/* Components: Tabs */
+.tab-bar {
+  @apply flex p-1.5 bg-slate-100/80 rounded-2xl gap-1;
+}
+.tab-item {
+  @apply flex items-center gap-2 px-5 py-2.5 rounded-xl text-[13px] font-bold transition-all;
+}
+.tab-item:not(.active) { @apply text-slate-500 hover:text-slate-900 hover:bg-white/50; }
+.tab-item.active { @apply bg-white text-slate-900 shadow-sm; }
+
+/* KPI Units */
+.kpi-card {
+  @apply flex flex-col p-6 rounded-[28px] border-2 transition-all duration-300;
+}
+.kpi-card:hover { @apply -translate-y-1 shadow-xl; }
+.kpi-emerald { @apply bg-emerald-50/50 border-emerald-100 text-emerald-700 hover:shadow-emerald-500/10; }
+.kpi-blue { @apply bg-blue-50/50 border-blue-100 text-blue-700 hover:shadow-blue-500/10; }
+.kpi-navy { @apply bg-navy-600/5 border-navy-700/20 text-navy-800 hover:shadow-navy-900/10; }
+.kpi-red { @apply bg-rose-50/50 border-rose-100 text-rose-700 hover:shadow-rose-500/10; }
+.kpi-amber { @apply bg-amber-50/50 border-amber-100 text-amber-700 hover:shadow-amber-500/10; }
+
+/* Financial Statements Styling */
+.stmt-company { @apply text-[11px] font-extrabold uppercase tracking-[0.3em] text-slate-400; }
+.stmt-title { @apply text-[24px] font-display font-black text-slate-900 leading-tight; }
+.stmt-section-header { @apply text-[11px] font-extrabold uppercase tracking-widest pb-2 border-b-2 mb-4 mt-8; }
+.stmt-row { @apply flex justify-between py-2 border-b border-slate-50 text-slate-600; }
+.stmt-total { @apply font-bold text-slate-900; }
+.stmt-grand-total {
+  @apply flex justify-between items-center mt-10 p-5 rounded-2xl bg-blue-900 text-white shadow-xl shadow-blue-900/20;
+}
+
+/* Analytics Ratio Cards */
+.ratio-card { @apply rounded-3xl border-2 transition-all duration-300; }
+.ratio-value { @apply text-[32px] font-display font-black leading-none tracking-tight; }
+
+/* Custom Tooltip for Charts */
+.tooltip-custom {
+  @apply bg-slate-900/90 backdrop-blur-md border border-white/10 p-3 rounded-xl shadow-2xl;
+}
+
+/* Skeletons */
+.skeleton {
+  @apply bg-slate-100 animate-pulse rounded-lg;
+}
+
+/* Sidebar Navigation Items */
+.sidebar-nav-item {
+  @apply flex items-center gap-3 px-4 py-2.5 mx-2 rounded-xl text-[14px] font-medium transition-all duration-200;
+  color: rgba(255, 255, 255, 0.45);
+}
+.sidebar-nav-item:hover {
+  @apply bg-white/5;
+  color: rgba(255, 255, 255, 0.9);
+}
+.sidebar-nav-item.active {
+  @apply bg-emerald-500/10 text-emerald-400 font-bold;
+  box-shadow: inset 0 0 0 1px rgba(16, 185, 129, 0.1);
+}
+.sidebar-nav-item.active svg {
+  @apply text-emerald-400;
+}
+
+/* Field Labels (ERP Integration) */
+.field-label {
+  display: block;
+  font-size: 11px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.08em;
+  color: var(--text-muted);
+  margin-bottom: 6px;
+}

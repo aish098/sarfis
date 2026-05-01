@@ -1,0 +1,409 @@
+
+> frontend@0.0.0 lint
+> eslint .
+
+
+d:\sarfis\frontend\src\components\AdvancedFeatures.jsx
+  1:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+d:\sarfis\frontend\src\components\CTA.jsx
+  1:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+d:\sarfis\frontend\src\components\FAQ.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+d:\sarfis\frontend\src\components\Features.jsx
+  1:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+d:\sarfis\frontend\src\components\Footer.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+d:\sarfis\frontend\src\components\Hero.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+d:\sarfis\frontend\src\components\HowItWorks.jsx
+  1:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+d:\sarfis\frontend\src\components\Navbar.jsx
+  3:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+d:\sarfis\frontend\src\components\Pricing.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+d:\sarfis\frontend\src\components\Testimonials.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+d:\sarfis\frontend\src\components\erp\ERPDashboardWidgets.jsx
+    7:10  error    'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                     no-unused-vars
+   44:6   warning  React Hook useEffect has a missing dependency: 'activeCompany'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+   73:31  error    'i' is defined but never used                                                                                     no-unused-vars
+  112:6   warning  React Hook useEffect has a missing dependency: 'activeCompany'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  155:6   warning  React Hook useEffect has a missing dependency: 'activeCompany'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  205:6   warning  React Hook useEffect has a missing dependency: 'activeCompany'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+
+d:\sarfis\frontend\src\components\layout\Header.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+d:\sarfis\frontend\src\components\layout\Sidebar.jsx
+   1:10  error  'useState' is defined but never used. Allowed unused vars must match /^[A-Z_]/u           no-unused-vars
+   3:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u             no-unused-vars
+  35:46  error  'onToggle' is defined but never used                                                      no-unused-vars
+  37:11  error  'user' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u      no-unused-vars
+  38:9   error  'location' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+d:\sarfis\frontend\src\pages\AboutPage.jsx
+  1:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+d:\sarfis\frontend\src\pages\Auth.jsx
+  4:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+d:\sarfis\frontend\src\pages\ContactPage.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+d:\sarfis\frontend\src\pages\Dashboard.jsx
+    3:10  error    'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-unused-vars
+   74:28  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `activeCompany`, but the source dependencies were [activeCompany?.id]. Inferred less specific property than source.
+
+   72 |   const [isLoading, setIsLoading] = useState(true);
+   73 |
+>  74 |   const load = useCallback(async () => {
+      |                            ^^^^^^^^^^^^^
+>  75 |     if (!activeCompany) return;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  76 |     setIsLoading(true);
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  96 |     setIsLoading(false);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  97 |   }, [activeCompany?.id]);
+      | ^^^^ Could not preserve existing manual memoization
+   98 |
+   99 |   useEffect(() => { load(); }, [load]);
+  100 |                               react-hooks/preserve-manual-memoization
+   97:6   warning  React Hook useCallback has a missing dependency: 'activeCompany'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                            react-hooks/exhaustive-deps
+   99:21  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+   97 |   }, [activeCompany?.id]);
+   98 |
+>  99 |   useEffect(() => { load(); }, [load]);
+      |                     ^^^^ Avoid calling setState() directly within an effect
+  100 |
+  101 |   const fmt = v => '$' + parseFloat(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  102 |   const totalRev = parseFloat(metrics?.revenue || 0);  react-hooks/set-state-in-effect
+  247:34  error    'i' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-unused-vars
+
+d:\sarfis\frontend\src\pages\LandingPage.jsx
+  1:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+d:\sarfis\frontend\src\pages\accounts\AccountsPage.jsx
+   2:10  error    'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     no-unused-vars
+  30:28  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `activeCompany`, but the source dependencies were [activeCompany?.id]. Inferred less specific property than source.
+
+  28 |   const [editingId, setEditingId] = useState(null);
+  29 |
+> 30 |   const load = useCallback(async () => {
+     |                            ^^^^^^^^^^^^^
+> 31 |     if (!activeCompany) return;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 32 |     setIsLoading(true);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 33 |     try {
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 34 |       const res = await api.get(`/accounts/company/${activeCompany.id}`);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 35 |       setAccounts(res.data);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 36 |     } catch {}
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 37 |     setIsLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 38 |   }, [activeCompany?.id]);
+     | ^^^^ Could not preserve existing manual memoization
+  39 |
+  40 |   useEffect(() => { load(); }, [load]);
+  41 |  react-hooks/preserve-manual-memoization
+  36:13  error    Empty block statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             no-empty
+  38:6   warning  React Hook useCallback has a missing dependency: 'activeCompany'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                react-hooks/exhaustive-deps
+  40:21  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  38 |   }, [activeCompany?.id]);
+  39 |
+> 40 |   useEffect(() => { load(); }, [load]);
+     |                     ^^^^ Avoid calling setState() directly within an effect
+  41 |
+  42 |   const filtered = accounts.filter(a => {
+  43 |     const q = search.toLowerCase();                                                                                                                                                                                                                                                                                                                                                                                  react-hooks/set-state-in-effect
+  83:64  error    Empty block statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             no-empty
+
+d:\sarfis\frontend\src\pages\analytics\AnalyticsPage.jsx
+   2:10  error    'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         no-unused-vars
+  43:31  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `activeCompany`, but the source dependencies were [activeCompany?.id, budgets.period]. Inferred less specific property than source.
+
+  41 |   const [budgetTarget, setBudgetTarget] = useState({ accountId: '', amount: '' });
+  42 |
+> 43 |   const loadAll = useCallback(async () => {
+     |                               ^^^^^^^^^^^^^
+> 44 |     if (!activeCompany) return;
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 45 |     setLoading(true); setError('');
+     …
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 54 |     setLoading(false);
+     | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 55 |   }, [activeCompany?.id, budgets.period]);
+     | ^^^^ Could not preserve existing manual memoization
+  56 |
+  57 |   useEffect(() => { loadAll(); }, [loadAll]);
+  58 |  react-hooks/preserve-manual-memoization
+  53:13  error    Empty block statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-empty
+  55:6   warning  React Hook useCallback has a missing dependency: 'activeCompany'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    react-hooks/exhaustive-deps
+  57:21  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  55 |   }, [activeCompany?.id, budgets.period]);
+  56 |
+> 57 |   useEffect(() => { loadAll(); }, [loadAll]);
+     |                     ^^^^^^^ Avoid calling setState() directly within an effect
+  58 |
+  59 |   useEffect(() => {
+  60 |     if (!activeCompany) return;                                                                                                                                                       react-hooks/set-state-in-effect
+  63:6   warning  React Hook useEffect has a missing dependency: 'activeCompany'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      react-hooks/exhaustive-deps
+  73:13  error    Empty block statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 no-empty
+
+d:\sarfis\frontend\src\pages\dashboard\Header.jsx
+  2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                  no-unused-vars
+  9:10  error  'showSearch' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u     no-unused-vars
+  9:22  error  'setShowSearch' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+
+d:\sarfis\frontend\src\pages\dashboard\Sidebar.jsx
+    1:10  error  'useState' is defined but never used. Allowed unused vars must match /^[A-Z_]/u            no-unused-vars
+    3:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u              no-unused-vars
+   57:11  error  'user' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u       no-unused-vars
+   57:25  error  'companies' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u  no-unused-vars
+  167:41  error  'external' is defined but never used                                                       no-unused-vars
+
+d:\sarfis\frontend\src\pages\distribution\DistributionPage.jsx
+    2:10  error    'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                       no-unused-vars
+   42:10  error    'detailModal' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                         no-unused-vars
+   42:23  error    'setDetailModal' is assigned a value but never used. Allowed unused vars must match /^[A-Z_]/u                      no-unused-vars
+   77:13  error    Empty block statement                                                                                               no-empty
+   79:6   warning  React Hook useCallback has a missing dependency: 'activeCompany'. Either include it or remove the dependency array  react-hooks/exhaustive-deps
+  368:41  error    'i' is defined but never used                                                                                       no-unused-vars
+
+d:\sarfis\frontend\src\pages\inventory\InventoryPage.jsx
+    2:10  error    'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              no-unused-vars
+   56:28  error    Compilation Skipped: Existing memoization could not be preserved
+
+React Compiler has skipped optimizing this component because the existing manual memoization could not be preserved. The inferred dependencies did not match the manually specified dependencies, which could cause the value to change more or less frequently than expected. The inferred dependency was `activeCompany`, but the source dependencies were [activeCompany?.id]. Inferred less specific property than source.
+
+   54 |   const [formError, setFormError] = useState('');
+   55 |
+>  56 |   const load = useCallback(async () => {
+      |                            ^^^^^^^^^^^^^
+>  57 |     if (!activeCompany) return;
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+>  58 |     setLoading(true);
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 103 |     setLoading(false);
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 104 |   }, [activeCompany?.id]);
+      | ^^^^ Could not preserve existing manual memoization
+  105 |
+  106 |   useEffect(() => { load(); }, [load]);
+  107 |  react-hooks/preserve-manual-memoization
+  104:6   warning  React Hook useCallback has a missing dependency: 'activeCompany'. Either include it or remove the dependency array                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         react-hooks/exhaustive-deps
+  106:21  error    Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  104 |   }, [activeCompany?.id]);
+  105 |
+> 106 |   useEffect(() => { load(); }, [load]);
+      |                     ^^^^ Avoid calling setState() directly within an effect
+  107 |
+  108 |   const toggleProductExpand = async (productId) => {
+  109 |     if (expandedProduct === productId) {                                                    react-hooks/set-state-in-effect
+  323:46  error    'i' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              no-unused-vars
+  362:43  error    'i' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              no-unused-vars
+  455:42  error    'i' is defined but never used                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              no-unused-vars
+
+d:\sarfis\frontend\src\pages\inventory\WarehousePage.jsx
+   2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             no-unused-vars
+  43:5   error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  41 |
+  42 |   useEffect(() => {
+> 43 |     load();
+     |     ^^^^ Avoid calling setState() directly within an effect
+  44 |   }, [load]);
+  45 |
+  46 |   const handleOpenModal = (wh = null) => {  react-hooks/set-state-in-effect
+
+d:\sarfis\frontend\src\pages\journal\JournalEntryPage.jsx
+   3:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        no-unused-vars
+  79:72  error  Error: Cannot call impure function during render
+
+`Math.random` is an impure function. Calling an impure function can produce unstable results that update unpredictably when the component happens to re-render. (https://react.dev/reference/rules/components-and-hooks-must-be-pure#components-and-hooks-must-be-idempotent).
+
+  77 |   const [accounts, setAccounts] = useState([]);
+  78 |   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
+> 79 |   const [reference, setReference] = useState('JE-' + Math.floor(1000 + Math.random() * 9000));
+     |                                                                        ^^^^^^^^^^^^^ Cannot call impure function
+  80 |   const [lines, setLines] = useState([genRow(), genRow()]);
+  81 |   const [error, setError] = useState('');
+  82 |   const [saving, setSaving] = useState(false);  react-hooks/purity
+
+d:\sarfis\frontend\src\pages\ledger\LedgerPage.jsx
+   2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              no-unused-vars
+  30:13  error  Empty block statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      no-empty
+  50:7   error  Error: Cannot reassign variable after render completes
+
+Reassigning `balance` after render has completed can cause inconsistent behavior on subsequent renders. Consider using state instead.
+
+  48 |     const entries = filtered.map(tx => {
+  49 |       const debit = parseFloat(tx.debit) || 0, credit = parseFloat(tx.credit) || 0;
+> 50 |       balance += debit - credit; totalDebits += debit; totalCredits += credit;
+     |       ^^^^^^^ Cannot reassign `balance` after render completes
+  51 |       return { ...tx, parsedDebit: debit, parsedCredit: credit, runningBalance: balance };
+  52 |     });
+  53 |     return { entries, totalDebits, totalCredits, closingBalance: balance };  react-hooks/immutability
+  87:74  error  Empty block statement                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      no-empty
+
+d:\sarfis\frontend\src\pages\reports\ReportsPage.jsx
+    2:10  error  'motion' is defined but never used. Allowed unused vars must match /^[A-Z_]/u                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   no-unused-vars
+   56:21  error  Error: Calling setState synchronously within an effect can trigger cascading renders
+
+Effects are intended to synchronize state between React and external systems such as manually updating the DOM, state management libraries, or other platform APIs. In general, the body of an effect should do one or both of the following:
+* Update external systems with the latest state from React.
+* Subscribe for updates from some external system, calling setState in a callback function when external state changes.
+
+Calling setState synchronously within an effect body causes cascading renders that can hurt performance, and is not recommended. (https://react.dev/learn/you-might-not-need-an-effect).
+
+  54 |   }, [activeCompany, tab, startDate, endDate, asOfDate]);
+  55 |
+> 56 |   useEffect(() => { load(); }, [load]);
+     |                     ^^^^ Avoid calling setState() directly within an effect
+  57 |
+  58 |   const handleClose = async () => {
+  59 |     setClosing(true); setCloseResult(null);                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                               react-hooks/set-state-in-effect
+  473:8   error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  471 |         <p className="text-[12px] text-slate-400 mt-1">{startDate} to {endDate}</p>
+  472 |       </div>
+> 473 |       <Section title="Operating Activities" items={operating} net={netOp} color="#10b981" />
+      |        ^^^^^^^ This component is created during render
+  474 |       <Section title="Investing Activities" items={investing} net={netInv} color="#3b82f6" />
+  475 |       <Section title="Financing Activities" items={financing} net={netFin} color="#8b5cf6" />
+  476 |       <div className="stmt-grand-total">
+
+  453 |   const netFin = financing.reduce((s,r)=>s+(parseFloat(r.magnitude)||0),0);
+  454 |   const total = netOp + netInv + netFin;
+> 455 |   const Section = ({ title, items, net, color }) => (
+      |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 456 |     <div className="mb-7">
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 457 |       <div className={`stmt-section-header mb-3`} style={{ borderColor: color, color }}>{title}</div>
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 464 |     </div>
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 465 |   );
+      | ^^^^ The component is created during render here
+  466 |   return (
+  467 |     <div className="max-w-2xl mx-auto">
+  468 |       <div className="text-center mb-8 pb-6" style={{ borderBottom: '2px solid #0f172a' }}>                                 react-hooks/static-components
+  474:8   error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  472 |       </div>
+  473 |       <Section title="Operating Activities" items={operating} net={netOp} color="#10b981" />
+> 474 |       <Section title="Investing Activities" items={investing} net={netInv} color="#3b82f6" />
+      |        ^^^^^^^ This component is created during render
+  475 |       <Section title="Financing Activities" items={financing} net={netFin} color="#8b5cf6" />
+  476 |       <div className="stmt-grand-total">
+  477 |         <div>
+
+  453 |   const netFin = financing.reduce((s,r)=>s+(parseFloat(r.magnitude)||0),0);
+  454 |   const total = netOp + netInv + netFin;
+> 455 |   const Section = ({ title, items, net, color }) => (
+      |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 456 |     <div className="mb-7">
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 457 |       <div className={`stmt-section-header mb-3`} style={{ borderColor: color, color }}>{title}</div>
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 464 |     </div>
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 465 |   );
+      | ^^^^ The component is created during render here
+  466 |   return (
+  467 |     <div className="max-w-2xl mx-auto">
+  468 |       <div className="text-center mb-8 pb-6" style={{ borderBottom: '2px solid #0f172a' }}>                                                                                                       react-hooks/static-components
+  475:8   error  Error: Cannot create components during render
+
+Components created during render will reset their state each time they are created. Declare components outside of render.
+
+  473 |       <Section title="Operating Activities" items={operating} net={netOp} color="#10b981" />
+  474 |       <Section title="Investing Activities" items={investing} net={netInv} color="#3b82f6" />
+> 475 |       <Section title="Financing Activities" items={financing} net={netFin} color="#8b5cf6" />
+      |        ^^^^^^^ This component is created during render
+  476 |       <div className="stmt-grand-total">
+  477 |         <div>
+  478 |           <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 mb-0.5">Total Impact</p>
+
+  453 |   const netFin = financing.reduce((s,r)=>s+(parseFloat(r.magnitude)||0),0);
+  454 |   const total = netOp + netInv + netFin;
+> 455 |   const Section = ({ title, items, net, color }) => (
+      |                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 456 |     <div className="mb-7">
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 457 |       <div className={`stmt-section-header mb-3`} style={{ borderColor: color, color }}>{title}</div>
+      …
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 464 |     </div>
+      | ^^^^^^^^^^^^^^^^^^^^^^^^^^
+> 465 |   );
+      | ^^^^ The component is created during render here
+  466 |   return (
+  467 |     <div className="max-w-2xl mx-auto">
+  468 |       <div className="text-center mb-8 pb-6" style={{ borderBottom: '2px solid #0f172a' }}>  react-hooks/static-components
+
+✖ 78 problems (68 errors, 10 warnings)
+
