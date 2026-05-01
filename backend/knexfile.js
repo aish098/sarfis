@@ -23,6 +23,15 @@ module.exports = {
       connectionString: process.env.DATABASE_URL,
       ssl: { rejectUnauthorized: false }
     },
+    pool: {
+      min: 2,
+      max: 10,
+      acquireTimeoutMillis: 10000, // 10 seconds
+      idleTimeoutMillis: 30000,
+      reapIntervalMillis: 1000,
+      propagateCreateError: false
+    },
+    acquireConnectionTimeout: 10000,
     migrations: {
       directory: './src/db/migrations'
     },
