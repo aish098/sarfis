@@ -92,7 +92,9 @@ exports.createDelivery = async (req, res) => {
 exports.updateDeliveryStatus = async (req, res) => {
   try {
     const { status } = req.body;
-    if (status === 'DELIVERED') {
+    if (status === 'CONFIRMED') {
+      res.json(await distService.confirmDelivery(req.params.id, req.params.companyId, req.user?.id));
+    } else if (status === 'DELIVERED') {
       res.json(await distService.markDelivered(req.params.id, req.params.companyId));
     } else if (status === 'CANCELLED') {
       res.json(await distService.cancelDelivery(req.params.id, req.params.companyId, req.user?.id));

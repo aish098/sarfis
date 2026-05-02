@@ -284,6 +284,12 @@ export default function DistributionPage() {
                       </td>
                       <td>
                         <div className="flex gap-1">
+                          {d.status === 'PENDING' && (
+                            <button onClick={() => updateStatus(d.id, 'CONFIRMED')}
+                              className="text-[11px] font-semibold px-2.5 py-1 rounded-lg bg-indigo-50 text-indigo-700 hover:bg-indigo-100 transition-colors">
+                              Confirm
+                            </button>
+                          )}
                           {d.status === 'CONFIRMED' && (
                             <button onClick={() => updateStatus(d.id, 'DISPATCHED')}
                               className="text-[11px] font-semibold px-2.5 py-1 rounded-lg transition-colors hover:bg-slate-100 text-slate-600">

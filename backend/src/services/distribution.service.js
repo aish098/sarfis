@@ -19,45 +19,14 @@ const createDeliveryOrder = async ({
   const client = await distModel.getClientById(clientId, companyId);
   if (!client) throw new Error('Client not found');
 
-  // Calculate order total
   const orderTotal = items.reduce((s, i) => s + (parseFloat(i.quantity) * parseFloat(i.unit_price)), 0);
-
-  // Credit limit check
-  if (client.credit_limit > 0) {
-    const newBalance = parseFloat(client.current_balance) + orderTotal;
-    if (newBalance > parseFloat(client.credit_limit)) {
-      throw new Error(
-        `Credit limit exceeded. Limit: $${client.credit_limit}, ` +
-        `Current: $${client.current_balance}, ` +
-        `This order: $${orderTotal.toFixed(2)}`
-      );
-    }
-  }
-
-  // Stock availability check
-  for (const item of items) {
-    const stock = await db('inventory')
-      .where({ product_id: item.product_id, warehouse_id: warehouseId })
-      .first();
-    
-    const available = parseFloat(stock?.quantity || 0);
-    if (available < parseFloat(item.quantity)) {
-      const product = await db('products').where('id', item.product_id).first();
-      const warehouse = await db('warehouses').where('id', warehouseId).first();
-      
-      const errorMsg = `Insufficient stock for ${product?.name || 'Product ' + item.product_id} in ${warehouse?.name || 'Warehouse ' + warehouseId}. Available: ${available}, Requested: ${item.quantity}`;
-      console.warn(`[DISTRIBUTION] ${errorMsg}`);
-      throw new Error(errorMsg);
-    }
-  }
 
   // ── Transaction ─────────────────────────────────────────
   return db.transaction(async (trx) => {
     const deliveryNumber = await distModel.getNextDeliveryNumber(companyId);
-
     const totalCost = items.reduce((s, i) => s + (parseFloat(i.quantity) * parseFloat(i.unit_cost)), 0);
 
-    // Create delivery header
+    // Create delivery header (Starts as PENDING)
     const delivery = await distModel.createDelivery(trx, {
       company_id: companyId,
       client_id: clientId,
@@ -65,11 +34,12 @@ const createDeliveryOrder = async ({
       warehouse_id: warehouseId,
       delivery_number: deliveryNumber,
       delivery_date: deliveryDate || new Date(),
-      status: 'CONFIRMED',
+      status: 'PENDING',
       total_amount: orderTotal,
       total_cost: totalCost,
       notes,
       created_by: userId,
+      ar_account_id: arAccountId // Store for later confirmation
     });
 
     // Create delivery items
@@ -81,18 +51,52 @@ const createDeliveryOrder = async ({
       unit_cost: i.unit_cost,
     })));
 
-    // Update client balance (increase AR)
-    await distModel.updateClientBalance(trx, clientId, orderTotal);
+    return delivery;
+  });
+};
 
-    // Commit inventory + accounting outside this trx
-    // (processSale opens its own transaction; pass items with warehouseId)
-    const saleItems = items.map(i => ({ ...i, warehouse_id: warehouseId }));
+/**
+ * CONFIRM DELIVERY (Deducts stock & records sale)
+ */
+const confirmDelivery = async (deliveryId, companyId, userId) => {
+  const delivery = await distModel.getDeliveryById(deliveryId, companyId);
+  if (!delivery) throw new Error('Delivery not found');
+  if (delivery.status !== 'PENDING') throw new Error('Only pending orders can be confirmed');
+
+  const items = await distModel.getDeliveryItems(deliveryId);
+
+  // 1. Stock availability check (Before we do anything)
+  for (const item of items) {
+    const stock = await db('inventory')
+      .where({ product_id: item.product_id, warehouse_id: delivery.warehouse_id })
+      .first();
+    
+    const available = parseFloat(stock?.quantity || 0);
+    if (available < parseFloat(item.quantity)) {
+      const product = await db('products').where('id', item.product_id).first();
+      throw new Error(`Insufficient stock for ${product?.name}. Available: ${available}, Requested: ${item.quantity}`);
+    }
+  }
+
+  return db.transaction(async (trx) => {
+    // 2. Update status to CONFIRMED
+    await trx('deliveries').where('id', deliveryId).update({ status: 'CONFIRMED', updated_at: trx.fn.now() });
+
+    // 3. Update client balance (increase AR)
+    await distModel.updateClientBalance(trx, delivery.client_id, parseFloat(delivery.total_amount));
+
+    // 4. Trigger inventory/accounting
+    const saleItems = items.map(i => ({ ...i, warehouse_id: delivery.warehouse_id }));
     await inventoryService.processSale({
-      companyId, deliveryId: delivery.id, items: saleItems,
-      clientId, arAccountId, userId,
+      companyId, 
+      deliveryId, 
+      items: saleItems,
+      clientId: delivery.client_id, 
+      arAccountId: delivery.ar_account_id, // Ensure this was saved
+      userId,
     });
 
-    return delivery;
+    return { success: true };
   });
 };
 
