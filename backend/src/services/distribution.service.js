@@ -151,4 +151,4 @@ const cancelDelivery = async (deliveryId, companyId, userId) => {
   });
 };
 
-module.exports = { createDeliveryOrder, markDelivered, cancelDelivery };
+module.exports = { createDeliveryOrder, confirmDelivery, markDelivered, cancelDelivery };
