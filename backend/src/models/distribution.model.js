@@ -113,13 +113,15 @@ const getDistributionDashboardStats = async (companyId) => {
   const [blockedClients] = await db('v_client_balance').where({ company_id: companyId, credit_blocked: true }).count('* as count');
   const monthRevenue = await db('deliveries')
     .where({ company_id: companyId, status: 'DELIVERED' })
-    .andWhere('delivery_date', '>=', db.raw("date_trunc('month', now())"))
+    .andWhere('delivery_date', '>=', db.raw("CURRENT_DATE - INTERVAL '30 days'"))
     .sum('total_amount as revenue').first();
 
+  console.log(`[STATS] Dashboard for ${companyId}: Clients ${totalClients.count}, Pending ${pendingOrders.count}`);
+
   return {
-    totalClients: parseInt(totalClients.count),
-    pendingOrders: parseInt(pendingOrders.count),
-    blockedClients: parseInt(blockedClients.count),
+    totalClients: parseInt(totalClients.count || 0),
+    pendingOrders: parseInt(pendingOrders.count || 0),
+    blockedClients: parseInt(blockedClients.count || 0),
     monthRevenue: parseFloat(monthRevenue?.revenue || 0),
   };
 };
