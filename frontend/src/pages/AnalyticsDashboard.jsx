@@ -773,59 +773,77 @@ function VarianceTab({ companyId }) {
             ))}
           </div>
 
-          {/* Redesigned Variance Chart */}
+          {/* Redesigned Variance Chart as a Premium Doughnut */}
           {data.items?.length > 0 && (
-            <Card title="Budget vs. Actual Variance Analysis">
-              <ResponsiveContainer width="100%" height={Math.max(300, data.items.length * 45)}>
-                <BarChart
-                  data={data.items}
-                  layout="vertical"
-                  margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
-                  barGap={8}
-                >
-                  <defs>
-                    <linearGradient id="actualGrad" x1="0" y1="0" x2="1" y2="0">
-                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.8} />
-                      <stop offset="100%" stopColor="#059669" stopOpacity={1} />
-                    </linearGradient>
-                  </defs>
-                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
-                  <XAxis type="number" tick={axisTick} tickFormatter={fmt} axisLine={false} tickLine={false} />
-                  <YAxis
-                    dataKey="account_name"
-                    type="category"
-                    tick={{ ...axisTick, fontSize: 10, width: 120 }}
-                    width={130}
-                    axisLine={false}
-                    tickLine={false}
-                  />
-                  <Tooltip
-                    content={<PowerTooltip />}
-                    cursor={{ fill: 'rgba(241, 245, 249, 0.5)' }}
-                  />
-                  <Legend
-                    verticalAlign="top"
-                    align="right"
-                    iconType="circle"
-                    wrapperStyle={{ paddingBottom: 20, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}
-                  />
-                  <Bar
-                    dataKey="budget_amount"
-                    name="Budget Target"
-                    fill="#94a3b8"
-                    radius={[0, 4, 4, 0]}
-                    barSize={12}
-                    opacity={0.4}
-                  />
-                  <Bar
-                    dataKey="actual_amount"
-                    name="Actual Result"
-                    fill="url(#actualGrad)"
-                    radius={[0, 4, 4, 0]}
-                    barSize={12}
-                  />
-                </BarChart>
-              </ResponsiveContainer>
+            <Card title="Expenditure Breakdown & Budget Utilization">
+              <div className="flex flex-col lg:flex-row items-center gap-8">
+                <div style={{ width: '100%', height: 320 }}>
+                  <ResponsiveContainer>
+                    <PieChart>
+                      <Pie
+                        data={data.items}
+                        dataKey="actual_amount"
+                        nameKey="account_name"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={80}
+                        outerRadius={120}
+                        paddingAngle={5}
+                        stroke="none"
+                      >
+                        {data.items.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                        ))}
+                      </Pie>
+                      <Tooltip 
+                        content={({ active, payload }) => {
+                          if (!active || !payload?.length) return null;
+                          const d = payload[0].payload;
+                          return (
+                            <div className="bg-white p-4 shadow-xl rounded-2xl border border-slate-100 min-w-[180px]">
+                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{d.account_name}</p>
+                              <div className="flex justify-between items-end gap-4">
+                                <div>
+                                  <p className="text-[14px] font-extrabold text-slate-800">PKR {fmt(d.actual_amount)}</p>
+                                  <p className="text-[10px] text-slate-500">Budget: {fmt(d.budget_amount)}</p>
+                                </div>
+                                <div className="text-right">
+                                  {badge(d.variance_pct)}
+                                </div>
+                              </div>
+                            </div>
+                          );
+                        }}
+                      />
+                    </PieChart>
+                  </ResponsiveContainer>
+                  
+                  {/* Central Label */}
+                  <div className="absolute top-[58%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
+                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Actual</p>
+                    <p className="text-[20px] font-extrabold text-emerald-600 font-mono">
+                      {fmt(data.summary?.total_actual)}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Side Legend */}
+                <div className="flex-1 w-full space-y-3">
+                  <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-100 pb-2 mb-4">Account Breakdown</h4>
+                  {data.items.map((item, idx) => (
+                    <div key={item.account_id} className="flex items-center justify-between group">
+                      <div className="flex items-center gap-3">
+                        <div className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS[idx % COLORS.length] }} />
+                        <span className="text-[13px] font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{item.account_name}</span>
+                      </div>
+                      <div className="text-right">
+                        <p className="text-[13px] font-mono font-bold text-slate-800">{fmt(item.actual_amount)}</p>
+                        <p className="text-[10px] text-slate-400">{((item.actual_amount / (data.summary?.total_actual || 1)) * 100).toFixed(1)}%</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
             </Card>
           )}
 
