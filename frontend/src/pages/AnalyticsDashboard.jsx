@@ -829,73 +829,52 @@ function VarianceTab({ companyId }) {
             ))}
           </div>
 
-          {/* Executive Budget Utilization List */}
+          {/* Redesigned Variance Chart as a Premium Line Comparison */}
           {data.items?.length > 0 && (
-            <Card title="Budget Utilization & Expenditure Tracking">
-              <div className="space-y-8 mt-4">
-                {data.items.map((item, idx) => {
-                  const budget = parseFloat(item.budget_amount) || 1;
-                  const actual = parseFloat(item.actual_amount) || 0;
-                  const pct = Math.min((actual / budget) * 100, 100);
-                  const isOver = actual > budget;
-                  const remaining = budget - actual;
-                  
-                  // Color logic: Green (good), Amber (near limit), Red (over)
-                  const barColor = isOver ? "#f43f5e" : (pct > 85 ? "#f59e0b" : "#10b981");
-                  const barBg = isOver ? "rgba(244, 63, 94, 0.1)" : (pct > 85 ? "rgba(245, 158, 11, 0.1)" : "rgba(16, 185, 129, 0.1)");
-
-                  return (
-                    <motion.div 
-                      key={item.account_id}
-                      initial={{ opacity: 0, x: -10 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: idx * 0.05 }}
-                      className="group"
-                    >
-                      <div className="flex justify-between items-end mb-2.5">
-                        <div>
-                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
-                            {item.account_code ? `ACC-${item.account_code}` : 'ACCOUNT'}
-                          </p>
-                          <h4 className="text-[14px] font-extrabold text-slate-800 group-hover:text-emerald-600 transition-colors">
-                            {item.account_name || `Account #${item.account_id}`}
-                          </h4>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[14px] font-mono font-bold text-slate-900">
-                            {fmt(actual)} <span className="text-slate-300 font-normal mx-1">/</span> {fmt(budget)}
-                          </p>
-                          <p className={`text-[10px] font-bold uppercase tracking-tight ${isOver ? 'text-rose-500' : 'text-slate-400'}`}>
-                            {isOver ? `Over-spent by ${fmt(Math.abs(remaining))}` : `${fmt(remaining)} Remaining`}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Premium Progress Bar */}
-                      <div className="relative h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                        {/* the fill */}
-                        <motion.div 
-                          initial={{ width: 0 }}
-                          animate={{ width: `${pct}%` }}
-                          transition={{ duration: 1, ease: "easeOut", delay: 0.2 + (idx * 0.1) }}
-                          className="absolute top-0 left-0 h-full rounded-full"
-                          style={{ background: barColor, boxShadow: `0 0 12px ${barColor}44` }}
-                        />
-                        {/* over-budget marker if applicable */}
-                        {isOver && (
-                          <div className="absolute inset-0 bg-stripe opacity-10 animate-pulse" />
-                        )}
-                      </div>
-                      
-                      {/* Percent Badge */}
-                      <div className="flex justify-end mt-1.5">
-                        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-md" style={{ background: barBg, color: barColor }}>
-                          {((actual / budget) * 100).toFixed(1)}% USED
-                        </span>
-                      </div>
-                    </motion.div>
-                  );
-                })}
+            <Card title="Budget vs. Actual Profile (Variance)">
+              <div style={{ width: '100%', height: 350 }}>
+                <ResponsiveContainer>
+                  <LineChart data={data.items} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                    <XAxis 
+                      dataKey="account_name" 
+                      tick={{ ...axisTick, fontSize: 9 }} 
+                      axisLine={false} 
+                      tickLine={false}
+                      interval={0}
+                      angle={-15}
+                      textAnchor="end"
+                    />
+                    <YAxis tick={axisTick} tickFormatter={fmt} axisLine={false} tickLine={false} />
+                    <Tooltip content={<PowerTooltip />} />
+                    <Legend 
+                      verticalAlign="top" 
+                      align="right" 
+                      iconType="circle"
+                      wrapperStyle={{ paddingBottom: 30, fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="budget_amount" 
+                      name="Budget Target" 
+                      stroke="#94a3b8" 
+                      strokeWidth={2} 
+                      strokeDasharray="5 5"
+                      dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
+                      activeDot={{ r: 6 }}
+                    />
+                    <Line 
+                      type="monotone" 
+                      dataKey="actual_amount" 
+                      name="Actual Result" 
+                      stroke="#10b981" 
+                      strokeWidth={4} 
+                      dot={{ r: 5, strokeWidth: 2, fill: '#fff', stroke: '#10b981' }}
+                      activeDot={{ r: 8, strokeWidth: 0 }}
+                      connectNulls
+                    />
+                  </LineChart>
+                </ResponsiveContainer>
               </div>
             </Card>
           )}
