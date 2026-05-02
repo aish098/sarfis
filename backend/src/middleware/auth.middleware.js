@@ -21,36 +21,35 @@ const authMiddleware = async (req, res, next) => {
 
     // Check for company context
     const companyIdRaw = req.header('x-company-id');
-    if (companyIdRaw) {
+    
+    // If we have a company context, verify it
+    if (companyIdRaw && companyIdRaw !== 'undefined' && companyIdRaw !== 'null') {
       const companyId = parseInt(companyIdRaw);
       
       if (isNaN(companyId) || companyId <= 0) {
-        console.error(`[AUTH] Invalid company ID header received: "${companyIdRaw}"`);
-        return res.status(400).json({ 
-          message: 'Invalid x-company-id header. Must be a positive integer.',
-          received: companyIdRaw 
-        });
-      }
-
-      // Verify user belongs to this company
-      const membership = await db('company_users')
-        .select('role')
-        .where('user_id', req.user.id)
-        .andWhere('company_id', companyId)
-        .first();
-
-      if (membership) {
-        req.companyId = companyId;
-        req.userCompanyRole = membership.role; 
-      } else if (req.user.role === 'Super Admin') {
-        req.companyId = companyId;
-        req.userCompanyRole = 'Super Admin';
+        // Log the error but don't crash if we can recover
+        console.warn(`[AUTH] Cleaning invalid company ID header: "${companyIdRaw}"`);
       } else {
-        console.warn(`[AUTH] 403 Access Denied: User ${req.user.id} not in Company ${companyId}`);
-        return res.status(403).json({ 
-          message: 'Access to this company is denied',
-          debug: { userId: req.user.id, requestedCompanyId: companyId }
-        });
+        // Verify user belongs to this company
+        const membership = await db('company_users')
+          .select('role')
+          .where('user_id', req.user.id)
+          .andWhere('company_id', companyId)
+          .first();
+
+        if (membership) {
+          req.companyId = companyId;
+          req.userCompanyRole = membership.role; 
+        } else if (req.user.role === 'Super Admin') {
+          req.companyId = companyId;
+          req.userCompanyRole = 'Super Admin';
+        } else {
+          console.warn(`[AUTH] 403 Denied: User ${req.user.id} NOT in Company ${companyId}`);
+          return res.status(403).json({ 
+            message: 'Access to this company is denied',
+            debug: { userId: req.user.id, requestedCompanyId: companyId }
+          });
+        }
       }
     }
 

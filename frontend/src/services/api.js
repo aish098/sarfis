@@ -48,11 +48,11 @@ api.interceptors.request.use(
       }
     });
 
-    const finalCompanyId = urlCompanyId || activeCompanyId;
+    const finalCompanyId = String(urlCompanyId || activeCompanyId || '').trim();
 
     // Only attach x-company-id if we are NOT fetching the companies list itself,
-    // and if we have a valid company ID.
-    if (!isCompaniesList && finalCompanyId && finalCompanyId !== 'undefined' && finalCompanyId !== 'null') {
+    // and if we have a valid-looking company ID.
+    if (!isCompaniesList && finalCompanyId && finalCompanyId !== 'undefined' && finalCompanyId !== 'null' && finalCompanyId !== '') {
       config.headers['x-company-id'] = finalCompanyId;
     } else {
       delete config.headers['x-company-id'];
