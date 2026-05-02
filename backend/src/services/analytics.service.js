@@ -359,15 +359,39 @@ async function getSectorGrowth(companyId, months = 6) {
 // ─────────────────────────────────────────────
 
 async function createOrUpdateBudget(companyId, budgetData) {
-  const { account_id, sector_id, budget_type, period_month, period_year, budget_amount, notes, currency } = budgetData;
+  let { account_id, sector_id, budget_type, period_month, period_year, budget_amount, notes, currency } = budgetData;
 
+  // 1. SMART LOOKUP: If account_id is provided, check if it's a primary key or a code
+  if (account_id && budget_type === "account") {
+    const acc = await db("accounts")
+      .where({ company_id: companyId })
+      .where(function() {
+        this.where("id", isNaN(parseInt(account_id)) ? -1 : parseInt(account_id))
+            .orWhere("code", String(account_id));
+      })
+      .first();
+    
+    if (!acc) {
+      throw new Error(`Account "${account_id}" not found for this company.`);
+    }
+    account_id = acc.id; // Resolve to internal primary key
+  }
+
+  // 2. UPSERT LOGIC
   const existing = await db("budgets")
-    .where({ company_id: companyId, account_id: account_id || null, sector_id: sector_id || null, period_month, period_year, budget_type })
+    .where({ 
+      company_id: companyId, 
+      account_id: account_id || null, 
+      sector_id: sector_id || null, 
+      period_month, 
+      period_year, 
+      budget_type 
+    })
     .first();
 
   if (existing) {
     await db("budgets").where("id", existing.id).update({
-      budget_amount,
+      budget_amount: parseFloat(budget_amount) || 0,
       notes,
       currency: currency || "PKR",
       updated_at: db.fn.now(),
@@ -375,19 +399,19 @@ async function createOrUpdateBudget(companyId, budgetData) {
     return { ...existing, budget_amount, updated: true };
   }
 
-  const [id] = await db("budgets").insert({
+  const [res] = await db("budgets").insert({
     company_id: companyId,
     account_id: account_id || null,
     sector_id: sector_id || null,
     budget_type: budget_type || "account",
     period_month,
     period_year,
-    budget_amount,
+    budget_amount: parseFloat(budget_amount) || 0,
     notes,
     currency: currency || "PKR",
-  }).returning("id");
+  }).returning("*");
 
-  return { id, created: true };
+  return { ...res, created: true };
 }
 
 async function getBudgets(companyId, year, month = null) {
