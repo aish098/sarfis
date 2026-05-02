@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
 import { Search, Calendar, Download, RefreshCw, ChevronDown, FileText, Trash2, ArrowUpRight, ArrowDownRight, DollarSign, LayoutPanelLeft } from 'lucide-react';
 import api from '../../services/api';
