@@ -492,7 +492,17 @@ export default function InventoryPage() {
               <FormError error={formError} />
               <div className="grid grid-cols-2 gap-4">
                 <Field label="SKU *"><input required className="input-enterprise" placeholder="e.g. PRD-001" value={productForm.sku} onChange={e => setProductForm({ ...productForm, sku: e.target.value })} /></Field>
-                <Field label="Unit of Measure"><input className="input-enterprise" placeholder="unit, kg, box..." value={productForm.unit_of_measure} onChange={e => setProductForm({ ...productForm, unit_of_measure: e.target.value })} /></Field>
+                <Field label="Unit of Measure">
+                  <select className="input-enterprise" value={productForm.unit_of_measure} onChange={e => setProductForm({ ...productForm, unit_of_measure: e.target.value })}>
+                    <option value="unit">Unit (pcs)</option>
+                    <option value="kg">Kilogram (kg)</option>
+                    <option value="meter">Meter (m)</option>
+                    <option value="liter">Liter (L)</option>
+                    <option value="box">Box</option>
+                    <option value="pack">Pack</option>
+                    <option value="set">Set</option>
+                  </select>
+                </Field>
               </div>
               <Field label="Product Name *"><input required className="input-enterprise" placeholder="Product name" value={productForm.name} onChange={e => setProductForm({ ...productForm, name: e.target.value })} /></Field>
               <div className="grid grid-cols-2 gap-4">
