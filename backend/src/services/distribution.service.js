@@ -39,13 +39,15 @@ const createDeliveryOrder = async ({
     const stock = await db('inventory')
       .where({ product_id: item.product_id, warehouse_id: warehouseId })
       .first();
+    
     const available = parseFloat(stock?.quantity || 0);
     if (available < parseFloat(item.quantity)) {
       const product = await db('products').where('id', item.product_id).first();
-      throw new Error(
-        `Insufficient stock for ${product?.name || item.product_id}. ` +
-        `Available: ${available}, Requested: ${item.quantity}`
-      );
+      const warehouse = await db('warehouses').where('id', warehouseId).first();
+      
+      const errorMsg = `Insufficient stock for ${product?.name || 'Product ' + item.product_id} in ${warehouse?.name || 'Warehouse ' + warehouseId}. Available: ${available}, Requested: ${item.quantity}`;
+      console.warn(`[DISTRIBUTION] ${errorMsg}`);
+      throw new Error(errorMsg);
     }
   }
 
