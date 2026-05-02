@@ -773,76 +773,73 @@ function VarianceTab({ companyId }) {
             ))}
           </div>
 
-          {/* Redesigned Variance Chart as a Premium Doughnut */}
+          {/* Executive Budget Utilization List */}
           {data.items?.length > 0 && (
-            <Card title="Expenditure Breakdown & Budget Utilization">
-              <div className="flex flex-col lg:flex-row items-center gap-8">
-                <div style={{ width: '100%', height: 320 }}>
-                  <ResponsiveContainer>
-                    <PieChart>
-                      <Pie
-                        data={data.items}
-                        dataKey="actual_amount"
-                        nameKey="account_name"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={80}
-                        outerRadius={120}
-                        paddingAngle={5}
-                        stroke="none"
-                      >
-                        {data.items.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                        ))}
-                      </Pie>
-                      <Tooltip 
-                        content={({ active, payload }) => {
-                          if (!active || !payload?.length) return null;
-                          const d = payload[0].payload;
-                          return (
-                            <div className="bg-white p-4 shadow-xl rounded-2xl border border-slate-100 min-w-[180px]">
-                              <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">{d.account_name}</p>
-                              <div className="flex justify-between items-end gap-4">
-                                <div>
-                                  <p className="text-[14px] font-extrabold text-slate-800">PKR {fmt(d.actual_amount)}</p>
-                                  <p className="text-[10px] text-slate-500">Budget: {fmt(d.budget_amount)}</p>
-                                </div>
-                                <div className="text-right">
-                                  {badge(d.variance_pct)}
-                                </div>
-                              </div>
-                            </div>
-                          );
-                        }}
-                      />
-                    </PieChart>
-                  </ResponsiveContainer>
+            <Card title="Budget Utilization & Expenditure Tracking">
+              <div className="space-y-8 mt-4">
+                {data.items.map((item, idx) => {
+                  const budget = parseFloat(item.budget_amount) || 1;
+                  const actual = parseFloat(item.actual_amount) || 0;
+                  const pct = Math.min((actual / budget) * 100, 100);
+                  const isOver = actual > budget;
+                  const remaining = budget - actual;
                   
-                  {/* Central Label */}
-                  <div className="absolute top-[58%] left-1/2 -translate-x-1/2 -translate-y-1/2 text-center pointer-events-none">
-                    <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Actual</p>
-                    <p className="text-[20px] font-extrabold text-emerald-600 font-mono">
-                      {fmt(data.summary?.total_actual)}
-                    </p>
-                  </div>
-                </div>
+                  // Color logic: Green (good), Amber (near limit), Red (over)
+                  const barColor = isOver ? "#f43f5e" : (pct > 85 ? "#f59e0b" : "#10b981");
+                  const barBg = isOver ? "rgba(244, 63, 94, 0.1)" : (pct > 85 ? "rgba(245, 158, 11, 0.1)" : "rgba(16, 185, 129, 0.1)");
 
-                {/* Side Legend */}
-                <div className="flex-1 w-full space-y-3">
-                  <h4 className="text-[10px] font-bold text-slate-500 uppercase tracking-widest border-b border-slate-100 pb-2 mb-4">Account Breakdown</h4>
-                  {data.items.map((item, idx) => (
-                    <div key={item.account_id} className="flex items-center justify-between group">
-                      <div className="flex items-center gap-3">
-                        <div className="w-2.5 h-2.5 rounded-full" style={{ background: COLORS[idx % COLORS.length] }} />
-                        <span className="text-[13px] font-medium text-slate-600 group-hover:text-slate-900 transition-colors">{item.account_name}</span>
+                  return (
+                    <motion.div 
+                      key={item.account_id}
+                      initial={{ opacity: 0, x: -10 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: idx * 0.05 }}
+                      className="group"
+                    >
+                      <div className="flex justify-between items-end mb-2.5">
+                        <div>
+                          <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest mb-1">
+                            {item.account_code ? `ACC-${item.account_code}` : 'ACCOUNT'}
+                          </p>
+                          <h4 className="text-[14px] font-extrabold text-slate-800 group-hover:text-emerald-600 transition-colors">
+                            {item.account_name || `Account #${item.account_id}`}
+                          </h4>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-[14px] font-mono font-bold text-slate-900">
+                            {fmt(actual)} <span className="text-slate-300 font-normal mx-1">/</span> {fmt(budget)}
+                          </p>
+                          <p className={`text-[10px] font-bold uppercase tracking-tight ${isOver ? 'text-rose-500' : 'text-slate-400'}`}>
+                            {isOver ? `Over-spent by ${fmt(Math.abs(remaining))}` : `${fmt(remaining)} Remaining`}
+                          </p>
+                        </div>
                       </div>
-                      <div className="text-right">
-                        <p className="text-[13px] font-mono font-bold text-slate-800">{fmt(item.actual_amount)}</p>
-                        <p className="text-[10px] text-slate-400">{((item.actual_amount / (data.summary?.total_actual || 1)) * 100).toFixed(1)}%</p>
+
+                      {/* Premium Progress Bar */}
+                      <div className="relative h-2.5 w-full bg-slate-100 rounded-full overflow-hidden">
+                        {/* the fill */}
+                        <motion.div 
+                          initial={{ width: 0 }}
+                          animate={{ width: `${pct}%` }}
+                          transition={{ duration: 1, ease: "easeOut", delay: 0.2 + (idx * 0.1) }}
+                          className="absolute top-0 left-0 h-full rounded-full"
+                          style={{ background: barColor, boxShadow: `0 0 12px ${barColor}44` }}
+                        />
+                        {/* over-budget marker if applicable */}
+                        {isOver && (
+                          <div className="absolute inset-0 bg-stripe opacity-10 animate-pulse" />
+                        )}
                       </div>
-                    </div>
-                  ))}
-                </div>
+                      
+                      {/* Percent Badge */}
+                      <div className="flex justify-end mt-1.5">
+                        <span className="text-[10px] font-bold font-mono px-2 py-0.5 rounded-md" style={{ background: barBg, color: barColor }}>
+                          {((actual / budget) * 100).toFixed(1)}% USED
+                        </span>
+                      </div>
+                    </motion.div>
+                  );
+                })}
               </div>
             </Card>
           )}
