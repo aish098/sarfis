@@ -773,18 +773,57 @@ function VarianceTab({ companyId }) {
             ))}
           </div>
 
-          {/* Chart */}
+          {/* Redesigned Variance Chart */}
           {data.items?.length > 0 && (
-            <Card title="Budget vs Actual">
-              <ResponsiveContainer width="100%" height={260}>
-                <BarChart data={data.items.slice(0, 15)}>
-                  <CartesianGrid {...chartGrid} />
-                  <XAxis dataKey="account_name" tick={{ ...axisTick, fontSize: 10 }} axisLine={false} tickLine={false} dy={10} />
-                  <YAxis tick={axisTick} tickFormatter={fmt} axisLine={false} tickLine={false} />
-                  <Tooltip content={<PowerTooltip />} cursor={{ fill: '#f8fafc', radius: 12 }} />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '20px', fontWeight: 'bold' }} />
-                  <Bar dataKey="budget_amount" name="Budget" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={20} />
-                  <Bar dataKey="actual_amount" name="Actual" fill="#22d3ee" radius={[4, 4, 0, 0]} barSize={20} />
+            <Card title="Budget vs. Actual Variance Analysis">
+              <ResponsiveContainer width="100%" height={Math.max(300, data.items.length * 45)}>
+                <BarChart
+                  data={data.items}
+                  layout="vertical"
+                  margin={{ top: 5, right: 30, left: 40, bottom: 5 }}
+                  barGap={8}
+                >
+                  <defs>
+                    <linearGradient id="actualGrad" x1="0" y1="0" x2="1" y2="0">
+                      <stop offset="0%" stopColor="#10b981" stopOpacity={0.8} />
+                      <stop offset="100%" stopColor="#059669" stopOpacity={1} />
+                    </linearGradient>
+                  </defs>
+                  <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
+                  <XAxis type="number" tick={axisTick} tickFormatter={fmt} axisLine={false} tickLine={false} />
+                  <YAxis
+                    dataKey="account_name"
+                    type="category"
+                    tick={{ ...axisTick, fontSize: 10, width: 120 }}
+                    width={130}
+                    axisLine={false}
+                    tickLine={false}
+                  />
+                  <Tooltip
+                    content={<PowerTooltip />}
+                    cursor={{ fill: 'rgba(241, 245, 249, 0.5)' }}
+                  />
+                  <Legend
+                    verticalAlign="top"
+                    align="right"
+                    iconType="circle"
+                    wrapperStyle={{ paddingBottom: 20, fontSize: 11, fontWeight: 700, textTransform: 'uppercase', letterSpacing: '0.05em' }}
+                  />
+                  <Bar
+                    dataKey="budget_amount"
+                    name="Budget Target"
+                    fill="#94a3b8"
+                    radius={[0, 4, 4, 0]}
+                    barSize={12}
+                    opacity={0.4}
+                  />
+                  <Bar
+                    dataKey="actual_amount"
+                    name="Actual Result"
+                    fill="url(#actualGrad)"
+                    radius={[0, 4, 4, 0]}
+                    barSize={12}
+                  />
                 </BarChart>
               </ResponsiveContainer>
             </Card>
