@@ -24,8 +24,12 @@ const authMiddleware = async (req, res, next) => {
     if (companyIdRaw) {
       const companyId = parseInt(companyIdRaw);
       
-      if (isNaN(companyId)) {
-        return res.status(400).json({ message: 'Invalid x-company-id header' });
+      if (isNaN(companyId) || companyId <= 0) {
+        console.error(`[AUTH] Invalid company ID header received: "${companyIdRaw}"`);
+        return res.status(400).json({ 
+          message: 'Invalid x-company-id header. Must be a positive integer.',
+          received: companyIdRaw 
+        });
       }
 
       // Verify user belongs to this company

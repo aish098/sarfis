@@ -376,8 +376,8 @@ export default function DistributionPage() {
                 <h3 className="font-display font-bold text-[15px] text-slate-800">Revenue Distribution</h3>
                 <PieChart size={14} className="text-slate-400" />
               </div>
-              <div className="h-[280px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="h-[280px] w-full min-h-[280px]">
+                <ResponsiveContainer width="100%" height={280}>
                   <PieChart>
                     <Pie
                       data={sectorRevenue}
@@ -408,8 +408,8 @@ export default function DistributionPage() {
                 <h3 className="font-display font-bold text-[15px] text-slate-800">Revenue vs Gross Profit</h3>
                 <BarChart2 size={14} className="text-slate-400" />
               </div>
-              <div className="h-[280px] w-full">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="h-[280px] w-full min-h-[280px]">
+                <ResponsiveContainer width="100%" height={280}>
                   <BarChart data={sectorRevenue}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="sector_name" axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} dy={10} />
