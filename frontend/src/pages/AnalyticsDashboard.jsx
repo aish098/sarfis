@@ -12,6 +12,7 @@ import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie,
 } from "recharts";
+import { motion } from "framer-motion";
 import { analyticsApi } from "../services/analyticsApi";
 import useAuthStore from "../store/authStore";
 
