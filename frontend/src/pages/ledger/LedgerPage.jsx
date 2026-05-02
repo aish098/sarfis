@@ -21,19 +21,21 @@ export default function LedgerPage() {
     api.get('/accounts').then(r => setAccounts(r.data)).catch(() => {});
   }, [activeCompany]);
 
-  const loadLedger = useCallback(async () => {
-    if (!selectedId) return;
-    setIsLoading(true);
-    try {
-      const res = await api.get(`/ledger/account/${selectedId}`);
-      setTransactions(res.data);
-    } catch (err) {
-      console.error('Failed to load ledger:', err);
-    }
-    setIsLoading(false);
-  }, [selectedId]);
+  useEffect(() => {
+    const fetchLedger = async () => {
+      if (!selectedId) return;
+      setIsLoading(true);
+      try {
+        const res = await api.get(`/ledger/account/${selectedId}`);
+        setTransactions(res.data);
+      } catch (err) {
+        console.error('Failed to load ledger:', err);
+      }
+      setIsLoading(false);
+    };
 
-  useEffect(() => { loadLedger(); }, [loadLedger]);
+    fetchLedger();
+  }, [selectedId]);
 
   const selectedAcc = accounts.find(a => String(a.id) === String(selectedId));
 
@@ -97,7 +99,11 @@ export default function LedgerPage() {
 
   const handleVoid = async (entryId) => {
     if (!window.confirm('Void and delete this entry? This cannot be undone.')) return;
-    try { await api.delete(`/journal/${entryId}`); loadLedger(); } catch (err) {
+    try { 
+      await api.delete(`/journal/${entryId}`); 
+      // Update local state instead of reloading everything
+      setTransactions(prev => prev.filter(tx => (tx.entry_id || tx.id) !== entryId));
+    } catch (err) {
       console.error('Failed to void entry:', err);
     }
   };
