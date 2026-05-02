@@ -11,6 +11,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie,
+  AreaChart, Area,
 } from "recharts";
 import { motion } from "framer-motion";
 import { analyticsApi } from "../services/analyticsApi";
@@ -154,19 +155,73 @@ function TrendTab({ companyId }) {
         ))}
       </div>
 
-      <Card title="Revenue · Expenses · Profit">
-        <ResponsiveContainer width="100%" height={280} minWidth={0}>
-          <LineChart data={data}>
-            <CartesianGrid {...chartGrid} />
-            <XAxis dataKey="label" tick={axisTick} axisLine={false} tickLine={false} dy={10} />
-            <YAxis tick={axisTick} tickFormatter={fmt} axisLine={false} tickLine={false} />
-            <Tooltip content={<PowerTooltip />} />
-            <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '20px', fontWeight: 'bold' }} />
-            <Line type="monotone" dataKey="revenue" stroke="#10b981" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 5 }} name="Revenue" />
-            <Line type="monotone" dataKey="expenses" stroke="#f43f5e" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 5 }} name="Expenses" />
-            <Line type="monotone" dataKey="profit" stroke="#6366f1" strokeWidth={3} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 5 }} name="Profit" />
-          </LineChart>
-        </ResponsiveContainer>
+      <Card title="Revenue · Expenses · Profit Trajectory">
+        <div style={{ width: '100%', height: 320 }}>
+          <ResponsiveContainer>
+            <AreaChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+              <defs>
+                <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#10b981" stopOpacity={0} />
+                </linearGradient>
+                <linearGradient id="colorProf" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="#f59e0b" stopOpacity={0.3} />
+                  <stop offset="95%" stopColor="#f59e0b" stopOpacity={0} />
+                </linearGradient>
+              </defs>
+              <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <XAxis 
+                dataKey="label" 
+                tick={axisTick} 
+                axisLine={false} 
+                tickLine={false} 
+                dy={10} 
+              />
+              <YAxis 
+                tick={axisTick} 
+                tickFormatter={fmt} 
+                axisLine={false} 
+                tickLine={false} 
+              />
+              <Tooltip content={<PowerTooltip />} />
+              <Legend 
+                iconType="circle" 
+                verticalAlign="top" 
+                align="right"
+                wrapperStyle={{ fontSize: '10px', paddingBottom: '20px', fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: '0.1em' }} 
+              />
+              <Area 
+                type="monotone" 
+                dataKey="revenue" 
+                stroke="#10b981" 
+                strokeWidth={4} 
+                fillOpacity={1} 
+                fill="url(#colorRev)" 
+                name="Gross Revenue" 
+                animationDuration={1500}
+              />
+              <Area 
+                type="monotone" 
+                dataKey="profit" 
+                stroke="#f59e0b" 
+                strokeWidth={4} 
+                fillOpacity={1} 
+                fill="url(#colorProf)" 
+                name="Net Profit" 
+                animationDuration={1500}
+              />
+              <Line 
+                type="monotone" 
+                dataKey="expenses" 
+                stroke="#f43f5e" 
+                strokeWidth={2} 
+                strokeDasharray="5 5"
+                dot={false}
+                name="Total Expenses" 
+              />
+            </AreaChart>
+          </ResponsiveContainer>
+        </div>
       </Card>
 
       <Card title="Monthly Profit Bar">
