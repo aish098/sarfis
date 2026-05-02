@@ -426,8 +426,9 @@ async function getBudgets(companyId, year, month = null) {
     return q.select(
       "b.*",
       "a.name as account_name",
+      "a.code as account_code",
       "a.type as account_type"
-    ).orderBy(["b.period_month", "a.name"]);
+    ).orderBy(["b.period_month", "a.name", "b.id"]);
   } catch (e) {
     // Graceful fallback for environments where budget schema isn't ready yet
     // or where DB shape differs across local setups.

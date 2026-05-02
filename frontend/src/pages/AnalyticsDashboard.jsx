@@ -672,7 +672,9 @@ function BudgetTab({ companyId }) {
                 )}
                 {budgets.map((b) => (
                   <tr key={b.id} className="hover:bg-slate-50 transition-colors">
-                    <td className="text-slate-700">{b.account_name || b.sector_id || "—"}</td>
+                    <td className="text-slate-700">
+                      {b.account_name || (b.account_id ? `Account #${b.account_id}` : b.sector_id) || "—"}
+                    </td>
                     <td className="text-slate-500">{b.budget_type}</td>
                     <td className="text-right font-mono text-slate-900">PKR {fmt(b.budget_amount)}</td>
                     <td className="text-right text-slate-500">{MONTHS[b.period_month - 1]} {b.period_year}</td>
