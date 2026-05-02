@@ -20,8 +20,14 @@ const authMiddleware = async (req, res, next) => {
     req.user = decoded; 
 
     // Check for company context
-    const companyId = req.header('x-company-id');
-    if (companyId) {
+    const companyIdRaw = req.header('x-company-id');
+    if (companyIdRaw) {
+      const companyId = parseInt(companyIdRaw);
+      
+      if (isNaN(companyId)) {
+        return res.status(400).json({ message: 'Invalid x-company-id header' });
+      }
+
       // Verify user belongs to this company
       const membership = await db('company_users')
         .select('role')
@@ -30,13 +36,17 @@ const authMiddleware = async (req, res, next) => {
         .first();
 
       if (membership) {
-        req.companyId = parseInt(companyId);
+        req.companyId = companyId;
         req.userCompanyRole = membership.role; 
       } else if (req.user.role === 'Super Admin') {
-        req.companyId = parseInt(companyId);
+        req.companyId = companyId;
         req.userCompanyRole = 'Super Admin';
       } else {
-        return res.status(403).json({ message: 'Access to this company is denied' });
+        console.warn(`[AUTH] 403 Access Denied: User ${req.user.id} not in Company ${companyId}`);
+        return res.status(403).json({ 
+          message: 'Access to this company is denied',
+          debug: { userId: req.user.id, requestedCompanyId: companyId }
+        });
       }
     }
 
@@ -74,7 +84,10 @@ const checkRole = (allowedRoles) => {
 const companyGuard = (req, res, next) => {
   const paramId = parseInt(req.params.companyId);
   if (paramId && req.companyId && paramId !== req.companyId && req.user.role !== 'Super Admin') {
-    return res.status(403).json({ message: 'Company context mismatch' });
+    return res.status(403).json({ 
+      message: 'Company context mismatch',
+      details: { urlCompanyId: paramId, headerCompanyId: req.companyId }
+    });
   }
   next();
 };

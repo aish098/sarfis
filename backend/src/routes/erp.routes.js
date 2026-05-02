@@ -10,9 +10,9 @@ router.use(authMiddleware);
 // ─────────────────────────────────────────────────────────
 // Warehouses
 router.get('/warehouses/:companyId',       companyGuard, invCtrl.getWarehouses);
-router.post('/warehouses/:companyId',      companyGuard, checkRole(['Admin', 'Inventory Manager']), invCtrl.createWarehouse);
-router.put('/warehouses/:companyId/:id',   companyGuard, checkRole(['Admin', 'Inventory Manager']), invCtrl.updateWarehouse);
-router.delete('/warehouses/:companyId/:id', companyGuard, checkRole(['Admin', 'Inventory Manager']), invCtrl.deleteWarehouse);
+router.post('/warehouses/:companyId',      companyGuard, checkRole(['Company Admin', 'Inventory Manager']), invCtrl.createWarehouse);
+router.put('/warehouses/:companyId/:id',   companyGuard, checkRole(['Company Admin', 'Inventory Manager']), invCtrl.updateWarehouse);
+router.delete('/warehouses/:companyId/:id', companyGuard, checkRole(['Company Admin', 'Inventory Manager']), invCtrl.deleteWarehouse);
 
 // Products
 router.get('/products/:companyId',         invCtrl.getProducts);
