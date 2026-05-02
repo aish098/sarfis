@@ -27,7 +27,9 @@ export default function LedgerPage() {
     try {
       const res = await api.get(`/ledger/account/${selectedId}`);
       setTransactions(res.data);
-    } catch {}
+    } catch (err) {
+      console.error('Failed to load ledger:', err);
+    }
     setIsLoading(false);
   }, [selectedId]);
 
@@ -44,12 +46,23 @@ export default function LedgerPage() {
       return matchSearch && matchFrom && matchTo;
     }).sort((a, b) => new Date(a.entry_date) - new Date(b.entry_date));
 
+    const entries = [];
     let balance = 0, totalDebits = 0, totalCredits = 0;
-    const entries = filtered.map(tx => {
-      const debit = parseFloat(tx.debit) || 0, credit = parseFloat(tx.credit) || 0;
-      balance += debit - credit; totalDebits += debit; totalCredits += credit;
-      return { ...tx, parsedDebit: debit, parsedCredit: credit, runningBalance: balance };
+    
+    filtered.forEach(tx => {
+      const debit = parseFloat(tx.debit) || 0;
+      const credit = parseFloat(tx.credit) || 0;
+      balance += debit - credit;
+      totalDebits += debit;
+      totalCredits += credit;
+      entries.push({ 
+        ...tx, 
+        parsedDebit: debit, 
+        parsedCredit: credit, 
+        runningBalance: balance 
+      });
     });
+
     return { entries, totalDebits, totalCredits, closingBalance: balance };
   }, [transactions, search, dateFrom, dateTo]);
 
@@ -84,7 +97,9 @@ export default function LedgerPage() {
 
   const handleVoid = async (entryId) => {
     if (!window.confirm('Void and delete this entry? This cannot be undone.')) return;
-    try { await api.delete(`/journal/${entryId}`); loadLedger(); } catch {}
+    try { await api.delete(`/journal/${entryId}`); loadLedger(); } catch (err) {
+      console.error('Failed to void entry:', err);
+    }
   };
 
   return (
