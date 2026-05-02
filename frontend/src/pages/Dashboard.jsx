@@ -172,7 +172,7 @@ function DashboardOverview() {
           {/* Revenue vs Expenses */}
           <Motion.div variants={fadeUp} initial="initial" animate="animate" className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
             <h3 className="font-display font-black text-slate-900 text-[16px] mb-6">Revenue vs Expenses</h3>
-            <ResponsiveContainer width="100%" height={260}>
+            <ResponsiveContainer width="100%" height={260} minWidth={0}>
               <LineChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                 <CartesianGrid {...chartGrid} />
                 <XAxis dataKey="month" tick={axisTick} axisLine={false} tickLine={false} dy={10} />
@@ -189,7 +189,7 @@ function DashboardOverview() {
           <Motion.div variants={fadeUp} initial="initial" animate="animate" className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm relative overflow-hidden">
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
             <h3 className="font-display font-black text-slate-900 text-[16px] mb-6">Operating Cash Flow</h3>
-            <ResponsiveContainer width="100%" height={200}>
+            <ResponsiveContainer width="100%" height={200} minWidth={0}>
               <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                 <CartesianGrid {...chartGrid} />
                 <XAxis dataKey="month" tick={axisTick} axisLine={false} tickLine={false} dy={10} />

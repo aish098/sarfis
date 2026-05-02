@@ -154,7 +154,7 @@ function TrendTab({ companyId }) {
       </div>
 
       <Card title="Revenue · Expenses · Profit">
-        <ResponsiveContainer width="100%" height={280}>
+        <ResponsiveContainer width="100%" height={280} minWidth={0}>
           <LineChart data={data}>
             <CartesianGrid {...chartGrid} />
             <XAxis dataKey="label" tick={axisTick} axisLine={false} tickLine={false} dy={10} />
@@ -169,7 +169,7 @@ function TrendTab({ companyId }) {
       </Card>
 
       <Card title="Monthly Profit Bar">
-        <ResponsiveContainer width="100%" height={200}>
+        <ResponsiveContainer width="100%" height={200} minWidth={0}>
           <BarChart data={data}>
             <CartesianGrid {...chartGrid} />
             <XAxis dataKey="label" tick={axisTick} axisLine={false} tickLine={false} dy={10} />

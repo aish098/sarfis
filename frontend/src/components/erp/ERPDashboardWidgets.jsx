@@ -179,7 +179,7 @@ export function SectorRevenueWidget() {
           <p className="text-[13px] text-slate-400">No sector data yet</p>
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={180}>
+        <ResponsiveContainer width="100%" height={180} minWidth={0}>
           <BarChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
             <XAxis dataKey="name" tick={axisTick} axisLine={false} tickLine={false} dy={10} />
