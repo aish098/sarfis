@@ -871,51 +871,61 @@ function VarianceTab({ companyId }) {
             ))}
           </div>
 
-          {/* Redesigned Variance Chart as a Premium Line Comparison */}
+          {/* Redesigned Variance Chart as a Premium Horizontal Performance Breakdown */}
           {data.items?.length > 0 && (
-            <Card title="Budget vs. Actual Profile (Variance)">
-              <div style={{ width: '100%', height: 350 }}>
+            <Card title="Budget Performance Breakdown (Variance)">
+              <div style={{ width: '100%', height: Math.max(data.items.length * 60, 400) }}>
                 <ResponsiveContainer>
-                  <LineChart data={data.items} margin={{ top: 20, right: 30, left: 0, bottom: 20 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+                  <BarChart 
+                    data={data.items} 
+                    layout="vertical"
+                    margin={{ top: 20, right: 50, left: 40, bottom: 20 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
                     <XAxis 
-                      dataKey="account_name" 
-                      tick={{ ...axisTick, fontSize: 9 }} 
+                      type="number"
+                      tick={axisTick} 
+                      tickFormatter={fmt}
                       axisLine={false} 
                       tickLine={false}
-                      interval={0}
-                      angle={-15}
-                      textAnchor="end"
                     />
-                    <YAxis tick={axisTick} tickFormatter={fmt} axisLine={false} tickLine={false} />
-                    <Tooltip content={<PowerTooltip />} />
+                    <YAxis 
+                      type="category"
+                      dataKey="account_name" 
+                      tick={{ ...axisTick, fontSize: 10 }} 
+                      width={120}
+                      axisLine={false} 
+                      tickLine={false}
+                    />
+                    <Tooltip 
+                      content={<PowerTooltip />}
+                      cursor={{ fill: 'rgba(241, 245, 249, 0.5)' }}
+                    />
                     <Legend 
                       verticalAlign="top" 
                       align="right" 
                       iconType="circle"
                       wrapperStyle={{ paddingBottom: 30, fontSize: 11, fontWeight: 700, textTransform: 'uppercase' }}
                     />
-                    <Line 
-                      type="monotone" 
+                    <Bar 
                       dataKey="budget_amount" 
                       name="Budget Target" 
-                      stroke="#94a3b8" 
-                      strokeWidth={2} 
-                      strokeDasharray="5 5"
-                      dot={{ r: 4, strokeWidth: 2, fill: '#fff' }}
-                      activeDot={{ r: 6 }}
+                      fill="#e2e8f0" 
+                      radius={[0, 4, 4, 0]}
+                      barSize={12}
                     />
-                    <Line 
-                      type="monotone" 
+                    <Bar 
                       dataKey="actual_amount" 
-                      name="Actual Result" 
-                      stroke="#10b981" 
-                      strokeWidth={4} 
-                      dot={{ r: 5, strokeWidth: 2, fill: '#fff', stroke: '#10b981' }}
-                      activeDot={{ r: 8, strokeWidth: 0 }}
-                      connectNulls
-                    />
-                  </LineChart>
+                      name="Actual Spent" 
+                      radius={[0, 4, 4, 0]}
+                      barSize={12}
+                    >
+                      {data.items.map((entry, index) => {
+                        const isOver = parseFloat(entry.actual_amount) > parseFloat(entry.budget_amount);
+                        return <Cell key={`cell-${index}`} fill={isOver ? "#f43f5e" : "#10b981"} />;
+                      })}
+                    </Bar>
+                  </BarChart>
                 </ResponsiveContainer>
               </div>
             </Card>
