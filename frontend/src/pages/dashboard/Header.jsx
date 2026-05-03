@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Bell, ChevronDown, Building2, Menu, User } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
