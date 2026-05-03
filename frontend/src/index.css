@@ -212,12 +212,9 @@ body {
          text-slate-900 placeholder:text-slate-400 transition-all outline-none
          focus:border-emerald-500/30 focus:ring-4 focus:ring-emerald-500/5;
   height: 40px;
-  line-height: 20px;
+  line-height: 20px; /* Reduced to allow flex/padding centering */
   display: flex;
   align-items: center;
-}
-.input-search {
-  @apply pl-11 !important;
 }
 
 /* Components: Tables */

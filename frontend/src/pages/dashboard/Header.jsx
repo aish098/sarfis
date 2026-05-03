@@ -1,13 +1,12 @@
 import { useState } from 'react';
-import * as FramerMotion from 'framer-motion';
-const Motion = FramerMotion.motion;
-const AnimatePresence = FramerMotion.AnimatePresence;
+import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Bell, ChevronDown, Building2, Menu, User } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
 export default function Header({ sidebarCollapsed, onMenuToggle }) {
   const { user, companies, activeCompany, setActiveCompany } = useAuthStore();
   const [showCompanies, setShowCompanies] = useState(false);
+  const [showSearch, setShowSearch] = useState(false);
 
   const leftOffset = sidebarCollapsed ? 68 : 248;
 
@@ -36,9 +35,9 @@ export default function Header({ sidebarCollapsed, onMenuToggle }) {
         <div className="relative">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
-            className="input-enterprise input-search py-[9px] text-sm"
+            className="input-enterprise py-[9px] text-sm"
             placeholder="Search across ledgers..."
-            style={{ background: '#f8fafc', borderColor: '#e8edf2', fontSize: 13 }}
+            style={{ background: '#f8fafc', borderColor: '#e8edf2', fontSize: 13, paddingLeft: '42px' }}
           />
         </div>
       </div>
@@ -59,7 +58,7 @@ export default function Header({ sidebarCollapsed, onMenuToggle }) {
           </button>
           <AnimatePresence>
             {showCompanies && companies?.length > 0 && (
-              <Motion.div
+              <motion.div
                 initial={{ opacity: 0, y: 8, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.97 }}
@@ -83,7 +82,7 @@ export default function Header({ sidebarCollapsed, onMenuToggle }) {
                     )}
                   </button>
                 ))}
-              </Motion.div>
+              </motion.div>
             )}
           </AnimatePresence>
         </div>

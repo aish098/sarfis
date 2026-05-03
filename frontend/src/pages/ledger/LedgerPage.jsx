@@ -130,8 +130,8 @@ export default function LedgerPage() {
             <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-2">Select Account</label>
             <div className="relative">
               <select value={selectedId} onChange={e => setSelectedId(e.target.value)}
-                className="input-enterprise input-search font-medium text-[14px] cursor-pointer appearance-none pr-10"
-                style={{ paddingTop: '0px', paddingBottom: '0px' }}>
+                className="input-enterprise font-medium text-[14px] cursor-pointer appearance-none pr-10"
+                style={{ paddingLeft: '44px', paddingTop: '0px', paddingBottom: '0px' }}>
                 <option value="" disabled>— Select an account —</option>
                 {accounts.map(a => <option key={a.id} value={a.id}>{a.code} - {a.name}</option>)}
               </select>
@@ -176,7 +176,8 @@ export default function LedgerPage() {
         <div className="flex flex-col sm:flex-row gap-3">
           <div className="relative flex-1">
             <Search size={14} className="absolute left-[14px] top-1/2 -translate-y-1/2 text-slate-400" />
-            <input className="input-enterprise input-search text-[13px]" 
+            <input className="input-enterprise text-[13px]" 
+              style={{ paddingLeft: '44px' }}
               placeholder="Search descriptions or references..."
               value={search} onChange={e => setSearch(e.target.value)} />
           </div>

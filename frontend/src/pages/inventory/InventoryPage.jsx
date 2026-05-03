@@ -289,7 +289,7 @@ export default function InventoryPage() {
       {tab !== 'logs' && (
         <div className="relative max-w-sm mb-4">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input className="input-enterprise input-search text-[13px] py-2.5" placeholder={`Search ${tab}...`}
+          <input className="input-enterprise pl-9 text-[13px] py-2.5" placeholder={`Search ${tab}...`}
             value={search} onChange={e => setSearch(e.target.value)} />
         </div>
       )}

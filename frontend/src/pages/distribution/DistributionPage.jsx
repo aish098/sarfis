@@ -234,7 +234,7 @@ export default function DistributionPage() {
       <div className="flex gap-3 mb-5 flex-wrap">
         <div className="relative flex-1 max-w-sm">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input className="input-enterprise input-search text-[13px] py-2.5" placeholder={`Search ${tab}...`} value={search} onChange={e => setSearch(e.target.value)} />
+          <input className="input-enterprise pl-9 text-[13px] py-2.5" placeholder={`Search ${tab}...`} value={search} onChange={e => setSearch(e.target.value)} />
         </div>
         {tab === 'deliveries' && (
           <select className="input-enterprise text-[13px] py-2.5 w-auto" value={statusFilter} onChange={e => setStatusFilter(e.target.value)}>

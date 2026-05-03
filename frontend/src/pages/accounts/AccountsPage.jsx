@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Filter, Trash2, X, AlertCircle, Edit2, ChevronDown } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -33,19 +33,11 @@ export default function AccountsPage() {
     try {
       const res = await api.get(`/accounts/company/${activeCompany.id}`);
       setAccounts(res.data);
-    } catch (err) {
-      console.error("[AccountsPage] Load error:", err);
-    }
+    } catch {}
     setIsLoading(false);
-  }, [activeCompany]);
+  }, [activeCompany?.id]);
 
-  useEffect(() => {
-    let ignore = false;
-    Promise.resolve().then(() => {
-      if (!ignore) load();
-    });
-    return () => { ignore = true; };
-  }, [load]);
+  useEffect(() => { load(); }, [load]);
 
   const filtered = accounts.filter(a => {
     const q = search.toLowerCase();
@@ -88,12 +80,7 @@ export default function AccountsPage() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this account?')) return;
-    try { 
-      await api.delete(`/accounts/${id}`); 
-      load(); 
-    } catch (err) {
-      console.error("[AccountsPage] Delete error:", err);
-    }
+    try { await api.delete(`/accounts/${id}`); load(); } catch {}
   };
 
   return (
@@ -120,16 +107,17 @@ export default function AccountsPage() {
           <div className="relative flex-1 max-w-sm">
             <Search size={14} className="absolute left-[14px] top-1/2 -translate-y-1/2 text-slate-400" />
             <input
-              className="input-enterprise input-search text-[13px]"
+              className="input-enterprise text-[13px]"
+              style={{ paddingLeft: '44px' }}
               placeholder="Search by name or code..."
               value={search} onChange={e => setSearch(e.target.value)}
             />
           </div>
           <div className="relative w-full sm:w-[260px]">
             <select
-              className="input-enterprise input-search pr-10 text-[13px] cursor-pointer appearance-none"
+              className="input-enterprise pr-10 text-[13px] cursor-pointer appearance-none"
               value={filterType} onChange={e => setFilterType(e.target.value)}
-              style={{ paddingTop: '0px', paddingBottom: '0px' }}
+              style={{ paddingLeft: '44px', paddingTop: '0px', paddingBottom: '0px' }}
             >
               <option value="All">All Categories</option>
               {['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'].map(t => (
