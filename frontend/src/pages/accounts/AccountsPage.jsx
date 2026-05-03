@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { AnimatePresence } from 'framer-motion';
 import { Plus, Search, Filter, Trash2, X, AlertCircle, Edit2, ChevronDown } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -33,11 +33,19 @@ export default function AccountsPage() {
     try {
       const res = await api.get(`/accounts/company/${activeCompany.id}`);
       setAccounts(res.data);
-    } catch {}
+    } catch (err) {
+      console.error("[AccountsPage] Load error:", err);
+    }
     setIsLoading(false);
-  }, [activeCompany?.id]);
+  }, [activeCompany]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    let ignore = false;
+    Promise.resolve().then(() => {
+      if (!ignore) load();
+    });
+    return () => { ignore = true; };
+  }, [load]);
 
   const filtered = accounts.filter(a => {
     const q = search.toLowerCase();
@@ -80,7 +88,12 @@ export default function AccountsPage() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this account?')) return;
-    try { await api.delete(`/accounts/${id}`); load(); } catch {}
+    try { 
+      await api.delete(`/accounts/${id}`); 
+      load(); 
+    } catch (err) {
+      console.error("[AccountsPage] Delete error:", err);
+    }
   };
 
   return (
