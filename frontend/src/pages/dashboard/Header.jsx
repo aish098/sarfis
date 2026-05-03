@@ -1,5 +1,7 @@
 import { useState } from 'react';
-import { motion as Motion, AnimatePresence } from 'framer-motion'; // Aliased for ESLint compatibility
+import * as FramerMotion from 'framer-motion';
+const Motion = FramerMotion.motion;
+const AnimatePresence = FramerMotion.AnimatePresence;
 import { Search, Bell, ChevronDown, Building2, Menu, User } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
