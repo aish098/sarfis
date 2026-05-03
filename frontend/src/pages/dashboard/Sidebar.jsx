@@ -32,8 +32,7 @@ const NAV_SECTIONS = [
   {
     label: 'Intelligence',
     items: [
-      { to: '/dashboard/analytics', icon: TrendingUp, label: 'Analytics' },
-      { to: '/dashboard/analytics?tab=budget', icon: Target, label: 'Budgets' },
+      { to: '/dashboard/analytics', icon: TrendingUp, label: 'Analytics & Planning' },
     ],
   },
   {
