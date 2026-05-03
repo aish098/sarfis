@@ -1,8 +1,9 @@
 import { useState } from 'react';
-// eslint-disable-next-line no-unused-vars
+/* eslint-disable no-unused-vars */
 import * as FramerMotion from 'framer-motion';
 const Motion = FramerMotion.motion;
 const AnimatePresence = FramerMotion.AnimatePresence;
+/* eslint-enable no-unused-vars */
 import { Search, Bell, ChevronDown, Building2, Menu, User } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
