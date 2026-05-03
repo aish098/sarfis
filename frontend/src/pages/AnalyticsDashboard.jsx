@@ -871,36 +871,24 @@ function VarianceTab({ companyId }) {
             ))}
           </div>
 
-          {/* Redesigned Variance Chart as a Premium Horizontal Performance Breakdown */}
+          {/* Redesigned Variance Chart as a Premium Sector-Style Grouped Bar */}
           {data.items?.length > 0 && (
-            <Card title="Budget Performance Breakdown (Variance)">
-              <div style={{ width: '100%', height: Math.max(data.items.length * 60, 400) }}>
+            <Card title="Budget Performance Profile (Variance)">
+              <div style={{ width: '100%', height: 350 }}>
                 <ResponsiveContainer>
-                  <BarChart 
-                    data={data.items} 
-                    layout="vertical"
-                    margin={{ top: 20, right: 50, left: 40, bottom: 20 }}
-                  >
-                    <CartesianGrid strokeDasharray="3 3" horizontal={false} stroke="#f1f5f9" />
+                  <BarChart data={data.items} margin={{ top: 20, right: 20, left: 10, bottom: 20 }}>
+                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis 
-                      type="number"
-                      tick={axisTick} 
-                      tickFormatter={fmt}
-                      axisLine={false} 
-                      tickLine={false}
-                    />
-                    <YAxis 
-                      type="category"
                       dataKey="account_name" 
-                      tick={{ ...axisTick, fontSize: 10 }} 
-                      width={120}
+                      tick={{ ...axisTick, fontSize: 9 }} 
                       axisLine={false} 
                       tickLine={false}
+                      interval={0}
+                      angle={-15}
+                      textAnchor="end"
                     />
-                    <Tooltip 
-                      content={<PowerTooltip />}
-                      cursor={{ fill: 'rgba(241, 245, 249, 0.5)' }}
-                    />
+                    <YAxis tick={axisTick} width={65} tickFormatter={fmt} axisLine={false} tickLine={false} />
+                    <Tooltip content={<PowerTooltip />} cursor={{ fill: 'rgba(241, 245, 249, 0.5)' }} />
                     <Legend 
                       verticalAlign="top" 
                       align="right" 
@@ -910,21 +898,17 @@ function VarianceTab({ companyId }) {
                     <Bar 
                       dataKey="budget_amount" 
                       name="Budget Target" 
-                      fill="#e2e8f0" 
-                      radius={[0, 4, 4, 0]}
-                      barSize={12}
+                      fill="#6366f1" 
+                      radius={[4, 4, 0, 0]}
+                      barSize={20}
                     />
                     <Bar 
                       dataKey="actual_amount" 
-                      name="Actual Spent" 
-                      radius={[0, 4, 4, 0]}
-                      barSize={12}
-                    >
-                      {data.items.map((entry, index) => {
-                        const isOver = parseFloat(entry.actual_amount) > parseFloat(entry.budget_amount);
-                        return <Cell key={`cell-${index}`} fill={isOver ? "#f43f5e" : "#10b981"} />;
-                      })}
-                    </Bar>
+                      name="Actual Result" 
+                      fill="#10b981" 
+                      radius={[4, 4, 0, 0]}
+                      barSize={20}
+                    />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
