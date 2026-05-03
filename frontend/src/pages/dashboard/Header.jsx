@@ -1,12 +1,10 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
 import { Search, Bell, ChevronDown, Building2, Menu, User } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
 export default function Header({ sidebarCollapsed, onMenuToggle }) {
   const { user, companies, activeCompany, setActiveCompany } = useAuthStore();
   const [showCompanies, setShowCompanies] = useState(false);
-  const [showSearch, setShowSearch] = useState(false);
 
   const leftOffset = sidebarCollapsed ? 68 : 248;
 
