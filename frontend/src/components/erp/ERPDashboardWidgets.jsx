@@ -180,10 +180,10 @@ export function SectorRevenueWidget() {
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={180} minWidth={0}>
-          <BarChart data={data} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
+          <BarChart data={data} margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
             <XAxis dataKey="name" tick={axisTick} axisLine={false} tickLine={false} dy={10} />
-            <YAxis tick={axisTick} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+            <YAxis tick={axisTick} width={65} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
             <Tooltip content={<CustomTooltip />} />
             <Bar dataKey="revenue" name="Revenue" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={20} />
             <Bar dataKey="profit" name="Profit" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} />

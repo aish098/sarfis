@@ -173,10 +173,10 @@ function DashboardOverview() {
           <Motion.div variants={fadeUp} initial="initial" animate="animate" className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
             <h3 className="font-display font-black text-slate-900 text-[16px] mb-6">Revenue vs Expenses</h3>
             <ResponsiveContainer width="100%" height={260} minWidth={0}>
-              <LineChart data={chartData} margin={{ top: 15, right: 15, left: -20, bottom: 0 }}>
+              <LineChart data={chartData} margin={{ top: 15, right: 15, left: 10, bottom: 0 }}>
                 <CartesianGrid {...chartGrid} />
                 <XAxis dataKey="month" tick={axisTick} axisLine={false} tickLine={false} dy={10} />
-                <YAxis tick={axisTick} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+                <YAxis tick={axisTick} width={65} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '20px', fontWeight: 'bold' }} />
                 <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#10b981" strokeWidth={4} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} />
@@ -190,10 +190,10 @@ function DashboardOverview() {
             <div className="absolute top-0 right-0 w-32 h-32 bg-emerald-500/5 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
             <h3 className="font-display font-black text-slate-900 text-[16px] mb-6">Operating Cash Flow</h3>
             <ResponsiveContainer width="100%" height={200} minWidth={0}>
-              <BarChart data={chartData} margin={{ top: 15, right: 15, left: -20, bottom: 0 }}>
+              <BarChart data={chartData} margin={{ top: 15, right: 15, left: 10, bottom: 0 }}>
                 <CartesianGrid {...chartGrid} />
                 <XAxis dataKey="month" tick={axisTick} axisLine={false} tickLine={false} dy={10} />
-                <YAxis tick={axisTick} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+                <YAxis tick={axisTick} width={65} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc', radius: 12 }} />
                 <Bar dataKey="cashFlow" name="Cash Flow" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={25} />
               </BarChart>
