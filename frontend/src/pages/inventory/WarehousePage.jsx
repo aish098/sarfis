@@ -125,7 +125,7 @@ export default function WarehousePage() {
 
       <div className="relative max-w-sm mb-6">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-        <input className="input-enterprise pl-11 py-2.5 text-[13px]" placeholder="Search warehouses..."
+        <input className="input-enterprise pl-12 py-2.5 text-[13px]" placeholder="Search warehouses..."
           value={search} onChange={e => setSearch(e.target.value)} />
       </div>
 
