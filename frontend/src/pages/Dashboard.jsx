@@ -62,7 +62,7 @@ function CustomTooltip({ active, payload, label }) {
             <div className="w-1.5 h-1.5 rounded-full" style={{ background: p.color }} />
             <span className="text-[12px] font-semibold text-slate-600">{p.name}</span>
           </div>
-          <span className="font-mono font-bold text-slate-800 text-[12px]">${Number(p.value || 0).toLocaleString()}</span>
+          <span className="font-mono font-bold text-slate-800 text-[12px]">{Number(p.value || 0).toLocaleString()}</span>
         </div>
       ))}
     </div>
@@ -108,7 +108,7 @@ function DashboardOverview() {
     Promise.resolve().then(() => load());
   }, [load]);
 
-  const fmt = v => '$' + parseFloat(v || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+  const fmt = v => parseFloat(v || 0).toLocaleString('en-US', { minimumFractionDigits: 0, maximumFractionDigits: 0 });
   const totalRev = parseFloat(metrics?.revenue || 0);
   const netProfit = parseFloat(metrics?.netIncome || 0);
   const totalExp = totalRev - netProfit;
@@ -176,7 +176,7 @@ function DashboardOverview() {
               <LineChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                 <CartesianGrid {...chartGrid} />
                 <XAxis dataKey="month" tick={axisTick} axisLine={false} tickLine={false} dy={10} />
-                <YAxis tick={axisTick} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+                <YAxis tick={axisTick} axisLine={false} tickLine={false} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '20px', fontWeight: 'bold' }} />
                 <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#10b981" strokeWidth={4} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} />
@@ -193,7 +193,7 @@ function DashboardOverview() {
               <BarChart data={chartData} margin={{ top: 0, right: 0, left: -20, bottom: 0 }}>
                 <CartesianGrid {...chartGrid} />
                 <XAxis dataKey="month" tick={axisTick} axisLine={false} tickLine={false} dy={10} />
-                <YAxis tick={axisTick} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+                <YAxis tick={axisTick} axisLine={false} tickLine={false} tickFormatter={v => `${(v/1000).toFixed(0)}k`} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc', radius: 12 }} />
                 <Bar dataKey="cashFlow" name="Cash Flow" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={25} />
               </BarChart>
@@ -260,7 +260,7 @@ function DashboardOverview() {
                       </p>
                     </div>
                     <p className="font-mono font-black text-[13px] text-slate-900 flex-shrink-0">
-                      ${parseFloat(j.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                      {parseFloat(j.total_amount || 0).toLocaleString(undefined, { minimumFractionDigits: 0 })}
                     </p>
                   </div>
                 ))
