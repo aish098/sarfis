@@ -12,7 +12,7 @@ import {
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 
-const CHART_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b', '#10b981', '#06b6d4'];
+const CHART_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b', '#10b981', '#06b6d4', '#f97316', '#14b8a6'];
 
 const stagger = { animate: { transition: { staggerChildren: 0.05 } } };
 const fadeUp = { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
@@ -384,22 +384,23 @@ export default function DistributionPage() {
               </div>
               <div className="h-[280px] w-full min-h-[280px]">
                 <ResponsiveContainer width="100%" height={280}>
-                  <PieChart>
-                    <Pie
-                      data={sectorRevenue}
-                      nameKey="sector_name"
-                      dataKey="total_revenue"
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={65}
-                      outerRadius={90}
-                      paddingAngle={5}
-                      stroke="none"
-                    >
-                      {sectorRevenue.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                      ))}
-                    </Pie>
+                    <PieChart>
+                      <Pie
+                        data={sectorRevenue}
+                        nameKey="sector_name"
+                        dataKey="total_revenue"
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={0}
+                        outerRadius={90}
+                        paddingAngle={2}
+                        stroke="#fff"
+                        strokeWidth={2}
+                      >
+                        {sectorRevenue.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
+                        ))}
+                      </Pie>
                     <Tooltip 
                       contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px' }}
                       formatter={(v) => `$${parseFloat(v).toLocaleString()}`}
