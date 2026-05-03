@@ -376,11 +376,11 @@ export default function DistributionPage() {
       {tab === 'sectors' && (
         <div className="space-y-6">
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Revenue Distribution Doughnut */}
+            {/* Revenue Distribution Pie Chart */}
             <Motion.div variants={fadeUp} className="card p-6 lg:col-span-1">
               <div className="flex items-center justify-between mb-6">
                 <h3 className="font-display font-bold text-[15px] text-slate-800">Revenue Distribution</h3>
-                <PieChart size={14} className="text-slate-400" />
+                <TrendingUp size={14} className="text-emerald-500" />
               </div>
               <div className="h-[280px] w-full min-h-[280px]">
                 <ResponsiveContainer width="100%" height={280}>
@@ -389,6 +389,8 @@ export default function DistributionPage() {
                       data={sectorRevenue}
                       nameKey="sector_name"
                       dataKey="total_revenue"
+                      cx="50%"
+                      cy="50%"
                       innerRadius={65}
                       outerRadius={90}
                       paddingAngle={5}
@@ -402,9 +404,22 @@ export default function DistributionPage() {
                       contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px' }}
                       formatter={(v) => `$${parseFloat(v).toLocaleString()}`}
                     />
-                    <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '20px' }} />
                   </PieChart>
                 </ResponsiveContainer>
+              </div>
+              {/* Detailed Side Legend */}
+              <div className="space-y-2 mt-4">
+                {sectorRevenue.map((s, i) => (
+                  <div key={i} className="flex items-center justify-between text-[11px]">
+                    <div className="flex items-center gap-2">
+                      <div className="w-2.5 h-2.5 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                      <span className="text-slate-600 font-bold">{s.sector_name}</span>
+                    </div>
+                    <span className="text-slate-400 font-mono font-bold">
+                      {((parseFloat(s.total_revenue) / sectorRevenue.reduce((a, b) => a + parseFloat(b.total_revenue), 0)) * 100).toFixed(1)}%
+                    </span>
+                  </div>
+                ))}
               </div>
             </Motion.div>
 
