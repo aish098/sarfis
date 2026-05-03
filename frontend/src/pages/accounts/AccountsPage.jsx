@@ -107,17 +107,16 @@ export default function AccountsPage() {
           <div className="relative flex-1 max-w-sm">
             <Search size={14} className="absolute left-[14px] top-1/2 -translate-y-1/2 text-slate-400" />
             <input
-              className="input-enterprise text-[13px]"
-              style={{ paddingLeft: '44px' }}
+              className="input-enterprise input-search text-[13px]"
               placeholder="Search by name or code..."
               value={search} onChange={e => setSearch(e.target.value)}
             />
           </div>
           <div className="relative w-full sm:w-[260px]">
             <select
-              className="input-enterprise pr-10 text-[13px] cursor-pointer appearance-none"
+              className="input-enterprise input-search pr-10 text-[13px] cursor-pointer appearance-none"
               value={filterType} onChange={e => setFilterType(e.target.value)}
-              style={{ paddingLeft: '44px', paddingTop: '0px', paddingBottom: '0px' }}
+              style={{ paddingTop: '0px', paddingBottom: '0px' }}
             >
               <option value="All">All Categories</option>
               {['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'].map(t => (

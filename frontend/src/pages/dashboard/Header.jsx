@@ -35,9 +35,9 @@ export default function Header({ sidebarCollapsed, onMenuToggle }) {
         <div className="relative">
           <Search size={15} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
           <input
-            className="input-enterprise py-[9px] text-sm"
+            className="input-enterprise input-search py-[9px] text-sm"
             placeholder="Search across ledgers..."
-            style={{ background: '#f8fafc', borderColor: '#e8edf2', fontSize: 13, paddingLeft: '42px' }}
+            style={{ background: '#f8fafc', borderColor: '#e8edf2', fontSize: 13 }}
           />
         </div>
       </div>
