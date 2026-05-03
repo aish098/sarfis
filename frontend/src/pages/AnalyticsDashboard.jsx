@@ -11,7 +11,7 @@ import { useState, useEffect, useCallback } from "react";
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
   Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie,
-  AreaChart, Area,
+  AreaChart, Area, RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
 } from "recharts";
 import { motion } from "framer-motion";
 import { analyticsApi } from "../services/analyticsApi";
@@ -871,67 +871,55 @@ function VarianceTab({ companyId }) {
             ))}
           </div>
 
-          {/* Redesigned Variance Chart as a Premium Budget Usage Stack */}
+          {/* Redesigned Variance Chart as a Premium Financial Radar */}
           {data.items?.length > 0 && (
-            <Card title="Budget Utilization & Usage Tracking">
-              <div className="space-y-7 mt-6 px-2">
-                {data.items.map((item, idx) => {
-                  const budget = parseFloat(item.budget_amount) || 1;
-                  const actual = parseFloat(item.actual_amount) || 0;
-                  const pct = (actual / budget) * 100;
-                  const isOver = actual > budget;
-                  
-                  return (
-                    <div key={item.account_id} className="group">
-                      <div className="flex justify-between items-end mb-2">
-                        <div>
-                          <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-0.5">
-                            {item.account_code ? `ACC-${item.account_code}` : 'ACCOUNT'}
-                          </p>
-                          <h4 className="text-[14px] font-bold text-slate-800 group-hover:text-emerald-600 transition-colors">
-                            {item.account_name}
-                          </h4>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-[13px] font-mono font-bold text-slate-900">
-                            {fmt(actual)} <span className="text-slate-300 font-normal mx-0.5">/</span> {fmt(budget)}
-                          </p>
-                          <p className={`text-[10px] font-bold uppercase ${isOver ? 'text-rose-500' : 'text-slate-400'}`}>
-                            {isOver ? `Over by ${fmt(actual - budget)}` : `${fmt(budget - actual)} Remaining`}
-                          </p>
-                        </div>
-                      </div>
-
-                      {/* Custom Progress Stack */}
-                      <div className="relative h-3 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <motion.div 
-                          initial={{ width: 0 }}
-                          animate={{ width: `${Math.min(pct, 100)}%` }}
-                          transition={{ duration: 1, ease: "easeOut", delay: idx * 0.05 }}
-                          className="absolute top-0 left-0 h-full rounded-full"
-                          style={{ 
-                            background: isOver ? '#f43f5e' : '#10b981',
-                            boxShadow: isOver ? '0 0 10px rgba(244, 63, 94, 0.2)' : 'none'
-                          }}
-                        />
-                        {isOver && (
-                          <motion.div 
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 1 }}
-                            className="absolute inset-0 bg-stripe opacity-10 animate-pulse"
-                          />
-                        )}
-                      </div>
-                      
-                      <div className="flex justify-between mt-1.5">
-                        <span className="text-[9px] font-bold text-slate-400 uppercase">Usage Progress</span>
-                        <span className={`text-[10px] font-bold font-mono ${isOver ? 'text-rose-600' : 'text-emerald-600'}`}>
-                          {pct.toFixed(1)}% {isOver ? 'EXCEEDED' : 'UTILIZED'}
-                        </span>
-                      </div>
-                    </div>
-                  );
-                })}
+            <Card title="Financial Performance Radar (360° Variance)">
+              <div style={{ width: '100%', height: 450 }} className="flex items-center justify-center">
+                <ResponsiveContainer>
+                  <RadarChart cx="50%" cy="50%" outerRadius="80%" data={data.items}>
+                    <PolarGrid stroke="#e2e8f0" />
+                    <PolarAngleAxis 
+                      dataKey="account_name" 
+                      tick={{ fill: '#64748b', fontSize: 10, fontWeight: 700 }}
+                    />
+                    <PolarRadiusAxis 
+                      angle={30} 
+                      domain={[0, 'auto']} 
+                      tick={{ fontSize: 9 }}
+                      axisLine={false}
+                      tickLine={false}
+                    />
+                    <Radar
+                      name="Budget Target"
+                      dataKey="budget_amount"
+                      stroke="#94a3b8"
+                      strokeWidth={2}
+                      fill="#94a3b8"
+                      fillOpacity={0.05}
+                    />
+                    <Radar
+                      name="Actual Result"
+                      dataKey="actual_amount"
+                      stroke="#10b981"
+                      strokeWidth={3}
+                      fill="#10b981"
+                      fillOpacity={0.3}
+                    />
+                    <Tooltip 
+                      contentStyle={{ borderRadius: '16px', border: 'none', boxShadow: '0 20px 25px -5px rgba(0,0,0,0.1)' }}
+                      formatter={(v) => fmt(v)}
+                    />
+                    <Legend 
+                      iconType="circle" 
+                      wrapperStyle={{ paddingTop: '20px', fontSize: '11px', fontWeight: 'bold', textTransform: 'uppercase' }} 
+                    />
+                  </RadarChart>
+                </ResponsiveContainer>
+              </div>
+              <div className="mt-4 p-4 bg-slate-50 rounded-2xl border border-slate-100">
+                <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest text-center">
+                  Spending Signature: Area outside the gray line indicates budget overruns
+                </p>
               </div>
             </Card>
           )}
