@@ -20,7 +20,16 @@ import useAuthStore from "../store/authStore";
 // ─── HELPERS ─────────────────────────────────────────────────────────────────
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
-const COLORS = ["#10b981", "#06b6d4", "#8b5cf6", "#2563eb", "#f59e0b", "#f43f5e", "#14b8a6"];
+const COLORS = [
+  "#10b981", // Emerald (Construction)
+  "#f59e0b", // Amber (Healthcare)
+  "#3b82f6", // Blue (Logistics)
+  "#8b5cf6", // Purple (Manufacturing)
+  "#f43f5e", // Rose (Retail)
+  "#06b6d4", // Cyan
+  "#14b8a6", // Teal
+  "#6366f1", // Indigo
+];
 
 function fmt(n) {
   if (n === undefined || n === null || isNaN(n)) return "—";
@@ -158,7 +167,7 @@ function TrendTab({ companyId }) {
       <Card title="Revenue · Expenses · Profit Trajectory">
         <div style={{ width: '100%', height: 320 }}>
           <ResponsiveContainer>
-            <AreaChart data={data} margin={{ top: 10, right: 10, left: -15, bottom: 0 }}>
+            <AreaChart data={data} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
               <defs>
                 <linearGradient id="colorRev" x1="0" y1="0" x2="0" y2="1">
                   <stop offset="5%" stopColor="#10b981" stopOpacity={0.3} />
@@ -179,6 +188,7 @@ function TrendTab({ companyId }) {
               />
               <YAxis 
                 tick={axisTick} 
+                width={65}
                 tickFormatter={fmt} 
                 axisLine={false} 
                 tickLine={false} 
@@ -510,23 +520,55 @@ function SectorTab({ companyId }) {
       </div>
 
       {data.length > 0 && (
-        <Card title="Sector Revenue Comparison">
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={data.map((s) => ({
-              name: s.sector,
-              revenue: s.periods.reduce((a, p) => a + p.revenue, 0),
-              growth: s.overall_growth_pct,
-            }))}>
-              <CartesianGrid {...chartGrid} />
-              <XAxis dataKey="name" tick={axisTick} axisLine={false} tickLine={false} dy={10} />
-              <YAxis tick={axisTick} tickFormatter={fmt} axisLine={false} tickLine={false} />
-              <Tooltip content={<PowerTooltip />} cursor={{ fill: '#f8fafc', radius: 12 }} />
-              <Bar dataKey="revenue" radius={[4, 4, 0, 0]} name="Total Revenue" barSize={25}>
-                {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
-        </Card>
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+          <Card title="Sector Revenue Comparison" className="lg:col-span-2">
+            <ResponsiveContainer width="100%" height={260}>
+              <BarChart data={data.map((s) => ({
+                name: s.sector,
+                revenue: s.periods.reduce((a, p) => a + p.revenue, 0),
+                growth: s.overall_growth_pct,
+              }))}>
+                <CartesianGrid {...chartGrid} />
+                <XAxis dataKey="name" tick={axisTick} axisLine={false} tickLine={false} dy={10} />
+                <YAxis tick={axisTick} width={65} tickFormatter={fmt} axisLine={false} tickLine={false} />
+                <Tooltip content={<PowerTooltip />} cursor={{ fill: '#f8fafc', radius: 12 }} />
+                <Bar dataKey="revenue" radius={[4, 4, 0, 0]} name="Total Revenue" barSize={25}>
+                  {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                </Bar>
+              </BarChart>
+            </ResponsiveContainer>
+          </Card>
+
+          <Card title="Revenue Distribution">
+            <ResponsiveContainer width="100%" height={260}>
+              <PieChart>
+                <Pie
+                  data={data.map((s) => ({
+                    name: s.sector,
+                    value: s.periods.reduce((a, p) => a + p.revenue, 0),
+                  }))}
+                  cx="50%" cy="50%" innerRadius={60} outerRadius={80} paddingAngle={5} dataKey="value"
+                >
+                  {data.map((_, i) => <Cell key={i} fill={COLORS[i % COLORS.length]} />)}
+                </Pie>
+                <Tooltip />
+              </PieChart>
+            </ResponsiveContainer>
+            <div className="space-y-1 mt-2">
+              {data.map((s, i) => (
+                <div key={i} className="flex items-center justify-between text-[11px]">
+                  <div className="flex items-center gap-2">
+                    <div className="w-2 h-2 rounded-full" style={{ background: COLORS[i % COLORS.length] }} />
+                    <span className="text-slate-600 font-bold">{s.sector}</span>
+                  </div>
+                  <span className="text-slate-400 font-mono">
+                    {((s.periods.reduce((a, p) => a + p.revenue, 0) / data.reduce((total, sc) => total + sc.periods.reduce((a, p) => a + p.revenue, 0), 0)) * 100).toFixed(0)}%
+                  </span>
+                </div>
+              ))}
+            </div>
+          </Card>
+        </div>
       )}
     </div>
   );
