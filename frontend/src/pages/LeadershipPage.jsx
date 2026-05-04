@@ -226,11 +226,11 @@ function Hero() {
           transition={{ duration: .8, delay: .12, ease: [.22, 1, .36, 1] }}
           style={{
             fontFamily: ff.d, fontSize: "clamp(44px,7.5vw,94px)",
-            fontWeight: 800, color: C.textPri, lineHeight: 1, letterSpacing: "-.03em", margin: "0 0 22px"
+            fontWeight: 800, color: "#ffffff", lineHeight: 1, letterSpacing: "-.03em", margin: "0 0 22px"
           }}>
           Our{" "}
           <span style={{
-            background: `linear-gradient(135deg,${C.green},#059669)`,
+            background: "linear-gradient(135deg, #10b981 0%, #06b6d4 60%, #10b981 100%)",
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text"
           }}>
             Leadership
