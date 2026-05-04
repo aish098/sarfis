@@ -1,9 +1,9 @@
 import { useState } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { Search, Bell, ChevronDown, Building2, Menu, User } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
-export default function Header({ sidebarCollapsed, onMenuToggle }) {
+export default function Header({ sidebarCollapsed, onMenuToggle, searchQuery, onSearchChange }) {
   const { user, companies, activeCompany, setActiveCompany } = useAuthStore();
   const [showCompanies, setShowCompanies] = useState(false);
 
@@ -37,6 +37,8 @@ export default function Header({ sidebarCollapsed, onMenuToggle }) {
             className="input-enterprise py-[9px] text-sm"
             placeholder="Search across ledgers..."
             style={{ background: '#f8fafc', borderColor: '#e8edf2', fontSize: 13, paddingLeft: '42px' }}
+            value={searchQuery}
+            onChange={(e) => onSearchChange(e.target.value)}
           />
         </div>
       </div>
@@ -57,7 +59,7 @@ export default function Header({ sidebarCollapsed, onMenuToggle }) {
           </button>
           <AnimatePresence>
             {showCompanies && companies?.length > 0 && (
-              <motion.div
+              <Motion.div
                 initial={{ opacity: 0, y: 8, scale: 0.97 }}
                 animate={{ opacity: 1, y: 0, scale: 1 }}
                 exit={{ opacity: 0, y: 8, scale: 0.97 }}
@@ -81,7 +83,7 @@ export default function Header({ sidebarCollapsed, onMenuToggle }) {
                     )}
                   </button>
                 ))}
-              </motion.div>
+              </Motion.div>
             )}
           </AnimatePresence>
         </div>

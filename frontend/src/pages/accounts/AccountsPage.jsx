@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Filter, Trash2, X, AlertCircle, Edit2, ChevronDown } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -15,11 +15,12 @@ const row = {
   animate: { opacity: 1, x: 0, transition: { duration: 0.3 } },
 };
 
-export default function AccountsPage() {
+export default function AccountsPage({ globalSearch = "" }) {
   const { activeCompany } = useAuthStore();
   const [accounts, setAccounts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [localSearch, setLocalSearch] = useState('');
+  const search = globalSearch || localSearch;
   const [filterType, setFilterType] = useState('All');
   const [modalOpen, setModalOpen] = useState(false);
   const [form, setForm] = useState({ code: '', name: '', type: 'Asset' });
@@ -33,11 +34,15 @@ export default function AccountsPage() {
     try {
       const res = await api.get(`/accounts/company/${activeCompany.id}`);
       setAccounts(res.data);
-    } catch {}
+    } catch (err) {
+      console.error('Failed to load accounts:', err);
+    }
     setIsLoading(false);
-  }, [activeCompany?.id]);
+  }, [activeCompany]);
 
-  useEffect(() => { load(); }, [load]);
+  useEffect(() => {
+    Promise.resolve().then(() => load());
+  }, [load]);
 
   const filtered = accounts.filter(a => {
     const q = search.toLowerCase();
@@ -80,7 +85,7 @@ export default function AccountsPage() {
 
   const handleDelete = async (id) => {
     if (!window.confirm('Delete this account?')) return;
-    try { await api.delete(`/accounts/${id}`); load(); } catch {}
+    try { await api.delete(`/accounts/${id}`); load(); } catch (err) { console.error('Delete failed:', err); }
   };
 
   return (
@@ -93,11 +98,11 @@ export default function AccountsPage() {
             Manage and organize your financial structure for {activeCompany?.name}
           </p>
         </div>
-        <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
+        <Motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
           onClick={() => setModalOpen(true)}
           className="btn btn-primary">
           <Plus size={16} /> Add Account
-        </motion.button>
+        </Motion.button>
       </div>
 
       {/* Table card */}
@@ -110,7 +115,7 @@ export default function AccountsPage() {
               className="input-enterprise text-[13px]"
               style={{ paddingLeft: '44px' }}
               placeholder="Search by name or code..."
-              value={search} onChange={e => setSearch(e.target.value)}
+              value={localSearch} onChange={e => setLocalSearch(e.target.value)}
             />
           </div>
           <div className="relative w-full sm:w-[260px]">
@@ -140,7 +145,7 @@ export default function AccountsPage() {
                 <th style={{ width: '20%' }} className="!text-left !pr-5">Actions</th>
               </tr>
             </thead>
-            <motion.tbody variants={stagger} initial="initial" animate="animate">
+            <Motion.tbody variants={stagger} initial="initial" animate="animate">
               {isLoading ? (
                 Array.from({ length: 12 }).map((_, i) => (
                   <tr key={i}>
@@ -159,7 +164,7 @@ export default function AccountsPage() {
                 </tr>
               ) : (
                 filtered.map(acc => (
-                  <motion.tr key={acc.id} variants={row}>
+                  <Motion.tr key={acc.id} variants={row}>
                     <td>
                       <span className="font-mono font-semibold text-[13px] text-slate-600">{acc.code}</span>
                     </td>
@@ -185,10 +190,10 @@ export default function AccountsPage() {
                         </button>
                       </div>
                     </td>
-                  </motion.tr>
+                  </Motion.tr>
                 ))
               )}
-            </motion.tbody>
+            </Motion.tbody>
           </table>
         </div>
 
@@ -202,9 +207,9 @@ export default function AccountsPage() {
       {/* Add Account Modal */}
       <AnimatePresence>
         {modalOpen && (
-          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+          <Motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
             onClick={e => e.target === e.currentTarget && setModalOpen(false)}>
-            <motion.div
+            <Motion.div
               className="modal-box w-full max-w-md"
               initial={{ opacity: 0, scale: 0.95, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -248,14 +253,14 @@ export default function AccountsPage() {
                 </div>
                 <div className="flex gap-3 pt-1">
                   <button type="button" onClick={() => setModalOpen(false)} className="btn btn-secondary flex-1">Cancel</button>
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} type="submit"
+                  <Motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} type="submit"
                     disabled={saving} className="btn btn-primary flex-[2]">
                     {saving ? 'Saving...' : 'Save Account'}
-                  </motion.button>
+                  </Motion.button>
                 </div>
               </form>
-            </motion.div>
-          </motion.div>
+            </Motion.div>
+          </Motion.div>
         )}
       </AnimatePresence>
     </div>

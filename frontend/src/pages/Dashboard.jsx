@@ -279,12 +279,18 @@ function DashboardOverview() {
 // ─── MAIN DASHBOARD SHELL COMPONENT ───
 export default function Dashboard() {
   const [collapsed, setCollapsed] = useState(false);
+  const [globalSearch, setGlobalSearch] = useState("");
   const sidebarWidth = collapsed ? 68 : 248;
 
   return (
     <div className="flex min-h-screen bg-[#f8fafc]">
       <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
-      <Header sidebarCollapsed={collapsed} onMenuToggle={() => setCollapsed(!collapsed)} />
+      <Header 
+        sidebarCollapsed={collapsed} 
+        onMenuToggle={() => setCollapsed(!collapsed)} 
+        searchQuery={globalSearch}
+        onSearchChange={setGlobalSearch}
+      />
 
       <Motion.main
         animate={{ marginLeft: sidebarWidth }}
@@ -303,16 +309,16 @@ export default function Dashboard() {
         >
             <Routes>
               <Route index element={<DashboardOverview />} />
-              <Route path="accounts" element={<AccountsPage />} />
+              <Route path="accounts" element={<AccountsPage globalSearch={globalSearch} />} />
               <Route path="journal" element={<JournalEntryPage />} />
-              <Route path="ledger" element={<LedgerPage />} />
+              <Route path="ledger" element={<LedgerPage globalSearch={globalSearch} />} />
               <Route path="reports" element={<ReportsPage />} />
               <Route path="analytics" element={<AnalyticsDashboard />} />
               
               {/* ERP Expansion Modules */}
-              <Route path="inventory" element={<InventoryPage />} />
-              <Route path="warehouses" element={<WarehousePage />} />
-              <Route path="distribution" element={<DistributionPage />} />
+              <Route path="inventory" element={<InventoryPage globalSearch={globalSearch} />} />
+              <Route path="warehouses" element={<WarehousePage globalSearch={globalSearch} />} />
+              <Route path="distribution" element={<DistributionPage globalSearch={globalSearch} />} />
             </Routes>
           </Motion.div>
         </AnimatePresence>

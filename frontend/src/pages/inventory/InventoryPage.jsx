@@ -18,7 +18,7 @@ const TYPE_COLORS = {
   RETURN: { bg: '#faf5ff', text: '#7c3aed', label: 'Return' },
 };
 
-export default function InventoryPage() {
+export default function InventoryPage({ globalSearch = "" }) {
   const { activeCompany, logout } = useAuthStore();
   const [tab, setTab] = useState('products'); // products | stock | logs
   const [products, setProducts] = useState([]);
@@ -30,7 +30,9 @@ export default function InventoryPage() {
   const [dashStats, setDashStats] = useState(null);
   const [loadError, setLoadError] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [search, setSearch] = useState('');
+  const [localSearch, setLocalSearch] = useState('');
+  
+  const search = globalSearch || localSearch;
   const [expandedProduct, setExpandedProduct] = useState(null);
   const [productStock, setProductStock] = useState([]);
   const [loadingStock, setLoadingStock] = useState(false);
@@ -290,7 +292,7 @@ export default function InventoryPage() {
         <div className="relative max-w-sm mb-4">
           <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
           <input className="input-enterprise pl-12 text-[13px] py-2.5" placeholder={`Search ${tab}...`}
-            value={search} onChange={e => setSearch(e.target.value)} />
+            value={localSearch} onChange={e => setLocalSearch(e.target.value)} />
         </div>
       )}
 

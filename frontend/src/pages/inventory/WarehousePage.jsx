@@ -9,7 +9,7 @@ import useAuthStore from '../../store/authStore';
 
 const fadeUp = { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
 
-export default function WarehousePage() {
+export default function WarehousePage({ globalSearch = "" }) {
   const { activeCompany, user } = useAuthStore();
   const [warehouses, setWarehouses] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -17,7 +17,8 @@ export default function WarehousePage() {
   // Role check: Admin, Inventory Manager, Company Admin or Super Admin can manage
   const canManage = user?.role === 'Super Admin' || user?.role === 'Admin' || user?.role === 'Inventory Manager' || user?.role === 'Company Admin';
   const [loadError, setLoadError] = useState(null);
-  const [search, setSearch] = useState('');
+  const [localSearch, setLocalSearch] = useState('');
+  const search = globalSearch || localSearch;
 
   // Modal & Form
   const [modalOpen, setModalOpen] = useState(false);
@@ -126,7 +127,7 @@ export default function WarehousePage() {
       <div className="relative max-w-sm mb-6">
         <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
         <input className="input-enterprise pl-12 py-2.5 text-[13px]" placeholder="Search warehouses..."
-          value={search} onChange={e => setSearch(e.target.value)} />
+          value={localSearch} onChange={e => setLocalSearch(e.target.value)} />
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">

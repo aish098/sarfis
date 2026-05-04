@@ -7,13 +7,15 @@ import useAuthStore from '../../store/authStore';
 import jsPDF from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
-export default function LedgerPage() {
+export default function LedgerPage({ globalSearch = "" }) {
   const { activeCompany } = useAuthStore();
   const [accounts, setAccounts] = useState([]);
   const [selectedId, setSelectedId] = useState('');
   const [transactions, setTransactions] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
-  const [search, setSearch] = useState('');
+  const [localSearch, setLocalSearch] = useState('');
+  
+  const search = globalSearch || localSearch;
   const [dateFrom, setDateFrom] = useState('');
   const [dateTo, setDateTo] = useState('');
 
@@ -179,7 +181,7 @@ export default function LedgerPage() {
             <input className="input-enterprise text-[13px]" 
               style={{ paddingLeft: '44px' }}
               placeholder="Search descriptions or references..."
-              value={search} onChange={e => setSearch(e.target.value)} />
+              value={localSearch} onChange={e => setLocalSearch(e.target.value)} />
           </div>
           <div className="flex items-center gap-2 px-4 py-2.5 rounded-lg" style={{ border: '1.5px solid #e2e8f0', background: 'white' }}>
             <Calendar size={14} className="text-slate-400 flex-shrink-0" />
@@ -187,7 +189,7 @@ export default function LedgerPage() {
             <span className="text-slate-300 font-bold">—</span>
             <input type="date" className="text-[13px] text-slate-700 border-none outline-none bg-transparent" value={dateTo} onChange={e => setDateTo(e.target.value)} />
           </div>
-          <button onClick={() => { setSearch(''); setDateFrom(''); setDateTo(''); }}
+          <button onClick={() => { setLocalSearch(''); setDateFrom(''); setDateTo(''); }}
             className="btn btn-secondary btn-sm flex-shrink-0"><RefreshCw size={14} /> Reset</button>
         </div>
       </div>
