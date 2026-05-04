@@ -1001,8 +1001,8 @@ function OperationsTab({ companyId }) {
         <Card title="Delivered Orders"><p className="text-2xl font-black text-cyan-600">{summary.delivered_count || 0}</p></Card>
       </div>
 
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-5">
-        <Card title="Top Inventory Products (by Value)">
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-5">
+        <Card title="Top Inventory Products (by Value)" className="lg:col-span-2">
           <div className="overflow-x-auto">
             <table className="data-table">
               <thead>
@@ -1017,9 +1017,9 @@ function OperationsTab({ companyId }) {
                   <tr><td colSpan={3} className="text-center py-6 text-slate-500">No product inventory data</td></tr>
                 ) : products.map((p) => (
                   <tr key={p.product_id} className="hover:bg-slate-50 transition-colors">
-                    <td className="text-slate-700">{p.product_name} <span className="text-slate-400 text-xs">({p.sku})</span></td>
-                    <td className="text-right font-mono text-slate-700">{p.qty}</td>
-                    <td className="text-right font-mono text-slate-900">PKR {fmt(p.stock_value)}</td>
+                    <td className="text-slate-700 font-semibold">{p.product_name} <span className="text-slate-400 text-[10px] font-mono ml-1">({p.sku})</span></td>
+                    <td className="text-right font-mono text-slate-600">{fmt(p.qty)}</td>
+                    <td className="text-right font-mono text-slate-900 font-bold">PKR {fmt(p.stock_value)}</td>
                   </tr>
                 ))}
               </tbody>
@@ -1028,15 +1028,33 @@ function OperationsTab({ companyId }) {
         </Card>
 
         <Card title="Warehouse Load">
-          <ResponsiveContainer width="100%" height={260}>
-            <BarChart data={warehouses}>
-              <CartesianGrid {...chartGrid} />
-              <XAxis dataKey="warehouse_name" tick={axisTick} axisLine={false} tickLine={false} dy={10} />
-              <YAxis tick={axisTick} tickFormatter={fmt} axisLine={false} tickLine={false} />
-              <Tooltip content={<PowerTooltip />} cursor={{ fill: '#f8fafc', radius: 12 }} />
-              <Bar dataKey="estimated_value" fill="#6366f1" radius={[4, 4, 0, 0]} name="Inventory Value" barSize={25} />
-            </BarChart>
-          </ResponsiveContainer>
+          <div className="h-[300px] w-full">
+            <ResponsiveContainer width="100%" height="100%">
+              <BarChart data={warehouses} margin={{ top: 10, right: 10, left: -20, bottom: 20 }}>
+                <CartesianGrid {...chartGrid} />
+                <XAxis 
+                  dataKey="warehouse_name" 
+                  tick={{ ...axisTick, fontSize: 9 }} 
+                  axisLine={false} 
+                  tickLine={false} 
+                  angle={-25}
+                  textAnchor="end"
+                  interval={0}
+                />
+                <YAxis tick={{ ...axisTick, fontSize: 9 }} tickFormatter={fmt} axisLine={false} tickLine={false} />
+                <Tooltip content={<PowerTooltip />} cursor={{ fill: '#f8fafc', radius: 12 }} />
+                <Bar dataKey="estimated_value" fill="#6366f1" radius={[4, 4, 0, 0]} name="Value" barSize={32} />
+              </BarChart>
+            </ResponsiveContainer>
+          </div>
+          <div className="mt-4 space-y-2">
+            {warehouses.map((w, i) => (
+              <div key={i} className="flex items-center justify-between text-[10px]">
+                <span className="text-slate-500 font-medium truncate max-w-[100px]">{w.warehouse_name}</span>
+                <span className="text-slate-900 font-bold font-mono">PKR {fmt(w.estimated_value)}</span>
+              </div>
+            ))}
+          </div>
         </Card>
       </div>
 
