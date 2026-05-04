@@ -554,6 +554,137 @@ function LeadershipHierarchy() {
 }
 
 /* ═══════════════════════════════════════════════════════════
+   FOUNDER SPOTLIGHT
+═══════════════════════════════════════════════════════════ */
+function FounderSpotlight() {
+  const VISION = [
+    "Enterprise ERP Architect — developing precision-driven AI-powered matching logic and autonomous accounting solutions.",
+    "Financial Reporting Systems — specializing in high-fidelity data pipelines and real-time intelligence frameworks.",
+    "Precision Decision Engines — envisioning SCAFIS as the primary engine for autonomous enterprise finance.",
+  ];
+
+  return (
+    <section style={{ background: C.bg, padding: "96px 24px 0" }}>
+      <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+
+        <Reveal>
+          <Tag>Visionary</Tag>
+          <h2 style={{
+            ...f.display, fontSize: "clamp(28px, 4vw, 48px)",
+            fontWeight: 800, color: C.textPri,
+            letterSpacing: "-0.03em", margin: "0 0 40px",
+          }}>
+            Founder Spotlight
+          </h2>
+        </Reveal>
+
+        <Reveal>
+          <div style={{
+            display: "flex", flexWrap: "wrap",
+            borderRadius: 20, overflow: "hidden",
+            border: `1px solid ${C.border}`,
+            boxShadow: `0 32px 80px rgba(0,0,0,0.5)`,
+          }}>
+            {/* LEFT portrait */}
+            <div style={{
+              flex: "0 0 300px", minWidth: 220,
+              background: `radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.18) 0%, #0d1020 100%)`,
+              display: "flex", flexDirection: "column",
+              alignItems: "center", justifyContent: "center",
+              padding: "56px 28px", gap: 20,
+              position: "relative", overflow: "hidden",
+              borderRight: `1px solid ${C.border}`,
+            }}>
+              {/* dot grid */}
+              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.05, pointerEvents: "none" }}>
+                <defs>
+                  <pattern id="founder-dots" width="24" height="24" patternUnits="userSpaceOnUse">
+                    <circle cx="2" cy="2" r="1.2" fill={C.accent} />
+                  </pattern>
+                </defs>
+                <rect width="100%" height="100%" fill="url(#founder-dots)" />
+              </svg>
+
+              <div className="float-card">
+                <Avatar initials="RZ" size={120} accent={C.accent} pulse />
+              </div>
+
+              <div style={{ textAlign: "center", position: "relative" }}>
+                <p style={{ ...f.display, fontSize: 20, fontWeight: 800, color: C.textPri, letterSpacing: "-0.01em", marginBottom: 8 }}>
+                  Rana Zain
+                </p>
+                <div style={{
+                  display: "inline-flex",
+                  background: C.accentGl, border: `1px solid ${C.accent}40`,
+                  borderRadius: 20, padding: "4px 14px",
+                }}>
+                  <span style={{ ...f.mono, fontSize: 9, color: C.accentLt, letterSpacing: "0.18em", textTransform: "uppercase" }}>
+                    Chairman &amp; Founder
+                  </span>
+                </div>
+              </div>
+
+              <div style={{ display: "flex", gap: 20 }}>
+                {[{ val: "10+", lbl: "Experience" }, { val: "200+", lbl: "Modules" }].map(s => (
+                  <div key={s.lbl} style={{ textAlign: "center" }}>
+                    <p style={{ ...f.display, fontSize: 22, fontWeight: 800, color: C.accent, margin: 0 }}>{s.val}</p>
+                    <p style={{ ...f.mono, fontSize: 9, color: C.textDim, letterSpacing: "0.15em", textTransform: "uppercase", margin: 0 }}>{s.lbl}</p>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* RIGHT vision */}
+            <div style={{ flex: 1, minWidth: 280, background: C.card, padding: "48px 44px" }}>
+              <p style={{ ...f.mono, fontSize: 9.5, color: C.accentLt, letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: 28 }}>
+                Technical &amp; Architectural Vision
+              </p>
+              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
+                {VISION.map((item, i) => (
+                  <Motion.div
+                    key={i}
+                    initial={{ opacity: 0, x: 20 }}
+                    whileInView={{ opacity: 1, x: 0 }}
+                    viewport={{ once: true }}
+                    transition={{ delay: i * 0.12, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
+                    style={{
+                      display: "flex", gap: 16, alignItems: "flex-start",
+                      padding: "16px 18px",
+                      background: C.accentG2, border: `1px solid ${C.border}`,
+                      borderRadius: 12, cursor: "default",
+                      transition: "border-color .2s, background .2s",
+                    }}
+                    whileHover={{ borderColor: C.accent + "55", backgroundColor: C.accentGl }}
+                  >
+                    <div style={{
+                      width: 26, height: 26, borderRadius: 8, flexShrink: 0,
+                      background: C.accentGl, border: `1px solid ${C.accent}44`,
+                      display: "flex", alignItems: "center", justifyContent: "center",
+                    }}>
+                      <span style={{ ...f.mono, fontSize: 10, fontWeight: 700, color: C.accentLt }}>{i + 1}</span>
+                    </div>
+                    <p style={{ ...f.body, fontSize: 13.5, color: C.textSec, lineHeight: 1.75, margin: 0 }}>
+                      {item}
+                    </p>
+                  </Motion.div>
+                ))}
+              </div>
+
+              {/* quote */}
+              <div style={{ marginTop: 28, borderLeft: `2px solid ${C.accent}`, paddingLeft: 16 }}>
+                <p style={{ ...f.body, fontSize: 13, color: C.textDim, fontStyle: "italic", lineHeight: 1.7, margin: 0 }}>
+                  "Envisioning SCAFIS as a precision decision-making engine — the future of autonomous enterprise accounting."
+                </p>
+              </div>
+            </div>
+          </div>
+        </Reveal>
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════
    CEO SPOTLIGHT
 ═══════════════════════════════════════════════════════════ */
 function CEOSpotlight() {
@@ -800,8 +931,9 @@ export default function LeadershipPage() {
     >
       <Navbar />
       <Hero />
-      <LeadershipHierarchy />
+      <FounderSpotlight />
       <CEOSpotlight />
+      <LeadershipHierarchy />
       <TeamMarquee />
       <Footer />
     </Motion.div>
