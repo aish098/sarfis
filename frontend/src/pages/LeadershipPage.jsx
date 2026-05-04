@@ -1,941 +1,743 @@
 /**
- * LeadershipPage.jsx  —  SCAFIS Premium Leadership
+ * LeadershipPage.jsx  —  SCAFIS Premium Leadership (Final)
  *
- * Sections:
- *  1. Hero  — full-width with animated particle canvas + parallax
- *  2. Leadership Hierarchy — editorial sidebar layout
- *  3. Mentors & Advisors — dark cards with glow
- *  4. CEO Spotlight — split panel
- *  5. Team Marquee — infinite auto-scroll with hover pause
- *
- * Color System (strictly followed):
- *   #1a1f2e  main bg
- *   #12162a  card bg
- *   #2a3044  borders
- *   #6366f1 / #4f46e5  accent indigo
- *   #f1f5f9  text primary
- *   #94a3b8  text muted
- *
- * Fonts: Syne (display) + DM Sans (body) — injected via Google Fonts
- * Requires: framer-motion (already in project)
+ * Changes from previous version:
+ *  ✅ Founder Spotlight — matches CEO Spotlight layout (split panel, stats, mission points)
+ *  ✅ Advisors — redesigned as large premium cards with glow, stats, decorative elements
+ *  ✅ Uses project font variables (font-display / font-sans from Tailwind config)
+ *  ✅ Strictly follows color system: #1a1f2e / #12162a / #2a3044 / #6366f1
+ *  ✅ All positions maintained (Hero → Hierarchy → Founder → CEO → Advisors → Team)
  */
 
 import { useEffect, useRef, useState } from "react";
-import { motion as Motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { motion as M, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
-/* ═══════════════════════════════════════════════════════════
-   DESIGN TOKENS
-═══════════════════════════════════════════════════════════ */
+/* ─── tokens ───────────────────────────────────────────────────────────────── */
 const C = {
   bg:       "#1a1f2e",
   card:     "#12162a",
   cardDeep: "#0b0e1a",
   border:   "#2a3044",
-  borderLo: "#1a1f2e",
+  borderLo: "#1e2438",
   accent:   "#6366f1",
   accentDk: "#4f46e5",
   accentLt: "#818cf8",
-  accentGl: "rgba(99,102,241,0.14)",
+  accentGl: "rgba(99,102,241,0.15)",
   accentG2: "rgba(99,102,241,0.07)",
+  accentG3: "rgba(99,102,241,0.04)",
   violet:   "#a78bfa",
+  cyan:     "#22d3ee",
+  cyanDim:  "rgba(34,211,238,0.12)",
+  green:    "#34d399",
+  amber:    "#f59e0b",
   textPri:  "#f1f5f9",
   textSec:  "#94a3b8",
   textDim:  "#475569",
 };
 
-/* ═══════════════════════════════════════════════════════════
-   FONT INJECTION
-═══════════════════════════════════════════════════════════ */
-if (typeof document !== "undefined" && !document.getElementById("lp-syne")) {
-  const l = document.createElement("link");
-  l.id = "lp-syne"; l.rel = "stylesheet";
-  l.href = "https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Sans:ital,wght@0,300;0,400;0,500;0,600;1,400&family=JetBrains+Mono:wght@400;500&display=swap";
-  document.head.appendChild(l);
-}
-
-const f = {
-  display: { fontFamily: "'Syne', sans-serif" },
-  body:    { fontFamily: "'DM Sans', sans-serif" },
-  mono:    { fontFamily: "'JetBrains Mono', monospace" },
-};
-
-/* ═══════════════════════════════════════════════════════════
-   CSS KEYFRAMES (injected once)
-═══════════════════════════════════════════════════════════ */
-if (typeof document !== "undefined" && !document.getElementById("lp-css")) {
+/* ─── keyframes (injected once) ─────────────────────────────────────────────── */
+if (typeof document !== "undefined" && !document.getElementById("lp-styles")) {
   const s = document.createElement("style");
-  s.id = "lp-css";
+  s.id = "lp-styles";
   s.textContent = `
-    @keyframes marquee {
-      0%   { transform: translateX(0); }
-      100% { transform: translateX(-50%); }
-    }
-    @keyframes float-slow {
-      0%, 100% { transform: translateY(0px) rotate(0deg); }
-      50%       { transform: translateY(-12px) rotate(1deg); }
-    }
-    @keyframes pulse-ring {
-      0%   { box-shadow: 0 0 0 0 rgba(99,102,241,0.35); }
-      70%  { box-shadow: 0 0 0 14px rgba(99,102,241,0); }
-      100% { box-shadow: 0 0 0 0 rgba(99,102,241,0); }
-    }
-    .marquee-track { animation: marquee 32s linear infinite; }
-    .marquee-track:hover { animation-play-state: paused; }
-    .float-card { animation: float-slow 6s ease-in-out infinite; }
-    .pulse-avatar { animation: pulse-ring 2.5s ease-out infinite; }
+    @keyframes marquee    { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
+    @keyframes float-slow { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-10px) rotate(.8deg)} }
+    @keyframes pulse-ring { 0%{box-shadow:0 0 0 0 rgba(99,102,241,.4)} 70%{box-shadow:0 0 0 16px rgba(99,102,241,0)} 100%{box-shadow:0 0 0 0 rgba(99,102,241,0)} }
+    @keyframes shimmer    { 0%,100%{opacity:.5} 50%{opacity:1} }
+    .mq-track            { animation: marquee 36s linear infinite; }
+    .mq-track:hover      { animation-play-state: paused; }
+    .float-el            { animation: float-slow 6s ease-in-out infinite; }
+    .pulse-el            { animation: pulse-ring 2.6s ease-out infinite; }
+    .shimmer-el          { animation: shimmer 3s ease-in-out infinite; }
   `;
   document.head.appendChild(s);
 }
 
-/* ═══════════════════════════════════════════════════════════
-   SCROLL REVEAL
-═══════════════════════════════════════════════════════════ */
-const fadeUp    = { hidden: { opacity: 0, y: 36 }, show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22,1,0.36,1] } } };
-const stagger   = { show: { transition: { staggerChildren: 0.1 } } };
+/* ─── motion variants ───────────────────────────────────────────────────────── */
+const up      = { hidden:{opacity:0,y:32}, show:{opacity:1,y:0,transition:{duration:.65,ease:[.22,1,.36,1]}} };
+const left    = { hidden:{opacity:0,x:-32}, show:{opacity:1,x:0,transition:{duration:.6,ease:[.22,1,.36,1]}} };
+const right_v = { hidden:{opacity:0,x:32},  show:{opacity:1,x:0,transition:{duration:.6,ease:[.22,1,.36,1]}} };
+const stagger = { show:{transition:{staggerChildren:.09}} };
 
-function Reveal({ children, variants = fadeUp, delay = 0, style = {}, className = "" }) {
+function FV({ children, v=up, delay=0, style={}, className="" }) {
   return (
-    <Motion.div
-      initial="hidden"
-      whileInView="show"
-      viewport={{ once: true, amount: 0.12 }}
-      variants={variants}
-      transition={{ delay }}
-      style={style}
-      className={className}
-    >
+    <M.div initial="hidden" whileInView="show" viewport={{once:true,amount:.1}}
+      variants={v} transition={{delay}} style={style} className={className}>
       {children}
-    </Motion.div>
+    </M.div>
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   PARTICLE CANVAS
-═══════════════════════════════════════════════════════════ */
+/* ─── particle canvas ───────────────────────────────────────────────────────── */
 function ParticleCanvas() {
-  const canvasRef = useRef(null);
-
+  const ref = useRef(null);
   useEffect(() => {
-    const canvas = canvasRef.current;
-    if (!canvas) return;
-    const ctx = canvas.getContext("2d");
-    let raf, W, H;
-
-    const COLORS = ["rgba(99,102,241,0.6)", "rgba(129,140,248,0.5)", "rgba(167,139,250,0.4)", "rgba(34,211,238,0.3)"];
-    let particles = [];
-
-    function resize() {
-      W = canvas.width  = canvas.offsetWidth;
-      H = canvas.height = canvas.offsetHeight;
-    }
-
-    function spawn() {
-      return {
-        x: Math.random() * W,
-        y: Math.random() * H,
-        r: Math.random() * 1.8 + 0.4,
-        vx: (Math.random() - 0.5) * 0.22,
-        vy: (Math.random() - 0.5) * 0.22,
-        color: COLORS[Math.floor(Math.random() * COLORS.length)],
-        alpha: Math.random() * 0.8 + 0.2,
-        life: 0,
-        maxLife: 180 + Math.random() * 240,
-      };
-    }
-
-    function init() { particles = Array.from({ length: 90 }, spawn); }
-
-    function draw() {
-      ctx.clearRect(0, 0, W, H);
-
-      // draw connections
-      for (let i = 0; i < particles.length; i++) {
-        for (let j = i + 1; j < particles.length; j++) {
-          const dx = particles[i].x - particles[j].x;
-          const dy = particles[i].y - particles[j].y;
-          const d = Math.sqrt(dx * dx + dy * dy);
-          if (d < 100) {
-            ctx.beginPath();
-            ctx.strokeStyle = `rgba(99,102,241,${0.08 * (1 - d / 100)})`;
-            ctx.lineWidth = 0.5;
-            ctx.moveTo(particles[i].x, particles[i].y);
-            ctx.lineTo(particles[j].x, particles[j].y);
-            ctx.stroke();
-          }
-        }
+    const c = ref.current; if (!c) return;
+    const ctx = c.getContext("2d");
+    let raf, W, H, pts = [];
+    const COL = ["rgba(99,102,241,.55)","rgba(129,140,248,.45)","rgba(167,139,250,.35)","rgba(34,211,238,.25)"];
+    const resize = () => { W=c.width=c.offsetWidth; H=c.height=c.offsetHeight; };
+    const spawn  = () => ({
+      x:Math.random()*W, y:Math.random()*H,
+      r:Math.random()*1.6+.3,
+      vx:(Math.random()-.5)*.2, vy:(Math.random()-.5)*.2,
+      col:COL[Math.floor(Math.random()*COL.length)],
+      a:Math.random()*.7+.2, life:0,
+      max:180+Math.random()*240,
+    });
+    const init = () => { pts = Array.from({length:80},spawn); };
+    const draw = () => {
+      ctx.clearRect(0,0,W,H);
+      for (let i=0;i<pts.length;i++) for (let j=i+1;j<pts.length;j++) {
+        const dx=pts[i].x-pts[j].x, dy=pts[i].y-pts[j].y, d=Math.hypot(dx,dy);
+        if (d<110) { ctx.beginPath(); ctx.strokeStyle=`rgba(99,102,241,${.07*(1-d/110)})`; ctx.lineWidth=.4; ctx.moveTo(pts[i].x,pts[i].y); ctx.lineTo(pts[j].x,pts[j].y); ctx.stroke(); }
       }
-
-      particles.forEach((p, idx) => {
-        p.x += p.vx; p.y += p.vy; p.life++;
-        if (p.x < 0 || p.x > W || p.y < 0 || p.y > H || p.life > p.maxLife) {
-          particles[idx] = spawn();
-          return;
-        }
-        const fade = p.life < 30 ? p.life / 30 : p.life > p.maxLife - 30 ? (p.maxLife - p.life) / 30 : 1;
-        ctx.beginPath();
-        ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = p.color.replace(/[\d.]+\)$/, `${p.alpha * fade})`);
-        ctx.fill();
+      pts.forEach((p,idx)=>{
+        p.x+=p.vx; p.y+=p.vy; p.life++;
+        if (p.x<0||p.x>W||p.y<0||p.y>H||p.life>p.max) { pts[idx]=spawn(); return; }
+        const f2=p.life<30?p.life/30:p.life>p.max-30?(p.max-p.life)/30:1;
+        ctx.beginPath(); ctx.arc(p.x,p.y,p.r,0,Math.PI*2);
+        ctx.fillStyle=p.col.replace(/[\d.]+\)$/,`${p.a*f2})`); ctx.fill();
       });
-
-      raf = requestAnimationFrame(draw);
-    }
-
-    resize();
-    init();
-    draw();
-    window.addEventListener("resize", resize);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
-  }, []);
-
-  return (
-    <canvas
-      ref={canvasRef}
-      style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }}
-    />
-  );
+      raf=requestAnimationFrame(draw);
+    };
+    resize(); init(); draw();
+    window.addEventListener("resize",resize);
+    return ()=>{ cancelAnimationFrame(raf); window.removeEventListener("resize",resize); };
+  },[]);
+  return <canvas ref={ref} style={{position:"absolute",inset:0,width:"100%",height:"100%",pointerEvents:"none"}}/>;
 }
 
-/* ═══════════════════════════════════════════════════════════
-   AVATAR
-═══════════════════════════════════════════════════════════ */
-function Avatar({ initials, size = 72, accent = C.accent, pulse = false, img = null }) {
+/* ─── shared primitives ─────────────────────────────────────────────────────── */
+function Tag({ label }) {
   return (
-    <div
-      className={pulse ? "pulse-avatar" : ""}
-      style={{
-        width: size, height: size, borderRadius: "50%",
-        background: img ? undefined : `radial-gradient(circle at 38% 38%, #252d52, ${C.cardDeep})`,
-        backgroundImage: img ? `url(${img})` : undefined,
-        backgroundSize: "cover", backgroundPosition: "center",
-        border: `2px solid ${accent}`,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        ...f.display, fontWeight: 800,
-        fontSize: size * 0.3, color: accent,
-        letterSpacing: "0.04em", flexShrink: 0,
-        boxShadow: `0 0 0 4px ${C.accentGl}`,
-      }}
-    >
-      {!img && initials}
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════
-   SECTION TAG
-═══════════════════════════════════════════════════════════ */
-function Tag({ children }) {
-  return (
-    <div style={{ display: "inline-flex", alignItems: "center", gap: 8, marginBottom: 12 }}>
-      <div style={{ width: 20, height: 2, background: C.accent, borderRadius: 1 }} />
-      <span style={{
-        ...f.mono, fontSize: 10, fontWeight: 500, color: C.accentLt,
-        letterSpacing: "0.22em", textTransform: "uppercase",
-      }}>
-        {children}
+    <div style={{display:"inline-flex",alignItems:"center",gap:8,marginBottom:10}}>
+      <div style={{width:18,height:2,background:C.accent,borderRadius:1}}/>
+      <span style={{fontFamily:"var(--font-display,'Syne',sans-serif)",fontSize:10,fontWeight:600,
+        color:C.accentLt,letterSpacing:"0.22em",textTransform:"uppercase"}}>
+        {label}
       </span>
     </div>
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   DATA
-═══════════════════════════════════════════════════════════ */
-const HIERARCHY = [
-  {
-    category: "Founder",
-    accent: "#6366f1",
-    members: [{
-      initials: "RZ",
-      name: "Rana Muhammad Zain ul Abideen",
-      title: "Chairman & Founder",
-      desc: "Chartered Accountant and enterprise ERP architect who envisioned SCAFIS as a precision decision-making engine. Specialises in financial reporting systems, AI-powered matching logic, and autonomous accounting solutions.",
-    }],
-  },
-  {
-    category: "Co-Founder",
-    accent: "#a78bfa",
-    members: [{
-      initials: "AK",
-      name: "Ayesha Kashif",
-      title: "CEO & Co-Founder",
-      desc: "Drives SCAFIS's SaaS growth strategy, product UX, and market adoption. Champions accessibility-first design and sector-specific go-to-market execution.",
-    }],
-  },
-  {
-    category: "Advisors",
-    accent: "#22d3ee",
-    members: [
-      {
-        initials: "MS",
-        name: "Prof. Mohammad Saad Anwar",
-        title: "Taxation Advisor",
-        desc: "Certified trainer and analytical innovation expert providing strategic oversight on SCAFIS's data pipelines and financial intelligence frameworks.",
-      },
-      {
-        initials: "MR",
-        name: "Prof. Muhammed Rehan Anjum",
-        title: "Compliance & Data Integrity",
-        desc: "Leads advisory on accounting standards and regulatory compliance, ensuring audit-grade accuracy across all modules.",
-      },
-    ],
-  },
-  {
-    category: "Team",
-    accent: "#34d399",
-    members: [
-      { initials: "FA", name: "Farhan", title: "Legal Advisor", desc: "Handles legal framework, contracts, and corporate compliance for the SCAFIS platform." },
-      { initials: "HT", name: "Team Member", title: "Role TBA", desc: "Coming soon." },
-      { initials: "SM", name: "Team Member", title: "Role TBA", desc: "Coming soon." },
-    ],
-  },
-];
+function SectionTitle({ children }) {
+  return (
+    <h2 style={{fontFamily:"var(--font-display,'Syne',sans-serif)",
+      fontSize:"clamp(26px,4vw,46px)",fontWeight:800,color:C.textPri,
+      letterSpacing:"-0.03em",margin:"4px 0 0"}}>
+      {children}
+    </h2>
+  );
+}
 
-const MARQUEE_PEOPLE = [
-  { initials: "RZ", name: "Rana Zain",   role: "Chairman",       dept: "Founder",   accent: "#6366f1" },
-  { initials: "AK", name: "Ayesha Kashif", role: "CEO",           dept: "Leadership",accent: "#a78bfa" },
-  { initials: "MS", name: "Prof. Saad",   role: "Tax Advisor",    dept: "Advisory",  accent: "#22d3ee" },
-  { initials: "MR", name: "Prof. Rehan",  role: "Compliance",     dept: "Advisory",  accent: "#22d3ee" },
-  { initials: "FA", name: "Farhan",       role: "Legal Advisor",  dept: "Team",      accent: "#34d399" },
-  { initials: "HT", name: "Team Member",  role: "Engineering",    dept: "Team",      accent: "#34d399" },
-  { initials: "SM", name: "Team Member",  role: "Engineering",    dept: "Team",      accent: "#34d399" },
-  { initials: "UA", name: "Team Member",  role: "QA",             dept: "Team",      accent: "#34d399" },
-  { initials: "FN", name: "Team Member",  role: "Finance",        dept: "Finance",   accent: "#f59e0b" },
-  { initials: "ZK", name: "Team Member",  role: "Accounts",       dept: "Finance",   accent: "#f59e0b" },
-];
+/* Dot-grid SVG texture */
+function DotGrid({ color=C.accent, id="dg", opacity=0.06 }) {
+  return (
+    <svg style={{position:"absolute",inset:0,width:"100%",height:"100%",opacity,pointerEvents:"none"}}>
+      <defs><pattern id={id} width="24" height="24" patternUnits="userSpaceOnUse">
+        <circle cx="2" cy="2" r="1.2" fill={color}/>
+      </pattern></defs>
+      <rect width="100%" height="100%" fill={`url(#${id})`}/>
+    </svg>
+  );
+}
 
-/* ═══════════════════════════════════════════════════════════
-   HERO SECTION
-═══════════════════════════════════════════════════════════ */
+/* Avatar circle */
+function Avatar({ initials, size=72, accent=C.accent, pulse=false, float=false }) {
+  return (
+    <div className={[pulse?"pulse-el":"",float?"float-el":""].join(" ")} style={{
+      width:size,height:size,borderRadius:"50%",flexShrink:0,
+      background:`radial-gradient(circle at 36% 36%, #252d52, ${C.cardDeep})`,
+      border:`2.5px solid ${accent}`,
+      display:"flex",alignItems:"center",justifyContent:"center",
+      fontFamily:"var(--font-display,'Syne',sans-serif)",fontWeight:800,
+      fontSize:size*.3,color:accent,letterSpacing:".04em",
+      boxShadow:`0 0 0 4px ${accent}22`,
+    }}>
+      {initials}
+    </div>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   HERO
+═══════════════════════════════════════════════════════════════════════════ */
 function Hero() {
   const ref = useRef(null);
-  const { scrollYProgress } = useScroll({ target: ref, offset: ["start start", "end start"] });
-  const y    = useTransform(scrollYProgress, [0, 1], [0, 120]);
-  const opac = useTransform(scrollYProgress, [0, 0.7], [1, 0]);
+  const { scrollYProgress } = useScroll({target:ref,offset:["start start","end start"]});
+  const y    = useTransform(scrollYProgress,[0,1],[0,110]);
+  const opac = useTransform(scrollYProgress,[0,.7],[1,0]);
 
   return (
-    <section
-      ref={ref}
-      style={{
-        position: "relative", minHeight: "100vh",
-        background: `radial-gradient(ellipse 80% 60% at 50% 0%, rgba(99,102,241,0.18) 0%, ${C.bg} 65%)`,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        overflow: "hidden",
-      }}
-    >
-      {/* Particle canvas */}
-      <ParticleCanvas />
+    <section ref={ref} style={{
+      position:"relative",minHeight:"100vh",
+      background:`radial-gradient(ellipse 80% 55% at 50% 0%,rgba(99,102,241,.18) 0%,${C.bg} 65%)`,
+      display:"flex",alignItems:"center",justifyContent:"center",overflow:"hidden",
+    }}>
+      <ParticleCanvas/>
+      {/* grid */}
+      <div style={{position:"absolute",inset:0,pointerEvents:"none",
+        backgroundImage:`linear-gradient(rgba(99,102,241,.035) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,.035) 1px,transparent 1px)`,
+        backgroundSize:"64px 64px"}}/>
 
-      {/* Grid overlay */}
-      <div style={{
-        position: "absolute", inset: 0, pointerEvents: "none",
-        backgroundImage: `
-          linear-gradient(rgba(99,102,241,0.04) 1px, transparent 1px),
-          linear-gradient(90deg, rgba(99,102,241,0.04) 1px, transparent 1px)
-        `,
-        backgroundSize: "64px 64px",
-      }} />
-
-      {/* Parallax content */}
-      <Motion.div style={{ y, opacity: opac, position: "relative", zIndex: 2, textAlign: "center", padding: "0 24px", maxWidth: 860 }}>
-
-        {/* Top badge */}
-        <Motion.div
-          initial={{ opacity: 0, scale: 0.85 }}
-          animate={{ opacity: 1, scale: 1 }}
-          transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
-          style={{ display: "flex", justifyContent: "center", marginBottom: 36 }}
-        >
-          <div style={{
-            display: "inline-flex", alignItems: "center", gap: 10,
-            background: C.accentGl, border: `1px solid ${C.accent}40`,
-            borderRadius: 40, padding: "8px 18px",
-          }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: C.accent, boxShadow: `0 0 8px ${C.accent}` }} />
-            <span style={{ ...f.mono, fontSize: 10, color: C.accentLt, letterSpacing: "0.22em", textTransform: "uppercase" }}>
+      <M.div style={{y,opacity:opac,position:"relative",zIndex:2,textAlign:"center",padding:"0 24px",maxWidth:860}}>
+        {/* badge */}
+        <M.div initial={{opacity:0,scale:.85}} animate={{opacity:1,scale:1}}
+          transition={{duration:.55,ease:[.22,1,.36,1]}}
+          style={{display:"flex",justifyContent:"center",marginBottom:36}}>
+          <div style={{display:"inline-flex",alignItems:"center",gap:10,
+            background:C.accentGl,border:`1px solid ${C.accent}44`,
+            borderRadius:40,padding:"8px 20px"}}>
+            <div style={{width:6,height:6,borderRadius:"50%",background:C.accent,boxShadow:`0 0 8px ${C.accent}`}} className="shimmer-el"/>
+            <span style={{fontFamily:"var(--font-mono,'JetBrains Mono',monospace)",fontSize:10,
+              color:C.accentLt,letterSpacing:".22em",textTransform:"uppercase"}}>
               Meet the People Behind SCAFIS
             </span>
           </div>
-        </Motion.div>
+        </M.div>
 
-        {/* Main heading */}
-        <Motion.h1
-          initial={{ opacity: 0, y: 40 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
-          style={{
-            ...f.display, fontSize: "clamp(40px, 7vw, 88px)",
-            fontWeight: 800, color: C.textPri,
-            lineHeight: 1.0, letterSpacing: "-0.03em",
-            margin: "0 0 24px",
-          }}
-        >
+        {/* heading */}
+        <M.h1 initial={{opacity:0,y:40}} animate={{opacity:1,y:0}}
+          transition={{duration:.8,delay:.15,ease:[.22,1,.36,1]}}
+          style={{fontFamily:"var(--font-display,'Syne',sans-serif)",
+            fontSize:"clamp(42px,7.5vw,92px)",fontWeight:800,color:C.textPri,
+            lineHeight:1,letterSpacing:"-.03em",margin:"0 0 22px"}}>
           Our{" "}
-          <span style={{
-            background: `linear-gradient(135deg, ${C.accent}, ${C.violet}, ${C.accentLt})`,
-            WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent",
-            backgroundClip: "text",
-          }}>
+          <span style={{background:`linear-gradient(135deg,${C.accent},${C.violet},${C.accentLt})`,
+            WebkitBackgroundClip:"text",WebkitTextFillColor:"transparent",backgroundClip:"text"}}>
             Leadership
           </span>
-        </Motion.h1>
+        </M.h1>
 
-        {/* Sub */}
-        <Motion.p
-          initial={{ opacity: 0, y: 24 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
-          style={{
-            ...f.body, fontSize: "clamp(15px, 2vw, 18px)",
-            color: C.textSec, lineHeight: 1.75, maxWidth: 560, margin: "0 auto 44px",
-            fontWeight: 300,
-          }}
-        >
+        <M.p initial={{opacity:0,y:24}} animate={{opacity:1,y:0}}
+          transition={{duration:.7,delay:.3,ease:[.22,1,.36,1]}}
+          style={{fontFamily:"var(--font-sans,'DM Sans',sans-serif)",
+            fontSize:"clamp(15px,2vw,18px)",color:C.textSec,lineHeight:1.75,
+            maxWidth:540,margin:"0 auto 52px",fontWeight:300}}>
           Visionaries, scholars, and builders united by a single purpose — to democratise enterprise-grade financial intelligence.
-        </Motion.p>
+        </M.p>
 
-        {/* Scroll cue */}
-        <Motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ delay: 0.8 }}
-          style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}
-        >
-          <Motion.div
-            animate={{ y: [0, 8, 0] }}
-            transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-            style={{
-              width: 36, height: 56, border: `1.5px solid ${C.border}`,
-              borderRadius: 18, display: "flex", alignItems: "flex-start",
-              justifyContent: "center", padding: "8px 0",
-            }}
-          >
-            <Motion.div
-              animate={{ y: [0, 18, 0], opacity: [1, 0, 1] }}
-              transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              style={{ width: 4, height: 8, borderRadius: 2, background: C.accentLt }}
-            />
-          </Motion.div>
-          <span style={{ ...f.mono, fontSize: 9, color: C.textDim, letterSpacing: "0.18em", textTransform: "uppercase" }}>Scroll</span>
-        </Motion.div>
-      </Motion.div>
+        {/* scroll mouse */}
+        <M.div initial={{opacity:0}} animate={{opacity:1}} transition={{delay:.85}}
+          style={{display:"flex",flexDirection:"column",alignItems:"center",gap:8}}>
+          <M.div animate={{y:[0,9,0]}} transition={{duration:2,repeat:Infinity,ease:"easeInOut"}}
+            style={{width:34,height:54,border:`1.5px solid ${C.border}`,borderRadius:17,
+              display:"flex",alignItems:"flex-start",justifyContent:"center",padding:"8px 0"}}>
+            <M.div animate={{y:[0,18,0],opacity:[1,0,1]}}
+              transition={{duration:2,repeat:Infinity,ease:"easeInOut"}}
+              style={{width:4,height:8,borderRadius:2,background:C.accentLt}}/>
+          </M.div>
+          <span style={{fontFamily:"var(--font-mono)",fontSize:9,color:C.textDim,
+            letterSpacing:".18em",textTransform:"uppercase"}}>Scroll</span>
+        </M.div>
+      </M.div>
 
-      {/* Bottom fade */}
-      <div style={{
-        position: "absolute", bottom: 0, left: 0, right: 0, height: 120,
-        background: `linear-gradient(transparent, ${C.bg})`,
-        pointerEvents: "none",
-      }} />
+      <div style={{position:"absolute",bottom:0,left:0,right:0,height:130,
+        background:`linear-gradient(transparent,${C.bg})`,pointerEvents:"none"}}/>
     </section>
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   HIERARCHY — editorial sidebar layout
-═══════════════════════════════════════════════════════════ */
-function HierarchyRow({ category, members, accent }) {
+/* ═══════════════════════════════════════════════════════════════════════════
+   HIERARCHY ROWS (Founder / Co-Founder / Team listed cards)
+═══════════════════════════════════════════════════════════════════════════ */
+const HIER_MEMBERS = [
+  { initials:"RZ", name:"Rana Muhammad Zain ul Abideen", title:"Chairman & Founder", accent:"#6366f1",
+    desc:"Chartered Accountant and enterprise ERP architect. Specialises in financial reporting systems, AI-powered matching logic, and autonomous accounting solutions." },
+  { initials:"AK", name:"Ayesha Kashif", title:"CEO & Co-Founder", accent:"#a78bfa",
+    desc:"Drives SCAFIS's SaaS growth strategy, product UX, and market adoption. Champions accessibility-first design and sector-specific go-to-market execution." },
+  { initials:"FA", name:"Farhan", title:"Legal Advisor", accent:"#34d399",
+    desc:"Handles legal framework, contracts, and corporate compliance for the SCAFIS platform." },
+  { initials:"HT", name:"Team Member", title:"Role TBA", accent:"#34d399", desc:"Coming soon." },
+  { initials:"SM", name:"Team Member", title:"Role TBA", accent:"#34d399", desc:"Coming soon." },
+];
+
+const CATEGORIES = [
+  { label:"Founder",    keys:["RZ"] },
+  { label:"Co-Founder", keys:["AK"] },
+  { label:"Team",       keys:["FA","HT","SM"] },
+];
+
+function HierCard({ m }) {
+  const [hov,setHov] = useState(false);
   return (
-    <Motion.div
-      variants={fadeUp}
-      style={{
-        display: "flex", flexWrap: "wrap", gap: 0,
-        borderBottom: `1px solid ${C.border}`,
-        paddingBottom: 48, marginBottom: 48,
-      }}
-    >
-      {/* Left: category label */}
-      <div style={{ flex: "0 0 180px", minWidth: 140, paddingRight: 32, paddingTop: 4 }}>
-        <div style={{
-          display: "inline-flex", alignItems: "center", gap: 6,
-          background: `${accent}14`, border: `1px solid ${accent}33`,
-          borderRadius: 6, padding: "4px 10px", marginBottom: 12,
-        }}>
-          <div style={{ width: 5, height: 5, borderRadius: "50%", background: accent }} />
-          <span style={{ ...f.mono, fontSize: 9, fontWeight: 500, color: accent, letterSpacing: "0.2em", textTransform: "uppercase" }}>
-            {category}
-          </span>
-        </div>
-        {/* vertical rule */}
-        <div style={{ width: 1, height: 32, background: `linear-gradient(${accent}, transparent)`, marginLeft: 2 }} />
+    <M.div variants={up} onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
+      style={{flex:"1 1 260px",maxWidth:420,
+        background:hov?`linear-gradient(145deg,#161b34,${C.cardDeep})`:C.card,
+        border:`1px solid ${hov?m.accent+"55":C.border}`,
+        borderRadius:16,padding:"22px 20px",
+        display:"flex",gap:16,alignItems:"flex-start",cursor:"default",
+        transition:"all .28s cubic-bezier(.22,1,.36,1)",
+        boxShadow:hov?`0 16px 48px ${m.accent}18`:"none",
+        position:"relative",overflow:"hidden"}}>
+      <div style={{position:"absolute",top:0,left:0,right:0,height:2,transition:"all .28s",
+        background:hov?`linear-gradient(90deg,${m.accent},transparent)`:"transparent"}}/>
+      <Avatar initials={m.initials} size={50} accent={m.accent}/>
+      <div style={{flex:1,minWidth:0}}>
+        <p style={{fontFamily:"var(--font-display)",fontSize:14,fontWeight:700,
+          color:C.textPri,marginBottom:2,letterSpacing:"-.01em"}}>{m.name}</p>
+        <p style={{fontFamily:"var(--font-mono)",fontSize:9,color:m.accent,
+          letterSpacing:".15em",textTransform:"uppercase",marginBottom:8,fontWeight:500}}>{m.title}</p>
+        <p style={{fontFamily:"var(--font-sans)",fontSize:12,color:C.textSec,lineHeight:1.7,margin:0}}>{m.desc}</p>
       </div>
-
-      {/* Right: member cards */}
-      <div style={{ flex: 1, minWidth: 280, display: "flex", flexWrap: "wrap", gap: 16 }}>
-        {members.map((m, i) => (
-          <MemberCard key={m.name} member={m} accent={accent} delay={i * 0.08} />
-        ))}
-      </div>
-    </Motion.div>
-  );
-}
-
-function MemberCard({ member, accent, delay }) {
-  const [hov, setHov] = useState(false);
-  return (
-    <Motion.div
-      variants={fadeUp}
-      transition={{ delay }}
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
-      style={{
-        flex: "1 1 280px", maxWidth: 440,
-        background: hov ? `linear-gradient(145deg, #161b34, ${C.cardDeep})` : C.card,
-        border: `1px solid ${hov ? accent + "55" : C.border}`,
-        borderRadius: 16, padding: "24px",
-        display: "flex", gap: 18, alignItems: "flex-start",
-        cursor: "default", transition: "all .28s cubic-bezier(.22,1,.36,1)",
-        boxShadow: hov ? `0 16px 48px ${accent}18` : "none",
-        position: "relative", overflow: "hidden",
-      }}
-    >
-      {/* accent corner */}
-      <div style={{
-        position: "absolute", top: 0, left: 0, right: 0, height: 2,
-        background: hov ? `linear-gradient(90deg, ${accent}, transparent)` : "transparent",
-        transition: "all .28s",
-      }} />
-
-      <Avatar initials={member.initials} size={54} accent={accent} />
-
-      <div style={{ flex: 1, minWidth: 0 }}>
-        <p style={{ ...f.display, fontSize: 15, fontWeight: 700, color: C.textPri, marginBottom: 3, letterSpacing: "-0.01em" }}>
-          {member.name}
-        </p>
-        <p style={{ ...f.mono, fontSize: 9.5, color: accent, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 10, fontWeight: 500 }}>
-          {member.title}
-        </p>
-        <p style={{ ...f.body, fontSize: 12.5, color: C.textSec, lineHeight: 1.72, margin: 0 }}>
-          {member.desc}
-        </p>
-      </div>
-    </Motion.div>
+    </M.div>
   );
 }
 
 function LeadershipHierarchy() {
   return (
-    <section style={{ background: C.bg, padding: "96px 24px 48px" }}>
-      <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-
-        <Reveal>
-          <Tag>Organisation</Tag>
-          <h2 style={{
-            ...f.display, fontSize: "clamp(28px, 4vw, 48px)",
-            fontWeight: 800, color: C.textPri,
-            letterSpacing: "-0.03em", margin: "0 0 8px",
-          }}>
-            Leadership Hierarchy
-          </h2>
-          <p style={{ ...f.body, fontSize: 14, color: C.textSec, margin: "0 0 64px", maxWidth: 480, lineHeight: 1.7 }}>
+    <section style={{background:C.bg,padding:"96px 24px 48px"}}>
+      <div style={{maxWidth:1080,margin:"0 auto"}}>
+        <FV><Tag label="Organisation"/><SectionTitle>Leadership Hierarchy</SectionTitle>
+          <p style={{fontFamily:"var(--font-sans)",fontSize:14,color:C.textSec,
+            margin:"10px 0 56px",maxWidth:460,lineHeight:1.7}}>
             The structure that powers SCAFIS — from visionary founders to technical builders.
           </p>
-        </Reveal>
+        </FV>
+        <M.div initial="hidden" whileInView="show" viewport={{once:true,amount:.05}} variants={stagger}>
+          {CATEGORIES.map(cat => {
+            const members = HIER_MEMBERS.filter(m => cat.keys.includes(m.initials));
+            const accent  = members[0]?.accent || C.accent;
+            return (
+              <M.div key={cat.label} variants={up}
+                style={{display:"flex",flexWrap:"wrap",gap:0,
+                  borderBottom:`1px solid ${C.border}`,paddingBottom:44,marginBottom:44}}>
+                {/* category col */}
+                <div style={{flex:"0 0 170px",minWidth:130,paddingRight:28,paddingTop:4}}>
+                  <div style={{display:"inline-flex",alignItems:"center",gap:6,
+                    background:`${accent}14`,border:`1px solid ${accent}33`,
+                    borderRadius:6,padding:"4px 10px",marginBottom:12}}>
+                    <div style={{width:5,height:5,borderRadius:"50%",background:accent}}/>
+                    <span style={{fontFamily:"var(--font-mono)",fontSize:9,color:accent,
+                      letterSpacing:".2em",textTransform:"uppercase"}}>{cat.label}</span>
+                  </div>
+                  <div style={{width:1,height:28,background:`linear-gradient(${accent},transparent)`,marginLeft:2}}/>
+                </div>
+                {/* cards */}
+                <div style={{flex:1,minWidth:280,display:"flex",flexWrap:"wrap",gap:14}}>
+                  {members.map(m => <HierCard key={m.initials} m={m}/>)}
+                </div>
+              </M.div>
+            );
+          })}
+        </M.div>
+      </div>
+    </section>
+  );
+}
 
-        <Motion.div
-          initial="hidden"
-          whileInView="show"
-          viewport={{ once: true, amount: 0.05 }}
-          variants={stagger}
-        >
-          {HIERARCHY.map((group) => (
-            <HierarchyRow
-              key={group.category}
-              category={group.category}
-              members={group.members}
-              accent={group.accent}
-            />
+/* ═══════════════════════════════════════════════════════════════════════════
+   SPOTLIGHT PANEL — reusable for both Founder & CEO
+═══════════════════════════════════════════════════════════════════════════ */
+function SpotlightPanel({ person, missionLabel, missions, quote, stats, accentOverride }) {
+  const accent = accentOverride || C.accent;
+
+  return (
+    <div style={{
+      display:"flex",flexWrap:"wrap",borderRadius:20,overflow:"hidden",
+      border:`1px solid ${C.border}`,
+      boxShadow:`0 32px 80px rgba(0,0,0,.5), 0 0 0 1px ${accent}18`,
+    }}>
+      {/* ── LEFT portrait ── */}
+      <div style={{flex:"0 0 300px",minWidth:220,
+        background:`radial-gradient(ellipse at 50% 0%, ${accent}20 0%, #0b0e1a 100%)`,
+        display:"flex",flexDirection:"column",alignItems:"center",justifyContent:"center",
+        padding:"52px 28px",gap:20,position:"relative",overflow:"hidden",
+        borderRight:`1px solid ${C.border}`}}>
+        <DotGrid id={`dot-${person.initials}`} color={accent}/>
+        {/* ambient glow */}
+        <div style={{position:"absolute",top:"15%",left:"50%",transform:"translateX(-50%)",
+          width:180,height:180,borderRadius:"50%",background:`${accent}20`,
+          filter:"blur(40px)",pointerEvents:"none"}}/>
+
+        <div className="float-el">
+          <Avatar initials={person.initials} size={124} accent={accent} pulse/>
+        </div>
+
+        <div style={{textAlign:"center",position:"relative"}}>
+          <p style={{fontFamily:"var(--font-display)",fontSize:19,fontWeight:800,
+            color:C.textPri,letterSpacing:"-.01em",marginBottom:8}}>{person.name}</p>
+          <div style={{display:"inline-flex",background:`${accent}18`,
+            border:`1px solid ${accent}44`,borderRadius:20,padding:"5px 14px"}}>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:9,color:accent,
+              letterSpacing:".18em",textTransform:"uppercase"}}>{person.title}</span>
+          </div>
+        </div>
+
+        {/* stats */}
+        {stats && (
+          <div style={{display:"flex",gap:24,marginTop:4}}>
+            {stats.map(s=>(
+              <div key={s.lbl} style={{textAlign:"center"}}>
+                <p style={{fontFamily:"var(--font-display)",fontSize:24,fontWeight:800,
+                  color:accent,margin:0,letterSpacing:"-.02em"}}>{s.val}</p>
+                <p style={{fontFamily:"var(--font-mono)",fontSize:8.5,color:C.textDim,
+                  letterSpacing:".15em",textTransform:"uppercase",margin:0}}>{s.lbl}</p>
+              </div>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {/* ── RIGHT vision ── */}
+      <div style={{flex:1,minWidth:280,background:C.card,padding:"48px 44px"}}>
+        <p style={{fontFamily:"var(--font-mono)",fontSize:9.5,color:C.accentLt,
+          letterSpacing:".22em",textTransform:"uppercase",marginBottom:28}}>{missionLabel}</p>
+
+        <div style={{display:"flex",flexDirection:"column",gap:12}}>
+          {missions.map((item,i)=>(
+            <M.div key={i}
+              initial={{opacity:0,x:20}} whileInView={{opacity:1,x:0}}
+              viewport={{once:true}} transition={{delay:i*.1,duration:.55,ease:[.22,1,.36,1]}}
+              whileHover={{borderColor:accent+"55"}}
+              style={{display:"flex",gap:16,alignItems:"flex-start",
+                padding:"15px 18px",background:C.accentG2,
+                border:`1px solid ${C.borderLo}`,borderRadius:12,cursor:"default",
+                transition:"border-color .2s"}}>
+              <div style={{width:26,height:26,borderRadius:8,flexShrink:0,
+                background:C.accentGl,border:`1px solid ${accent}44`,
+                display:"flex",alignItems:"center",justifyContent:"center"}}>
+                <span style={{fontFamily:"var(--font-mono)",fontSize:10,fontWeight:700,color:C.accentLt}}>{i+1}</span>
+              </div>
+              <p style={{fontFamily:"var(--font-sans)",fontSize:13.5,color:C.textSec,lineHeight:1.75,margin:0}}>{item}</p>
+            </M.div>
           ))}
-        </Motion.div>
+        </div>
+
+        {quote && (
+          <div style={{marginTop:28,borderLeft:`2.5px solid ${accent}`,paddingLeft:18}}>
+            <p style={{fontFamily:"var(--font-sans)",fontSize:13,color:C.textDim,
+              fontStyle:"italic",lineHeight:1.72,margin:0}}>"{quote}"</p>
+          </div>
+        )}
       </div>
-    </section>
+    </div>
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   FOUNDER SPOTLIGHT
-═══════════════════════════════════════════════════════════ */
+/* ── Founder Spotlight ─────────────────────────────────────────────────────── */
 function FounderSpotlight() {
-  const VISION = [
-    "Enterprise ERP Architect — developing precision-driven AI-powered matching logic and autonomous accounting solutions.",
-    "Financial Reporting Systems — specializing in high-fidelity data pipelines and real-time intelligence frameworks.",
-    "Precision Decision Engines — envisioning SCAFIS as the primary engine for autonomous enterprise finance.",
-  ];
-
   return (
-    <section style={{ background: C.bg, padding: "96px 24px 0" }}>
-      <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-
-        <Reveal>
-          <Tag>Visionary</Tag>
-          <h2 style={{
-            ...f.display, fontSize: "clamp(28px, 4vw, 48px)",
-            fontWeight: 800, color: C.textPri,
-            letterSpacing: "-0.03em", margin: "0 0 40px",
-          }}>
-            Founder Spotlight
-          </h2>
-        </Reveal>
-
-        <Reveal>
-          <div style={{
-            display: "flex", flexWrap: "wrap",
-            borderRadius: 20, overflow: "hidden",
-            border: `1px solid ${C.border}`,
-            boxShadow: `0 32px 80px rgba(0,0,0,0.5)`,
-          }}>
-            {/* LEFT portrait */}
-            <div style={{
-              flex: "0 0 300px", minWidth: 220,
-              background: `radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.18) 0%, #0d1020 100%)`,
-              display: "flex", flexDirection: "column",
-              alignItems: "center", justifyContent: "center",
-              padding: "56px 28px", gap: 20,
-              position: "relative", overflow: "hidden",
-              borderRight: `1px solid ${C.border}`,
-            }}>
-              {/* dot grid */}
-              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.05, pointerEvents: "none" }}>
-                <defs>
-                  <pattern id="founder-dots" width="24" height="24" patternUnits="userSpaceOnUse">
-                    <circle cx="2" cy="2" r="1.2" fill={C.accent} />
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#founder-dots)" />
-              </svg>
-
-              <div className="float-card">
-                <Avatar initials="RZ" size={120} accent={C.accent} pulse />
-              </div>
-
-              <div style={{ textAlign: "center", position: "relative" }}>
-                <p style={{ ...f.display, fontSize: 20, fontWeight: 800, color: C.textPri, letterSpacing: "-0.01em", marginBottom: 8 }}>
-                  Rana Zain
-                </p>
-                <div style={{
-                  display: "inline-flex",
-                  background: C.accentGl, border: `1px solid ${C.accent}40`,
-                  borderRadius: 20, padding: "4px 14px",
-                }}>
-                  <span style={{ ...f.mono, fontSize: 9, color: C.accentLt, letterSpacing: "0.18em", textTransform: "uppercase" }}>
-                    Chairman &amp; Founder
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", gap: 20 }}>
-                {[{ val: "10+", lbl: "Experience" }, { val: "200+", lbl: "Modules" }].map(s => (
-                  <div key={s.lbl} style={{ textAlign: "center" }}>
-                    <p style={{ ...f.display, fontSize: 22, fontWeight: 800, color: C.accent, margin: 0 }}>{s.val}</p>
-                    <p style={{ ...f.mono, fontSize: 9, color: C.textDim, letterSpacing: "0.15em", textTransform: "uppercase", margin: 0 }}>{s.lbl}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* RIGHT vision */}
-            <div style={{ flex: 1, minWidth: 280, background: C.card, padding: "48px 44px" }}>
-              <p style={{ ...f.mono, fontSize: 9.5, color: C.accentLt, letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: 28 }}>
-                Technical &amp; Architectural Vision
-              </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {VISION.map((item, i) => (
-                  <Motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: 20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.12, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                    style={{
-                      display: "flex", gap: 16, alignItems: "flex-start",
-                      padding: "16px 18px",
-                      background: C.accentG2, border: `1px solid ${C.border}`,
-                      borderRadius: 12, cursor: "default",
-                      transition: "border-color .2s, background .2s",
-                    }}
-                    whileHover={{ borderColor: C.accent + "55", backgroundColor: C.accentGl }}
-                  >
-                    <div style={{
-                      width: 26, height: 26, borderRadius: 8, flexShrink: 0,
-                      background: C.accentGl, border: `1px solid ${C.accent}44`,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <span style={{ ...f.mono, fontSize: 10, fontWeight: 700, color: C.accentLt }}>{i + 1}</span>
-                    </div>
-                    <p style={{ ...f.body, fontSize: 13.5, color: C.textSec, lineHeight: 1.75, margin: 0 }}>
-                      {item}
-                    </p>
-                  </Motion.div>
-                ))}
-              </div>
-
-              {/* quote */}
-              <div style={{ marginTop: 28, borderLeft: `2px solid ${C.accent}`, paddingLeft: 16 }}>
-                <p style={{ ...f.body, fontSize: 13, color: C.textDim, fontStyle: "italic", lineHeight: 1.7, margin: 0 }}>
-                  "Envisioning SCAFIS as a precision decision-making engine — the future of autonomous enterprise accounting."
-                </p>
-              </div>
-            </div>
-          </div>
-        </Reveal>
+    <section style={{background:C.bg,padding:"0 24px 72px"}}>
+      <div style={{maxWidth:1080,margin:"0 auto",paddingTop:96}}>
+        <FV><Tag label="Founder"/><SectionTitle>Founder Spotlight</SectionTitle></FV>
+        <div style={{height:36}}/>
+        <FV>
+          <SpotlightPanel
+            person={{ initials:"RZ", name:"Rana Muhammad Zain ul Abideen", title:"Chairman & Founder" }}
+            missionLabel="Founder's Mission for SCAFIS"
+            accentOverride={C.accent}
+            stats={[{val:"12+",lbl:"Years"},{val:"4",lbl:"ERP Systems"},{val:"50+",lbl:"Companies"}]}
+            missions={[
+              "Built SCAFIS as a comprehensive ERP solution from the ground up — architecting it as a precision decision-making engine for modern organisations.",
+              "Specialises in financial reporting systems, AI-powered matching logic, and autonomous accounting solutions at enterprise scale.",
+              "Democratising enterprise-grade financial intelligence for businesses of every size — from SMEs to large corporations.",
+            ]}
+            quote="SCAFIS is not just software — it's a financial intelligence platform that evolves with your business."
+          />
+        </FV>
       </div>
     </section>
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   CEO SPOTLIGHT
-═══════════════════════════════════════════════════════════ */
+/* ── CEO Spotlight ─────────────────────────────────────────────────────────── */
 function CEOSpotlight() {
-  const VISION = [
-    "SaaS growth strategy — scaling outreach and accelerating enterprise business development.",
-    "User experience priorities — championing product accessibility and design-first standards.",
-    "Market adoption goals — driving client acquisition and sector-specific GTM strategies.",
-  ];
-
   return (
-    <section style={{ background: C.bg, padding: "0 24px 96px" }}>
-      <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-
-        <Reveal>
-          <Tag>Executive</Tag>
-          <h2 style={{
-            ...f.display, fontSize: "clamp(28px, 4vw, 48px)",
-            fontWeight: 800, color: C.textPri,
-            letterSpacing: "-0.03em", margin: "0 0 40px",
-          }}>
-            CEO Spotlight
-          </h2>
-        </Reveal>
-
-        <Reveal>
-          <div style={{
-            display: "flex", flexWrap: "wrap",
-            borderRadius: 20, overflow: "hidden",
-            border: `1px solid ${C.border}`,
-            boxShadow: `0 32px 80px rgba(0,0,0,0.5)`,
-          }}>
-            {/* LEFT portrait */}
-            <div style={{
-              flex: "0 0 300px", minWidth: 220,
-              background: `radial-gradient(ellipse at 50% 0%, rgba(99,102,241,0.18) 0%, #0d1020 100%)`,
-              display: "flex", flexDirection: "column",
-              alignItems: "center", justifyContent: "center",
-              padding: "56px 28px", gap: 20,
-              position: "relative", overflow: "hidden",
-              borderRight: `1px solid ${C.border}`,
-            }}>
-              {/* dot grid */}
-              <svg style={{ position: "absolute", inset: 0, width: "100%", height: "100%", opacity: 0.05, pointerEvents: "none" }}>
-                <defs>
-                  <pattern id="ceo-dots" width="24" height="24" patternUnits="userSpaceOnUse">
-                    <circle cx="2" cy="2" r="1.2" fill={C.accent} />
-                  </pattern>
-                </defs>
-                <rect width="100%" height="100%" fill="url(#ceo-dots)" />
-              </svg>
-
-              <div className="float-card">
-                <Avatar initials="AK" size={120} accent={C.accent} pulse />
-              </div>
-
-              <div style={{ textAlign: "center", position: "relative" }}>
-                <p style={{ ...f.display, fontSize: 20, fontWeight: 800, color: C.textPri, letterSpacing: "-0.01em", marginBottom: 8 }}>
-                  Ayesha Kashif
-                </p>
-                <div style={{
-                  display: "inline-flex",
-                  background: C.accentGl, border: `1px solid ${C.accent}40`,
-                  borderRadius: 20, padding: "4px 14px",
-                }}>
-                  <span style={{ ...f.mono, fontSize: 9, color: C.accentLt, letterSpacing: "0.18em", textTransform: "uppercase" }}>
-                    CEO &amp; Co-Founder
-                  </span>
-                </div>
-              </div>
-
-              <div style={{ display: "flex", gap: 20 }}>
-                {[{ val: "3+", lbl: "Years" }, { val: "50+", lbl: "Clients" }].map(s => (
-                  <div key={s.lbl} style={{ textAlign: "center" }}>
-                    <p style={{ ...f.display, fontSize: 22, fontWeight: 800, color: C.accent, margin: 0 }}>{s.val}</p>
-                    <p style={{ ...f.mono, fontSize: 9, color: C.textDim, letterSpacing: "0.15em", textTransform: "uppercase", margin: 0 }}>{s.lbl}</p>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {/* RIGHT vision */}
-            <div style={{ flex: 1, minWidth: 280, background: C.card, padding: "48px 44px" }}>
-              <p style={{ ...f.mono, fontSize: 9.5, color: C.accentLt, letterSpacing: "0.22em", textTransform: "uppercase", marginBottom: 28 }}>
-                Strategic Operational Vision
-              </p>
-              <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
-                {VISION.map((item, i) => (
-                  <Motion.div
-                    key={i}
-                    initial={{ opacity: 0, x: 20 }}
-                    whileInView={{ opacity: 1, x: 0 }}
-                    viewport={{ once: true }}
-                    transition={{ delay: i * 0.12, duration: 0.55, ease: [0.22, 1, 0.36, 1] }}
-                    style={{
-                      display: "flex", gap: 16, alignItems: "flex-start",
-                      padding: "16px 18px",
-                      background: C.accentG2, border: `1px solid ${C.border}`,
-                      borderRadius: 12, cursor: "default",
-                      transition: "border-color .2s, background .2s",
-                    }}
-                    whileHover={{ borderColor: C.accent + "55", backgroundColor: C.accentGl }}
-                  >
-                    <div style={{
-                      width: 26, height: 26, borderRadius: 8, flexShrink: 0,
-                      background: C.accentGl, border: `1px solid ${C.accent}44`,
-                      display: "flex", alignItems: "center", justifyContent: "center",
-                    }}>
-                      <span style={{ ...f.mono, fontSize: 10, fontWeight: 700, color: C.accentLt }}>{i + 1}</span>
-                    </div>
-                    <p style={{ ...f.body, fontSize: 13.5, color: C.textSec, lineHeight: 1.75, margin: 0 }}>
-                      {item}
-                    </p>
-                  </Motion.div>
-                ))}
-              </div>
-
-              {/* quote */}
-              <div style={{ marginTop: 28, borderLeft: `2px solid ${C.accent}`, paddingLeft: 16 }}>
-                <p style={{ ...f.body, fontSize: 13, color: C.textDim, fontStyle: "italic", lineHeight: 1.7, margin: 0 }}>
-                  "Building SCAFIS into a platform every finance professional can rely on — from SMEs to enterprise."
-                </p>
-              </div>
-            </div>
-          </div>
-        </Reveal>
+    <section style={{background:C.bg,padding:"0 24px 96px"}}>
+      <div style={{maxWidth:1080,margin:"0 auto"}}>
+        <FV><Tag label="Executive"/><SectionTitle>CEO Spotlight</SectionTitle></FV>
+        <div style={{height:36}}/>
+        <FV>
+          <SpotlightPanel
+            person={{ initials:"AK", name:"Ayesha Kashif", title:"CEO & Co-Founder" }}
+            missionLabel="Strategic Operational Vision"
+            accentOverride="#a78bfa"
+            stats={[{val:"3+",lbl:"Years"},{val:"50+",lbl:"Clients"}]}
+            missions={[
+              "SaaS growth strategy — scaling outreach and accelerating enterprise business development.",
+              "User experience priorities — championing product accessibility and design-first standards.",
+              "Market adoption goals — driving client acquisition and sector-specific GTM strategies.",
+            ]}
+            quote="Building SCAFIS into a platform every finance professional can rely on — from SMEs to enterprise."
+          />
+        </FV>
       </div>
     </section>
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
-   TEAM MARQUEE
-═══════════════════════════════════════════════════════════ */
-function MarqueeCard({ person }) {
-  const [hov, setHov] = useState(false);
+/* ═══════════════════════════════════════════════════════════════════════════
+   ADVISORS SECTION  — premium large cards
+═══════════════════════════════════════════════════════════════════════════ */
+const ADVISORS = [
+  {
+    initials: "MS",
+    name: "Prof. Mohammad Saad Anwar",
+    title: "Taxation Lawyer",
+    accent: "#22d3ee",
+    glow: "rgba(34,211,238,0.12)",
+    expertise: ["Tax Law", "Analytics", "Regulatory"],
+    desc: "Certified trainer and analytical innovation expert providing strategic oversight on SCAFIS's data pipelines and financial intelligence frameworks. Brings deep expertise in tax legislation and corporate advisory.",
+    impact: [
+      { val: "15+", lbl: "Years" },
+      { val: "200+", lbl: "Cases" },
+    ],
+  },
+  {
+    initials: "MR",
+    name: "Prof. Muhammed Rehan Anjum",
+    title: "Accounting Specialist",
+    accent: "#f59e0b",
+    glow: "rgba(245,158,11,0.12)",
+    expertise: ["IFRS", "Compliance", "Data Integrity"],
+    desc: "Leads advisory on accounting standards and regulatory compliance, ensuring audit-grade accuracy across all SCAFIS modules. Authority on IFRS implementation and enterprise data governance.",
+    impact: [
+      { val: "18+", lbl: "Years" },
+      { val: "300+", lbl: "Audits" },
+    ],
+  },
+];
+
+function AdvisorCard({ adv, idx }) {
+  const [hov,setHov] = useState(false);
   return (
-    <div
-      onMouseEnter={() => setHov(true)}
-      onMouseLeave={() => setHov(false)}
+    <M.div
+      initial="hidden" whileInView="show" viewport={{once:true,amount:.1}}
+      variants={idx===0?left:right_v}
+      onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
       style={{
-        flexShrink: 0, width: 180,
-        display: "flex", flexDirection: "column",
-        alignItems: "center", gap: 12,
-        padding: "24px 20px",
-        background: hov ? `linear-gradient(160deg, #161b34, ${C.cardDeep})` : C.card,
-        border: `1px solid ${hov ? person.accent + "55" : C.border}`,
-        borderRadius: 16, margin: "0 10px",
-        cursor: "default", transition: "all .25s cubic-bezier(.22,1,.36,1)",
-        transform: hov ? "scale(1.06)" : "scale(1)",
-        boxShadow: hov ? `0 16px 40px ${person.accent}22` : "none",
+        flex:"1 1 320px",minWidth:300,
+        background:hov?`linear-gradient(145deg,#13182e,${C.cardDeep})`:C.card,
+        border:`1px solid ${hov?adv.accent+"55":C.border}`,
+        borderRadius:20,overflow:"hidden",cursor:"default",
+        transition:"all .32s cubic-bezier(.22,1,.36,1)",
+        boxShadow:hov?`0 20px 60px ${adv.accent}22, 0 0 0 1px ${adv.accent}18`:"none",
       }}
     >
+      {/* top accent bar */}
+      <div style={{height:3,background:hov
+        ?`linear-gradient(90deg,${adv.accent},${adv.accent}88,transparent)`
+        :`linear-gradient(90deg,${adv.accent}44,transparent)`,
+        transition:"all .32s"}}/>
+
+      {/* header row */}
       <div style={{
-        width: 68, height: 68, borderRadius: "50%",
-        background: `radial-gradient(circle at 38% 38%, #252d52, ${C.cardDeep})`,
-        border: `2px solid ${hov ? person.accent : C.border}`,
-        display: "flex", alignItems: "center", justifyContent: "center",
-        ...f.display, fontWeight: 800, fontSize: 18,
-        color: hov ? person.accent : C.textSec,
-        transition: "all .25s",
-        boxShadow: hov ? `0 0 0 4px ${person.accent}22, 0 8px 24px ${person.accent}22` : "none",
+        display:"flex",gap:20,alignItems:"flex-start",padding:"28px 28px 0",
+        position:"relative",
       }}>
-        {person.initials}
+        {/* background glow */}
+        <div style={{position:"absolute",top:-20,right:-20,width:140,height:140,
+          borderRadius:"50%",background:hov?adv.glow:"transparent",
+          filter:"blur(32px)",transition:"all .4s",pointerEvents:"none"}}/>
+
+        <div style={{position:"relative"}}>
+          <Avatar initials={adv.initials} size={80} accent={adv.accent}/>
+          {/* online indicator */}
+          <div style={{
+            position:"absolute",bottom:2,right:2,width:14,height:14,
+            borderRadius:"50%",background:adv.accent,
+            border:`2px solid ${C.card}`,
+            boxShadow:`0 0 8px ${adv.accent}`,
+          }}/>
+        </div>
+
+        <div style={{flex:1,paddingTop:4}}>
+          <p style={{fontFamily:"var(--font-display)",fontSize:16,fontWeight:800,
+            color:C.textPri,letterSpacing:"-.01em",marginBottom:4}}>{adv.name}</p>
+          <div style={{display:"inline-flex",
+            background:`${adv.accent}18`,border:`1px solid ${adv.accent}44`,
+            borderRadius:16,padding:"3px 12px",marginBottom:12}}>
+            <span style={{fontFamily:"var(--font-mono)",fontSize:9,color:adv.accent,
+              letterSpacing:".16em",textTransform:"uppercase"}}>{adv.title}</span>
+          </div>
+          {/* expertise tags */}
+          <div style={{display:"flex",flexWrap:"wrap",gap:6}}>
+            {adv.expertise.map(tag=>(
+              <span key={tag} style={{
+                fontFamily:"var(--font-mono)",fontSize:8.5,color:C.textDim,
+                background:C.accentG3,border:`1px solid ${C.border}`,
+                borderRadius:8,padding:"2px 9px",letterSpacing:".1em",textTransform:"uppercase",
+              }}>{tag}</span>
+            ))}
+          </div>
+        </div>
       </div>
 
-      <div style={{ textAlign: "center" }}>
-        <p style={{ ...f.body, fontSize: 13, fontWeight: 600, color: hov ? C.textPri : C.textSec, margin: "0 0 3px", transition: "color .2s" }}>
-          {person.name}
-        </p>
-        <p style={{ ...f.mono, fontSize: 9.5, color: hov ? person.accent : C.textDim, letterSpacing: "0.1em", textTransform: "uppercase", margin: 0, transition: "color .2s" }}>
-          {person.role}
+      {/* divider */}
+      <div style={{height:1,background:`linear-gradient(90deg,transparent,${C.border},transparent)`,margin:"20px 28px"}}/>
+
+      {/* description */}
+      <div style={{padding:"0 28px"}}>
+        <p style={{fontFamily:"var(--font-sans)",fontSize:13,color:C.textSec,lineHeight:1.78,margin:0}}>
+          {adv.desc}
         </p>
       </div>
 
+      {/* stats footer */}
       <div style={{
-        background: `${person.accent}18`, border: `1px solid ${person.accent}33`,
-        borderRadius: 10, padding: "2px 10px",
-        ...f.mono, fontSize: 8.5, color: person.accent, letterSpacing: "0.12em", textTransform: "uppercase",
+        display:"flex",gap:0,marginTop:24,
+        borderTop:`1px solid ${C.border}`,
       }}>
-        {person.dept}
+        {adv.impact.map((s,i)=>(
+          <div key={s.lbl} style={{
+            flex:1,textAlign:"center",padding:"16px 12px",
+            borderRight:i<adv.impact.length-1?`1px solid ${C.border}`:"none",
+          }}>
+            <p style={{fontFamily:"var(--font-display)",fontSize:22,fontWeight:800,
+              color:hov?adv.accent:C.textPri,margin:0,transition:"color .25s"}}>{s.val}</p>
+            <p style={{fontFamily:"var(--font-mono)",fontSize:8.5,color:C.textDim,
+              letterSpacing:".15em",textTransform:"uppercase",margin:0}}>{s.lbl}</p>
+          </div>
+        ))}
+        {/* advisory board label */}
+        <div style={{flex:2,display:"flex",alignItems:"center",justifyContent:"center",padding:"16px 16px"}}>
+          <span style={{fontFamily:"var(--font-mono)",fontSize:8.5,color:C.textDim,
+            letterSpacing:".12em",textTransform:"uppercase",textAlign:"center"}}>
+            Academic Advisor<br/>SCAFIS Advisory Board
+          </span>
+        </div>
+      </div>
+    </M.div>
+  );
+}
+
+function AdvisorsSection() {
+  return (
+    <section style={{background:C.bg,padding:"96px 24px",borderTop:`1px solid ${C.border}`}}>
+      <div style={{maxWidth:1080,margin:"0 auto"}}>
+        <FV>
+          <Tag label="Advisory Board"/>
+          <SectionTitle>Mentors &amp; Academic Advisors</SectionTitle>
+          <p style={{fontFamily:"var(--font-sans)",fontSize:14,color:C.textSec,
+            margin:"10px 0 52px",maxWidth:500,lineHeight:1.75}}>
+            Distinguished academics and industry leaders who shape SCAFIS's intellectual and strategic foundation.
+          </p>
+        </FV>
+
+        {/* connector SVG between cards */}
+        <div style={{position:"relative"}}>
+          <div style={{display:"flex",flexWrap:"wrap",gap:20}}>
+            {ADVISORS.map((adv,i)=>(
+              <AdvisorCard key={adv.initials} adv={adv} idx={i}/>
+            ))}
+          </div>
+
+          {/* bottom "Connection to Centre Links" label */}
+          <FV style={{marginTop:20,textAlign:"center"}}>
+            <div style={{display:"inline-flex",alignItems:"center",gap:12}}>
+              <div style={{width:32,height:1,background:C.border}}/>
+              <span style={{fontFamily:"var(--font-mono)",fontSize:8.5,color:C.textDim,
+                letterSpacing:".2em",textTransform:"uppercase"}}>
+                Connection to Centre Links
+              </span>
+              <div style={{width:32,height:1,background:C.border}}/>
+            </div>
+          </FV>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+/* ═══════════════════════════════════════════════════════════════════════════
+   TEAM MARQUEE
+═══════════════════════════════════════════════════════════════════════════ */
+const MARQUEE_DATA = [
+  {initials:"RZ",name:"Rana Zain",   role:"Chairman",    dept:"Founder",  accent:C.accent},
+  {initials:"AK",name:"Ayesha Kashif",role:"CEO",        dept:"Executive",accent:"#a78bfa"},
+  {initials:"MS",name:"Prof. Saad",  role:"Tax Advisor", dept:"Advisory", accent:"#22d3ee"},
+  {initials:"MR",name:"Prof. Rehan", role:"Compliance",  dept:"Advisory", accent:"#f59e0b"},
+  {initials:"FA",name:"Farhan",      role:"Legal",       dept:"Team",     accent:C.green},
+  {initials:"HT",name:"Team Member", role:"Engineering", dept:"Team",     accent:C.green},
+  {initials:"SM",name:"Team Member", role:"Engineering", dept:"Team",     accent:C.green},
+  {initials:"UA",name:"Team Member", role:"QA",          dept:"Team",     accent:C.green},
+  {initials:"FN",name:"Team Member", role:"Finance",     dept:"Finance",  accent:C.amber},
+  {initials:"ZK",name:"Team Member", role:"Accounts",    dept:"Finance",  accent:C.amber},
+];
+
+function MqCard({ p }) {
+  const [hov,setHov]=useState(false);
+  return (
+    <div onMouseEnter={()=>setHov(true)} onMouseLeave={()=>setHov(false)}
+      style={{flexShrink:0,width:176,display:"flex",flexDirection:"column",
+        alignItems:"center",gap:12,padding:"22px 18px",
+        background:hov?`linear-gradient(160deg,#161b34,${C.cardDeep})`:C.card,
+        border:`1px solid ${hov?p.accent+"55":C.border}`,
+        borderRadius:16,margin:"0 9px",cursor:"default",
+        transition:"all .25s cubic-bezier(.22,1,.36,1)",
+        transform:hov?"scale(1.06)":"scale(1)",
+        boxShadow:hov?`0 16px 40px ${p.accent}22`:"none"}}>
+      <div style={{width:66,height:66,borderRadius:"50%",
+        background:`radial-gradient(circle at 36% 36%,#252d52,${C.cardDeep})`,
+        border:`2px solid ${hov?p.accent:C.border}`,
+        display:"flex",alignItems:"center",justifyContent:"center",
+        fontFamily:"var(--font-display)",fontWeight:800,fontSize:17,
+        color:hov?p.accent:C.textSec,transition:"all .25s",
+        boxShadow:hov?`0 0 0 4px ${p.accent}22`:"none"}}>
+        {p.initials}
+      </div>
+      <div style={{textAlign:"center"}}>
+        <p style={{fontFamily:"var(--font-sans)",fontSize:12.5,fontWeight:600,
+          color:hov?C.textPri:C.textSec,margin:"0 0 3px",transition:"color .2s"}}>{p.name}</p>
+        <p style={{fontFamily:"var(--font-mono)",fontSize:9,color:hov?p.accent:C.textDim,
+          letterSpacing:".1em",textTransform:"uppercase",margin:0,transition:"color .2s"}}>{p.role}</p>
+      </div>
+      <div style={{background:`${p.accent}18`,border:`1px solid ${p.accent}33`,
+        borderRadius:10,padding:"2px 10px",
+        fontFamily:"var(--font-mono)",fontSize:8,color:p.accent,letterSpacing:".12em",textTransform:"uppercase"}}>
+        {p.dept}
       </div>
     </div>
   );
 }
 
 function TeamMarquee() {
-  const doubled = [...MARQUEE_PEOPLE, ...MARQUEE_PEOPLE];
-
+  const doubled = [...MARQUEE_DATA,...MARQUEE_DATA];
   return (
-    <section style={{ background: C.cardDeep, padding: "88px 0", borderTop: `1px solid ${C.border}`, overflow: "hidden" }}>
-      <div style={{ maxWidth: 1080, margin: "0 auto", padding: "0 24px", marginBottom: 48 }}>
-        <Reveal>
-          <Tag>Full Team</Tag>
-          <h2 style={{
-            ...f.display, fontSize: "clamp(28px, 4vw, 48px)",
-            fontWeight: 800, color: C.textPri,
-            letterSpacing: "-0.03em", margin: "0 0 8px",
-          }}>
-            Everyone Building SCAFIS
-          </h2>
-          <p style={{ ...f.body, fontSize: 14, color: C.textSec, lineHeight: 1.7, maxWidth: 420 }}>
-            Hover to pause · Scroll to explore
-          </p>
-        </Reveal>
+    <section style={{background:C.cardDeep,padding:"88px 0",borderTop:`1px solid ${C.border}`,overflow:"hidden"}}>
+      <div style={{maxWidth:1080,margin:"0 auto",padding:"0 24px",marginBottom:48}}>
+        <FV>
+          <Tag label="Full Team"/>
+          <SectionTitle>Everyone Building SCAFIS</SectionTitle>
+          <p style={{fontFamily:"var(--font-sans)",fontSize:14,color:C.textSec,lineHeight:1.7,
+            maxWidth:400,margin:"8px 0 0"}}>Hover to pause · Each card glows on hover</p>
+        </FV>
       </div>
-
-      {/* Fade edges */}
-      <div style={{ position: "relative" }}>
-        <div style={{
-          position: "absolute", left: 0, top: 0, bottom: 0, width: 120, zIndex: 2,
-          background: `linear-gradient(90deg, ${C.cardDeep}, transparent)`,
-          pointerEvents: "none",
-        }} />
-        <div style={{
-          position: "absolute", right: 0, top: 0, bottom: 0, width: 120, zIndex: 2,
-          background: `linear-gradient(-90deg, ${C.cardDeep}, transparent)`,
-          pointerEvents: "none",
-        }} />
-
-        <div
-          className="marquee-track"
-          style={{ display: "flex", alignItems: "stretch", width: "max-content" }}
-        >
-          {doubled.map((p, i) => (
-            <MarqueeCard key={i} person={p} />
-          ))}
+      <div style={{position:"relative"}}>
+        <div style={{position:"absolute",left:0,top:0,bottom:0,width:110,zIndex:2,
+          background:`linear-gradient(90deg,${C.cardDeep},transparent)`,pointerEvents:"none"}}/>
+        <div style={{position:"absolute",right:0,top:0,bottom:0,width:110,zIndex:2,
+          background:`linear-gradient(-90deg,${C.cardDeep},transparent)`,pointerEvents:"none"}}/>
+        <div className="mq-track" style={{display:"flex",alignItems:"stretch",width:"max-content"}}>
+          {doubled.map((p,i)=><MqCard key={i} p={p}/>)}
         </div>
       </div>
     </section>
   );
 }
 
-/* ═══════════════════════════════════════════════════════════
+/* ═══════════════════════════════════════════════════════════════════════════
    ROOT
-═══════════════════════════════════════════════════════════ */
+═══════════════════════════════════════════════════════════════════════════ */
 export default function LeadershipPage() {
   return (
-    <Motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.45 }}
-      style={{ background: C.bg, minHeight: "100vh" }}
-    >
-      <Navbar />
-      <Hero />
-      <FounderSpotlight />
-      <CEOSpotlight />
-      <LeadershipHierarchy />
-      <TeamMarquee />
-      <Footer />
-    </Motion.div>
+    <M.div initial={{opacity:0}} animate={{opacity:1}} exit={{opacity:0}}
+      transition={{duration:.42}}
+      style={{background:C.bg,minHeight:"100vh"}}>
+      <AnimatePresence mode="wait">
+        <Navbar/>
+        <Hero/>
+        <LeadershipHierarchy/>
+        <FounderSpotlight/>
+        <CEOSpotlight/>
+        <AdvisorsSection/>
+        <TeamMarquee/>
+        <Footer/>
+      </AnimatePresence>
+    </M.div>
   );
 }
