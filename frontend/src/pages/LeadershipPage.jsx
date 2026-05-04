@@ -317,6 +317,48 @@ function HierCard({ m }) {
   );
 }
 
+function VerticalCard({ v, i }) {
+  const [hov, setHov] = useState(false);
+  return (
+    <FV delay={i * 0.1}>
+      <div
+        onMouseEnter={() => setHov(true)}
+        onMouseLeave={() => setHov(false)}
+        style={{
+          padding: "24px",
+          background: hov ? `linear-gradient(145deg,#161b34,${C.cardDeep})` : C.card,
+          border: `1px solid ${hov ? v.accent + "55" : C.border}`,
+          borderRadius: 20,
+          height: "100%",
+          position: "relative",
+          overflow: "hidden",
+          cursor: "default",
+          transition: "all .32s cubic-bezier(.22,1,.36,1)",
+          transform: hov ? "translateY(-4px) scale(1.01)" : "none",
+          boxShadow: hov ? `0 20px 40px rgba(0,0,0,.4), 0 0 0 1px ${v.accent}15` : "none",
+        }}
+      >
+        <div style={{
+          position: "absolute", top: 0, left: 0, width: 3, height: "100%",
+          background: v.accent, opacity: hov ? 1 : 0.6, transition: "opacity .3s"
+        }} />
+        <p style={{
+          fontFamily: ff.m, fontSize: 9, color: v.accent,
+          letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 12
+        }}>Vertical 0{i + 1}</p>
+        <p style={{
+          fontFamily: ff.d, fontSize: 17, fontWeight: 800,
+          color: C.textPri, marginBottom: 8
+        }}>{v.label}</p>
+        <p style={{
+          fontFamily: ff.s, fontSize: 13, color: C.textSec,
+          lineHeight: 1.6, margin: 0
+        }}>{v.desc}</p>
+      </div>
+    </FV>
+  );
+}
+
 function LeadershipHierarchy() {
   const verticals = [
     { label: "Strategic Core", desc: "Foundational vision and executive steering.", accent: C.accent },
@@ -352,17 +394,7 @@ function LeadershipHierarchy() {
 
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
           {verticals.map((v, i) => (
-            <FV key={v.label} delay={i * 0.1}>
-              <div style={{
-                padding: "24px", background: C.card, border: `1px solid ${C.border}`,
-                borderRadius: 20, height: "100%", position: "relative", overflow: "hidden"
-              }}>
-                <div style={{ position: "absolute", top: 0, left: 0, width: 3, height: "100%", background: v.accent }} />
-                <p style={{ fontFamily: ff.m, fontSize: 9, color: v.accent, letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 12 }}>Vertical 0{i + 1}</p>
-                <p style={{ fontFamily: ff.d, fontSize: 17, fontWeight: 800, color: C.textPri, marginBottom: 8 }}>{v.label}</p>
-                <p style={{ fontFamily: ff.s, fontSize: 13, color: C.textSec, lineHeight: 1.6 }}>{v.desc}</p>
-              </div>
-            </FV>
+            <VerticalCard key={v.label} v={v} i={i} />
           ))}
         </div>
       </div>
