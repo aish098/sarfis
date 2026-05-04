@@ -190,14 +190,14 @@ function Hero() {
   return (
     <section ref={ref} style={{
       position: "relative", minHeight: "100vh",
-      background: `radial-gradient(ellipse 80% 55% at 50% 0%, rgba(245,158,11,0.12) 0%, rgba(16,185,129,0.08) 40%, ${C.bg} 70%)`,
+      background: `radial-gradient(ellipse 80% 55% at 50% 0%, rgba(16,185,129,0.12) 0%, rgba(16,185,129,0.05) 40%, ${C.bg} 70%)`,
       display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
     }}>
       <ParticleCanvas />
       {/* subtle grid */}
       <div style={{
         position: "absolute", inset: 0, pointerEvents: "none",
-        backgroundImage: `linear-gradient(rgba(245,158,11,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(16,185,129,.03) 1px,transparent 1px)`,
+        backgroundImage: `linear-gradient(rgba(16,185,129,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(16,185,129,.03) 1px,transparent 1px)`,
         backgroundSize: "64px 64px"
       }} />
 
@@ -208,14 +208,14 @@ function Hero() {
           style={{ display: "flex", justifyContent: "center", marginBottom: 36 }}>
           <div style={{
             display: "inline-flex", alignItems: "center", gap: 10,
-            background: `${C.amber}15`, border: `1px solid ${C.amber}33`,
+            background: `${C.green}15`, border: `1px solid ${C.green}33`,
             borderRadius: 40, padding: "8px 20px"
           }}>
             <div className="lp-shimmer" style={{
               width: 6, height: 6, borderRadius: "50%",
-              background: C.amber, boxShadow: `0 0 8px ${C.amber}`
+              background: C.green, boxShadow: `0 0 8px ${C.green}`
             }} />
-            <span style={{ fontFamily: ff.m, fontSize: 10, color: C.amber, letterSpacing: ".22em", textTransform: "uppercase" }}>
+            <span style={{ fontFamily: ff.m, fontSize: 10, color: C.green, letterSpacing: ".22em", textTransform: "uppercase" }}>
               Meet the People Behind SCAFIS
             </span>
           </div>
@@ -230,7 +230,7 @@ function Hero() {
           }}>
           Our{" "}
           <span style={{
-            background: `linear-gradient(135deg,${C.amber},${C.green})`,
+            background: `linear-gradient(135deg,${C.green},#059669)`,
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text"
           }}>
             Leadership
@@ -318,21 +318,53 @@ function HierCard({ m }) {
 }
 
 function LeadershipHierarchy() {
+  const verticals = [
+    { label: "Strategic Core", desc: "Foundational vision and executive steering.", accent: C.accent },
+    { label: "Advisory Council", desc: "Academic oversight and regulatory compliance.", accent: C.amber },
+    { label: "Product & Tech", desc: "Architecture, AI logic, and SaaS engineering.", accent: C.green },
+    { label: "Global Ops", desc: "Market strategy, legal, and financial framework.", accent: C.cyan },
+  ];
+
   return (
-    <section style={{ background: C.bg, padding: "96px 24px 56px" }}>
+    <section style={{ background: C.bg, padding: "96px 24px 80px" }}>
       <div style={{ maxWidth: 1080, margin: "0 auto" }}>
-        <FV>
-          <Tag label="Organisation" />
-          <H2>Leadership Hierarchy</H2>
-          <p style={{
-            fontFamily: ff.s, fontSize: 14, color: C.textSec,
-            margin: "10px 0 56px", maxWidth: 460, lineHeight: 1.72
-          }}>
-            The structure that powers SCAFIS — from visionary founders to technical builders.
-          </p>
-        </FV>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 44, alignItems: "flex-end", marginBottom: 64 }}>
+          <FV style={{ flex: "1 1 400px" }}>
+            <Tag label="Organisation" accent={C.green} />
+            <H2>Leadership Hierarchy</H2>
+            <p style={{
+              fontFamily: ff.s, fontSize: 14, color: C.textSec,
+              margin: "12px 0 0", maxWidth: 460, lineHeight: 1.72
+            }}>
+              SCAFIS is built on a multi-disciplinary framework where academic rigour meets technical precision. Our structure ensures data integrity at every level.
+            </p>
+          </FV>
+          <FV delay={0.2} style={{ flex: "1 1 300px" }}>
+            <div style={{ padding: "20px", background: `${C.green}08`, border: `1px solid ${C.green}22`, borderRadius: 16 }}>
+              <p style={{ fontFamily: ff.m, fontSize: 10, color: C.green, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 8 }}>Operational Status</p>
+              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                <div className="lp-pulse" style={{ width: 8, height: 8, borderRadius: "50%", background: C.green }} />
+                <span style={{ fontFamily: ff.s, fontSize: 13, color: C.textPri, fontWeight: 600 }}>Decentralised & Scalable</span>
+              </div>
+            </div>
+          </FV>
+        </div>
 
-
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
+          {verticals.map((v, i) => (
+            <FV key={v.label} delay={i * 0.1}>
+              <div style={{
+                padding: "24px", background: C.card, border: `1px solid ${C.border}`,
+                borderRadius: 20, height: "100%", position: "relative", overflow: "hidden"
+              }}>
+                <div style={{ position: "absolute", top: 0, left: 0, width: 3, height: "100%", background: v.accent }} />
+                <p style={{ fontFamily: ff.m, fontSize: 9, color: v.accent, letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 12 }}>Vertical 0{i + 1}</p>
+                <p style={{ fontFamily: ff.d, fontSize: 17, fontWeight: 800, color: C.textPri, marginBottom: 8 }}>{v.label}</p>
+                <p style={{ fontFamily: ff.s, fontSize: 13, color: C.textSec, lineHeight: 1.6 }}>{v.desc}</p>
+              </div>
+            </FV>
+          ))}
+        </div>
       </div>
     </section>
   );
