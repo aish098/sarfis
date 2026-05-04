@@ -556,7 +556,7 @@ const ADVISORS = [
     impact: [{ val: "15+", lbl: "Years" }, { val: "200+", lbl: "Cases" }],
   },
   {
-    initials: "MR", name: "Prof. Muhammed Rehan Anjum", title: "Accounting Specialist",
+    initials: "MR", name: "Prof. Muhammed Rehan Anjum", title: "Accountant",
     accent: "#f59e0b", glow: "rgba(245,158,11,0.13)",
     expertise: ["IFRS", "Compliance", "Data Integrity"],
     desc: "Leads advisory on accounting standards and regulatory compliance, ensuring audit-grade accuracy across all SCAFIS modules. Authority on IFRS implementation and enterprise data governance.",
@@ -809,8 +809,8 @@ function TeamSection() {
 const MQ_DATA = [
   { initials: "RZ", name: "Rana Zain", role: "Chairman", dept: "Founder", accent: C.accent },
   { initials: "AK", name: "Ayesha Kashif", role: "CEO", dept: "Executive", accent: C.violet },
-  { initials: "MS", name: "Prof. Saad", role: "Tax Advisor", dept: "Advisory", accent: C.cyan },
-  { initials: "MR", name: "Prof. Rehan", role: "Compliance", dept: "Advisory", accent: C.amber },
+  { initials: "MS", name: "Prof. Saad", role: "Taxation Lawyer", dept: "Advisory", accent: C.cyan },
+  { initials: "MR", name: "Prof. Rehan", role: "Accountant", dept: "Advisory", accent: C.amber },
   { initials: "FA", name: "Farhan", role: "Legal", dept: "Team", accent: C.green },
   { initials: "HT", name: "Team Member", role: "Engineering", dept: "Team", accent: C.green },
   { initials: "SM", name: "Team Member", role: "Engineering", dept: "Team", accent: C.green },
