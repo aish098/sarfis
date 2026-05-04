@@ -21,7 +21,7 @@
  */
 
 import { useEffect, useRef, useState } from "react";
-import { motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
+import { motion as Motion, useScroll, useTransform, AnimatePresence } from "framer-motion";
 import Navbar from "../components/Navbar";
 import Footer from "../components/Footer";
 
@@ -93,12 +93,11 @@ if (typeof document !== "undefined" && !document.getElementById("lp-css")) {
    SCROLL REVEAL
 ═══════════════════════════════════════════════════════════ */
 const fadeUp    = { hidden: { opacity: 0, y: 36 }, show: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22,1,0.36,1] } } };
-const fadeLeft  = { hidden: { opacity: 0, x: -40 }, show: { opacity: 1, x: 0, transition: { duration: 0.65, ease: [0.22,1,0.36,1] } } };
 const stagger   = { show: { transition: { staggerChildren: 0.1 } } };
 
 function Reveal({ children, variants = fadeUp, delay = 0, style = {}, className = "" }) {
   return (
-    <motion.div
+    <Motion.div
       initial="hidden"
       whileInView="show"
       viewport={{ once: true, amount: 0.12 }}
@@ -108,7 +107,7 @@ function Reveal({ children, variants = fadeUp, delay = 0, style = {}, className 
       className={className}
     >
       {children}
-    </motion.div>
+    </Motion.div>
   );
 }
 
@@ -340,10 +339,10 @@ function Hero() {
       }} />
 
       {/* Parallax content */}
-      <motion.div style={{ y, opacity: opac, position: "relative", zIndex: 2, textAlign: "center", padding: "0 24px", maxWidth: 860 }}>
+      <Motion.div style={{ y, opacity: opac, position: "relative", zIndex: 2, textAlign: "center", padding: "0 24px", maxWidth: 860 }}>
 
         {/* Top badge */}
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0, scale: 0.85 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
@@ -359,10 +358,10 @@ function Hero() {
               Meet the People Behind SCAFIS
             </span>
           </div>
-        </motion.div>
+        </Motion.div>
 
         {/* Main heading */}
-        <motion.h1
+        <Motion.h1
           initial={{ opacity: 0, y: 40 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.8, delay: 0.15, ease: [0.22, 1, 0.36, 1] }}
@@ -381,10 +380,10 @@ function Hero() {
           }}>
             Leadership
           </span>
-        </motion.h1>
+        </Motion.h1>
 
         {/* Sub */}
-        <motion.p
+        <Motion.p
           initial={{ opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.7, delay: 0.3, ease: [0.22, 1, 0.36, 1] }}
@@ -395,16 +394,16 @@ function Hero() {
           }}
         >
           Visionaries, scholars, and builders united by a single purpose — to democratise enterprise-grade financial intelligence.
-        </motion.p>
+        </Motion.p>
 
         {/* Scroll cue */}
-        <motion.div
+        <Motion.div
           initial={{ opacity: 0 }}
           animate={{ opacity: 1 }}
           transition={{ delay: 0.8 }}
           style={{ display: "flex", flexDirection: "column", alignItems: "center", gap: 8 }}
         >
-          <motion.div
+          <Motion.div
             animate={{ y: [0, 8, 0] }}
             transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
             style={{
@@ -413,15 +412,15 @@ function Hero() {
               justifyContent: "center", padding: "8px 0",
             }}
           >
-            <motion.div
+            <Motion.div
               animate={{ y: [0, 18, 0], opacity: [1, 0, 1] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
               style={{ width: 4, height: 8, borderRadius: 2, background: C.accentLt }}
             />
-          </motion.div>
+          </Motion.div>
           <span style={{ ...f.mono, fontSize: 9, color: C.textDim, letterSpacing: "0.18em", textTransform: "uppercase" }}>Scroll</span>
-        </motion.div>
-      </motion.div>
+        </Motion.div>
+      </Motion.div>
 
       {/* Bottom fade */}
       <div style={{
@@ -436,9 +435,9 @@ function Hero() {
 /* ═══════════════════════════════════════════════════════════
    HIERARCHY — editorial sidebar layout
 ═══════════════════════════════════════════════════════════ */
-function HierarchyRow({ category, members, accent, index }) {
+function HierarchyRow({ category, members, accent }) {
   return (
-    <motion.div
+    <Motion.div
       variants={fadeUp}
       style={{
         display: "flex", flexWrap: "wrap", gap: 0,
@@ -468,14 +467,14 @@ function HierarchyRow({ category, members, accent, index }) {
           <MemberCard key={m.name} member={m} accent={accent} delay={i * 0.08} />
         ))}
       </div>
-    </motion.div>
+    </Motion.div>
   );
 }
 
 function MemberCard({ member, accent, delay }) {
   const [hov, setHov] = useState(false);
   return (
-    <motion.div
+    <Motion.div
       variants={fadeUp}
       transition={{ delay }}
       onMouseEnter={() => setHov(true)}
@@ -511,7 +510,7 @@ function MemberCard({ member, accent, delay }) {
           {member.desc}
         </p>
       </div>
-    </motion.div>
+    </Motion.div>
   );
 }
 
@@ -534,22 +533,21 @@ function LeadershipHierarchy() {
           </p>
         </Reveal>
 
-        <motion.div
+        <Motion.div
           initial="hidden"
           whileInView="show"
           viewport={{ once: true, amount: 0.05 }}
           variants={stagger}
         >
-          {HIERARCHY.map((group, i) => (
+          {HIERARCHY.map((group) => (
             <HierarchyRow
               key={group.category}
               category={group.category}
               members={group.members}
               accent={group.accent}
-              index={i}
             />
           ))}
-        </motion.div>
+        </Motion.div>
       </div>
     </section>
   );
@@ -643,7 +641,7 @@ function CEOSpotlight() {
               </p>
               <div style={{ display: "flex", flexDirection: "column", gap: 14 }}>
                 {VISION.map((item, i) => (
-                  <motion.div
+                  <Motion.div
                     key={i}
                     initial={{ opacity: 0, x: 20 }}
                     whileInView={{ opacity: 1, x: 0 }}
@@ -668,7 +666,7 @@ function CEOSpotlight() {
                     <p style={{ ...f.body, fontSize: 13.5, color: C.textSec, lineHeight: 1.75, margin: 0 }}>
                       {item}
                     </p>
-                  </motion.div>
+                  </Motion.div>
                 ))}
               </div>
 
@@ -793,7 +791,7 @@ function TeamMarquee() {
 ═══════════════════════════════════════════════════════════ */
 export default function LeadershipPage() {
   return (
-    <motion.div
+    <Motion.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
@@ -806,6 +804,6 @@ export default function LeadershipPage() {
       <CEOSpotlight />
       <TeamMarquee />
       <Footer />
-    </motion.div>
+    </Motion.div>
   );
 }
