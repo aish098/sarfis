@@ -424,34 +424,45 @@ export default function DistributionPage() {
               </div>
             </Motion.div>
 
-            {/* Revenue vs Profit Bar Chart */}
+            {/* Redesigned Revenue vs Profit Vertical Bar Chart */}
             <Motion.div variants={fadeUp} className="card p-6 lg:col-span-2">
               <div className="flex items-center justify-between mb-6">
-                <h3 className="font-display font-bold text-[15px] text-slate-800">Revenue vs Gross Profit</h3>
+                <h3 className="font-display font-bold text-[15px] text-slate-800">Revenue vs Gross Profit by Sector</h3>
                 <BarChart2 size={14} className="text-slate-400" />
               </div>
-              <div className="h-[280px] w-full min-h-[280px]">
-                <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={sectorRevenue} margin={{ bottom: 85, top: 10 }}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
+              <div className="h-[400px] w-full min-h-[400px]">
+                <ResponsiveContainer width="100%" height={400}>
+                  <BarChart 
+                    layout="vertical" 
+                    data={sectorRevenue.map(s => ({
+                      ...s,
+                      displayName: s.sector_name === 'Logistics & Supply Chain' ? 'Logistics & SCM' : s.sector_name
+                    }))} 
+                    margin={{ left: 40, right: 30, top: 10, bottom: 10 }}
+                  >
+                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
                     <XAxis 
-                      dataKey="sector_name" 
+                      type="number"
                       axisLine={false} 
                       tickLine={false} 
-                      tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }} 
-                      interval={0}
-                      angle={-45}
-                      textAnchor="end"
-                      height={100}
-                      minTickGap={0}
+                      tick={{ fontSize: 11, fill: '#64748b' }} 
+                      tickFormatter={(v) => `$${v >= 1000 ? (v / 1000) + 'k' : v}`} 
                     />
-                    <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(v) => `$${v >= 1000 ? (v / 1000) + 'k' : v}`} />
+                    <YAxis 
+                      type="category"
+                      dataKey="displayName" 
+                      axisLine={false} 
+                      tickLine={false} 
+                      tick={{ fontSize: 11, fill: '#475569', fontWeight: 700 }} 
+                      width={110}
+                    />
                     <Tooltip 
                        contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px' }}
                        formatter={(v) => `$${parseFloat(v).toLocaleString()}`}
                     />
-                    <Bar dataKey="total_revenue" name="Revenue" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={25} />
-                    <Bar dataKey="gross_profit" name="Profit" fill="#10b981" radius={[4, 4, 0, 0]} barSize={25} />
+                    <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '20px', fontSize: '11px', fontWeight: 'bold' }} />
+                    <Bar dataKey="total_revenue" name="Revenue" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={12} />
+                    <Bar dataKey="gross_profit" name="Profit" fill="#10b981" radius={[0, 4, 4, 0]} barSize={12} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
