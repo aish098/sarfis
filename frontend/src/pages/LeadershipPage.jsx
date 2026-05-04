@@ -66,7 +66,7 @@ if (typeof document !== "undefined" && !document.getElementById("lp-styles-v4"))
 const vUp = { hidden: { opacity: 0, y: 28 }, show: { opacity: 1, y: 0, transition: { duration: .6, ease: [.22, 1, .36, 1] } } };
 const vLeft = { hidden: { opacity: 0, x: -28 }, show: { opacity: 1, x: 0, transition: { duration: .6, ease: [.22, 1, .36, 1] } } };
 const vRight = { hidden: { opacity: 0, x: 28 }, show: { opacity: 1, x: 0, transition: { duration: .6, ease: [.22, 1, .36, 1] } } };
-const vStagger = { show: { transition: { staggerChildren: .09 } } };
+
 
 function FV({ children, v = vUp, delay = 0, style = {}, className = "" }) {
   return (
@@ -190,14 +190,14 @@ function Hero() {
   return (
     <section ref={ref} style={{
       position: "relative", minHeight: "100vh",
-      background: `radial-gradient(ellipse 80% 55% at 50% 0%,rgba(99,102,241,.17) 0%,${C.bg} 65%)`,
+      background: `radial-gradient(ellipse 80% 55% at 50% 0%, rgba(245,158,11,0.12) 0%, rgba(16,185,129,0.08) 40%, ${C.bg} 70%)`,
       display: "flex", alignItems: "center", justifyContent: "center", overflow: "hidden",
     }}>
       <ParticleCanvas />
       {/* subtle grid */}
       <div style={{
         position: "absolute", inset: 0, pointerEvents: "none",
-        backgroundImage: `linear-gradient(rgba(99,102,241,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(99,102,241,.03) 1px,transparent 1px)`,
+        backgroundImage: `linear-gradient(rgba(245,158,11,.03) 1px,transparent 1px),linear-gradient(90deg,rgba(16,185,129,.03) 1px,transparent 1px)`,
         backgroundSize: "64px 64px"
       }} />
 
@@ -208,14 +208,14 @@ function Hero() {
           style={{ display: "flex", justifyContent: "center", marginBottom: 36 }}>
           <div style={{
             display: "inline-flex", alignItems: "center", gap: 10,
-            background: C.accentGl, border: `1px solid ${C.accent}44`,
+            background: `${C.amber}15`, border: `1px solid ${C.amber}33`,
             borderRadius: 40, padding: "8px 20px"
           }}>
             <div className="lp-shimmer" style={{
               width: 6, height: 6, borderRadius: "50%",
-              background: C.accent, boxShadow: `0 0 8px ${C.accent}`
+              background: C.amber, boxShadow: `0 0 8px ${C.amber}`
             }} />
-            <span style={{ fontFamily: ff.m, fontSize: 10, color: C.accentLt, letterSpacing: ".22em", textTransform: "uppercase" }}>
+            <span style={{ fontFamily: ff.m, fontSize: 10, color: C.amber, letterSpacing: ".22em", textTransform: "uppercase" }}>
               Meet the People Behind SCAFIS
             </span>
           </div>
@@ -230,7 +230,7 @@ function Hero() {
           }}>
           Our{" "}
           <span style={{
-            background: `linear-gradient(135deg,${C.accent},${C.violet},${C.accentLt})`,
+            background: `linear-gradient(135deg,${C.amber},${C.green})`,
             WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent", backgroundClip: "text"
           }}>
             Leadership
@@ -256,9 +256,9 @@ function Hero() {
             }}>
             <M.div animate={{ y: [0, 18, 0], opacity: [1, 0, 1] }}
               transition={{ duration: 2, repeat: Infinity, ease: "easeInOut" }}
-              style={{ width: 4, height: 8, borderRadius: 2, background: C.accentLt }} />
+              style={{ width: 4, height: 8, borderRadius: 2, background: C.green }} />
           </M.div>
-          <span style={{ fontFamily: ff.m, fontSize: 9, color: C.textDim, letterSpacing: ".18em", textTransform: "uppercase" }}>Scroll</span>
+          <span style={{ fontFamily: ff.m, fontSize: 9, color: C.green, letterSpacing: ".18em", textTransform: "uppercase" }}>Scroll</span>
         </M.div>
       </M.div>
 
