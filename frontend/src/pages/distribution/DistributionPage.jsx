@@ -432,7 +432,7 @@ export default function DistributionPage() {
               </div>
               <div className="h-[280px] w-full min-h-[280px]">
                 <ResponsiveContainer width="100%" height={280}>
-                  <BarChart data={sectorRevenue} margin={{ bottom: 45, top: 10 }}>
+                  <BarChart data={sectorRevenue} margin={{ bottom: 85, top: 10 }}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis 
                       dataKey="sector_name" 
@@ -440,9 +440,10 @@ export default function DistributionPage() {
                       tickLine={false} 
                       tick={{ fontSize: 10, fill: '#64748b', fontWeight: 600 }} 
                       interval={0}
-                      angle={-20}
+                      angle={-45}
                       textAnchor="end"
-                      height={60}
+                      height={100}
+                      minTickGap={0}
                     />
                     <YAxis axisLine={false} tickLine={false} tick={{ fontSize: 11, fill: '#64748b' }} tickFormatter={(v) => `$${v >= 1000 ? (v / 1000) + 'k' : v}`} />
                     <Tooltip 
