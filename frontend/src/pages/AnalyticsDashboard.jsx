@@ -543,7 +543,7 @@ function VerticalTab({ companyId }) {
     return () => { ig = true; };
   }, [companyId, month, year]);
 
-  const renderSection = (title, items, total, color) => (
+  const renderSection = (title, items, total) => (
     <Card title={title} subtitle={`Total: PKR ${fmt(total)}`}>
       {items.map((item, i) => (
         <div key={i} style={{ marginBottom:12 }}>
@@ -581,8 +581,8 @@ function VerticalTab({ companyId }) {
       {loading && <Spinner />}
       {!loading && data && (
         <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(340px,1fr))", gap:16 }}>
-          {renderSection("Income Statement (% of Revenue)", data.income_statement?.items || [], data.income_statement?.total_revenue, W.accent)}
-          {renderSection("Balance Sheet (% of Total Assets)", data.balance_sheet?.items || [], data.balance_sheet?.total_assets, "#10b981")}
+          {renderSection("Income Statement (% of Revenue)", data.income_statement?.items || [], data.income_statement?.total_revenue)}
+          {renderSection("Balance Sheet (% of Total Assets)", data.balance_sheet?.items || [], data.balance_sheet?.total_assets)}
         </div>
       )}
     </div>
