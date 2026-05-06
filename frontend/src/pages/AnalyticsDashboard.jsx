@@ -28,9 +28,9 @@ const W = {
   card:      "#ffffff",
   border:    "#e2e8f0",
   borderLo:  "#f1f5f9",
-  accent:    "#00BC7D",    /* vibrant green */
-  accentDk:  "#009a67",
-  accentGl:  "rgba(0,188,125,0.08)",
+  accent:    "#059669",    /* emerald-600 — matches inventory */
+  accentDk:  "#047857",
+  accentGl:  "rgba(5,150,105,0.08)",
   green:     "#16a34a",
   greenBg:   "#f0fdf4",
   red:       "#dc2626",
@@ -48,8 +48,8 @@ const W = {
 };
 
 const PALETTE = [
-  "#00BC7D","#34d399","#10b981","#f59e0b",
-  "#ef4444","#06b6d4","#8b5cf6","#f43f5e",
+  "#3b82f6","#10b981","#f59e0b","#8b5cf6",
+  "#ef4444","#06b6d4","#14b8a6","#f43f5e",
 ];
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -69,14 +69,14 @@ if (typeof document !== "undefined" && !document.getElementById("ad-white-css"))
       transition: all .18s; background: #fff; color: #64748b;
     }
     .aw-tab:hover { background: #f8fafc; color: #0f172a; border-color: #cbd5e1; }
-    .aw-tab.active { background: #00BC7D; color: #fff; border-color: #00BC7D; box-shadow: 0 4px 12px rgba(0,188,125,0.25); }
+    .aw-tab.active { background: #059669; color: #fff; border-color: #059669; box-shadow: 0 4px 12px rgba(5,150,105,0.25); }
     .aw-tr:hover td { background: #f8fafc !important; }
-    .aw-btn-primary { padding: 9px 22px; border-radius: 8px; border: none; background: #00BC7D; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .18s; }
-    .aw-btn-primary:hover { background: #009a67; }
+    .aw-btn-primary { padding: 9px 22px; border-radius: 8px; border: none; background: #059669; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .18s; box-shadow: 0 4px 12px rgba(5,150,105,0.2); }
+    .aw-btn-primary:hover { background: #10b981; shadow: 0 6px 16px rgba(5,150,105,0.3); }
     .aw-btn-ghost { padding: 8px 16px; border-radius: 8px; border: 1.5px solid #e2e8f0; background: #fff; color: #64748b; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .18s; }
-    .aw-btn-ghost:hover { border-color: #00BC7D; color: #00BC7D; }
+    .aw-btn-ghost:hover { border-color: #059669; color: #059669; }
     .aw-inp { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 8px; color: #0f172a; font-size: 13px; padding: 8px 12px; outline: none; transition: border-color .18s; }
-    .aw-inp:focus { border-color: #00BC7D; }
+    .aw-inp:focus { border-color: #059669; }
     .recharts-legend-item-text { font-size: 11px !important; font-weight: 600 !important; color: #64748b !important; }
   `;
   document.head.appendChild(s);
@@ -594,23 +594,19 @@ function SectorTab({ companyId }) {
     <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
       {!data.length && <Card title="Sector Revenue"><p style={{ color:W.textSec, fontSize:13 }}>No sector data. Add delivered sector transactions to see data here.</p></Card>}
 
-      {/* Mini trend cards — optimized wrapping */}
-      <div style={{ display:"flex", flexWrap:"wrap", gap:12 }}>
+      {/* Mini trend cards — more compact wrapped grid */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:10 }}>
         {data.map((sector, si) => (
-          <Card key={sector.sector} style={{ flex:"1 1 180px", padding:"16px 18px", minWidth:180 }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-              <p style={{ fontSize:13, fontWeight:700, color:W.textPri, margin:0 }}>{sector.sector}</p>
+          <Card key={sector.sector} style={{ padding:"12px 14px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:8 }}>
+              <p style={{ fontSize:11, fontWeight:800, color:W.textPri, margin:0 }}>{sector.sector}</p>
               <Badge val={sector.overall_growth_pct} />
             </div>
-            <ResponsiveContainer width="100%" height={50}>
+            <ResponsiveContainer width="100%" height={36}>
               <LineChart data={sector.periods}>
-                <Line type="monotone" dataKey="revenue" stroke={PALETTE[si % PALETTE.length]} strokeWidth={2.5} dot={false} />
-                <Tooltip content={<WhiteTooltip />} />
+                <Line type="monotone" dataKey="revenue" stroke={PALETTE[si % PALETTE.length]} strokeWidth={2} dot={false} />
               </LineChart>
             </ResponsiveContainer>
-            <p style={{ fontSize:11, color:W.textDim, marginTop:6 }}>
-              Latest: <span style={{ color:W.textPri, fontFamily:"monospace", fontWeight:700 }}>PKR {fmt(sector.periods[sector.periods.length-1]?.revenue)}</span>
-            </p>
           </Card>
         ))}
       </div>
@@ -923,25 +919,29 @@ function VarianceTab({ companyId }) {
 
           {data.items?.length > 0 && (
             <>
-              <Card title="Budget vs Actual Performance Analysis">
-                <ResponsiveContainer width="100%" height={Math.max(260, data.items.length * 48)}>
-                  <BarChart layout="vertical"
-                    data={data.items.map(r=>({ name:r.account_name||r.sector_id, budget:+r.budget_amount||0, actual:+r.actual_amount||0 }))}
-                    margin={{ top:4, right:80, left:0, bottom:4 }}
-                    barGap={-20}
-                  >
-                    <CartesianGrid stroke={W.gridLine} horizontal={false} />
-                    <XAxis type="number" {...xStyle({})} tickFormatter={fmt} />
-                    <YAxis type="category" dataKey="name" width={150}
-                      tick={<SmartYTick />} axisLine={false} tickLine={false} />
-                    <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc" }} />
-                    <Legend iconType="circle" verticalAlign="top" align="right" wrapperStyle={{ fontSize:11, paddingBottom:20 }} />
-                    {/* Budget bar: Wider, light background */}
-                    <Bar dataKey="budget" name="Budget Target" fill="#e2e8f0" radius={[0,4,4,0]} barSize={20} />
-                    {/* Actual bar: Narrower, brand color, overlapping */}
-                    <Bar dataKey="actual" name="Actual Performance" fill={W.accent} radius={[0,4,4,0]} barSize={10} 
-                      label={{ position:"right", fill:W.accent, fontSize:10, fontWeight:700, formatter:fmt }} />
-                  </BarChart>
+              {/* Heartbeat Line Chart — redesigned from bars */}
+              <Card title="Budget vs Actual — Financial Heartbeat" subtitle="Performance pulse across all accounts">
+                <ResponsiveContainer width="100%" height={320}>
+                  <AreaChart data={data.items.map(r=>({ name:trunc(r.account_name||r.sector_id, 12), budget:+r.budget_amount||0, actual:+r.actual_amount||0 }))}
+                    margin={{ top:10, right:10, left:0, bottom:0 }}>
+                    <defs>
+                      <linearGradient id="hBudget" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%"  stopColor={W.textDim} stopOpacity={0.1} />
+                        <stop offset="95%" stopColor={W.textDim} stopOpacity={0} />
+                      </linearGradient>
+                      <linearGradient id="hActual" x1="0" y1="0" x2="0" y2="1">
+                        <stop offset="5%"  stopColor={W.accent} stopOpacity={0.15} />
+                        <stop offset="95%" stopColor={W.accent} stopOpacity={0} />
+                      </linearGradient>
+                    </defs>
+                    <CartesianGrid stroke={W.gridLine} vertical={false} />
+                    <XAxis dataKey="name" {...xStyle({ dy:8 })} />
+                    <YAxis {...yStyle} />
+                    <Tooltip content={<WhiteTooltip />} />
+                    <Legend iconType="circle" verticalAlign="top" align="right" wrapperStyle={{ paddingBottom:20, fontSize:11 }} />
+                    <Area type="monotone" dataKey="budget" name="Budget" stroke={W.textDim} strokeWidth={2} strokeDasharray="5 5" fill="url(#hBudget)" dot={false} />
+                    <Area type="monotone" dataKey="actual" name="Actual" stroke={W.accent} strokeWidth={3} fill="url(#hActual)" dot={{ r:4, fill:W.accent, strokeWidth:2, stroke:"#fff" }} activeDot={{ r:6, pulse:true }} animationDuration={1500} />
+                  </AreaChart>
                 </ResponsiveContainer>
               </Card>
 
