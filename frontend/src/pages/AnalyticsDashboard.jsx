@@ -475,13 +475,23 @@ function ComparativeTab({ companyId }) {
               <BarChart layout="vertical"
                 data={rows.map(r => ({ name: r.account_name, p1: Math.abs(r.period1?.net||0), p2: Math.abs(r.period2?.net||0) }))}
                 margin={{ top:0, right:16, left:0, bottom:0 }}>
+                <defs>
+                  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="2.5" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                  </filter>
+                </defs>
                 <CartesianGrid stroke={W.gridLine} horizontal={false} />
                 <XAxis type="number" {...xStyle({})} tickFormatter={fmt} />
                 <YAxis type="category" dataKey="name" width={130} tick={<SmartYTick />} axisLine={false} tickLine={false} />
                 <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc" }} />
                 <Legend iconType="square" wrapperStyle={{ fontSize:11 }} />
-                <Bar dataKey="p1" name="Period 1" fill={W.accent}   radius={[0,4,4,0]} barSize={11} />
-                <Bar dataKey="p2" name="Period 2" fill="#10b981" radius={[0,4,4,0]} barSize={11} />
+                <Bar dataKey="p1" name="Period 1" radius={[0,4,4,0]} barSize={10}>
+                  {rows.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} opacity={0.4} />)}
+                </Bar>
+                <Bar dataKey="p2" name="Period 2" radius={[0,4,4,0]} barSize={10}>
+                  {rows.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -546,7 +556,7 @@ function VerticalTab({ companyId }) {
             </span>
           </div>
           <div style={{ height:6, background:"#f1f5f9", borderRadius:4, overflow:"hidden" }}>
-            <div style={{ height:"100%", width:`${Math.min(item.percentage, 100)}%`, background:color, borderRadius:4, transition:"width .5s ease" }} />
+            <div style={{ height:"100%", width:`${Math.min(item.percentage, 100)}%`, background:PALETTE[i % PALETTE.length], borderRadius:4, transition:"width .5s ease" }} />
           </div>
         </div>
       ))}
@@ -631,6 +641,12 @@ function SectorTab({ companyId }) {
           <Card title="Sector Revenue Comparison" style={{ flex:"2 1 480px" }}>
             <ResponsiveContainer width="100%" height={280}>
               <BarChart data={barData} margin={{ top:4, right:8, left:0, bottom:44 }}>
+                <defs>
+                  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                  </filter>
+                </defs>
                 <CartesianGrid stroke={W.gridLine} vertical={false} />
                 <XAxis dataKey="name"
                   tick={({ x, y, payload }) => (
@@ -738,12 +754,19 @@ function OperationsTab({ companyId }) {
               <ResponsiveContainer width="100%" height={Math.max(220, warehouses.length * 46)}>
                 <BarChart layout="vertical" data={warehouses}
                   margin={{ top:4, right:56, left:0, bottom:4 }}>
+                  <defs>
+                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                      <feGaussianBlur stdDeviation="3" result="blur" />
+                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                    </filter>
+                  </defs>
                   <CartesianGrid stroke={W.gridLine} horizontal={false} />
                   <XAxis type="number" {...xStyle({})} tickFormatter={fmt} />
                   <YAxis type="category" dataKey="warehouse_name" width={130}
                     tick={<SmartYTick />} axisLine={false} tickLine={false} />
                   <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc" }} />
                   <Bar dataKey="estimated_value" name="Value" radius={[0,6,6,0]} barSize={18}
+                    filter="url(#glow)"
                     label={{ position:"right", fill:W.textSec, fontSize:10, formatter:fmt }}>
                     {warehouses.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
                   </Bar>
