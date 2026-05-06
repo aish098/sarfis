@@ -16,7 +16,7 @@ import Header from './dashboard/Header';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
 import {
-  AreaChart, Area
+  AreaChart, Area, Cell
 } from 'recharts';
 
 const PALETTE = [
