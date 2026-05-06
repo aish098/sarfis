@@ -8,7 +8,7 @@ import {
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-  ComposedChart, Area, Cell, PieChart, Pie
+  ComposedChart, Area, Cell, PieChart as FinancialPieChart, Pie
 } from 'recharts';
 
 // Corrected Path Imports
@@ -191,7 +191,7 @@ function DashboardOverview() {
                   { name: 'Expenses', value: totalExp, color: '#f43f5e' }
                 ];
                 return (
-                  <PieChart>
+                  <FinancialPieChart>
                     <Pie
                       data={pieData}
                       cx="50%" cy="50%"
@@ -208,7 +208,7 @@ function DashboardOverview() {
                     <Tooltip content={<CustomTooltip />} />
                     <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle"
                       wrapperStyle={{ fontSize: '12px', fontWeight: 'bold', paddingLeft: '20px' }} />
-                  </PieChart>
+                  </FinancialPieChart>
                 );
               })()}
             </ResponsiveContainer>
