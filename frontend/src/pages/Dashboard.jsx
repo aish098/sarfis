@@ -2,7 +2,7 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate, Routes, Route } from 'react-router-dom';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import {
-  TrendingUp, Activity, PieChart, Wallet,
+  TrendingUp, Activity, PieChart as PieChartIcon, Wallet,
   ArrowUpRight, ArrowDownRight, Plus, FileText, Target, BookOpen
 } from 'lucide-react';
 import {
@@ -130,7 +130,7 @@ function DashboardOverview() {
       sub: 'Aggregated ledger costs', positive: null, accent: 'border-blue-500/20', iconBg: '#dbeafe', iconColor: '#2563eb',
     },
     {
-      label: 'Net Profit', value: fmt(netProfit), icon: PieChart,
+      label: 'Net Profit', value: fmt(netProfit), icon: PieChartIcon,
       sub: `Margin: ${metrics?.profitMargin || '0'}%`, positive: netProfit >= 0, accent: netProfit >= 0 ? 'border-emerald-500/20' : 'border-rose-500/20',
       iconBg: netProfit >= 0 ? '#d1fae5' : '#fee2e2', iconColor: netProfit >= 0 ? '#059669' : '#dc2626',
     },
