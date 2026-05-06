@@ -15,6 +15,14 @@ import Sidebar from './dashboard/Sidebar';
 import Header from './dashboard/Header';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
+import {
+  AreaChart, Area
+} from 'recharts';
+
+const PALETTE = [
+  "#3b82f6","#10b981","#f59e0b","#8b5cf6",
+  "#ef4444","#06b6d4","#14b8a6","#f43f5e",
+];
 
 // Page Imports
 import AccountsPage from './accounts/AccountsPage.jsx';
@@ -173,15 +181,29 @@ function DashboardOverview() {
           <Motion.div variants={fadeUp} initial="initial" animate="animate" className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
             <h3 className="font-display font-black text-slate-900 text-[16px] mb-6">Revenue vs Expenses</h3>
             <ResponsiveContainer width="100%" height={260} minWidth={0}>
-              <LineChart data={chartData} margin={{ top: 15, right: 15, left: 10, bottom: 0 }}>
+              <AreaChart data={chartData} margin={{ top: 15, right: 15, left: 10, bottom: 0 }}>
+                <defs>
+                  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                    <feGaussianBlur stdDeviation="3" result="blur" />
+                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
+                  </filter>
+                  <linearGradient id="wgRev" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#10b981" stopOpacity={0.15} />
+                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.01} />
+                  </linearGradient>
+                  <linearGradient id="wgExp" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="5%"  stopColor="#f43f5e" stopOpacity={0.08} />
+                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.01} />
+                  </linearGradient>
+                </defs>
                 <CartesianGrid {...chartGrid} />
                 <XAxis dataKey="month" tick={axisTick} axisLine={false} tickLine={false} dy={10} />
                 <YAxis tick={axisTick} width={65} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '20px', fontWeight: 'bold' }} />
-                <Line type="monotone" dataKey="revenue" name="Revenue" stroke="#10b981" strokeWidth={4} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} />
-                <Line type="monotone" dataKey="expenses" name="Expenses" stroke="#f43f5e" strokeWidth={4} dot={{ r: 4, strokeWidth: 2, fill: '#fff' }} activeDot={{ r: 6 }} />
-              </LineChart>
+                <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#10b981" strokeWidth={3} fill="url(#wgRev)" filter="url(#glow)" />
+                <Area type="monotone" dataKey="expenses" name="Expenses" stroke="#f43f5e" strokeWidth={2.5} fill="url(#wgExp)" strokeDasharray="5 5" />
+              </AreaChart>
             </ResponsiveContainer>
           </Motion.div>
 
@@ -195,7 +217,9 @@ function DashboardOverview() {
                 <XAxis dataKey="month" tick={axisTick} axisLine={false} tickLine={false} dy={10} />
                 <YAxis tick={axisTick} width={65} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
                 <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc', radius: 12 }} />
-                <Bar dataKey="cashFlow" name="Cash Flow" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={25} />
+                <Bar dataKey="cashFlow" name="Cash Flow" radius={[6, 6, 0, 0]} barSize={25}>
+                  {chartData.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
+                </Bar>
               </BarChart>
             </ResponsiveContainer>
           </Motion.div>

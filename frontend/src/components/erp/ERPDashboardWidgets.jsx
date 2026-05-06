@@ -6,7 +6,12 @@
 import { useState, useEffect } from 'react';
 import { motion as Motion } from 'framer-motion';
 import { AlertTriangle, Package, TrendingUp, Users, BarChart3, ArrowUpRight } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+
+const PALETTE = [
+  "#3b82f6","#10b981","#f59e0b","#8b5cf6",
+  "#ef4444","#06b6d4","#14b8a6","#f43f5e",
+];
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -185,8 +190,12 @@ export function SectorRevenueWidget() {
             <XAxis dataKey="name" tick={axisTick} axisLine={false} tickLine={false} dy={10} />
             <YAxis tick={axisTick} width={65} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
             <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="revenue" name="Revenue" fill="#6366f1" radius={[4, 4, 0, 0]} barSize={20} />
-            <Bar dataKey="profit" name="Profit" fill="#10b981" radius={[4, 4, 0, 0]} barSize={20} />
+            <Bar dataKey="revenue" name="Revenue" radius={[6, 6, 0, 0]} barSize={16}>
+              {data.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
+            </Bar>
+            <Bar dataKey="profit" name="Profit" radius={[6, 6, 0, 0]} barSize={16}>
+              {data.map((_, i) => <Cell key={i} fill={PALETTE[(i + 1) % PALETTE.length]} opacity={0.6} />)}
+            </Bar>
           </BarChart>
         </ResponsiveContainer>
       )}
