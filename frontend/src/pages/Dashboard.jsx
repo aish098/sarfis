@@ -7,7 +7,8 @@ import {
 } from 'lucide-react';
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis,
-  CartesianGrid, Tooltip, ResponsiveContainer, Legend
+  CartesianGrid, Tooltip, ResponsiveContainer, Legend,
+  ComposedChart, Area, Cell
 } from 'recharts';
 
 // Corrected Path Imports
@@ -15,9 +16,6 @@ import Sidebar from './dashboard/Sidebar';
 import Header from './dashboard/Header';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
-import {
-  ComposedChart, Area, Bar, Line, Cell
-} from 'recharts';
 
 const PALETTE = [
   "#3b82f6","#10b981","#f59e0b","#8b5cf6",
