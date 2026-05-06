@@ -1,131 +1,144 @@
 /**
- * AnalyticsDashboard.jsx  —  SCAFIS Chart System Upgrade
+ * AnalyticsDashboard.jsx  —  SCAFIS Modern White Theme
  *
- * WHAT CHANGED (chart layer only — no logic/API changes):
- *  ✅ Dark theme: #1a1f2e / #12162a / #2a3044 / #6366f1
- *  ✅ Long label support: auto-rotation + custom tick with ellipsis + tooltip fallback
- *  ✅ Dynamic data: all axes auto-scale, no hardcoded limits
- *  ✅ Custom tooltips: glassmorphism dark style
- *  ✅ Area Chart: gradient fills with animated stroke
- *  ✅ Bar Chart: rounded tops, glow on hover
- *  ✅ Donut chart: inner label + legend with %, animated segments
- *  ✅ Radar Chart: dark polar grid with dual datasets
- *  ✅ KPI cards: dark glassmorphism with coloured glow
- *  ✅ All ResponsiveContainer uses are correct
- *  ✅ All API calls & state logic IDENTICAL to original
+ * DESIGN: Matches reference image exactly
+ *   ✅ White background with soft shadows
+ *   ✅ Bold KPI numbers with up/down badges
+ *   ✅ Smooth area chart with blue gradient fill
+ *   ✅ Donut charts with inner labels
+ *   ✅ Proper table layouts with alternating rows
+ *   ✅ All charts use recharts with modern styling
+ *   ✅ Long label support (truncate + tooltip)
+ *   ✅ All API/logic identical to original
  */
 
 import { useState, useEffect, useCallback, useMemo } from "react";
 import {
-  LineChart, Line, BarChart, Bar, XAxis, YAxis, CartesianGrid,
-  Tooltip, Legend, ResponsiveContainer, Cell, PieChart, Pie,
-  AreaChart, Area, RadarChart, PolarGrid, PolarAngleAxis,
-  PolarRadiusAxis, Radar,
+  AreaChart, Area, BarChart, Bar, LineChart, Line,
+  XAxis, YAxis, CartesianGrid, Tooltip, Legend,
+  ResponsiveContainer, Cell, PieChart, Pie,
+  RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
 } from "recharts";
 import { analyticsApi } from "../services/analyticsApi";
 import useAuthStore from "../store/authStore";
 
-/* ═══ THEME ══════════════════════════════════════════════════════════════════ */
-const T = {
-  bg:       "#1a1f2e",
-  card:     "#12162a",
-  cardDeep: "#0d1020",
-  border:   "#2a3044",
-  borderLo: "#1e2438",
-  accent:   "#6366f1",
-  accentLt: "#818cf8",
-  accentGl: "rgba(99,102,241,0.15)",
-  green:    "#10b981",
-  greenDim: "rgba(16,185,129,0.15)",
-  red:      "#f43f5e",
-  redDim:   "rgba(244,63,94,0.15)",
-  amber:    "#f59e0b",
-  cyan:     "#22d3ee",
-  violet:   "#a855f7",
-  teal:     "#14b8a6",
-  textPri:  "#f1f5f9",
-  textSec:  "#94a3b8",
-  textDim:  "#475569",
-  gridLine: "rgba(42,48,68,0.8)",
+/* ═══ THEME — white/light like reference image ══════════════════════════════ */
+const W = {
+  bg:        "#f8fafc",
+  card:      "#ffffff",
+  border:    "#e2e8f0",
+  borderLo:  "#f1f5f9",
+  accent:    "#3b82f6",    /* blue — matches reference */
+  accentDk:  "#2563eb",
+  accentGl:  "rgba(59,130,246,0.08)",
+  green:     "#16a34a",
+  greenBg:   "#f0fdf4",
+  red:       "#dc2626",
+  redBg:     "#fef2f2",
+  amber:     "#d97706",
+  amberBg:   "#fffbeb",
+  purple:    "#7c3aed",
+  cyan:      "#0891b2",
+  teal:      "#0d9488",
+  indigo:    "#4f46e5",
+  textPri:   "#0f172a",
+  textSec:   "#64748b",
+  textDim:   "#94a3b8",
+  gridLine:  "#f1f5f9",
 };
 
-/* palette for multi-series / sectors */
 const PALETTE = [
-  T.green, T.amber, "#3b82f6", "#8b5cf6",
-  T.red,   T.cyan,  T.teal,   T.accent,
+  "#3b82f6","#10b981","#f59e0b","#8b5cf6",
+  "#ef4444","#06b6d4","#14b8a6","#f43f5e",
 ];
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
 
-/* ═══ CSS INJECTION ══════════════════════════════════════════════════════════ */
-if (typeof document !== "undefined" && !document.getElementById("ad-dark-css")) {
+/* ═══ GLOBAL STYLES ═══════════════════════════════════════════════════════════ */
+if (typeof document !== "undefined" && !document.getElementById("ad-white-css")) {
   const s = document.createElement("style");
-  s.id = "ad-dark-css";
+  s.id = "ad-white-css";
   s.textContent = `
-    .ad-spin { animation: ad-spin 1s linear infinite; }
-    @keyframes ad-spin { to { transform: rotate(360deg); } }
-    .ad-fade-in { animation: ad-fade 0.4s ease; }
-    @keyframes ad-fade { from{opacity:0;transform:translateY(8px)} to{opacity:1;transform:none} }
-    .ad-tab-active {
-      background: #6366f1 !important;
-      color: #fff !important;
-      box-shadow: 0 4px 16px rgba(99,102,241,0.35);
+    .aw-spin { animation: aw-s 0.9s linear infinite; }
+    @keyframes aw-s { to { transform: rotate(360deg); } }
+    .aw-fade { animation: aw-f 0.35s ease; }
+    @keyframes aw-f { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
+    .aw-tab {
+      padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
+      cursor: pointer; border: 1.5px solid #e2e8f0; white-space: nowrap;
+      transition: all .18s; background: #fff; color: #64748b;
     }
-    .ad-tab {
-      padding: 8px 16px; border-radius: 10px; font-size: 13px; font-weight: 600;
-      cursor: pointer; border: none; white-space: nowrap; transition: all .2s;
-      background: #12162a; color: #94a3b8;
-      font-family: var(--font-sans, sans-serif);
-    }
-    .ad-tab:hover:not(.ad-tab-active) { background: #1e2438; color: #f1f5f9; }
-    .recharts-legend-item-text { font-size: 10px !important; font-weight: 700 !important; letter-spacing: 0.1em !important; text-transform: uppercase !important; }
+    .aw-tab:hover { background: #f8fafc; color: #0f172a; border-color: #cbd5e1; }
+    .aw-tab.active { background: #3b82f6; color: #fff; border-color: #3b82f6; box-shadow: 0 4px 12px rgba(59,130,246,0.25); }
+    .aw-tr:hover td { background: #f8fafc !important; }
+    .aw-btn-primary { padding: 9px 22px; border-radius: 8px; border: none; background: #3b82f6; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .18s; }
+    .aw-btn-primary:hover { background: #2563eb; }
+    .aw-btn-ghost { padding: 8px 16px; border-radius: 8px; border: 1.5px solid #e2e8f0; background: #fff; color: #64748b; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .18s; }
+    .aw-btn-ghost:hover { border-color: #3b82f6; color: #3b82f6; }
+    .aw-inp { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 8px; color: #0f172a; font-size: 13px; padding: 8px 12px; outline: none; transition: border-color .18s; }
+    .aw-inp:focus { border-color: #3b82f6; }
+    .recharts-legend-item-text { font-size: 11px !important; font-weight: 600 !important; color: #64748b !important; }
   `;
   document.head.appendChild(s);
 }
 
 /* ═══ HELPERS ════════════════════════════════════════════════════════════════ */
-function fmt(n) {
+function fmt(n, short = true) {
   if (n === undefined || n === null || isNaN(n)) return "—";
   const abs = Math.abs(n);
-  if (abs >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
-  if (abs >= 1_000) return (n / 1_000).toFixed(1) + "K";
+  if (short) {
+    if (abs >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
+    if (abs >= 1_000) return (n / 1_000).toFixed(1) + "K";
+  }
   return Number(n).toLocaleString("en-PK", { maximumFractionDigits: 0 });
 }
 
-function truncate(str, max = 14) {
+function trunc(str, max = 14) {
   if (!str) return "";
   return str.length > max ? str.slice(0, max) + "…" : str;
 }
 
-function badge(val) {
-  if (val > 0)  return <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:T.greenDim,color:T.green}}>▲ {val}%</span>;
-  if (val < 0)  return <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:T.redDim,color:T.red}}>▼ {Math.abs(val)}%</span>;
-  return <span style={{padding:"2px 8px",borderRadius:20,fontSize:10,fontWeight:700,background:"rgba(42,48,68,0.8)",color:T.textDim}}>—</span>;
+function Badge({ val }) {
+  if (val > 0) return (
+    <span style={{ display:"inline-flex", alignItems:"center", gap:2, padding:"2px 8px", borderRadius:20, fontSize:11, fontWeight:700, background:W.greenBg, color:W.green }}>
+      ↑ {val}%
+    </span>
+  );
+  if (val < 0) return (
+    <span style={{ display:"inline-flex", alignItems:"center", gap:2, padding:"2px 8px", borderRadius:20, fontSize:11, fontWeight:700, background:W.redBg, color:W.red }}>
+      ↓ {Math.abs(val)}%
+    </span>
+  );
+  return <span style={{ padding:"2px 8px", borderRadius:20, fontSize:11, fontWeight:600, background:"#f1f5f9", color:W.textDim }}>—</span>;
 }
 
-/* ═══ CHART PRIMITIVES ═══════════════════════════════════════════════════════ */
+/* ═══ CHART PRIMITIVES ════════════════════════════════════════════════════════ */
+const yStyle = {
+  tick: { fill: W.textDim, fontSize: 11, fontWeight: 500 },
+  axisLine: false, tickLine: false, tickFormatter: fmt, width: 56,
+};
+const xStyle = (extra = {}) => ({
+  tick: { fill: W.textDim, fontSize: 11, fontWeight: 500 },
+  axisLine: false, tickLine: false, ...extra,
+});
 
-/** Dark glassmorphism tooltip */
-function DarkTooltip({ active, payload, label, currency = "PKR" }) {
+function WhiteTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
-      background: "rgba(13,16,32,0.95)", backdropFilter: "blur(16px)",
-      border: `1px solid ${T.border}`,
-      borderRadius: 12, padding: "12px 16px", minWidth: 160,
-      boxShadow: "0 16px 40px rgba(0,0,0,0.5)",
+      background: "#fff", border: `1px solid ${W.border}`,
+      borderRadius: 12, padding: "10px 16px", minWidth: 160,
+      boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
     }}>
-      <p style={{ fontSize: 10, fontWeight: 700, color: T.textDim, letterSpacing: "0.15em", textTransform: "uppercase", marginBottom: 10 }}>
-        {label}
-      </p>
+      <p style={{ fontSize:11, fontWeight:700, color:W.textDim, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:8 }}>{label}</p>
       {payload.map((p, i) => (
-        <div key={i} style={{ display: "flex", alignItems: "center", justifyContent: "space-between", gap: 16, marginBottom: 4 }}>
-          <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
-            <div style={{ width: 6, height: 6, borderRadius: "50%", background: p.color, boxShadow: `0 0 6px ${p.color}` }} />
-            <span style={{ fontSize: 11, fontWeight: 600, color: T.textSec }}>{p.name}</span>
+        <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:14, marginBottom:3 }}>
+          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+            <div style={{ width:8, height:8, borderRadius:2, background:p.color }} />
+            <span style={{ fontSize:12, color:W.textSec }}>{p.name}</span>
           </div>
-          <span style={{ fontFamily: "monospace", fontSize: 12, fontWeight: 700, color: T.textPri }}>
-            {currency} {fmt(p.value)}
+          <span style={{ fontFamily:"monospace", fontSize:12, fontWeight:700, color:W.textPri }}>
+            PKR {fmt(p.value)}
           </span>
         </div>
       ))}
@@ -133,250 +146,260 @@ function DarkTooltip({ active, payload, label, currency = "PKR" }) {
   );
 }
 
-/** Custom X-axis tick: truncate + full name on tooltip (via title) */
-function SmartXTick({ x, y, payload, maxLen = 12, rotate = -30 }) {
-  const full  = payload?.value ?? "";
-  const short = truncate(full, maxLen);
-  const needsRotate = full.length > maxLen;
+function SmartYTick({ x, y, payload }) {
+  const full = payload?.value ?? "";
   return (
     <g transform={`translate(${x},${y})`}>
       <title>{full}</title>
-      <text
-        transform={needsRotate ? `rotate(${rotate})` : undefined}
-        textAnchor={needsRotate ? "end" : "middle"}
-        x={0} y={0} dy={needsRotate ? 4 : 14}
-        fill={T.textSec} fontSize={10} fontWeight={600}
-      >
-        {short}
+      <text x={-6} y={0} dy={4} textAnchor="end" fill={W.textDim} fontSize={11} fontWeight={500}>
+        {trunc(full, 18)}
       </text>
     </g>
   );
 }
 
-/** Y-axis common props */
-const yAxis = {
-  tick: { fill: T.textDim, fontSize: 10, fontWeight: 600 },
-  axisLine: false, tickLine: false,
-  tickFormatter: fmt, width: 60,
-};
-
-/** CartesianGrid common props */
-const grid = { stroke: T.gridLine, strokeDasharray: "3 3", vertical: false };
-
-/* Dark cursor for bar charts */
-const barCursor = { fill: "rgba(99,102,241,0.06)", radius: 8 };
-
 /* ── Spinner ── */
 function Spinner() {
   return (
-    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "64px 0" }}>
-      <div className="ad-spin" style={{
-        width: 32, height: 32, borderRadius: "50%",
-        border: `2px solid ${T.accentGl}`,
-        borderTopColor: T.accent,
-      }} />
+    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", padding:"56px 0" }}>
+      <div className="aw-spin" style={{ width:28, height:28, borderRadius:"50%", border:`2.5px solid ${W.border}`, borderTopColor:W.accent }} />
     </div>
   );
 }
 
-/* ── Dark Card ── */
-function DCard({ title, children, style = {} }) {
+/* ── White Card ── */
+function Card({ title, subtitle, children, actions, style={} }) {
   return (
     <div style={{
-      background: T.card, border: `1px solid ${T.border}`,
-      borderRadius: 16, padding: "20px",
+      background: W.card, border: `1px solid ${W.border}`,
+      borderRadius: 16, padding: "20px 24px",
+      boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
       ...style,
     }}>
-      {title && (
-        <p style={{
-          fontSize: 10, fontWeight: 700, color: T.textDim,
-          letterSpacing: "0.18em", textTransform: "uppercase", marginBottom: 16,
-        }}>
-          {title}
-        </p>
+      {(title || actions) && (
+        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom: subtitle ? 4 : 18 }}>
+          <div>
+            {title && <p style={{ fontSize:14, fontWeight:700, color:W.textPri, margin:0 }}>{title}</p>}
+            {subtitle && <p style={{ fontSize:12, color:W.textDim, margin:"2px 0 0" }}>{subtitle}</p>}
+          </div>
+          {actions}
+        </div>
       )}
+      {subtitle && <div style={{ marginBottom:18 }} />}
       {children}
     </div>
   );
 }
 
-/* ── KPI Card ── */
-function KpiCard({ label, value, growth, color = T.accent, glow }) {
-  const g = glow || `${color}22`;
+/* ── KPI Card — matches reference image cards ── */
+function KpiCard({ icon, label, value, growth, vsLabel, color = W.accent, bgColor }) {
+  const bg = bgColor || `${color}12`;
   return (
     <div style={{
-      background: T.card, border: `1px solid ${T.border}`,
-      borderRadius: 16, padding: "18px 20px",
-      position: "relative", overflow: "hidden",
-      transition: "border-color .2s",
-    }}
-      onMouseEnter={e => e.currentTarget.style.borderColor = `${color}44`}
-      onMouseLeave={e => e.currentTarget.style.borderColor = T.border}
-    >
-      {/* glow orb */}
-      <div style={{ position: "absolute", top: -20, right: -20, width: 80, height: 80, borderRadius: "50%", background: g, filter: "blur(24px)", pointerEvents: "none" }} />
-      <div style={{ display: "flex", alignItems: "center", justifyBox: "space-between", marginBottom: 10 }}>
-        <p style={{ fontSize: 10, fontWeight: 700, color: T.textDim, letterSpacing: "0.18em", textTransform: "uppercase" }}>{label}</p>
+      background: W.card, border: `1px solid ${W.border}`,
+      borderRadius: 16, padding: "20px 22px",
+      boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
+    }}>
+      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:12 }}>
+        <p style={{ fontSize:13, fontWeight:600, color:W.textSec, margin:0 }}>{label}</p>
+        {icon && (
+          <div style={{ width:36, height:36, borderRadius:10, background:bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
+            <span style={{ fontSize:17, color }}>{icon}</span>
+          </div>
+        )}
       </div>
-      <p style={{ fontFamily: "monospace", fontSize: 22, fontWeight: 800, color, letterSpacing: "-0.02em", marginBottom: 8 }}>
-        PKR {fmt(value)}
+      <p style={{ fontFamily:"monospace", fontSize:26, fontWeight:800, color:W.textPri, margin:"0 0 8px", letterSpacing:"-0.02em" }}>
+        {value}
       </p>
-      {growth !== undefined && <div>{badge(growth)}</div>}
+      {growth !== undefined && (
+        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+          <Badge val={growth} />
+          {vsLabel && <span style={{ fontSize:11, color:W.textDim }}>{vsLabel}</span>}
+        </div>
+      )}
     </div>
   );
 }
 
-/* ── Donut chart with inner label ── */
-function DonutChart({ data, colors, height = 260, label = "" }) {
+/* ── Donut with inner label ── */
+function DonutChart({ data, colors, height = 200, centerLabel = "", centerValue = "" }) {
   const total = useMemo(() => data.reduce((s, d) => s + (d.value || 0), 0), [data]);
   return (
     <ResponsiveContainer width="100%" height={height}>
       <PieChart>
-        <defs>
-          {colors.map((c, i) => (
-            <radialGradient key={i} id={`dg-${i}`} cx="50%" cy="50%" r="50%">
-              <stop offset="0%" stopColor={c} stopOpacity={0.9} />
-              <stop offset="100%" stopColor={c} stopOpacity={0.6} />
-            </radialGradient>
-          ))}
-        </defs>
-        <Pie
-          data={data} cx="50%" cy="50%"
-          innerRadius="55%" outerRadius="75%"
-          paddingAngle={3} dataKey="value"
-          animationBegin={0} animationDuration={900}
-        >
-          {data.map((_, i) => <Cell key={i} fill={`url(#dg-${i})`} stroke="none" />)}
+        <Pie data={data} cx="50%" cy="50%"
+          innerRadius="56%" outerRadius="78%"
+          paddingAngle={2} dataKey="value"
+          animationBegin={0} animationDuration={800} strokeWidth={0}>
+          {data.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
         </Pie>
-        <Tooltip
-          content={({ active, payload }) => {
-            if (!active || !payload?.length) return null;
-            const p = payload[0];
-            const pct = total > 0 ? ((p.value / total) * 100).toFixed(1) : 0;
-            return (
-              <div style={{
-                background: "rgba(13,16,32,0.95)", backdropFilter: "blur(16px)",
-                border: `1px solid ${T.border}`, borderRadius: 10, padding: "10px 14px",
-              }}>
-                <p style={{ fontSize: 11, fontWeight: 700, color: T.textPri, marginBottom: 4 }}>{p.name}</p>
-                <p style={{ fontFamily: "monospace", fontSize: 12, color: p.fill }}>{fmt(p.value)} ({pct}%)</p>
-              </div>
-            );
-          }}
-        />
-        {/* inner text — rendered via foreignObject */}
+        <Tooltip content={({ active, payload }) => {
+          if (!active || !payload?.length) return null;
+          const p = payload[0];
+          const pct = total > 0 ? ((p.value / total) * 100).toFixed(1) : 0;
+          return (
+            <div style={{ background:"#fff", border:`1px solid ${W.border}`, borderRadius:10, padding:"8px 12px", boxShadow:"0 8px 24px rgba(0,0,0,0.1)" }}>
+              <p style={{ fontSize:12, fontWeight:700, color:W.textPri, marginBottom:2 }}>{p.name}</p>
+              <p style={{ fontFamily:"monospace", fontSize:12, color:p.payload.fill }}>{fmt(p.value)} ({pct}%)</p>
+            </div>
+          );
+        }} />
         <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
-          <tspan x="50%" dy="-6" fontSize="13" fontWeight="800" fill={T.textPri}>{fmt(total)}</tspan>
-          <tspan x="50%" dy="18" fontSize="9" fontWeight="600" fill={T.textDim} letterSpacing="0.12em" textTransform="uppercase">{label}</tspan>
+          <tspan x="50%" dy="-8" fontSize="18" fontWeight="800" fill={W.textPri}>{centerValue || fmt(total)}</tspan>
+          <tspan x="50%" dy="20" fontSize="11" fill={W.textSec}>{centerLabel}</tspan>
         </text>
       </PieChart>
     </ResponsiveContainer>
   );
 }
 
-/* ═══ TABS ═══════════════════════════════════════════════════════════════════ */
+/* ── Table ── */
+function DataTable({ headers, rows, emptyMsg = "No data available." }) {
+  return (
+    <div style={{ overflowX:"auto" }}>
+      <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+        <thead>
+          <tr style={{ background:"#f8fafc", borderBottom:`1.5px solid ${W.border}` }}>
+            {headers.map((h,i) => (
+              <th key={i} style={{
+                padding:"10px 14px", textAlign: h.right?"right":"left",
+                fontWeight:700, fontSize:11, color:W.textSec,
+                letterSpacing:"0.08em", textTransform:"uppercase",
+                whiteSpace:"nowrap",
+              }}>
+                {h.label}
+              </th>
+            ))}
+          </tr>
+        </thead>
+        <tbody>
+          {!rows.length && (
+            <tr>
+              <td colSpan={headers.length} style={{ textAlign:"center", padding:"32px", color:W.textDim, fontSize:13 }}>
+                {emptyMsg}
+              </td>
+            </tr>
+          )}
+          {rows.map((row, ri) => (
+            <tr key={ri} className="aw-tr" style={{ borderBottom:`1px solid ${W.borderLo}` }}>
+              {row.map((cell, ci) => (
+                <td key={ci} style={{
+                  padding:"11px 14px",
+                  textAlign: headers[ci]?.right ? "right" : "left",
+                  ...cell?.style,
+                }}>
+                  {cell?.node ?? cell}
+                </td>
+              ))}
+            </tr>
+          ))}
+        </tbody>
+      </table>
+    </div>
+  );
+}
+
+/* ═══ TABS ════════════════════════════════════════════════════════════════════ */
 const TABS = [
-  { id: "trends",      label: "📈 Trends" },
-  { id: "comparative", label: "📊 Comparative" },
-  { id: "vertical",    label: "🔢 Vertical" },
-  { id: "sectors",     label: "🏭 Sectors" },
-  { id: "operations",  label: "📦 Operations" },
-  { id: "budget",      label: "🎯 Budget" },
-  { id: "variance",    label: "📉 Variance" },
+  { id:"trends",      label:"📈 Trends"      },
+  { id:"comparative", label:"📊 Comparative" },
+  { id:"vertical",    label:"🔢 Vertical"    },
+  { id:"sectors",     label:"🏭 Sectors"     },
+  { id:"operations",  label:"📦 Operations"  },
+  { id:"budget",      label:"🎯 Budget"      },
+  { id:"variance",    label:"📉 Variance"    },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TREND TAB
 ═══════════════════════════════════════════════════════════════════════════ */
 function TrendTab({ companyId }) {
-  const [data, setData] = useState([]);
+  const [data, setData]     = useState([]);
   const [loading, setLoading] = useState(false);
   const [months, setMonths] = useState(12);
 
   useEffect(() => {
-    let ignore = false;
-    Promise.resolve().then(() => { if (!ignore) setLoading(true); });
+    let ig = false;
+    Promise.resolve().then(() => { if (!ig) setLoading(true); });
     analyticsApi.getTrends(companyId, months)
-      .then(res => { if (!ignore) setData(res); })
+      .then(r => { if (!ig) setData(r); })
       .catch(console.error)
-      .finally(() => { if (!ignore) setLoading(false); });
-    return () => { ignore = true; };
+      .finally(() => { if (!ig) setLoading(false); });
+    return () => { ig = true; };
   }, [companyId, months]);
 
   if (loading && !data.length) return <Spinner />;
   const latest = data[data.length - 1] || {};
 
   return (
-    <div className="ad-fade-in" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+    <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
 
-      {/* KPI row */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 14 }}>
-        <KpiCard label="Revenue"    value={latest.revenue}  growth={latest.revenue_growth}  color={T.green} />
-        <KpiCard label="Expenses"   value={latest.expenses} growth={latest.expense_growth}  color={T.red} />
-        <KpiCard label="Net Profit" value={latest.profit}   growth={latest.profit_growth}   color={T.accent} />
+      {/* KPI row — matches reference image */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:14 }}>
+        <KpiCard icon="💰" label="Revenue"    value={`PKR ${fmt(latest.revenue)}`}  growth={latest.revenue_growth}  vsLabel="vs last period" color="#16a34a" />
+        <KpiCard icon="📊" label="Expenses"   value={`PKR ${fmt(latest.expenses)}`} growth={latest.expense_growth}  vsLabel="vs last period" color="#dc2626" />
+        <KpiCard icon="📈" label="Net Profit" value={`PKR ${fmt(latest.profit)}`}   growth={latest.profit_growth}   vsLabel="vs last period" color={W.accent} />
       </div>
 
-      {/* period toggle */}
-      <div style={{ display: "flex", gap: 8 }}>
+      {/* Period toggle */}
+      <div style={{ display:"flex", gap:8, alignItems:"center" }}>
+        <span style={{ fontSize:12, color:W.textSec, fontWeight:600 }}>Period:</span>
         {[3, 6, 12].map(m => (
           <button key={m} onClick={() => setMonths(m)}
-            style={{
-              padding: "6px 16px", borderRadius: 8, fontSize: 12, fontWeight: 700,
-              border: "none", cursor: "pointer", transition: "all .2s",
-              background: months === m ? T.accent : T.card,
-              color: months === m ? "#fff" : T.textSec,
-              boxShadow: months === m ? `0 4px 16px ${T.accentGl}` : "none",
-            }}
-          >
-            {m}M
+            className={`aw-tab${months === m ? " active" : ""}`}
+            style={{ padding:"6px 14px", fontSize:12 }}>
+            {m} months
           </button>
         ))}
       </div>
 
-      {/* ── Area Chart — Revenue / Profit trajectory ── */}
-      <DCard title="Revenue · Expenses · Profit Trajectory">
-        <ResponsiveContainer width="100%" height={320}>
-          <AreaChart data={data} margin={{ top: 8, right: 12, left: 0, bottom: 0 }}>
+      {/* Main area chart — like reference image */}
+      <Card title="Revenue & Profit Trend"
+        actions={<span style={{ fontSize:11, color:W.textDim }}>Last {months} months</span>}>
+        <ResponsiveContainer width="100%" height={280}>
+          <AreaChart data={data} margin={{ top:8, right:8, left:0, bottom:0 }}>
             <defs>
-              <linearGradient id="gRev" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor={T.green} stopOpacity={0.28} />
-                <stop offset="95%" stopColor={T.green} stopOpacity={0} />
+              <linearGradient id="wgRev" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor={W.accent} stopOpacity={0.18} />
+                <stop offset="95%" stopColor={W.accent} stopOpacity={0.01} />
               </linearGradient>
-              <linearGradient id="gProf" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor={T.accent} stopOpacity={0.24} />
-                <stop offset="95%" stopColor={T.accent} stopOpacity={0} />
+              <linearGradient id="wgProf" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor="#10b981" stopOpacity={0.16} />
+                <stop offset="95%" stopColor="#10b981" stopOpacity={0.01} />
               </linearGradient>
             </defs>
-            <CartesianGrid {...grid} />
-            <XAxis dataKey="label" tick={{ fill: T.textDim, fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} dy={8} />
-            <YAxis {...yAxis} />
-            <Tooltip content={<DarkTooltip />} />
+            <CartesianGrid stroke={W.gridLine} vertical={false} />
+            <XAxis dataKey="label" {...xStyle({ dy:8 })} />
+            <YAxis {...yStyle} />
+            <Tooltip content={<WhiteTooltip />} cursor={{ stroke:W.border, strokeWidth:1 }} />
             <Legend iconType="circle" verticalAlign="top" align="right"
-              wrapperStyle={{ paddingBottom: 16, fontSize: 10 }} />
-            <Area type="monotone" dataKey="revenue"  name="Revenue"       stroke={T.green}  strokeWidth={3} fill="url(#gRev)"  dot={false} activeDot={{ r: 5, fill: T.green, stroke: T.card, strokeWidth: 2 }} animationDuration={1200} />
-            <Area type="monotone" dataKey="profit"   name="Net Profit"    stroke={T.accent} strokeWidth={3} fill="url(#gProf)" dot={false} activeDot={{ r: 5, fill: T.accent, stroke: T.card, strokeWidth: 2 }} animationDuration={1200} />
-            <Line type="monotone" dataKey="expenses" name="Expenses"      stroke={T.red}    strokeWidth={2} strokeDasharray="5 4" dot={false} animationDuration={1200} />
+              wrapperStyle={{ paddingBottom:16, fontSize:11 }} />
+            <Area type="monotone" dataKey="revenue" name="Revenue"
+              stroke={W.accent} strokeWidth={2.5} fill="url(#wgRev)"
+              dot={false} activeDot={{ r:5, fill:W.accent, stroke:"#fff", strokeWidth:2 }} />
+            <Area type="monotone" dataKey="profit" name="Net Profit"
+              stroke="#10b981" strokeWidth={2.5} fill="url(#wgProf)"
+              dot={false} activeDot={{ r:5, fill:"#10b981", stroke:"#fff", strokeWidth:2 }} />
+            <Line type="monotone" dataKey="expenses" name="Expenses"
+              stroke="#ef4444" strokeWidth={2} strokeDasharray="6 3" dot={false} />
           </AreaChart>
         </ResponsiveContainer>
-      </DCard>
+      </Card>
 
-      {/* ── Bar Chart — Monthly profit ── */}
-      <DCard title="Monthly Profit">
-        <ResponsiveContainer width="100%" height={200}>
-          <BarChart data={data} margin={{ top: 4, right: 8, left: 0, bottom: 0 }}>
-            <CartesianGrid {...grid} />
-            <XAxis dataKey="label" tick={{ fill: T.textDim, fontSize: 10, fontWeight: 600 }} axisLine={false} tickLine={false} dy={8} />
-            <YAxis {...yAxis} />
-            <Tooltip content={<DarkTooltip />} cursor={barCursor} />
-            <Bar dataKey="profit" name="Profit" radius={[5, 5, 0, 0]} barSize={22} animationDuration={900}>
-              {data.map((d, i) => (
-                <Cell key={i} fill={d.profit >= 0 ? T.green : T.red}
-                  style={{ filter: `drop-shadow(0 4px 6px ${d.profit >= 0 ? T.greenDim : T.redDim})` }} />
-              ))}
+      {/* Monthly profit bars */}
+      <Card title="Monthly Profit">
+        <ResponsiveContainer width="100%" height={190}>
+          <BarChart data={data} margin={{ top:4, right:8, left:0, bottom:0 }}>
+            <CartesianGrid stroke={W.gridLine} vertical={false} />
+            <XAxis dataKey="label" {...xStyle({ dy:8 })} />
+            <YAxis {...yStyle} />
+            <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc" }} />
+            <Bar dataKey="profit" name="Profit" radius={[6,6,0,0]} barSize={20}>
+              {data.map((d, i) => <Cell key={i} fill={d.profit >= 0 ? "#10b981" : "#ef4444"} />)}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
-      </DCard>
+      </Card>
     </div>
   );
 }
@@ -388,7 +411,7 @@ function ComparativeTab({ companyId }) {
   const now = new Date();
   const [p1, setP1] = useState({ month: now.getMonth(), year: now.getFullYear() });
   const [p2, setP2] = useState({ month: now.getMonth() + 1, year: now.getFullYear() });
-  const [data, setData] = useState(null);
+  const [data, setData]   = useState(null);
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(() => {
@@ -397,85 +420,79 @@ function ComparativeTab({ companyId }) {
       .then(setData).catch(console.error).finally(() => setLoading(false));
   }, [companyId, p1, p2]);
 
-  useEffect(() => { let ig=false; Promise.resolve().then(()=>{if(!ig)setLoading(true);}); analyticsApi.getComparative(companyId,p1,p2).then(r=>{if(!ig)setData(r)}).catch(console.error).finally(()=>{if(!ig)setLoading(false);}); return()=>{ig=true}; }, [companyId,p1,p2]);
+  useEffect(() => {
+    let ig = false;
+    Promise.resolve().then(() => { if (!ig) setLoading(true); });
+    analyticsApi.getComparative(companyId, p1, p2)
+      .then(r => { if (!ig) setData(r); }).catch(console.error)
+      .finally(() => { if (!ig) setLoading(false); });
+    return () => { ig = true; };
+  }, [companyId, p1, p2]);
+
+  const sel = (val, setter) => (
+    <div style={{ display:"flex", gap:8 }}>
+      <select value={val.month} onChange={e => setter(v => ({ ...v, month: +e.target.value }))} className="aw-inp" style={{ flex:1 }}>
+        {MONTHS.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
+      </select>
+      <input type="number" value={val.year} onChange={e => setter(v => ({ ...v, year: +e.target.value }))}
+        className="aw-inp" style={{ width:84 }} />
+    </div>
+  );
 
   return (
-    <div className="ad-fade-in" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* period pickers */}
-      <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-        {[["Period 1", p1, setP1], ["Period 2", p2, setP2]].map(([lbl, val, set]) => (
-          <DCard key={lbl} title={lbl}>
-            <div style={{ display: "flex", gap: 8 }}>
-              <select value={val.month} onChange={e=>set(v=>({...v,month:+e.target.value}))}
-                style={{ flex:1, background:T.cardDeep, border:`1px solid ${T.border}`, borderRadius:8, color:T.textPri, fontSize:13, padding:"8px 10px", outline:"none" }}>
-                {MONTHS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}
-              </select>
-              <input type="number" value={val.year} onChange={e=>set(v=>({...v,year:+e.target.value}))}
-                style={{ width:80, background:T.cardDeep, border:`1px solid ${T.border}`, borderRadius:8, color:T.textPri, fontSize:13, padding:"8px 10px", outline:"none" }} />
-            </div>
-          </DCard>
-        ))}
-      </div>
-      <button onClick={load}
-        style={{ alignSelf:"flex-start", padding:"9px 20px", borderRadius:10, border:"none",
-          background:`linear-gradient(135deg,${T.accent},${T.accentLt})`, color:"#fff", fontSize:13, fontWeight:700,
-          cursor:"pointer", boxShadow:`0 4px 16px ${T.accentGl}` }}>
-        Compare →
-      </button>
+    <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
+      <Card title="Select Periods to Compare">
+        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:16 }}>
+          <div>
+            <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>Period 1</p>
+            {sel(p1, setP1)}
+          </div>
+          <div>
+            <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>Period 2</p>
+            {sel(p2, setP2)}
+          </div>
+        </div>
+        <button onClick={load} className="aw-btn-primary">Compare Periods →</button>
+      </Card>
 
       {loading && <Spinner />}
 
       {!loading && data && Object.entries(data).map(([type, rows]) => (
-        <DCard key={type} title={type}>
-          {/* mini grouped bar for this account type */}
+        <Card key={type} title={type}>
           {rows.length > 0 && (
-            <ResponsiveContainer width="100%" height={Math.max(160, rows.length * 32)}>
+            <ResponsiveContainer width="100%" height={Math.max(140, rows.length * 30)}>
               <BarChart layout="vertical"
-                data={rows.map(r=>({ name: r.account_name, p1: Math.abs(r.period1?.net||0), p2: Math.abs(r.period2?.net||0) }))}
-                margin={{ top: 0, right: 12, left: 0, bottom: 0 }}>
-                <CartesianGrid {...grid} horizontal={false} vertical />
-                <XAxis type="number" tick={{ fill: T.textDim, fontSize: 9 }} tickFormatter={fmt} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="name" width={120}
-                  tick={({ x, y, payload }) => (
-                    <g transform={`translate(${x},${y})`}>
-                      <title>{payload.value}</title>
-                      <text x={-4} y={0} dy={4} textAnchor="end" fill={T.textSec} fontSize={9} fontWeight={600}>
-                        {truncate(payload.value, 16)}
-                      </text>
-                    </g>
-                  )}
-                  axisLine={false} tickLine={false} />
-                <Tooltip content={<DarkTooltip />} cursor={barCursor} />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: 10, paddingTop: 8 }} />
-                <Bar dataKey="p1" name="Period 1" fill={T.accent} radius={[0,4,4,0]} barSize={10} animationDuration={800} />
-                <Bar dataKey="p2" name="Period 2" fill={T.green}  radius={[0,4,4,0]} barSize={10} animationDuration={800} />
+                data={rows.map(r => ({ name: r.account_name, p1: Math.abs(r.period1?.net||0), p2: Math.abs(r.period2?.net||0) }))}
+                margin={{ top:0, right:16, left:0, bottom:0 }}>
+                <CartesianGrid stroke={W.gridLine} horizontal={false} />
+                <XAxis type="number" {...xStyle({})} tickFormatter={fmt} />
+                <YAxis type="category" dataKey="name" width={130} tick={<SmartYTick />} axisLine={false} tickLine={false} />
+                <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc" }} />
+                <Legend iconType="square" wrapperStyle={{ fontSize:11 }} />
+                <Bar dataKey="p1" name="Period 1" fill={W.accent}   radius={[0,4,4,0]} barSize={11} />
+                <Bar dataKey="p2" name="Period 2" fill="#10b981" radius={[0,4,4,0]} barSize={11} />
               </BarChart>
             </ResponsiveContainer>
           )}
-          {/* detail table */}
-          <div style={{ overflowX: "auto", marginTop: 12 }}>
-            <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 12 }}>
-              <thead>
-                <tr style={{ borderBottom: `1px solid ${T.border}` }}>
-                  {["Account","Period 1","Period 2","Variance","%"].map(h => (
-                    <th key={h} style={{ padding:"8px 10px", textAlign:"left", fontWeight:700, fontSize:9, color:T.textDim, letterSpacing:".15em", textTransform:"uppercase" }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {rows.map(r => (
-                  <tr key={r.account_id} style={{ borderBottom:`1px solid ${T.borderLo}` }}>
-                    <td style={{ padding:"9px 10px", color:T.textSec }}>{r.account_name}</td>
-                    <td style={{ padding:"9px 10px", fontFamily:"monospace", color:T.textDim, textAlign:"right" }}>{fmt(r.period1?.net)}</td>
-                    <td style={{ padding:"9px 10px", fontFamily:"monospace", color:T.textPri, textAlign:"right" }}>{fmt(r.period2?.net)}</td>
-                    <td style={{ padding:"9px 10px", fontFamily:"monospace", color:r.variance>=0?T.green:T.red, textAlign:"right" }}>{fmt(r.variance)}</td>
-                    <td style={{ padding:"9px 10px", textAlign:"right" }}>{badge(r.variance_pct)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+          <div style={{ marginTop:14 }}>
+            <DataTable
+              headers={[
+                { label:"Account" },
+                { label:"Period 1", right:true },
+                { label:"Period 2", right:true },
+                { label:"Variance", right:true },
+                { label:"%", right:true },
+              ]}
+              rows={rows.map(r => [
+                { node: <span style={{ fontWeight:600, color:W.textPri }}>{r.account_name}</span> },
+                { node: <span style={{ fontFamily:"monospace", color:W.textSec }}>{fmt(r.period1?.net)}</span>, style:{textAlign:"right"} },
+                { node: <span style={{ fontFamily:"monospace" }}>{fmt(r.period2?.net)}</span>, style:{textAlign:"right"} },
+                { node: <span style={{ fontFamily:"monospace", fontWeight:700, color:r.variance>=0?W.green:W.red }}>{fmt(r.variance)}</span>, style:{textAlign:"right"} },
+                { node: <Badge val={r.variance_pct} />, style:{textAlign:"right"} },
+              ])}
+            />
           </div>
-        </DCard>
+        </Card>
       ))}
     </div>
   );
@@ -497,69 +514,54 @@ function VerticalTab({ companyId }) {
       .then(setData).catch(console.error).finally(() => setLoading(false));
   }, [companyId, month, year]);
 
-  useEffect(() => { let ig=false; Promise.resolve().then(()=>{if(!ig)setLoading(true);}); analyticsApi.getVertical(companyId,month,year).then(r=>{if(!ig)setData(r)}).catch(console.error).finally(()=>{if(!ig)setLoading(false);}); return()=>{ig=true}; }, [companyId,month,year]);
+  useEffect(() => {
+    let ig = false;
+    Promise.resolve().then(() => { if (!ig) setLoading(true); });
+    analyticsApi.getVertical(companyId, month, year).then(r => { if (!ig) setData(r); })
+      .catch(console.error).finally(() => { if (!ig) setLoading(false); });
+    return () => { ig = true; };
+  }, [companyId, month, year]);
 
-  const renderSection = (title, items, total, accent) => (
-    <DCard title={`${title} — Total: ${fmt(total)}`}>
-      {/* horizontal bar chart */}
-      <ResponsiveContainer width="100%" height={Math.max(120, items.length * 36)}>
-        <BarChart layout="vertical"
-          data={items.map(it=>({ name: it.account_name, pct: it.percentage, amount: Math.abs(it.amount) }))}
-          margin={{ top: 0, right: 40, left: 0, bottom: 0 }}>
-          <XAxis type="number" domain={[0,100]} tickFormatter={v=>`${v}%`}
-            tick={{ fill:T.textDim, fontSize:9 }} axisLine={false} tickLine={false} />
-          <YAxis type="category" dataKey="name" width={130}
-            tick={({ x, y, payload }) => (
-              <g transform={`translate(${x},${y})`}>
-                <title>{payload.value}</title>
-                <text x={-6} y={0} dy={4} textAnchor="end" fill={T.textSec} fontSize={9} fontWeight={600}>
-                  {truncate(payload.value, 18)}
-                </text>
-              </g>
-            )}
-            axisLine={false} tickLine={false} />
-          <Tooltip content={({ active, payload }) => {
-            if (!active || !payload?.length) return null;
-            const p = payload[0]?.payload;
-            return (
-              <div style={{ background:"rgba(13,16,32,0.95)", backdropFilter:"blur(16px)", border:`1px solid ${T.border}`, borderRadius:10, padding:"10px 14px" }}>
-                <p style={{ fontSize:11, fontWeight:700, color:T.textPri, marginBottom:4 }}>{p.name}</p>
-                <p style={{ fontFamily:"monospace", fontSize:11, color:accent }}>PKR {fmt(p.amount)} ({p.pct}%)</p>
-              </div>
-            );
-          }} />
-          <Bar dataKey="pct" name="% Share" fill={accent} radius={[0,5,5,0]} barSize={14} animationDuration={900}
-            label={{ position:"right", fill:T.textSec, fontSize:9, formatter:v=>`${v}%` }} />
-        </BarChart>
-      </ResponsiveContainer>
-    </DCard>
+  const renderSection = (title, items, total, color) => (
+    <Card title={title} subtitle={`Total: PKR ${fmt(total)}`}>
+      {items.map((item, i) => (
+        <div key={i} style={{ marginBottom:12 }}>
+          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
+            <span style={{ fontSize:12, color:W.textPri, fontWeight:500, maxWidth:"65%", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }} title={item.account_name}>
+              {item.account_name}
+            </span>
+            <span style={{ fontSize:12, color:W.textSec, fontFamily:"monospace" }}>
+              {fmt(item.amount)} <span style={{ color:W.textDim }}>({item.percentage}%)</span>
+            </span>
+          </div>
+          <div style={{ height:6, background:"#f1f5f9", borderRadius:4, overflow:"hidden" }}>
+            <div style={{ height:"100%", width:`${Math.min(item.percentage, 100)}%`, background:color, borderRadius:4, transition:"width .5s ease" }} />
+          </div>
+        </div>
+      ))}
+    </Card>
   );
 
   return (
-    <div className="ad-fade-in" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+    <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
+      <div style={{ display:"flex", gap:10, alignItems:"flex-end", flexWrap:"wrap" }}>
         <div>
-          <p style={{ fontSize:10, color:T.textDim, marginBottom:4, fontWeight:600, textTransform:"uppercase", letterSpacing:".1em" }}>Month</p>
-          <select value={month} onChange={e=>setMonth(+e.target.value)}
-            style={{ background:T.card, border:`1px solid ${T.border}`, borderRadius:8, color:T.textPri, fontSize:13, padding:"8px 12px", outline:"none" }}>
-            {MONTHS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}
+          <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>Month</p>
+          <select value={month} onChange={e => setMonth(+e.target.value)} className="aw-inp">
+            {MONTHS.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
           </select>
         </div>
         <div>
-          <p style={{ fontSize:10, color:T.textDim, marginBottom:4, fontWeight:600, textTransform:"uppercase", letterSpacing:".1em" }}>Year</p>
-          <input type="number" value={year} onChange={e=>setYear(+e.target.value)}
-            style={{ width:80, background:T.card, border:`1px solid ${T.border}`, borderRadius:8, color:T.textPri, fontSize:13, padding:"8px 12px", outline:"none" }} />
+          <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>Year</p>
+          <input type="number" value={year} onChange={e => setYear(+e.target.value)} className="aw-inp" style={{ width:90 }} />
         </div>
-        <button onClick={load}
-          style={{ padding:"9px 18px", borderRadius:8, border:"none", background:T.accent, color:"#fff", fontSize:12, fontWeight:700, cursor:"pointer" }}>
-          Analyze
-        </button>
+        <button onClick={load} className="aw-btn-primary">Analyze</button>
       </div>
       {loading && <Spinner />}
       {!loading && data && (
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px,1fr))", gap: 16 }}>
-          {renderSection("Income Statement (% of Revenue)", data.income_statement?.items || [], data.income_statement?.total_revenue, T.accent)}
-          {renderSection("Balance Sheet (% of Total Assets)", data.balance_sheet?.items || [], data.balance_sheet?.total_assets, T.green)}
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(340px,1fr))", gap:16 }}>
+          {renderSection("Income Statement (% of Revenue)", data.income_statement?.items || [], data.income_statement?.total_revenue, W.accent)}
+          {renderSection("Balance Sheet (% of Total Assets)", data.balance_sheet?.items || [], data.balance_sheet?.total_assets, "#10b981")}
         </div>
       )}
     </div>
@@ -573,85 +575,90 @@ function SectorTab({ companyId }) {
   const [data, setData]     = useState([]);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { let ig=false; Promise.resolve().then(()=>{if(!ig)setLoading(true);}); analyticsApi.getSectorGrowth(companyId,6).then(r=>{if(!ig)setData(r)}).catch(console.error).finally(()=>{if(!ig)setLoading(false);}); return()=>{ig=true}; }, [companyId]);
+  useEffect(() => {
+    let ig = false;
+    Promise.resolve().then(() => { if (!ig) setLoading(true); });
+    analyticsApi.getSectorGrowth(companyId, 6)
+      .then(r => { if (!ig) setData(r); }).catch(console.error)
+      .finally(() => { if (!ig) setLoading(false); });
+    return () => { ig = true; };
+  }, [companyId]);
 
   if (loading && !data.length) return <Spinner />;
 
-  const barData = data.map(s => ({ name: s.sector, revenue: s.periods.reduce((a,p)=>a+p.revenue,0) }));
-  const total   = barData.reduce((s,d)=>s+d.revenue,0);
+  const barData = data.map(s => ({ name: s.sector, revenue: s.periods.reduce((a, p) => a + p.revenue, 0) }));
+  const total   = barData.reduce((s, d) => s + d.revenue, 0);
+  const donutColors = PALETTE.slice(0, data.length);
 
   return (
-    <div className="ad-fade-in" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {!data.length && (
-        <DCard title="Sector Revenue"><p style={{ color:T.textSec, fontSize:13 }}>No sector data available. Populate with delivered sector transactions.</p></DCard>
-      )}
+    <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
+      {!data.length && <Card title="Sector Revenue"><p style={{ color:W.textSec, fontSize:13 }}>No sector data. Add delivered sector transactions to see data here.</p></Card>}
 
-      {/* mini trend cards */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px,1fr))", gap: 12 }}>
+      {/* Mini trend cards */}
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:12 }}>
         {data.map((sector, si) => (
-          <DCard key={sector.sector}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"flex-start", marginBottom:10 }}>
-              <p style={{ fontSize:12, fontWeight:700, color:T.textPri }}>{sector.sector}</p>
-              {badge(sector.overall_growth_pct)}
+          <Card key={sector.sector} style={{ padding:"16px 18px" }}>
+            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
+              <p style={{ fontSize:13, fontWeight:700, color:W.textPri, margin:0 }}>{sector.sector}</p>
+              <Badge val={sector.overall_growth_pct} />
             </div>
-            <ResponsiveContainer width="100%" height={60}>
+            <ResponsiveContainer width="100%" height={50}>
               <LineChart data={sector.periods}>
-                <Line type="monotone" dataKey="revenue" stroke={PALETTE[si % PALETTE.length]}
-                  strokeWidth={2.5} dot={false} animationDuration={800} />
-                <Tooltip content={<DarkTooltip />} />
+                <Line type="monotone" dataKey="revenue" stroke={PALETTE[si % PALETTE.length]} strokeWidth={2.5} dot={false} />
+                <Tooltip content={<WhiteTooltip />} />
               </LineChart>
             </ResponsiveContainer>
-            <p style={{ fontSize:10, color:T.textDim, marginTop:6 }}>
-              Latest: <span style={{ color:T.textPri, fontFamily:"monospace" }}>{fmt(sector.periods[sector.periods.length-1]?.revenue)}</span>
+            <p style={{ fontSize:11, color:W.textDim, marginTop:6 }}>
+              Latest: <span style={{ color:W.textPri, fontFamily:"monospace", fontWeight:700 }}>PKR {fmt(sector.periods[sector.periods.length-1]?.revenue)}</span>
             </p>
-          </DCard>
+          </Card>
         ))}
       </div>
 
       {data.length > 0 && (
-        <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
-          {/* Bar comparison */}
-          <DCard title="Sector Revenue Comparison">
+        <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gap:16 }}>
+          <Card title="Sector Revenue Comparison">
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={barData} margin={{ top: 4, right: 12, left: 0, bottom: 40 }}>
-                <CartesianGrid {...grid} />
+              <BarChart data={barData} margin={{ top:4, right:8, left:0, bottom:44 }}>
+                <CartesianGrid stroke={W.gridLine} vertical={false} />
                 <XAxis dataKey="name"
-                  tick={<SmartXTick maxLen={10} rotate={-35} />}
+                  tick={({ x, y, payload }) => (
+                    <g transform={`translate(${x},${y})`}>
+                      <title>{payload.value}</title>
+                      <text transform="rotate(-35)" textAnchor="end" x={0} y={0} dy={4}
+                        fill={W.textDim} fontSize={11} fontWeight={500}>
+                        {trunc(payload.value, 12)}
+                      </text>
+                    </g>
+                  )}
                   interval={0} axisLine={false} tickLine={false} height={60} />
-                <YAxis {...yAxis} />
-                <Tooltip content={<DarkTooltip />} cursor={barCursor} />
-                <Bar dataKey="revenue" name="Revenue" radius={[5,5,0,0]} barSize={28} animationDuration={900}>
-                  {barData.map((_,i) => (
-                    <Cell key={i} fill={PALETTE[i%PALETTE.length]}
-                      style={{ filter:`drop-shadow(0 4px 8px ${PALETTE[i%PALETTE.length]}44)` }} />
-                  ))}
+                <YAxis {...yStyle} />
+                <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc" }} />
+                <Bar dataKey="revenue" name="Revenue" radius={[6,6,0,0]} barSize={32}>
+                  {barData.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
-          </DCard>
+          </Card>
 
-          {/* Donut distribution */}
-          <DCard title="Revenue Distribution">
-            <DonutChart
-              data={barData.map(d=>({ name:d.name, value:d.revenue }))}
-              colors={PALETTE}
-              height={200}
-              label="Total"
-            />
-            <div style={{ marginTop: 12, display:"flex", flexDirection:"column", gap:6 }}>
-              {barData.map((d,i) => (
+          {/* Donut — matches reference image "Traffic Sources" */}
+          <Card title="Revenue Distribution">
+            <DonutChart data={barData.map(d => ({ name:d.name, value:d.revenue }))}
+              colors={donutColors} height={180} centerLabel="Total Revenue" />
+            <div style={{ marginTop:14, display:"flex", flexDirection:"column", gap:8 }}>
+              {barData.map((d, i) => (
                 <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-                    <div style={{ width:8, height:8, borderRadius:"50%", background:PALETTE[i%PALETTE.length] }} />
-                    <span style={{ fontSize:11, color:T.textSec, fontWeight:600 }}>{d.name}</span>
+                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
+                    <div style={{ width:10, height:10, borderRadius:2, background:PALETTE[i%PALETTE.length] }} />
+                    <span style={{ fontSize:12, color:W.textSec, fontWeight:500 }}>{d.name}</span>
                   </div>
-                  <span style={{ fontFamily:"monospace", fontSize:10, color:T.textDim }}>
-                    {total>0?((d.revenue/total)*100).toFixed(0):0}%
+                  <span style={{ fontSize:12, color:W.textPri, fontFamily:"monospace", fontWeight:700 }}>
+                    {total > 0 ? ((d.revenue/total)*100).toFixed(0) : 0}%
                   </span>
                 </div>
               ))}
             </div>
-          </DCard>
+          </Card>
         </div>
       )}
     </div>
@@ -665,7 +672,14 @@ function OperationsTab({ companyId }) {
   const [data, setData]     = useState(null);
   const [loading, setLoading] = useState(false);
 
-  useEffect(() => { let ig=false; Promise.resolve().then(()=>{if(!ig)setLoading(true);}); analyticsApi.getOperationalInsights(companyId).then(r=>{if(!ig)setData(r)}).catch(console.error).finally(()=>{if(!ig)setLoading(false);}); return()=>{ig=true}; }, [companyId]);
+  useEffect(() => {
+    let ig = false;
+    Promise.resolve().then(() => { if (!ig) setLoading(true); });
+    analyticsApi.getOperationalInsights(companyId)
+      .then(r => { if (!ig) setData(r); }).catch(console.error)
+      .finally(() => { if (!ig) setLoading(false); });
+    return () => { ig = true; };
+  }, [companyId]);
 
   if (loading && !data) return <Spinner />;
 
@@ -675,117 +689,76 @@ function OperationsTab({ companyId }) {
   const sectors    = data?.sector_profitability || [];
 
   return (
-    <div className="ad-fade-in" style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-      {/* KPI grid */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12 }}>
+    <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
+      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:12 }}>
         {[
-          { label:"SKU Count",          val:summary.total_skus,       color:T.accent,  raw:true },
-          { label:"Low Stock SKUs",      val:summary.low_stock_skus,   color:T.red,     raw:true },
-          { label:"Inventory Value",     val:summary.inventory_value,  color:T.green },
-          { label:"Warehouses",          val:summary.warehouse_count,  color:T.cyan,    raw:true },
-          { label:"Delivered Revenue",   val:summary.delivered_revenue,color:T.textPri },
-          { label:"Delivered Orders",    val:summary.delivered_count,  color:T.amber,   raw:true },
+          { icon:"📦", label:"SKU Count",        value: String(summary.total_skus||0),        color:"#4f46e5" },
+          { icon:"⚠️", label:"Low Stock SKUs",   value: String(summary.low_stock_skus||0),    color:W.red   },
+          { icon:"💰", label:"Inventory Value",   value:`PKR ${fmt(summary.inventory_value)}`, color:W.green },
+          { icon:"🏭", label:"Warehouses",        value: String(summary.warehouse_count||0),   color:W.cyan  },
+          { icon:"🚚", label:"Delivered Revenue", value:`PKR ${fmt(summary.delivered_revenue)}`,color:W.accent},
+          { icon:"📋", label:"Delivered Orders",  value: String(summary.delivered_count||0),   color:W.amber },
         ].map(k => (
-          <div key={k.label} style={{
-            background:T.card, border:`1px solid ${T.border}`,
-            borderRadius:14, padding:"16px 18px",
-            position:"relative", overflow:"hidden",
-          }}>
-            <div style={{ position:"absolute",top:-16,right:-16,width:60,height:60,borderRadius:"50%",
-              background:`${k.color}18`,filter:"blur(18px)",pointerEvents:"none" }} />
-            <p style={{ fontSize:9, fontWeight:700, color:T.textDim, letterSpacing:".15em", textTransform:"uppercase", marginBottom:8 }}>{k.label}</p>
-            <p style={{ fontFamily:"monospace", fontSize:20, fontWeight:800, color:k.color }}>
-              {k.raw ? (k.val || 0) : `PKR ${fmt(k.val || 0)}`}
-            </p>
-          </div>
+          <KpiCard key={k.label} icon={k.icon} label={k.label} value={k.value} color={k.color} />
         ))}
       </div>
 
-      <div style={{ display: "grid", gridTemplateColumns: "2fr 1fr", gap: 16 }}>
-        {/* Products table */}
-        <DCard title="Top Inventory Products (by Value)">
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
-              <thead>
-                <tr style={{ borderBottom:`1px solid ${T.border}` }}>
-                  {["Product","SKU","Qty","Value"].map(h=>(
-                    <th key={h} style={{ padding:"8px 10px", textAlign:"left", fontWeight:700, fontSize:9, color:T.textDim, letterSpacing:".15em", textTransform:"uppercase" }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {!products.length ? (
-                  <tr><td colSpan={4} style={{ textAlign:"center", padding:"24px", color:T.textDim }}>No product data</td></tr>
-                ) : products.map(p => (
-                  <tr key={p.product_id} style={{ borderBottom:`1px solid ${T.borderLo}` }}>
-                    <td style={{ padding:"9px 10px", color:T.textPri, fontWeight:600 }}>{p.product_name}</td>
-                    <td style={{ padding:"9px 10px", fontFamily:"monospace", color:T.textDim, fontSize:10 }}>{p.sku}</td>
-                    <td style={{ padding:"9px 10px", fontFamily:"monospace", color:T.textSec, textAlign:"right" }}>{fmt(p.qty)}</td>
-                    <td style={{ padding:"9px 10px", fontFamily:"monospace", color:T.green, textAlign:"right", fontWeight:700 }}>PKR {fmt(p.stock_value)}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </DCard>
+      <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gap:16 }}>
+        <Card title="Top Inventory Products">
+          <DataTable
+            headers={[
+              { label:"Product" }, { label:"SKU" },
+              { label:"Qty", right:true }, { label:"Value", right:true },
+            ]}
+            emptyMsg="No product inventory data."
+            rows={products.map(p => [
+              { node: <span style={{ fontWeight:600, color:W.textPri }}>{p.product_name}</span> },
+              { node: <span style={{ fontFamily:"monospace", fontSize:11, color:W.textDim }}>{p.sku}</span> },
+              { node: <span style={{ fontFamily:"monospace" }}>{fmt(p.qty)}</span>, style:{textAlign:"right"} },
+              { node: <span style={{ fontFamily:"monospace", fontWeight:700, color:W.green }}>PKR {fmt(p.stock_value)}</span>, style:{textAlign:"right"} },
+            ])}
+          />
+        </Card>
 
-        {/* Warehouse bar — horizontal with full label support */}
-        <DCard title="Warehouse Load">
-          {warehouses.length === 0 ? (
-            <p style={{ color:T.textDim, fontSize:12, padding:"16px 0" }}>No warehouse data</p>
-          ) : (
-            <ResponsiveContainer width="100%" height={Math.max(220, warehouses.length * 48)}>
-              <BarChart layout="vertical" data={warehouses}
-                margin={{ top: 4, right: 50, left: 0, bottom: 4 }}>
-                <CartesianGrid {...grid} horizontal={false} vertical />
-                <XAxis type="number" tick={{ fill:T.textDim, fontSize:9 }} tickFormatter={fmt} axisLine={false} tickLine={false} />
-                <YAxis type="category" dataKey="warehouse_name" width={140}
-                  tick={({ x, y, payload }) => (
-                    <g transform={`translate(${x},${y})`}>
-                      <title>{payload.value}</title>
-                      <text x={-8} y={0} dy={4} textAnchor="end" fill={T.textSec} fontSize={9} fontWeight={600}>
-                        {truncate(payload.value, 20)}
-                      </text>
-                    </g>
-                  )}
-                  axisLine={false} tickLine={false} />
-                <Tooltip content={<DarkTooltip />} cursor={barCursor} />
-                <Bar dataKey="estimated_value" name="Value" fill={T.accent} radius={[0,5,5,0]} barSize={20}
-                  animationDuration={900}
-                  label={{ position:"right", fill:T.textSec, fontSize:9, formatter:fmt }} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-        </DCard>
+        <Card title="Warehouse Load">
+          {!warehouses.length
+            ? <p style={{ color:W.textDim, fontSize:13 }}>No warehouse data.</p>
+            : (
+              <ResponsiveContainer width="100%" height={Math.max(220, warehouses.length * 46)}>
+                <BarChart layout="vertical" data={warehouses}
+                  margin={{ top:4, right:56, left:0, bottom:4 }}>
+                  <CartesianGrid stroke={W.gridLine} horizontal={false} />
+                  <XAxis type="number" {...xStyle({})} tickFormatter={fmt} />
+                  <YAxis type="category" dataKey="warehouse_name" width={130}
+                    tick={<SmartYTick />} axisLine={false} tickLine={false} />
+                  <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc" }} />
+                  <Bar dataKey="estimated_value" name="Value" fill={W.accent}
+                    radius={[0,6,6,0]} barSize={18}
+                    label={{ position:"right", fill:W.textSec, fontSize:10, formatter:fmt }} />
+                </BarChart>
+              </ResponsiveContainer>
+            )
+          }
+        </Card>
       </div>
 
-      {/* Sector profitability table */}
-      <DCard title="Sector Profitability">
-        <div style={{ overflowX: "auto" }}>
-          <table style={{ width:"100%", borderCollapse:"collapse", fontSize:12 }}>
-            <thead>
-              <tr style={{ borderBottom:`1px solid ${T.border}` }}>
-                {["Sector","Deliveries","Revenue","Gross Profit","Margin"].map(h=>(
-                  <th key={h} style={{ padding:"8px 10px", textAlign:"left", fontWeight:700, fontSize:9, color:T.textDim, letterSpacing:".15em", textTransform:"uppercase" }}>{h}</th>
-                ))}
-              </tr>
-            </thead>
-            <tbody>
-              {!sectors.length ? (
-                <tr><td colSpan={5} style={{ textAlign:"center", padding:"24px", color:T.textDim }}>No sector data</td></tr>
-              ) : sectors.map(s=>(
-                <tr key={s.sector_id} style={{ borderBottom:`1px solid ${T.borderLo}` }}>
-                  <td style={{ padding:"9px 10px", color:T.textPri, fontWeight:600 }}>{s.sector_name}</td>
-                  <td style={{ padding:"9px 10px", fontFamily:"monospace", color:T.textSec, textAlign:"right" }}>{s.delivery_count}</td>
-                  <td style={{ padding:"9px 10px", fontFamily:"monospace", color:T.textPri, textAlign:"right" }}>PKR {fmt(s.total_revenue)}</td>
-                  <td style={{ padding:"9px 10px", fontFamily:"monospace", color:s.gross_profit>=0?T.green:T.red, textAlign:"right" }}>PKR {fmt(s.gross_profit)}</td>
-                  <td style={{ padding:"9px 10px", textAlign:"right" }}>{badge(s.margin_pct)}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </div>
-      </DCard>
+      <Card title="Sector Profitability">
+        <DataTable
+          headers={[
+            { label:"Sector" }, { label:"Deliveries", right:true },
+            { label:"Revenue", right:true }, { label:"Gross Profit", right:true },
+            { label:"Margin", right:true },
+          ]}
+          emptyMsg="No sector profitability data."
+          rows={sectors.map(s => [
+            { node: <span style={{ fontWeight:600, color:W.textPri }}>{s.sector_name}</span> },
+            { node: <span style={{ fontFamily:"monospace" }}>{s.delivery_count}</span>, style:{textAlign:"right"} },
+            { node: <span style={{ fontFamily:"monospace" }}>PKR {fmt(s.total_revenue)}</span>, style:{textAlign:"right"} },
+            { node: <span style={{ fontFamily:"monospace", fontWeight:700, color:s.gross_profit>=0?W.green:W.red }}>PKR {fmt(s.gross_profit)}</span>, style:{textAlign:"right"} },
+            { node: <Badge val={s.margin_pct} />, style:{textAlign:"right"} },
+          ])}
+        />
+      </Card>
     </div>
   );
 }
@@ -795,94 +768,105 @@ function OperationsTab({ companyId }) {
 ═══════════════════════════════════════════════════════════════════════════ */
 function BudgetTab({ companyId }) {
   const now = new Date();
-  const [year,setYear]     = useState(now.getFullYear());
-  const [month,setMonth]   = useState(now.getMonth()+1);
+  const [year,setYear]   = useState(now.getFullYear());
+  const [month,setMonth] = useState(now.getMonth()+1);
   const [budgets,setBudgets] = useState([]);
   const [loading,setLoading] = useState(false);
   const [form,setForm] = useState({ budget_type:"account",account_id:"",sector_id:"",period_month:now.getMonth()+1,period_year:now.getFullYear(),budget_amount:"",notes:"" });
   const [saving,setSaving] = useState(false);
 
-  const load = useCallback(()=>{ setLoading(true); analyticsApi.getBudgets(companyId,year,month).then(setBudgets).catch(console.error).finally(()=>setLoading(false)); },[companyId,year,month]);
-  useEffect(()=>{ let ig=false; Promise.resolve().then(()=>{if(!ig)setLoading(true);}); analyticsApi.getBudgets(companyId,year,month).then(r=>{if(!ig)setBudgets(r)}).catch(console.error).finally(()=>{if(!ig)setLoading(false);}); return()=>{ig=true}; },[companyId,year,month]);
+  const load = useCallback(() => {
+    setLoading(true);
+    analyticsApi.getBudgets(companyId,year,month).then(setBudgets).catch(console.error).finally(() => setLoading(false));
+  }, [companyId,year,month]);
 
-  const save = async()=>{ if(!form.budget_amount)return; setSaving(true); try{await analyticsApi.createBudget(companyId,form);load();setForm(f=>({...f,budget_amount:"",notes:""}))}catch(e){alert(e.message)}finally{setSaving(false)}};
-  const remove=async id=>{ if(!confirm("Delete budget?"))return; await analyticsApi.deleteBudget(companyId,id); load(); };
+  useEffect(() => {
+    let ig=false; Promise.resolve().then(()=>{if(!ig)setLoading(true);});
+    analyticsApi.getBudgets(companyId,year,month).then(r=>{if(!ig)setBudgets(r)}).catch(console.error).finally(()=>{if(!ig)setLoading(false);});
+    return()=>{ig=true};
+  }, [companyId,year,month]);
 
-  const inp = { background:T.cardDeep, border:`1px solid ${T.border}`, borderRadius:8, color:T.textPri, fontSize:13, padding:"9px 12px", outline:"none", width:"100%", boxSizing:"border-box" };
+  const save = async () => {
+    if (!form.budget_amount) return;
+    setSaving(true);
+    try { await analyticsApi.createBudget(companyId,form); load(); setForm(f=>({...f,budget_amount:"",notes:""})); }
+    catch(e) { alert(e.message); }
+    finally { setSaving(false); }
+  };
+
+  const remove = async id => {
+    if (!confirm("Delete this budget?")) return;
+    await analyticsApi.deleteBudget(companyId,id); load();
+  };
+
+  const F = ({ label, children }) => (
+    <div>
+      <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>{label}</p>
+      {children}
+    </div>
+  );
 
   return (
-    <div className="ad-fade-in" style={{ display:"flex",flexDirection:"column",gap:16 }}>
-      <DCard title="Add / Update Budget">
-        <div style={{ display:"grid",gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))",gap:12 }}>
-          {[
-            { lbl:"Type", el:<select value={form.budget_type} onChange={e=>setForm(f=>({...f,budget_type:e.target.value}))} style={inp}><option value="account">Account</option><option value="sector">Sector</option></select> },
-            form.budget_type==="account"
-              ? { lbl:"Account ID", el:<input value={form.account_id} onChange={e=>setForm(f=>({...f,account_id:e.target.value}))} placeholder="e.g. 42" style={inp}/> }
-              : { lbl:"Sector", el:<input value={form.sector_id} onChange={e=>setForm(f=>({...f,sector_id:e.target.value}))} placeholder="e.g. Textile" style={inp}/> },
-            { lbl:"Month", el:<select value={form.period_month} onChange={e=>setForm(f=>({...f,period_month:+e.target.value}))} style={inp}>{MONTHS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}</select> },
-            { lbl:"Year", el:<input type="number" value={form.period_year} onChange={e=>setForm(f=>({...f,period_year:+e.target.value}))} style={inp}/> },
-            { lbl:"Budget Amount (PKR)", el:<input type="number" value={form.budget_amount} onChange={e=>setForm(f=>({...f,budget_amount:e.target.value}))} placeholder="0" style={inp}/> },
-            { lbl:"Notes", el:<input value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Optional" style={inp}/> },
-          ].map(f=>(
-            <div key={f.lbl}>
-              <p style={{ fontSize:9,color:T.textDim,marginBottom:6,fontWeight:600,textTransform:"uppercase",letterSpacing:".12em" }}>{f.lbl}</p>
-              {f.el}
-            </div>
-          ))}
+    <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
+      <Card title="Add / Update Budget">
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:12, marginBottom:16 }}>
+          <F label="Type">
+            <select value={form.budget_type} onChange={e=>setForm(f=>({...f,budget_type:e.target.value}))} className="aw-inp" style={{ width:"100%" }}>
+              <option value="account">Account</option>
+              <option value="sector">Sector</option>
+            </select>
+          </F>
+          {form.budget_type==="account"
+            ? <F label="Account ID"><input value={form.account_id} onChange={e=>setForm(f=>({...f,account_id:e.target.value}))} placeholder="e.g. 42" className="aw-inp" style={{ width:"100%" }} /></F>
+            : <F label="Sector"><input value={form.sector_id} onChange={e=>setForm(f=>({...f,sector_id:e.target.value}))} placeholder="e.g. Textile" className="aw-inp" style={{ width:"100%" }} /></F>
+          }
+          <F label="Month">
+            <select value={form.period_month} onChange={e=>setForm(f=>({...f,period_month:+e.target.value}))} className="aw-inp" style={{ width:"100%" }}>
+              {MONTHS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}
+            </select>
+          </F>
+          <F label="Year"><input type="number" value={form.period_year} onChange={e=>setForm(f=>({...f,period_year:+e.target.value}))} className="aw-inp" style={{ width:"100%" }} /></F>
+          <F label="Budget Amount (PKR)"><input type="number" value={form.budget_amount} onChange={e=>setForm(f=>({...f,budget_amount:e.target.value}))} placeholder="0" className="aw-inp" style={{ width:"100%" }} /></F>
+          <F label="Notes"><input value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Optional" className="aw-inp" style={{ width:"100%" }} /></F>
         </div>
-        <button onClick={save} disabled={saving}
-          style={{ marginTop:16, padding:"9px 22px",borderRadius:10,border:"none",
-            background:saving?T.border:`linear-gradient(135deg,${T.accent},${T.accentLt})`,
-            color:"#fff",fontSize:13,fontWeight:700,cursor:saving?"not-allowed":"pointer",
-            boxShadow:saving?"none":`0 4px 16px ${T.accentGl}` }}>
-          {saving?"Saving…":"Save Budget"}
+        <button onClick={save} disabled={saving} className="aw-btn-primary" style={{ opacity:saving?0.6:1 }}>
+          {saving ? "Saving…" : "Save Budget"}
         </button>
-      </DCard>
+      </Card>
 
-      {/* filter */}
-      <div style={{ display:"flex",gap:10,alignItems:"flex-end",flexWrap:"wrap" }}>
+      <div style={{ display:"flex", gap:10, alignItems:"flex-end", flexWrap:"wrap" }}>
         <div>
-          <p style={{ fontSize:9,color:T.textDim,marginBottom:6,fontWeight:600,textTransform:"uppercase",letterSpacing:".12em" }}>Month</p>
-          <select value={month} onChange={e=>setMonth(+e.target.value)} style={{ ...inp, width:"auto" }}>
+          <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>Filter Month</p>
+          <select value={month} onChange={e=>setMonth(+e.target.value)} className="aw-inp">
             {MONTHS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}
           </select>
         </div>
         <div>
-          <p style={{ fontSize:9,color:T.textDim,marginBottom:6,fontWeight:600,textTransform:"uppercase",letterSpacing:".12em" }}>Year</p>
-          <input type="number" value={year} onChange={e=>setYear(+e.target.value)} style={{ ...inp, width:90 }} />
+          <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>Year</p>
+          <input type="number" value={year} onChange={e=>setYear(+e.target.value)} className="aw-inp" style={{ width:90 }} />
         </div>
-        <button onClick={load} style={{ padding:"9px 18px",borderRadius:8,border:`1px solid ${T.border}`,background:T.card,color:T.textSec,fontSize:12,fontWeight:700,cursor:"pointer" }}>Filter</button>
+        <button onClick={load} className="aw-btn-ghost">Filter</button>
       </div>
 
       {loading && <Spinner />}
       {!loading && (
-        <DCard title={`Budgets — ${MONTHS[month-1]} ${year}`}>
-          <div style={{ overflowX:"auto" }}>
-            <table style={{ width:"100%",borderCollapse:"collapse",fontSize:12 }}>
-              <thead>
-                <tr style={{ borderBottom:`1px solid ${T.border}` }}>
-                  {["Account / Sector","Type","Budget","Period","Action"].map(h=>(
-                    <th key={h} style={{ padding:"8px 10px",textAlign:"left",fontWeight:700,fontSize:9,color:T.textDim,letterSpacing:".15em",textTransform:"uppercase" }}>{h}</th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {!budgets.length && <tr><td colSpan={5} style={{ textAlign:"center",padding:"24px",color:T.textDim }}>No budgets for this period</td></tr>}
-                {budgets.map(b=>(
-                  <tr key={b.id} style={{ borderBottom:`1px solid ${T.borderLo}` }}>
-                    <td style={{ padding:"9px 10px",color:T.textPri,fontWeight:600 }}>{b.account_name||(b.account_id?`Account #${b.account_id}`:b.sector_id)||"—"}</td>
-                    <td style={{ padding:"9px 10px",color:T.textSec }}>{b.budget_type}</td>
-                    <td style={{ padding:"9px 10px",fontFamily:"monospace",color:T.accent,fontWeight:700,textAlign:"right" }}>PKR {fmt(b.budget_amount)}</td>
-                    <td style={{ padding:"9px 10px",color:T.textDim,textAlign:"right" }}>{MONTHS[b.period_month-1]} {b.period_year}</td>
-                    <td style={{ padding:"9px 10px",textAlign:"center" }}>
-                      <button onClick={()=>remove(b.id)} style={{ background:"none",border:"none",color:T.red,fontSize:11,fontWeight:700,cursor:"pointer" }}>Delete</button>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
-        </DCard>
+        <Card title={`Budgets — ${MONTHS[month-1]} ${year}`}>
+          <DataTable
+            headers={[
+              { label:"Account / Sector" }, { label:"Type" },
+              { label:"Budget", right:true }, { label:"Period", right:true },
+              { label:"Action", right:true },
+            ]}
+            emptyMsg="No budgets for this period."
+            rows={budgets.map(b => [
+              { node: <span style={{ fontWeight:600, color:W.textPri }}>{b.account_name||(b.account_id?`Account #${b.account_id}`:b.sector_id)||"—"}</span> },
+              { node: <span style={{ fontSize:12, color:W.textSec, background:"#f1f5f9", padding:"2px 8px", borderRadius:6 }}>{b.budget_type}</span> },
+              { node: <span style={{ fontFamily:"monospace", fontWeight:700, color:W.accent }}>PKR {fmt(b.budget_amount)}</span>, style:{textAlign:"right"} },
+              { node: <span style={{ color:W.textSec }}>{MONTHS[b.period_month-1]} {b.period_year}</span>, style:{textAlign:"right"} },
+              { node: <button onClick={()=>remove(b.id)} style={{ background:"none", border:"none", color:W.red, fontSize:12, fontWeight:700, cursor:"pointer" }}>Delete</button>, style:{textAlign:"right"} },
+            ])}
+          />
+        </Card>
       )}
     </div>
   );
@@ -898,137 +882,127 @@ function VarianceTab({ companyId }) {
   const [data,setData]   = useState(null);
   const [loading,setLoading] = useState(true);
 
-  const load = useCallback(()=>{ setLoading(true); analyticsApi.getBudgetVsActual(companyId,year,month).then(setData).catch(console.error).finally(()=>setLoading(false)); },[companyId,year,month]);
-  useEffect(()=>{ let ig=false; Promise.resolve().then(()=>{if(!ig)setLoading(true);}); analyticsApi.getBudgetVsActual(companyId,year,month).then(r=>{if(!ig)setData(r)}).catch(console.error).finally(()=>{if(!ig)setLoading(false);}); return()=>{ig=true}; },[companyId,year,month]);
+  const load = useCallback(() => {
+    setLoading(true);
+    analyticsApi.getBudgetVsActual(companyId,year,month).then(setData).catch(console.error).finally(()=>setLoading(false));
+  }, [companyId,year,month]);
 
-  const inp = { background:T.cardDeep, border:`1px solid ${T.border}`, borderRadius:8, color:T.textPri, fontSize:13, padding:"9px 12px", outline:"none" };
+  useEffect(() => {
+    let ig=false; Promise.resolve().then(()=>{if(!ig)setLoading(true);});
+    analyticsApi.getBudgetVsActual(companyId,year,month).then(r=>{if(!ig)setData(r)}).catch(console.error).finally(()=>{if(!ig)setLoading(false);});
+    return()=>{ig=true};
+  }, [companyId,year,month]);
 
   return (
-    <div className="ad-fade-in" style={{ display:"flex",flexDirection:"column",gap:16 }}>
-      <div style={{ display:"flex",gap:10,alignItems:"flex-end",flexWrap:"wrap" }}>
+    <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
+      <div style={{ display:"flex", gap:10, alignItems:"flex-end", flexWrap:"wrap" }}>
         <div>
-          <p style={{ fontSize:9,color:T.textDim,marginBottom:6,fontWeight:600,textTransform:"uppercase",letterSpacing:".12em" }}>Month</p>
-          <select value={month} onChange={e=>setMonth(+e.target.value)} style={inp}>
+          <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>Month</p>
+          <select value={month} onChange={e=>setMonth(+e.target.value)} className="aw-inp">
             {MONTHS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}
           </select>
         </div>
         <div>
-          <p style={{ fontSize:9,color:T.textDim,marginBottom:6,fontWeight:600,textTransform:"uppercase",letterSpacing:".12em" }}>Year</p>
-          <input type="number" value={year} onChange={e=>setYear(+e.target.value)} style={{ ...inp,width:90 }} />
+          <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>Year</p>
+          <input type="number" value={year} onChange={e=>setYear(+e.target.value)} className="aw-inp" style={{ width:90 }} />
         </div>
-        <button onClick={load} style={{ padding:"9px 18px",borderRadius:8,border:"none",background:T.accent,color:"#fff",fontSize:12,fontWeight:700,cursor:"pointer" }}>Load</button>
+        <button onClick={load} className="aw-btn-primary">Load</button>
       </div>
 
       {loading && <Spinner />}
+
       {!loading && data && (
         <>
-          {/* summary KPIs */}
-          <div style={{ display:"grid",gridTemplateColumns:"repeat(3,1fr)",gap:14 }}>
-            <KpiCard label="Total Budget" value={data.summary?.total_budget}   color={T.accent} />
-            <KpiCard label="Total Actual" value={data.summary?.total_actual}   color={T.textPri} />
-            <KpiCard label="Variance"     value={data.summary?.total_variance}
-              color={data.summary?.total_variance>=0?T.green:T.red}
-              growth={data.summary?.total_variance_pct} />
+          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14 }}>
+            <KpiCard icon="🎯" label="Total Budget" value={`PKR ${fmt(data.summary?.total_budget)}`}   color={W.accent} />
+            <KpiCard icon="📊" label="Total Actual" value={`PKR ${fmt(data.summary?.total_actual)}`}   color={W.textPri} />
+            <KpiCard icon="📉" label="Variance"     value={`PKR ${fmt(data.summary?.total_variance)}`}
+              growth={data.summary?.total_variance_pct}
+              color={data.summary?.total_variance>=0?W.green:W.red} />
           </div>
 
-          {/* ── Budget vs Actual grouped bar ── */}
           {data.items?.length > 0 && (
-            <DCard title="Budget vs Actual — Side by Side">
-              <ResponsiveContainer width="100%" height={Math.max(260, data.items.length * 44)}>
-                <BarChart
-                  layout="vertical"
-                  data={data.items.map(r=>({ name:r.account_name||r.sector_id, budget:+r.budget_amount||0, actual:+r.actual_amount||0 }))}
-                  margin={{ top:4, right:60, left:0, bottom:4 }}
-                >
-                  <CartesianGrid {...grid} horizontal={false} vertical />
-                  <XAxis type="number" tick={{ fill:T.textDim,fontSize:9 }} tickFormatter={fmt} axisLine={false} tickLine={false} />
-                  <YAxis type="category" dataKey="name" width={150}
-                    tick={({ x, y, payload }) => (
-                      <g transform={`translate(${x},${y})`}>
-                        <title>{payload.value}</title>
-                        <text x={-8} y={0} dy={4} textAnchor="end" fill={T.textSec} fontSize={9} fontWeight={600}>
-                          {truncate(payload.value, 20)}
-                        </text>
-                      </g>
-                    )}
-                    axisLine={false} tickLine={false} />
-                  <Tooltip content={<DarkTooltip />} cursor={barCursor} />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize:10, paddingTop:8 }} />
-                  <Bar dataKey="budget" name="Budget" fill={T.accent}  radius={[0,4,4,0]} barSize={10} animationDuration={800}
-                    label={{ position:"right", fill:T.textDim, fontSize:8, formatter:fmt }} />
-                  <Bar dataKey="actual" name="Actual" fill={T.green}   radius={[0,4,4,0]} barSize={10} animationDuration={800}
-                    label={{ position:"right", fill:T.green, fontSize:8, fontWeight:700, formatter:fmt }} />
-                </BarChart>
-              </ResponsiveContainer>
-            </DCard>
-          )}
+            <>
+              {/* Budget vs Actual side-by-side horizontal bars */}
+              <Card title="Budget vs Actual — All Accounts">
+                <ResponsiveContainer width="100%" height={Math.max(260, data.items.length * 46)}>
+                  <BarChart layout="vertical"
+                    data={data.items.map(r=>({ name:r.account_name||r.sector_id, budget:+r.budget_amount||0, actual:+r.actual_amount||0 }))}
+                    margin={{ top:4, right:64, left:0, bottom:4 }}>
+                    <CartesianGrid stroke={W.gridLine} horizontal={false} />
+                    <XAxis type="number" {...xStyle({})} tickFormatter={fmt} />
+                    <YAxis type="category" dataKey="name" width={150}
+                      tick={<SmartYTick />} axisLine={false} tickLine={false} />
+                    <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc" }} />
+                    <Legend iconType="square" wrapperStyle={{ fontSize:11, paddingTop:8 }} />
+                    <Bar dataKey="budget" name="Budget" fill={W.accent} opacity={0.6} radius={[0,4,4,0]} barSize={11}
+                      label={{ position:"right", fill:W.textDim, fontSize:9, formatter:fmt }} />
+                    <Bar dataKey="actual" name="Actual" fill="#10b981" radius={[0,4,4,0]} barSize={11}
+                      label={{ position:"right", fill:"#16a34a", fontSize:9, fontWeight:700, formatter:fmt }} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Card>
 
-          {/* ── Radar ── */}
-          {data.items?.length > 0 && (
-            <DCard title="360° Financial Performance Radar">
-              <ResponsiveContainer width="100%" height={420}>
-                <RadarChart cx="50%" cy="50%" outerRadius="75%" data={data.items}>
-                  <PolarGrid stroke={T.border} />
-                  <PolarAngleAxis dataKey="account_name"
-                    tick={({ x, y, payload, cx }) => {
-                      const anchor = x < cx ? "end" : x > cx ? "start" : "middle";
-                      return (
-                        <g>
-                          <title>{payload.value}</title>
-                          <text x={x} y={y} textAnchor={anchor} fill={T.textSec} fontSize={9} fontWeight={600}>
-                            {truncate(payload.value, 12)}
-                          </text>
-                        </g>
-                      );
-                    }}
-                  />
-                  <PolarRadiusAxis angle={30} domain={[0,"auto"]} tick={{ fill:T.textDim,fontSize:8 }} axisLine={false} tickLine={false} />
-                  <Radar name="Budget" dataKey="budget_amount" stroke={T.textDim} strokeWidth={1.5} fill={T.border}     fillOpacity={0.15} />
-                  <Radar name="Actual" dataKey="actual_amount" stroke={T.green}   strokeWidth={2.5} fill={T.green}      fillOpacity={0.25} />
-                  <Tooltip contentStyle={{ background:"rgba(13,16,32,.95)",border:`1px solid ${T.border}`,borderRadius:10 }} formatter={v=>fmt(v)} />
-                  <Legend iconType="circle" wrapperStyle={{ fontSize:10,paddingTop:16,fontWeight:700,textTransform:"uppercase" }} />
-                </RadarChart>
-              </ResponsiveContainer>
-              <div style={{ marginTop:12,padding:"10px 14px",background:T.cardDeep,borderRadius:10,textAlign:"center" }}>
-                <p style={{ fontSize:9,color:T.textDim,letterSpacing:".15em",textTransform:"uppercase" }}>
-                  Area outside the gray ring = budget overrun
+              {/* Radar */}
+              <Card title="360° Financial Performance Radar">
+                <ResponsiveContainer width="100%" height={380}>
+                  <RadarChart cx="50%" cy="50%" outerRadius="72%" data={data.items}>
+                    <PolarGrid stroke={W.border} />
+                    <PolarAngleAxis dataKey="account_name"
+                      tick={({ x, y, payload, cx }) => {
+                        const anchor = x < cx ? "end" : x > cx ? "start" : "middle";
+                        return (
+                          <g>
+                            <title>{payload.value}</title>
+                            <text x={x} y={y} textAnchor={anchor} fill={W.textSec} fontSize={10} fontWeight={500}>
+                              {trunc(payload.value, 12)}
+                            </text>
+                          </g>
+                        );
+                      }}
+                    />
+                    <PolarRadiusAxis angle={30} domain={[0,"auto"]} tick={{ fill:W.textDim, fontSize:9 }} axisLine={false} tickLine={false} />
+                    <Radar name="Budget" dataKey="budget_amount" stroke={W.border} strokeWidth={1.5} fill={W.border} fillOpacity={0.2} />
+                    <Radar name="Actual" dataKey="actual_amount" stroke={W.accent} strokeWidth={2.5} fill={W.accent} fillOpacity={0.15} />
+                    <Tooltip contentStyle={{ background:"#fff", border:`1px solid ${W.border}`, borderRadius:10, boxShadow:"0 8px 24px rgba(0,0,0,0.08)" }} formatter={v=>fmt(v)} />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize:11, paddingTop:16 }} />
+                  </RadarChart>
+                </ResponsiveContainer>
+                <p style={{ fontSize:11, color:W.textDim, textAlign:"center", marginTop:8 }}>
+                  Area outside the gray ring indicates budget overrun
                 </p>
-              </div>
-            </DCard>
+              </Card>
+            </>
           )}
 
-          {/* detail table */}
-          <DCard title="Variance Detail">
-            <div style={{ overflowX:"auto" }}>
-              <table style={{ width:"100%",borderCollapse:"collapse",fontSize:12 }}>
-                <thead>
-                  <tr style={{ borderBottom:`1px solid ${T.border}` }}>
-                    {["Account","Budget","Actual","Variance","%","Status"].map(h=>(
-                      <th key={h} style={{ padding:"8px 10px",textAlign:"left",fontWeight:700,fontSize:9,color:T.textDim,letterSpacing:".15em",textTransform:"uppercase" }}>{h}</th>
-                    ))}
-                  </tr>
-                </thead>
-                <tbody>
-                  {(data.items||[]).map(row=>(
-                    <tr key={row.id} style={{ borderBottom:`1px solid ${T.borderLo}` }}>
-                      <td style={{ padding:"9px 10px",color:T.textPri,fontWeight:600 }}>{row.account_name||row.sector_id}</td>
-                      <td style={{ padding:"9px 10px",fontFamily:"monospace",color:T.textSec,textAlign:"right" }}>{fmt(row.budget_amount)}</td>
-                      <td style={{ padding:"9px 10px",fontFamily:"monospace",color:T.textPri,textAlign:"right" }}>{fmt(row.actual_amount)}</td>
-                      <td style={{ padding:"9px 10px",fontFamily:"monospace",color:row.variance>=0?T.green:T.red,textAlign:"right",fontWeight:700 }}>{fmt(row.variance)}</td>
-                      <td style={{ padding:"9px 10px",textAlign:"right" }}>{badge(row.variance_pct)}</td>
-                      <td style={{ padding:"9px 10px" }}>
-                        <span style={{ padding:"3px 10px",borderRadius:20,fontSize:10,fontWeight:700,
-                          background:row.status==="favorable"?T.greenDim:T.redDim,
-                          color:row.status==="favorable"?T.green:T.red }}>
-                          {row.status}
-                        </span>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
-            </div>
-          </DCard>
+          <Card title="Variance Detail">
+            <DataTable
+              headers={[
+                { label:"Account" }, { label:"Budget", right:true },
+                { label:"Actual", right:true }, { label:"Variance", right:true },
+                { label:"%", right:true }, { label:"Status", right:true },
+              ]}
+              rows={(data.items||[]).map(row => [
+                { node: <span style={{ fontWeight:600, color:W.textPri }}>{row.account_name||row.sector_id}</span> },
+                { node: <span style={{ fontFamily:"monospace", color:W.textSec }}>{fmt(row.budget_amount)}</span>, style:{textAlign:"right"} },
+                { node: <span style={{ fontFamily:"monospace" }}>{fmt(row.actual_amount)}</span>, style:{textAlign:"right"} },
+                { node: <span style={{ fontFamily:"monospace", fontWeight:700, color:row.variance>=0?W.green:W.red }}>{fmt(row.variance)}</span>, style:{textAlign:"right"} },
+                { node: <Badge val={row.variance_pct} />, style:{textAlign:"right"} },
+                {
+                  node: (
+                    <span style={{
+                      padding:"3px 10px", borderRadius:20, fontSize:11, fontWeight:700,
+                      background: row.status==="favorable" ? W.greenBg : W.redBg,
+                      color: row.status==="favorable" ? W.green : W.red,
+                    }}>
+                      {row.status}
+                    </span>
+                  ),
+                  style:{ textAlign:"right" },
+                },
+              ])}
+            />
+          </Card>
         </>
       )}
     </div>
@@ -1044,23 +1018,29 @@ export default function AnalyticsDashboard({ companyId }) {
   const cid = companyId || activeCompany?.id || localStorage.getItem("activeCompanyId") || "1";
 
   return (
-    <div style={{ minHeight:"100vh", background:T.bg, padding:"32px 28px 72px", fontFamily:"var(--font-sans,sans-serif)" }}>
-
+    <div style={{
+      minHeight: "100vh",
+      background: W.bg,
+      padding: "32px 28px 72px",
+      fontFamily: "var(--font-sans, -apple-system, BlinkMacSystemFont, sans-serif)",
+    }}>
       {/* Header */}
-      <div style={{ marginBottom:28 }}>
-        <h1 style={{ fontFamily:"var(--font-display,sans-serif)", fontSize:22, fontWeight:800, color:T.textPri, letterSpacing:"-.02em", margin:0 }}>
-          Analytics &amp; Planning
-        </h1>
-        <p style={{ fontSize:13, color:T.textSec, marginTop:4 }}>
-          Trends · Budgets · Variance — sourced from Ledger
-        </p>
+      <div style={{ marginBottom:28, display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexWrap:"wrap", gap:16 }}>
+        <div>
+          <h1 style={{ fontSize:22, fontWeight:800, color:W.textPri, letterSpacing:"-.02em", margin:0 }}>
+            Analytics & Planning
+          </h1>
+          <p style={{ fontSize:13, color:W.textSec, marginTop:4 }}>
+            Overview of your financial performance
+          </p>
+        </div>
       </div>
 
       {/* Tabs */}
       <div style={{ display:"flex", gap:6, marginBottom:24, overflowX:"auto", paddingBottom:4 }}>
         {TABS.map(tab => (
           <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`ad-tab${activeTab===tab.id?" ad-tab-active":""}`}>
+            className={`aw-tab${activeTab === tab.id ? " active" : ""}`}>
             {tab.label}
           </button>
         ))}
