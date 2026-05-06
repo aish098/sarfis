@@ -732,9 +732,10 @@ function OperationsTab({ companyId }) {
                   <YAxis type="category" dataKey="warehouse_name" width={130}
                     tick={<SmartYTick />} axisLine={false} tickLine={false} />
                   <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc" }} />
-                  <Bar dataKey="estimated_value" name="Value" fill={W.accent}
-                    radius={[0,6,6,0]} barSize={18}
-                    label={{ position:"right", fill:W.textSec, fontSize:10, formatter:fmt }} />
+                  <Bar dataKey="estimated_value" name="Value" radius={[0,6,6,0]} barSize={18}
+                    label={{ position:"right", fill:W.textSec, fontSize:10, formatter:fmt }}>
+                    {warehouses.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
+                  </Bar>
                 </BarChart>
               </ResponsiveContainer>
             )
