@@ -16,7 +16,7 @@ import Header from './dashboard/Header';
 import api from '../services/api';
 import useAuthStore from '../store/authStore';
 import {
-  AreaChart, Area, Cell
+  ComposedChart, Area, Bar, Line, Cell
 } from 'recharts';
 
 const PALETTE = [
@@ -181,19 +181,11 @@ function DashboardOverview() {
           <Motion.div variants={fadeUp} initial="initial" animate="animate" className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
             <h3 className="font-display font-black text-slate-900 text-[16px] mb-6">Revenue vs Expenses</h3>
             <ResponsiveContainer width="100%" height={260} minWidth={0}>
-              <AreaChart data={chartData} margin={{ top: 15, right: 15, left: 10, bottom: 0 }}>
+              <ComposedChart data={chartData} margin={{ top: 15, right: 15, left: 10, bottom: 0 }}>
                 <defs>
-                  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="3" result="blur" />
-                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                  </filter>
                   <linearGradient id="wgRev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#10b981" stopOpacity={0.15} />
+                    <stop offset="5%"  stopColor="#10b981" stopOpacity={0.1} />
                     <stop offset="95%" stopColor="#10b981" stopOpacity={0.01} />
-                  </linearGradient>
-                  <linearGradient id="wgExp" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#f43f5e" stopOpacity={0.08} />
-                    <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.01} />
                   </linearGradient>
                 </defs>
                 <CartesianGrid {...chartGrid} />
@@ -201,9 +193,16 @@ function DashboardOverview() {
                 <YAxis tick={axisTick} width={65} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
                 <Tooltip content={<CustomTooltip />} />
                 <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '20px', fontWeight: 'bold' }} />
-                <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#10b981" strokeWidth={3} fill="url(#wgRev)" filter="url(#glow)" />
-                <Area type="monotone" dataKey="expenses" name="Expenses" stroke="#f43f5e" strokeWidth={2.5} fill="url(#wgExp)" strokeDasharray="5 5" />
-              </AreaChart>
+                
+                {/* Revenue as Sleek Bars */}
+                <Bar dataKey="revenue" name="Revenue" fill="#10b981" radius={[4, 4, 0, 0]} barSize={22} />
+                
+                {/* Expenses as a Sharp Trend Line */}
+                <Line type="monotone" dataKey="expenses" name="Expenses" stroke="#f43f5e" strokeWidth={3} dot={{ r: 3, fill: '#f43f5e', strokeWidth: 0 }} />
+                
+                {/* Cash Flow as a subtle background Area */}
+                <Area type="monotone" dataKey="cashFlow" name="Cash Flow" fill="url(#wgRev)" stroke="none" />
+              </ComposedChart>
             </ResponsiveContainer>
           </Motion.div>
 
