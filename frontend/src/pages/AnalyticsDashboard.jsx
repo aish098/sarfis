@@ -970,8 +970,7 @@ function VarianceTab({ companyId }) {
                 <RadarChart cx="50%" cy="50%" outerRadius="75%" data={data.items}>
                   <PolarGrid stroke={T.border} />
                   <PolarAngleAxis dataKey="account_name"
-                    tick={({ x, y, payload, cx, cy }) => {
-                      const angle = Math.atan2(y-cy, x-cx) * 180/Math.PI;
+                    tick={({ x, y, payload, cx }) => {
                       const anchor = x < cx ? "end" : x > cx ? "start" : "middle";
                       return (
                         <g>
