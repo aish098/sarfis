@@ -361,13 +361,13 @@ function TrendTab({ companyId }) {
         <ResponsiveContainer width="100%" height={280}>
           <AreaChart data={data} margin={{ top:8, right:8, left:0, bottom:0 }}>
             <defs>
-              <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                <feGaussianBlur stdDeviation="3" result="blur" />
-                <feComposite in="SourceGraphic" in2="blur" operator="over" />
-              </filter>
               <linearGradient id="wgRev" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#10b981" stopOpacity={0.12} />
+                <stop offset="5%"  stopColor="#10b981" stopOpacity={0.15} />
                 <stop offset="95%" stopColor="#10b981" stopOpacity={0.01} />
+              </linearGradient>
+              <linearGradient id="wgExp" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="5%"  stopColor="#ef4444" stopOpacity={0.08} />
+                <stop offset="95%" stopColor="#ef4444" stopOpacity={0.01} />
               </linearGradient>
             </defs>
             <CartesianGrid stroke={W.gridLine} vertical={false} strokeDasharray="3 3" />
@@ -377,22 +377,19 @@ function TrendTab({ companyId }) {
             <Legend iconType="circle" verticalAlign="top" align="right"
               wrapperStyle={{ paddingBottom:16, fontSize:11 }} />
             
-            {/* Revenue - The primary "Heartbeat" */}
+            {/* Revenue Area — Sleek & Modern */}
             <Area type="monotone" dataKey="revenue" name="Revenue"
-              stroke="#10b981" strokeWidth={2.5} fill="url(#wgRev)"
-              filter="url(#glow)" className="aw-pulse"
-              dot={{ r:3, fill:"#10b981", strokeWidth:0 }}
-              activeDot={{ r:6, fill:"#10b981", stroke:"#fff", strokeWidth:2 }} />
+              stroke="#10b981" strokeWidth={3} fill="url(#wgRev)"
+              dot={false} activeDot={{ r:6, fill:"#10b981", stroke:"#fff", strokeWidth:2 }} />
             
-            {/* Expenses - Secondary Heartbeat */}
-            <Line type="monotone" dataKey="expenses" name="Expenses"
-              stroke="#ef4444" strokeWidth={2} filter="url(#glow)"
-              dot={false} strokeDasharray="5 5" opacity={0.8} />
+            {/* Expenses Area — Layered Contrast */}
+            <Area type="monotone" dataKey="expenses" name="Expenses"
+              stroke="#ef4444" strokeWidth={2.5} fill="url(#wgExp)"
+              strokeDasharray="5 5" dot={false} />
             
-            {/* Net Profit - Reference Area */}
-            <Area type="monotone" dataKey="profit" name="Net Profit"
-              stroke={W.accent} strokeWidth={1.5} fill="transparent"
-              dot={false} />
+            {/* Profit Line — Sharp Reference */}
+            <Line type="monotone" dataKey="profit" name="Net Profit"
+              stroke={W.accent} strokeWidth={2} dot={false} />
           </AreaChart>
         </ResponsiveContainer>
       </Card>
@@ -751,26 +748,24 @@ function OperationsTab({ companyId }) {
           {!warehouses.length
             ? <p style={{ color:W.textDim, fontSize:13 }}>No warehouse data.</p>
             : (
-              <ResponsiveContainer width="100%" height={Math.max(220, warehouses.length * 46)}>
-                <BarChart layout="vertical" data={warehouses}
-                  margin={{ top:4, right:56, left:0, bottom:4 }}>
-                  <defs>
-                    <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                      <feGaussianBlur stdDeviation="3" result="blur" />
-                      <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                    </filter>
-                  </defs>
-                  <CartesianGrid stroke={W.gridLine} horizontal={false} />
-                  <XAxis type="number" {...xStyle({})} tickFormatter={fmt} />
-                  <YAxis type="category" dataKey="warehouse_name" width={130}
-                    tick={<SmartYTick />} axisLine={false} tickLine={false} />
-                  <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc" }} />
-                  <Bar dataKey="estimated_value" name="Value" radius={[0,6,6,0]} barSize={18}
-                    filter="url(#glow)"
-                    label={{ position:"right", fill:W.textSec, fontSize:10, formatter:fmt }}>
+              <ResponsiveContainer width="100%" height={280}>
+                <PieChart>
+                  <Pie
+                    data={warehouses}
+                    cx="50%" cy="50%"
+                    innerRadius="50%" outerRadius="85%"
+                    paddingAngle={4}
+                    dataKey="estimated_value"
+                    nameKey="warehouse_name"
+                    stroke="none"
+                    animationBegin={0}
+                    animationDuration={1000}
+                  >
                     {warehouses.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
-                  </Bar>
-                </BarChart>
+                  </Pie>
+                  <Tooltip content={<WhiteTooltip />} />
+                  <Legend iconType="circle" layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ fontSize:11 }} />
+                </PieChart>
               </ResponsiveContainer>
             )
           }
