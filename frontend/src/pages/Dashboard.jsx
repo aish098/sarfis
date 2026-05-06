@@ -177,30 +177,40 @@ function DashboardOverview() {
         <div className="xl:col-span-2 space-y-5">
           {/* Revenue vs Expenses */}
           <Motion.div variants={fadeUp} initial="initial" animate="animate" className="bg-white rounded-[2.5rem] border border-slate-100 p-8 shadow-sm">
-            <h3 className="font-display font-black text-slate-900 text-[16px] mb-6">Revenue vs Expenses</h3>
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="font-display font-black text-slate-900 text-[16px]">Financial Breakdown</h3>
+              <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">Total Period Overview</p>
+            </div>
             <ResponsiveContainer width="100%" height={260} minWidth={0}>
-              <ComposedChart data={chartData} margin={{ top: 15, right: 15, left: 10, bottom: 0 }}>
-                <defs>
-                  <linearGradient id="wgRev" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="5%"  stopColor="#10b981" stopOpacity={0.1} />
-                    <stop offset="95%" stopColor="#10b981" stopOpacity={0.01} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid {...chartGrid} />
-                <XAxis dataKey="month" tick={axisTick} axisLine={false} tickLine={false} dy={10} />
-                <YAxis tick={axisTick} width={65} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
-                <Tooltip content={<CustomTooltip />} />
-                <Legend iconType="circle" wrapperStyle={{ fontSize: '11px', paddingTop: '20px', fontWeight: 'bold' }} />
-                
-                {/* Revenue as Sleek Bars */}
-                <Bar dataKey="revenue" name="Revenue" fill="#10b981" radius={[4, 4, 0, 0]} barSize={22} />
-                
-                {/* Expenses as a Sharp Trend Line */}
-                <Line type="monotone" dataKey="expenses" name="Expenses" stroke="#f43f5e" strokeWidth={3} dot={{ r: 3, fill: '#f43f5e', strokeWidth: 0 }} />
-                
-                {/* Cash Flow as a subtle background Area */}
-                <Area type="monotone" dataKey="cashFlow" name="Cash Flow" fill="url(#wgRev)" stroke="none" />
-              </ComposedChart>
+              {(() => {
+                const totalRev = chartData.reduce((acc, curr) => acc + (curr.revenue || 0), 0);
+                const totalExp = chartData.reduce((acc, curr) => acc + (curr.expenses || 0), 0);
+                const profit = totalRev - totalExp;
+                const pieData = [
+                  { name: 'Net Profit', value: Math.max(0, profit), color: '#10b981' },
+                  { name: 'Expenses', value: totalExp, color: '#f43f5e' }
+                ];
+                return (
+                  <PieChart>
+                    <Pie
+                      data={pieData}
+                      cx="50%" cy="50%"
+                      innerRadius={65}
+                      outerRadius={95}
+                      paddingAngle={5}
+                      dataKey="value"
+                      stroke="none"
+                    >
+                      {pieData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={entry.color} />
+                      ))}
+                    </Pie>
+                    <Tooltip content={<CustomTooltip />} />
+                    <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle"
+                      wrapperStyle={{ fontSize: '12px', fontWeight: 'bold', paddingLeft: '20px' }} />
+                  </PieChart>
+                );
+              })()}
             </ResponsiveContainer>
           </Motion.div>
 
