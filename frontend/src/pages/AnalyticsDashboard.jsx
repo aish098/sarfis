@@ -78,6 +78,8 @@ if (typeof document !== "undefined" && !document.getElementById("ad-white-css"))
     .aw-inp { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 8px; color: #0f172a; font-size: 13px; padding: 8px 12px; outline: none; transition: border-color .18s; }
     .aw-inp:focus { border-color: #059669; }
     .recharts-legend-item-text { font-size: 11px !important; font-weight: 600 !important; color: #64748b !important; }
+    .aw-pulse { animation: aw-p 3s ease-in-out infinite; }
+    @keyframes aw-p { 0%, 100% { opacity: 1; stroke-width: 2.5; } 50% { opacity: 0.8; stroke-width: 3.5; } }
   `;
   document.head.appendChild(s);
 }
@@ -359,29 +361,38 @@ function TrendTab({ companyId }) {
         <ResponsiveContainer width="100%" height={280}>
           <AreaChart data={data} margin={{ top:8, right:8, left:0, bottom:0 }}>
             <defs>
+              <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
+                <feGaussianBlur stdDeviation="3" result="blur" />
+                <feComposite in="SourceGraphic" in2="blur" operator="over" />
+              </filter>
               <linearGradient id="wgRev" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor={W.accent} stopOpacity={0.18} />
-                <stop offset="95%" stopColor={W.accent} stopOpacity={0.01} />
-              </linearGradient>
-              <linearGradient id="wgProf" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#10b981" stopOpacity={0.16} />
+                <stop offset="5%"  stopColor="#10b981" stopOpacity={0.12} />
                 <stop offset="95%" stopColor="#10b981" stopOpacity={0.01} />
               </linearGradient>
             </defs>
-            <CartesianGrid stroke={W.gridLine} vertical={false} />
+            <CartesianGrid stroke={W.gridLine} vertical={false} strokeDasharray="3 3" />
             <XAxis dataKey="label" {...xStyle({ dy:8 })} />
             <YAxis {...yStyle} />
             <Tooltip content={<WhiteTooltip />} cursor={{ stroke:W.border, strokeWidth:1 }} />
             <Legend iconType="circle" verticalAlign="top" align="right"
               wrapperStyle={{ paddingBottom:16, fontSize:11 }} />
+            
+            {/* Revenue - The primary "Heartbeat" */}
             <Area type="monotone" dataKey="revenue" name="Revenue"
-              stroke={W.accent} strokeWidth={2.5} fill="url(#wgRev)"
-              dot={false} activeDot={{ r:5, fill:W.accent, stroke:"#fff", strokeWidth:2 }} />
-            <Area type="monotone" dataKey="profit" name="Net Profit"
-              stroke="#10b981" strokeWidth={2.5} fill="url(#wgProf)"
-              dot={false} activeDot={{ r:5, fill:"#10b981", stroke:"#fff", strokeWidth:2 }} />
+              stroke="#10b981" strokeWidth={2.5} fill="url(#wgRev)"
+              filter="url(#glow)" className="aw-pulse"
+              dot={{ r:3, fill:"#10b981", strokeWidth:0 }}
+              activeDot={{ r:6, fill:"#10b981", stroke:"#fff", strokeWidth:2 }} />
+            
+            {/* Expenses - Secondary Heartbeat */}
             <Line type="monotone" dataKey="expenses" name="Expenses"
-              stroke="#ef4444" strokeWidth={2} strokeDasharray="6 3" dot={false} />
+              stroke="#ef4444" strokeWidth={2} filter="url(#glow)"
+              dot={false} strokeDasharray="5 5" opacity={0.8} />
+            
+            {/* Net Profit - Reference Area */}
+            <Area type="monotone" dataKey="profit" name="Net Profit"
+              stroke={W.accent} strokeWidth={1.5} fill="transparent"
+              dot={false} />
           </AreaChart>
         </ResponsiveContainer>
       </Card>
