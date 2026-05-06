@@ -38,6 +38,7 @@ const C = {
   greenDim: "rgba(16,185,129,0.12)",
   amber: "#f59e0b",
   amberDim: "rgba(245,158,11,0.12)",
+  skyBlue: "#0ea5e9",
   textPri: "#f1f5f9",
   textSec: "#94a3b8",
   textDim: "#475569",
@@ -471,8 +472,8 @@ function SpotlightPanel({ person, missionLabel, missions, quote, stats, accent =
       {/* RIGHT vision */}
       <div style={{ flex: 1, minWidth: 280, background: C.card, padding: "48px 44px" }}>
         <p style={{
-          fontFamily: ff.m, fontSize: 9.5, color: C.accentLt,
-          letterSpacing: ".22em", textTransform: "uppercase", marginBottom: 28
+          fontFamily: ff.m, fontSize: 9.5, color: accent,
+          letterSpacing: ".22em", textTransform: "uppercase", opacity: 0.9, marginBottom: 28
         }}>
           {missionLabel}
         </p>
@@ -486,17 +487,17 @@ function SpotlightPanel({ person, missionLabel, missions, quote, stats, accent =
               whileHover={{ borderColor: `${accent}55` }}
               style={{
                 display: "flex", gap: 16, alignItems: "flex-start",
-                padding: "15px 18px", background: C.accentG2,
+                padding: "15px 18px", background: `${accent}08`,
                 border: `1px solid ${C.borderLo}`, borderRadius: 12,
                 cursor: "default", transition: "border-color .2s"
               }}>
               {/* number badge */}
               <div style={{
                 width: 26, height: 26, borderRadius: 8, flexShrink: 0,
-                background: C.accentGl, border: `1px solid ${accent}44`,
+                background: `${accent}15`, border: `1px solid ${accent}44`,
                 display: "flex", alignItems: "center", justifyContent: "center"
               }}>
-                <span style={{ fontFamily: ff.m, fontSize: 10, fontWeight: 700, color: C.accentLt }}>{i + 1}</span>
+                <span style={{ fontFamily: ff.m, fontSize: 10, fontWeight: 700, color: accent }}>{i + 1}</span>
               </div>
               <p style={{ fontFamily: ff.s, fontSize: 13.5, color: C.textSec, lineHeight: 1.76, margin: 0 }}>{item}</p>
             </M.div>
@@ -523,11 +524,11 @@ function FounderSpotlight() {
   return (
     <section style={{ background: C.bg, padding: "0 24px 80px", borderTop: `1px solid ${C.border}` }}>
       <div style={{ maxWidth: 1080, margin: "0 auto", paddingTop: 88 }}>
-        <FV><Tag label="Founder" /><H2>Founder Spotlight</H2></FV>
+        <FV><Tag label="Founder" accent={C.skyBlue} /><H2>Founder Spotlight</H2></FV>
         <div style={{ height: 36 }} />
         <FV>
           <SpotlightPanel
-            accent={C.accent}
+            accent={C.skyBlue}
             person={{ initials: "RZ", name: "Rana Muhammad Zain ul Abideen", title: "Chairman & Founder" }}
             missionLabel="Founder's Mission for SCAFIS"
             stats={[{ val: "12+", lbl: "Years" }, { val: "4", lbl: "ERP Systems" }, { val: "50+", lbl: "Companies" }]}
