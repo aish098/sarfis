@@ -8,7 +8,7 @@ import {
 import {
   LineChart, Line, BarChart, Bar, XAxis, YAxis,
   CartesianGrid, Tooltip, ResponsiveContainer, Legend,
-  ComposedChart, Area, Cell
+  ComposedChart, Area, Cell, PieChart, Pie
 } from 'recharts';
 
 // Corrected Path Imports
