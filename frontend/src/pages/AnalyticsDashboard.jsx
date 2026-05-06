@@ -28,9 +28,9 @@ const W = {
   card:      "#ffffff",
   border:    "#e2e8f0",
   borderLo:  "#f1f5f9",
-  accent:    "#3b82f6",    /* blue — matches reference */
-  accentDk:  "#2563eb",
-  accentGl:  "rgba(59,130,246,0.08)",
+  accent:    "#00BC7D",    /* vibrant green */
+  accentDk:  "#009a67",
+  accentGl:  "rgba(0,188,125,0.08)",
   green:     "#16a34a",
   greenBg:   "#f0fdf4",
   red:       "#dc2626",
@@ -48,8 +48,8 @@ const W = {
 };
 
 const PALETTE = [
-  "#3b82f6","#10b981","#f59e0b","#8b5cf6",
-  "#ef4444","#06b6d4","#14b8a6","#f43f5e",
+  "#00BC7D","#34d399","#10b981","#f59e0b",
+  "#ef4444","#06b6d4","#8b5cf6","#f43f5e",
 ];
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -69,14 +69,14 @@ if (typeof document !== "undefined" && !document.getElementById("ad-white-css"))
       transition: all .18s; background: #fff; color: #64748b;
     }
     .aw-tab:hover { background: #f8fafc; color: #0f172a; border-color: #cbd5e1; }
-    .aw-tab.active { background: #3b82f6; color: #fff; border-color: #3b82f6; box-shadow: 0 4px 12px rgba(59,130,246,0.25); }
+    .aw-tab.active { background: #00BC7D; color: #fff; border-color: #00BC7D; box-shadow: 0 4px 12px rgba(0,188,125,0.25); }
     .aw-tr:hover td { background: #f8fafc !important; }
-    .aw-btn-primary { padding: 9px 22px; border-radius: 8px; border: none; background: #3b82f6; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .18s; }
-    .aw-btn-primary:hover { background: #2563eb; }
+    .aw-btn-primary { padding: 9px 22px; border-radius: 8px; border: none; background: #00BC7D; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .18s; }
+    .aw-btn-primary:hover { background: #009a67; }
     .aw-btn-ghost { padding: 8px 16px; border-radius: 8px; border: 1.5px solid #e2e8f0; background: #fff; color: #64748b; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .18s; }
-    .aw-btn-ghost:hover { border-color: #3b82f6; color: #3b82f6; }
+    .aw-btn-ghost:hover { border-color: #00BC7D; color: #00BC7D; }
     .aw-inp { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 8px; color: #0f172a; font-size: 13px; padding: 8px 12px; outline: none; transition: border-color .18s; }
-    .aw-inp:focus { border-color: #3b82f6; }
+    .aw-inp:focus { border-color: #00BC7D; }
     .recharts-legend-item-text { font-size: 11px !important; font-weight: 600 !important; color: #64748b !important; }
   `;
   document.head.appendChild(s);
@@ -594,10 +594,10 @@ function SectorTab({ companyId }) {
     <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
       {!data.length && <Card title="Sector Revenue"><p style={{ color:W.textSec, fontSize:13 }}>No sector data. Add delivered sector transactions to see data here.</p></Card>}
 
-      {/* Mini trend cards */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:12 }}>
+      {/* Mini trend cards — optimized wrapping */}
+      <div style={{ display:"flex", flexWrap:"wrap", gap:12 }}>
         {data.map((sector, si) => (
-          <Card key={sector.sector} style={{ padding:"16px 18px" }}>
+          <Card key={sector.sector} style={{ flex:"1 1 180px", padding:"16px 18px", minWidth:180 }}>
             <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
               <p style={{ fontSize:13, fontWeight:700, color:W.textPri, margin:0 }}>{sector.sector}</p>
               <Badge val={sector.overall_growth_pct} />
@@ -923,22 +923,24 @@ function VarianceTab({ companyId }) {
 
           {data.items?.length > 0 && (
             <>
-              {/* Budget vs Actual side-by-side horizontal bars */}
-              <Card title="Budget vs Actual — All Accounts">
-                <ResponsiveContainer width="100%" height={Math.max(260, data.items.length * 46)}>
+              <Card title="Budget vs Actual Performance Analysis">
+                <ResponsiveContainer width="100%" height={Math.max(260, data.items.length * 48)}>
                   <BarChart layout="vertical"
                     data={data.items.map(r=>({ name:r.account_name||r.sector_id, budget:+r.budget_amount||0, actual:+r.actual_amount||0 }))}
-                    margin={{ top:4, right:64, left:0, bottom:4 }}>
+                    margin={{ top:4, right:80, left:0, bottom:4 }}
+                    barGap={-20}
+                  >
                     <CartesianGrid stroke={W.gridLine} horizontal={false} />
                     <XAxis type="number" {...xStyle({})} tickFormatter={fmt} />
                     <YAxis type="category" dataKey="name" width={150}
                       tick={<SmartYTick />} axisLine={false} tickLine={false} />
                     <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc" }} />
-                    <Legend iconType="square" wrapperStyle={{ fontSize:11, paddingTop:8 }} />
-                    <Bar dataKey="budget" name="Budget" fill={W.accent} opacity={0.6} radius={[0,4,4,0]} barSize={11}
-                      label={{ position:"right", fill:W.textDim, fontSize:9, formatter:fmt }} />
-                    <Bar dataKey="actual" name="Actual" fill="#10b981" radius={[0,4,4,0]} barSize={11}
-                      label={{ position:"right", fill:"#16a34a", fontSize:9, fontWeight:700, formatter:fmt }} />
+                    <Legend iconType="circle" verticalAlign="top" align="right" wrapperStyle={{ fontSize:11, paddingBottom:20 }} />
+                    {/* Budget bar: Wider, light background */}
+                    <Bar dataKey="budget" name="Budget Target" fill="#e2e8f0" radius={[0,4,4,0]} barSize={20} />
+                    {/* Actual bar: Narrower, brand color, overlapping */}
+                    <Bar dataKey="actual" name="Actual Performance" fill={W.accent} radius={[0,4,4,0]} barSize={10} 
+                      label={{ position:"right", fill:W.accent, fontSize:10, fontWeight:700, formatter:fmt }} />
                   </BarChart>
                 </ResponsiveContainer>
               </Card>
