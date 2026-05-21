@@ -5,11 +5,11 @@ class AnalyticsModel {
     const query = db('accounts as a')
       .leftJoin('journal_lines as l', 'a.id', 'l.account_id')
       .leftJoin('journal_entries as e', 'l.entry_id', 'e.id')
-      .select('a.type', 'a.code', 'a.name')
+      .select('a.category as type', 'a.code', 'a.name')
       .sum('l.debit as td')
       .sum('l.credit as tc')
       .where('a.company_id', companyId)
-      .groupBy('a.type', 'a.code', 'a.name');
+      .groupBy('a.category', 'a.code', 'a.name');
 
     if (period) {
       // Calculate cumulative balances up to the end of the selected period
@@ -29,13 +29,13 @@ class AnalyticsModel {
         'a.id as account_id',
         'a.name as account_name',
         'a.code',
-        'a.type',
+        'a.category as type',
         db.raw('COALESCE(b.amount, 0) as budgeted_amount'),
         db.raw(`
           COALESCE(
             ABS(
               (SELECT SUM(CASE 
-                          WHEN LOWER(a2.type) IN ('income','revenue','liability','equity') THEN l.credit - l.debit 
+                          WHEN a2.normal_balance = 'Credit' THEN l.credit - l.debit 
                           ELSE l.debit - l.credit END)
                FROM journal_lines l
                JOIN journal_entries e ON l.entry_id = e.id
@@ -46,8 +46,8 @@ class AnalyticsModel {
         `, [period])
       )
       .where('a.company_id', companyId)
-      .whereIn(db.raw('LOWER(a.type)'), ['income', 'revenue', 'expense'])
-      .orderBy('a.type', 'desc')
+      .whereIn('a.category', ['Income', 'Revenue', 'Expense'])
+      .orderBy('a.category', 'desc')
       .orderBy('a.code', 'asc');
   }
 
@@ -66,7 +66,7 @@ class AnalyticsModel {
       .join('accounts as a', 'l.account_id', 'a.id')
       .join('journal_entries as e', 'l.entry_id', 'e.id')
       .where('a.company_id', companyId)
-      .andWhereRaw("LOWER(a.type) IN ('income', 'revenue')")
+      .whereIn('a.category', ['Income', 'Revenue'])
       .andWhereRaw("e.entry_date >= DATE_TRUNC('month', NOW() - INTERVAL '1 year')")
       .groupByRaw("DATE_TRUNC('month', e.entry_date)")
       .orderByRaw("DATE_TRUNC('month', e.entry_date)")

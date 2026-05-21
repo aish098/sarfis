@@ -6,7 +6,8 @@ const AccountModel = require('../models/account.model');
  * Validates the account code prefix against the account type.
  */
 exports.createAccount = async (req, res) => {
-  const { code, name, type } = req.body;
+  // Use validated body if available
+  const { code, name, category, normal_balance, is_contra } = req.validatedBody || req.body;
   const companyId = req.companyId;
 
   try {
@@ -14,7 +15,9 @@ exports.createAccount = async (req, res) => {
       companyId,
       code,
       name,
-      type
+      category,
+      normal_balance,
+      is_contra
     });
     res.status(201).json(account);
   } catch (err) {
@@ -53,14 +56,16 @@ exports.getAccountsByCompany = async (req, res) => {
  */
 exports.updateAccount = async (req, res) => {
   const { id } = req.params;
-  const { name, type, code } = req.body;
+  const { name, category, code, normal_balance, is_contra } = req.validatedBody || req.body;
   const companyId = req.companyId;
 
   try {
     const account = await AccountModel.update(id, companyId, {
       name,
-      type,
-      code
+      category,
+      code,
+      normal_balance,
+      is_contra
     });
     if (!account) return res.status(404).json({ message: 'Account not found or access denied.' });
     res.json(account);

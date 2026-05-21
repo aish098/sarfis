@@ -7,7 +7,9 @@ class AccountModel {
         company_id: accountData.companyId,
         code: accountData.code,
         name: accountData.name,
-        type: accountData.type,
+        category: accountData.category,
+        normal_balance: accountData.normal_balance,
+        is_contra: accountData.is_contra,
         balance: 0
       })
       .returning('*');
@@ -25,8 +27,10 @@ class AccountModel {
       .where({ id, company_id: companyId })
       .update({
         name: accountData.name,
-        type: accountData.type,
-        code: accountData.code
+        category: accountData.category,
+        code: accountData.code,
+        normal_balance: accountData.normal_balance,
+        is_contra: accountData.is_contra
       })
       .returning('*');
     return account;
@@ -57,11 +61,13 @@ class AccountModel {
     const query = db('accounts');
     if (trx) query.transacting(trx);
 
-    const accountsToInsert = coaData.map(([code, name, type]) => ({
+    const accountsToInsert = coaData.map(([code, name, category, normal_balance, is_contra]) => ({
       company_id: companyId,
       code,
       name,
-      type,
+      category,
+      normal_balance,
+      is_contra,
       balance: 0
     }));
 

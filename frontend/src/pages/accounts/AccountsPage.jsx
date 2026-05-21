@@ -23,7 +23,7 @@ export default function AccountsPage({ globalSearch = "" }) {
   const search = globalSearch || localSearch;
   const [filterType, setFilterType] = useState('All');
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ code: '', name: '', type: 'Asset' });
+  const [form, setForm] = useState({ code: '', name: '', category: 'Asset', normal_balance: 'Debit', is_contra: false });
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -47,7 +47,7 @@ export default function AccountsPage({ globalSearch = "" }) {
   const filtered = accounts.filter(a => {
     const q = search.toLowerCase();
     const matchSearch = a.name.toLowerCase().includes(q) || a.code.toLowerCase().includes(q);
-    const matchType = filterType === 'All' || a.type === filterType || (filterType === 'Revenue' && a.type === 'Income');
+    const matchType = filterType === 'All' || a.category === filterType || (filterType === 'Revenue' && a.category === 'Income');
     return matchSearch && matchType;
   });
 
@@ -56,8 +56,8 @@ export default function AccountsPage({ globalSearch = "" }) {
     setFormError('');
     const prefix = form.code[0];
     const valid = { '1': ['Asset'], '2': ['Liability'], '3': ['Equity'], '4': ['Revenue', 'Income'], '5': ['Expense'] };
-    if (!valid[prefix]?.includes(form.type)) {
-      setFormError(`Code prefix '${prefix}' doesn't match type '${form.type}'`);
+    if (!valid[prefix]?.includes(form.category)) {
+      setFormError(`Code prefix '${prefix}' doesn't match category '${form.category}'`);
       return;
     }
     setSaving(true);
@@ -69,7 +69,7 @@ export default function AccountsPage({ globalSearch = "" }) {
       }
       setModalOpen(false);
       setEditingId(null);
-      setForm({ code: '', name: '', type: 'Asset' });
+      setForm({ code: '', name: '', category: 'Asset', normal_balance: 'Debit', is_contra: false });
       load();
     } catch (err) {
       setFormError(err.response?.data?.message || 'Failed to save account');
@@ -79,7 +79,7 @@ export default function AccountsPage({ globalSearch = "" }) {
 
   const handleEdit = (acc) => {
     setEditingId(acc.id);
-    setForm({ code: acc.code, name: acc.name, type: acc.type });
+    setForm({ code: acc.code, name: acc.name, category: acc.category || acc.type, normal_balance: acc.normal_balance || 'Debit', is_contra: acc.is_contra || false });
     setModalOpen(true);
   };
 
@@ -141,8 +141,9 @@ export default function AccountsPage({ globalSearch = "" }) {
               <tr>
                 <th style={{ width: '15%' }} className="!pl-5">Code</th>
                 <th style={{ width: '40%' }}>Account Name</th>
-                <th style={{ width: '25%' }}>Category</th>
-                <th style={{ width: '20%' }} className="!text-left !pr-5">Actions</th>
+                <th style={{ width: '15%' }}>Category</th>
+                <th style={{ width: '15%' }}>Balance Type</th>
+                <th style={{ width: '15%' }} className="!text-left !pr-5">Actions</th>
               </tr>
             </thead>
             <Motion.tbody variants={stagger} initial="initial" animate="animate">
@@ -172,11 +173,17 @@ export default function AccountsPage({ globalSearch = "" }) {
                       <span className="font-medium text-[14px] text-slate-800">{acc.name}</span>
                     </td>
                     <td>
-                      <div className="flex items-center">
-                        <span className={`badge ${TYPE_BADGES[acc.type] || 'badge-asset'} min-w-[100px] !justify-start`}>
-                          {acc.type}
+                      <div className="flex flex-col gap-1">
+                        <span className={`badge ${TYPE_BADGES[acc.category || acc.type] || 'badge-asset'} w-fit`}>
+                          {acc.category || acc.type}
                         </span>
+                        {acc.is_contra && <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Contra</span>}
                       </div>
+                    </td>
+                    <td>
+                      <span className={`font-mono text-[12px] font-semibold ${acc.normal_balance === 'Debit' ? 'text-blue-600' : 'text-emerald-600'}`}>
+                        {acc.normal_balance}
+                      </span>
                     </td>
                     <td className="!text-left">
                       <div className="flex items-center gap-1">
@@ -220,7 +227,7 @@ export default function AccountsPage({ globalSearch = "" }) {
                 <h2 className="font-display font-extrabold text-[18px] text-slate-900">
                   {editingId ? 'Edit Account' : 'New Account'}
                 </h2>
-                <button onClick={() => { setModalOpen(false); setEditingId(null); setForm({ code: '', name: '', type: 'Asset' }); }} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-all">
+                <button onClick={() => { setModalOpen(false); setEditingId(null); setForm({ code: '', name: '', category: 'Asset', normal_balance: 'Debit', is_contra: false }); }} className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-400 hover:bg-slate-100 transition-all">
                   <X size={16} />
                 </button>
               </div>
@@ -242,14 +249,40 @@ export default function AccountsPage({ globalSearch = "" }) {
                     value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
                 </div>
                 <div>
-                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Account Type</label>
-                  <select className="input-enterprise" value={form.type} onChange={e => setForm({ ...form, type: e.target.value })}>
+                  <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Category</label>
+                  <select className="input-enterprise" value={form.category} onChange={e => {
+                    const newCategory = e.target.value;
+                    const newStdBalance = ['Asset', 'Expense'].includes(newCategory) ? 'Debit' : 'Credit';
+                    setForm({ ...form, category: newCategory, normal_balance: form.is_contra ? (newStdBalance === 'Debit' ? 'Credit' : 'Debit') : newStdBalance });
+                  }}>
                     <option value="Asset">Asset (1xxx)</option>
                     <option value="Liability">Liability (2xxx)</option>
                     <option value="Equity">Equity (3xxx)</option>
                     <option value="Revenue">Revenue (4xxx)</option>
                     <option value="Expense">Expense (5xxx)</option>
                   </select>
+                </div>
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Normal Balance</label>
+                    <select className="input-enterprise" value={form.normal_balance} onChange={e => setForm({ ...form, normal_balance: e.target.value })}>
+                      <option value="Debit">Debit</option>
+                      <option value="Credit">Credit</option>
+                    </select>
+                  </div>
+                  <div className="flex flex-col justify-center pt-5">
+                    <label className="flex items-center gap-2 cursor-pointer group">
+                      <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.is_contra ? 'bg-indigo-500' : 'bg-slate-200'}`}>
+                        <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${form.is_contra ? 'translate-x-4' : 'translate-x-1'}`} />
+                      </div>
+                      <span className="text-[13px] font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">Is Contra Account?</span>
+                    </label>
+                    <input type="checkbox" className="hidden" checked={form.is_contra} onChange={e => {
+                      const isContra = e.target.checked;
+                      const stdBalance = ['Asset', 'Expense'].includes(form.category) ? 'Debit' : 'Credit';
+                      setForm({ ...form, is_contra: isContra, normal_balance: isContra ? (stdBalance === 'Debit' ? 'Credit' : 'Debit') : stdBalance });
+                    }} />
+                  </div>
                 </div>
                 <div className="flex gap-3 pt-1">
                   <button type="button" onClick={() => setModalOpen(false)} className="btn btn-secondary flex-1">Cancel</button>

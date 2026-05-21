@@ -95,8 +95,8 @@ export default function ReportsPage() {
       }).filter(r => r[2] !== '—' || r[3] !== '—');
     } else if (tab === 'income_statement') {
       columns = ['Account', 'Amount'];
-      const rev = (data || []).filter(a => ['income', 'revenue'].includes(a.type?.toLowerCase())).map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
-      const exp = (data || []).filter(a => a.type?.toLowerCase() === 'expense').map(a => ({ ...a, net: parseFloat(a.total_debit || 0) - parseFloat(a.total_credit || 0) })).filter(a => Math.abs(a.net) > 0);
+      const rev = (data || []).filter(a => ['income', 'revenue'].includes(a.category?.toLowerCase() || a.type?.toLowerCase())).map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
+      const exp = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'expense').map(a => ({ ...a, net: parseFloat(a.total_debit || 0) - parseFloat(a.total_credit || 0) })).filter(a => Math.abs(a.net) > 0);
       const totalRev = rev.reduce((s, r) => s + r.net, 0);
       const totalExp = exp.reduce((s, r) => s + r.net, 0);
       
@@ -113,11 +113,11 @@ export default function ReportsPage() {
       ];
     } else if (tab === 'balance_sheet') {
       columns = ['Account', 'Amount'];
-      const assets = (data || []).filter(a => a.type?.toLowerCase() === 'asset').map(a => ({ ...a, net: parseFloat(a.total_debit || 0) - parseFloat(a.total_credit || 0) })).filter(a => Math.abs(a.net) > 0);
-      const liabs = (data || []).filter(a => a.type?.toLowerCase() === 'liability').map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
-      const equity = (data || []).filter(a => a.type?.toLowerCase() === 'equity').map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
-      const revLines = (data || []).filter(a => ['income','revenue'].includes(a.type?.toLowerCase())).map(a => parseFloat(a.total_credit||0)-parseFloat(a.total_debit||0));
-      const expLines = (data || []).filter(a => a.type?.toLowerCase() === 'expense').map(a => parseFloat(a.total_debit||0)-parseFloat(a.total_credit||0));
+      const assets = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'asset').map(a => ({ ...a, net: parseFloat(a.total_debit || 0) - parseFloat(a.total_credit || 0) })).filter(a => Math.abs(a.net) > 0);
+      const liabs = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'liability').map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
+      const equity = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'equity').map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
+      const revLines = (data || []).filter(a => ['income','revenue'].includes((a.category || a.type)?.toLowerCase())).map(a => parseFloat(a.total_credit||0)-parseFloat(a.total_debit||0));
+      const expLines = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'expense').map(a => parseFloat(a.total_debit||0)-parseFloat(a.total_credit||0));
       const ytd = revLines.reduce((s,n)=>s+n,0) - expLines.reduce((s,n)=>s+n,0);
       if (Math.abs(ytd) > 0.001) equity.push({ name: 'Current Year Earnings', net: ytd });
       
@@ -136,9 +136,9 @@ export default function ReportsPage() {
       ];
     } else if (tab === 'cash_flow') {
       columns = ['Activity', 'Amount'];
-      const operating = (data || []).filter(r => ['income','revenue','expense'].includes(r.type?.toLowerCase()));
-      const investing = (data || []).filter(r => r.type?.toLowerCase() === 'asset');
-      const financing = (data || []).filter(r => ['liability','equity'].includes(r.type?.toLowerCase()));
+      const operating = (data || []).filter(r => ['income','revenue','expense'].includes((r.category || r.type)?.toLowerCase()));
+      const investing = (data || []).filter(r => (r.category || r.type)?.toLowerCase() === 'asset');
+      const financing = (data || []).filter(r => ['liability','equity'].includes((r.category || r.type)?.toLowerCase()));
       
       rows = [
         ['OPERATING ACTIVITIES', ''],
@@ -361,8 +361,8 @@ function TrialBalance({ data }) {
 
 function IncomeStatement({ data, companyName, startDate, endDate }) {
   if (!data) return <Empty />;
-  const rev = (data || []).filter(a => ['income', 'revenue'].includes(a.type?.toLowerCase())).map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
-  const exp = (data || []).filter(a => a.type?.toLowerCase() === 'expense').map(a => ({ ...a, net: parseFloat(a.total_debit || 0) - parseFloat(a.total_credit || 0) })).filter(a => Math.abs(a.net) > 0);
+  const rev = (data || []).filter(a => ['income', 'revenue'].includes((a.category || a.type)?.toLowerCase())).map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
+  const exp = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'expense').map(a => ({ ...a, net: parseFloat(a.total_debit || 0) - parseFloat(a.total_credit || 0) })).filter(a => Math.abs(a.net) > 0);
   const totalRev = rev.reduce((s, r) => s + r.net, 0);
   const totalExp = exp.reduce((s, r) => s + r.net, 0);
   const net = totalRev - totalExp;
@@ -375,7 +375,7 @@ function IncomeStatement({ data, companyName, startDate, endDate }) {
       </div>
       <div className="mb-6">
         <div className="stmt-section-header border-emerald-500 text-emerald-700">Operating Revenue</div>
-        {rev.map(r => <div key={r.id} className="stmt-row"><span className="text-[14px]">{r.name}</span><span className="font-mono text-[14px]">{fmt(r.net)}</span></div>)}
+        {rev.map(r => <div key={r.id} className="stmt-row"><span className={`text-[14px] ${r.is_contra ? 'ml-4 text-slate-500' : ''}`}>{r.name}</span><span className="font-mono text-[14px]">{fmt(r.net)}</span></div>)}
         <div className="stmt-row stmt-total" style={{ background: '#f0fdf4', padding: '10px 8px', borderRadius: 8, marginTop: 4 }}>
           <span className="text-[14px]">Total Revenue</span>
           <span className="font-mono text-[15px] text-emerald-700">{fmt(totalRev)}</span>
@@ -383,7 +383,7 @@ function IncomeStatement({ data, companyName, startDate, endDate }) {
       </div>
       <div className="mb-6">
         <div className="stmt-section-header border-red-400 text-red-600">Operating Expenses</div>
-        {exp.map(r => <div key={r.id} className="stmt-row"><span className="text-[14px]">{r.name}</span><span className="font-mono text-[14px]">{fmt(r.net)}</span></div>)}
+        {exp.map(r => <div key={r.id} className="stmt-row"><span className={`text-[14px] ${r.is_contra ? 'ml-4 text-slate-500' : ''}`}>{r.name}</span><span className="font-mono text-[14px]">{fmt(r.net)}</span></div>)}
         <div className="stmt-row stmt-total" style={{ background: '#fff1f2', padding: '10px 8px', borderRadius: 8, marginTop: 4 }}>
           <span className="text-[14px]">Total Expenses</span>
           <span className="font-mono text-[15px] text-red-600">{fmt(totalExp)}</span>
@@ -399,11 +399,11 @@ function IncomeStatement({ data, companyName, startDate, endDate }) {
 
 function BalanceSheet({ data, companyName, asOfDate }) {
   if (!data) return <Empty />;
-  const assets = (data || []).filter(a => a.type?.toLowerCase() === 'asset').map(a => ({ ...a, net: parseFloat(a.total_debit || 0) - parseFloat(a.total_credit || 0) })).filter(a => Math.abs(a.net) > 0);
-  const liabs = (data || []).filter(a => a.type?.toLowerCase() === 'liability').map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
-  const equity = (data || []).filter(a => a.type?.toLowerCase() === 'equity').map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
-  const revLines = (data || []).filter(a => ['income','revenue'].includes(a.type?.toLowerCase())).map(a => parseFloat(a.total_credit||0)-parseFloat(a.total_debit||0));
-  const expLines = (data || []).filter(a => a.type?.toLowerCase() === 'expense').map(a => parseFloat(a.total_debit||0)-parseFloat(a.total_credit||0));
+  const assets = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'asset').map(a => ({ ...a, net: parseFloat(a.total_debit || 0) - parseFloat(a.total_credit || 0) })).filter(a => Math.abs(a.net) > 0);
+  const liabs = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'liability').map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
+  const equity = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'equity').map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
+  const revLines = (data || []).filter(a => ['income','revenue'].includes((a.category || a.type)?.toLowerCase())).map(a => parseFloat(a.total_credit||0)-parseFloat(a.total_debit||0));
+  const expLines = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'expense').map(a => parseFloat(a.total_debit||0)-parseFloat(a.total_credit||0));
   const ytd = revLines.reduce((s,n)=>s+n,0) - expLines.reduce((s,n)=>s+n,0);
   if (Math.abs(ytd) > 0.001) equity.push({ id: 'ytd', name: 'Current Year Earnings', net: ytd });
   const tA = assets.reduce((s,r)=>s+r.net,0);
@@ -421,19 +421,19 @@ function BalanceSheet({ data, companyName, asOfDate }) {
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
         <div>
           <div className="stmt-section-header border-emerald-500 text-emerald-700 mb-3">Assets</div>
-          {assets.map(r => <div key={r.id} className="stmt-row"><span className="text-[14px]">{r.name}</span><span className="font-mono text-[13px]">{fmt(r.net)}</span></div>)}
+          {assets.map(r => <div key={r.id} className="stmt-row"><span className={`text-[14px] ${r.is_contra ? 'ml-4 text-slate-500' : ''}`}>{r.name}</span><span className="font-mono text-[13px]">{fmt(r.net)}</span></div>)}
           <div className="stmt-row stmt-total mt-2" style={{ background: '#f0fdf4', padding: '10px 8px', borderRadius: 8 }}>
             <span className="text-emerald-800">Total Assets</span><span className="font-mono text-emerald-700">{fmt(tA)}</span>
           </div>
         </div>
         <div>
           <div className="stmt-section-header border-red-400 text-red-600 mb-3">Liabilities</div>
-          {liabs.map(r => <div key={r.id} className="stmt-row"><span className="text-[14px]">{r.name}</span><span className="font-mono text-[13px]">{fmt(r.net)}</span></div>)}
+          {liabs.map(r => <div key={r.id} className="stmt-row"><span className={`text-[14px] ${r.is_contra ? 'ml-4 text-slate-500' : ''}`}>{r.name}</span><span className="font-mono text-[13px]">{fmt(r.net)}</span></div>)}
           <div className="stmt-row stmt-total mt-2 mb-6" style={{ background: '#fff1f2', padding: '10px 8px', borderRadius: 8 }}>
             <span className="text-red-800">Total Liabilities</span><span className="font-mono text-red-700">{fmt(tL)}</span>
           </div>
           <div className="stmt-section-header border-blue-400 text-blue-700 mb-3">Equity</div>
-          {equity.map(r => <div key={r.id} className="stmt-row"><span className="text-[14px]">{r.name}</span><span className="font-mono text-[13px]">{fmt(r.net)}</span></div>)}
+          {equity.map(r => <div key={r.id} className="stmt-row"><span className={`text-[14px] ${r.is_contra ? 'ml-4 text-slate-500' : ''}`}>{r.name}</span><span className="font-mono text-[13px]">{fmt(r.net)}</span></div>)}
           <div className="stmt-row stmt-total mt-2" style={{ background: '#eff6ff', padding: '10px 8px', borderRadius: 8 }}>
             <span className="text-blue-800">Total Equity</span><span className="font-mono text-blue-700">{fmt(tE)}</span>
           </div>
@@ -449,9 +449,9 @@ function BalanceSheet({ data, companyName, asOfDate }) {
 
 function CashFlow({ data, companyName, startDate, endDate }) {
   if (!data || !data.length) return <Empty />;
-  const operating = (data || []).filter(r => ['income','revenue','expense'].includes(r.type?.toLowerCase()));
-  const investing = (data || []).filter(r => r.type?.toLowerCase() === 'asset');
-  const financing = (data || []).filter(r => ['liability','equity'].includes(r.type?.toLowerCase()));
+  const operating = (data || []).filter(r => ['income','revenue','expense'].includes((r.category || r.type)?.toLowerCase()));
+  const investing = (data || []).filter(r => (r.category || r.type)?.toLowerCase() === 'asset');
+  const financing = (data || []).filter(r => ['liability','equity'].includes((r.category || r.type)?.toLowerCase()));
   const netOp = operating.reduce((s,r)=>s+(parseFloat(r.magnitude)||0),0);
   const netInv = investing.reduce((s,r)=>s+(parseFloat(r.magnitude)||0),0);
   const netFin = financing.reduce((s,r)=>s+(parseFloat(r.magnitude)||0),0);

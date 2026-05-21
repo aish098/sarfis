@@ -4,11 +4,11 @@ class AccountService {
   /**
    * Creates a new account with validation.
    */
-  static async createAccount({ companyId, code, name, type }) {
+  static async createAccount({ companyId, code, name, category, normal_balance, is_contra }) {
     if (!companyId) throw new Error('Company context required.');
-    if (!code || !name || !type) throw new Error('Code, Name, and Type are required.');
+    if (!code || !name || !category) throw new Error('Code, Name, and Category are required.');
 
-    // Validate account code prefix vs type
+    // Validate account code prefix vs category
     const prefix = code[0];
     const validationMap = {
       '1': ['Asset'],
@@ -18,15 +18,17 @@ class AccountService {
       '5': ['Expense']
     };
 
-    if (!validationMap[prefix] || !validationMap[prefix].includes(type)) {
-      throw new Error(`Invalid code prefix for account type '${type}'.`);
+    if (!validationMap[prefix] || !validationMap[prefix].includes(category)) {
+      throw new Error(`Invalid code prefix for account category '${category}'.`);
     }
 
     return await AccountModel.create({
       companyId,
       code,
       name,
-      type
+      category,
+      normal_balance,
+      is_contra
     });
   }
 }

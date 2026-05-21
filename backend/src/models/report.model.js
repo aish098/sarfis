@@ -3,7 +3,7 @@ const db = require('../config/db');
 class ReportModel {
   static async getTrialBalance(companyId, startDate, endDate) {
     let query = db('accounts as a')
-      .select('a.id', 'a.code', 'a.name', 'a.type', 'a.balance as static_balance')
+      .select('a.id', 'a.code', 'a.name', 'a.category', 'a.normal_balance', 'a.is_contra', 'a.balance as static_balance')
       .sum('l.debit as total_debit')
       .sum('l.credit as total_credit')
       .where('a.company_id', companyId);
@@ -18,18 +18,18 @@ class ReportModel {
     }
 
     return query
-      .groupBy('a.id', 'a.code', 'a.name', 'a.type', 'a.balance')
+      .groupBy('a.id', 'a.code', 'a.name', 'a.category', 'a.normal_balance', 'a.is_contra', 'a.balance')
       .having(db.raw('SUM(l.debit) <> 0 OR SUM(l.credit) <> 0'))
       .orderBy('a.code', 'asc');
   }
 
   static async getIncomeStatement(companyId, startDate, endDate) {
     let query = db('accounts as a')
-      .select('a.id', 'a.code', 'a.name', 'a.type')
+      .select('a.id', 'a.code', 'a.name', 'a.category', 'a.normal_balance', 'a.is_contra')
       .sum('l.debit as total_debit')
       .sum('l.credit as total_credit')
       .where('a.company_id', companyId)
-      .whereIn(db.raw('LOWER(a.type)'), ['income', 'revenue', 'expense']);
+      .whereIn('a.category', ['Income', 'Revenue', 'Expense']);
 
     if (startDate && endDate) {
       query = query.join('journal_lines as l', 'a.id', 'l.account_id')
@@ -41,15 +41,15 @@ class ReportModel {
     }
 
     return query
-      .groupBy('a.id', 'a.code', 'a.name', 'a.type')
+      .groupBy('a.id', 'a.code', 'a.name', 'a.category', 'a.normal_balance', 'a.is_contra')
       .having(db.raw('SUM(l.debit) <> 0 OR SUM(l.credit) <> 0'))
-      .orderBy('a.type', 'desc')
+      .orderBy('a.category', 'desc')
       .orderBy('a.code', 'asc');
   }
 
   static async getBalanceSheet(companyId, asOfDate) {
     let query = db('accounts as a')
-      .select('a.id', 'a.code', 'a.name', 'a.type')
+      .select('a.id', 'a.code', 'a.name', 'a.category', 'a.normal_balance', 'a.is_contra')
       .sum('l.debit as total_debit')
       .sum('l.credit as total_credit')
       .where('a.company_id', companyId);
@@ -63,9 +63,9 @@ class ReportModel {
     }
 
     return query
-      .groupBy('a.id', 'a.code', 'a.name', 'a.type')
+      .groupBy('a.id', 'a.code', 'a.name', 'a.category', 'a.normal_balance', 'a.is_contra')
       .having(db.raw('SUM(l.debit) <> 0 OR SUM(l.credit) <> 0'))
-      .orderBy('a.type', 'asc')
+      .orderBy('a.category', 'asc')
       .orderBy('a.code', 'asc');
   }
 
@@ -90,7 +90,7 @@ class ReportModel {
     // 2. Find the 'other side' of these entries to categorize the flow
     const counterparts = await db('journal_lines as l')
       .join('accounts as a', 'l.account_id', 'a.id')
-      .select('l.entry_id', 'l.debit', 'l.credit', 'a.type', 'a.name')
+      .select('l.entry_id', 'l.debit', 'l.credit', 'a.category as type', 'a.name')
       .whereIn('l.entry_id', entryIds)
       .andWhereNot(function() {
         this.where(db.raw('LOWER(a.name)'), 'like', '%cash%')
@@ -104,7 +104,7 @@ class ReportModel {
 
       if (entryCounterparts.length > 0) {
         results.push({
-          type: entryCounterparts[0].type,
+          type: entryCounterparts[0].type, // Using type to be backward compatible with frontend
           name: entryCounterparts[0].name,
           magnitude: netCash
         });
@@ -125,13 +125,13 @@ class ReportModel {
     const query = db('accounts as a')
       .join('journal_lines as l', 'a.id', 'l.account_id')
       .join('journal_entries as e', 'l.entry_id', 'e.id')
-      .select('a.id', 'a.type', 'a.balance as account_balance')
+      .select('a.id', 'a.category as type', 'a.balance as account_balance')
       .sum('l.debit as total_debit')
       .sum('l.credit as total_credit')
       .where('a.company_id', companyId)
-      .whereIn('a.type', ['Income', 'Revenue', 'Expense'])
+      .whereIn('a.category', ['Income', 'Revenue', 'Expense'])
       .where('e.entry_date', '<=', endDate)
-      .groupBy('a.id', 'a.type', 'a.balance');
+      .groupBy('a.id', 'a.category', 'a.balance');
 
     if (trx) query.transacting(trx);
     return query;
