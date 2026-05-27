@@ -435,11 +435,11 @@ export default function DistributionPage() {
                                 <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} style={{ outline: 'none' }} />
                               ))}
                             </Pie>
-                            <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
-                              <tspan x="50%" dy="-6" fontSize="10" fontWeight="800" fill="#64748b" letterSpacing="0.05em" textTransform="uppercase">Total Rev</tspan>
-                              <tspan x="50%" dy="18" fontSize="15" fontWeight="900" fill="#0f172a" fontFamily="monospace">
-                                ${totalSectorRev.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                              </tspan>
+                            <text x="50%" y="46%" textAnchor="middle" dominantBaseline="middle" fontSize="10" fontWeight="800" fill="#64748b" letterSpacing="0.05em" textTransform="uppercase">
+                              Total Rev
+                            </text>
+                            <text x="50%" y="56%" textAnchor="middle" dominantBaseline="middle" fontSize="15" fontWeight="900" fill="#0f172a" fontFamily="monospace">
+                              ${totalSectorRev.toLocaleString('en-US', { maximumFractionDigits: 0 })}
                             </text>
                           </>
                         );

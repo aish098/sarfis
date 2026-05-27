@@ -252,9 +252,11 @@ function DonutChart({ data, colors, height = 200, centerLabel = "", centerValue 
             </div>
           );
         }} />
-        <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
-          <tspan x="50%" dy="-6" fontSize="16" fontWeight="800" fill={W.textPri}>{centerValue || fmt(total)}</tspan>
-          <tspan x="50%" dy="18" fontSize="10" fontWeight="700" fill={W.textSec} letterSpacing="0.05em" textTransform="uppercase">{centerLabel}</tspan>
+        <text x="50%" y="46%" textAnchor="middle" dominantBaseline="middle" fontSize="16" fontWeight="800" fill={W.textPri}>
+          {centerValue || fmt(total)}
+        </text>
+        <text x="50%" y="56%" textAnchor="middle" dominantBaseline="middle" fontSize="10" fontWeight="700" fill={W.textSec} letterSpacing="0.05em" textTransform="uppercase">
+          {centerLabel}
         </text>
       </PieChart>
     </ResponsiveContainer>
@@ -753,7 +755,7 @@ function OperationsTab({ companyId }) {
                     <PieChart>
                       <Pie
                         data={warehouses}
-                        cx="50%" cy="50%"
+                        cx="38%" cy="50%"
                         innerRadius="65%" outerRadius="88%"
                         paddingAngle={3}
                         dataKey="estimated_value"
@@ -766,9 +768,11 @@ function OperationsTab({ companyId }) {
                       </Pie>
                       <Tooltip content={<WhiteTooltip />} />
                       <Legend iconType="circle" layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ fontSize:11, fontWeight: 'bold', color: '#64748b' }} />
-                      <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
-                        <tspan x="50%" dy="-6" fontSize="15" fontWeight="800" fill={W.textPri}>PKR {fmt(totalVal)}</tspan>
-                        <tspan x="50%" dy="18" fontSize="9" fontWeight="700" fill={W.textSec} letterSpacing="0.05em" textTransform="uppercase">Load Value</tspan>
+                      <text x="38%" y="46%" textAnchor="middle" dominantBaseline="middle" fontSize="15" fontWeight="800" fill={W.textPri}>
+                        PKR {fmt(totalVal)}
+                      </text>
+                      <text x="38%" y="56%" textAnchor="middle" dominantBaseline="middle" fontSize="9" fontWeight="700" fill={W.textSec} letterSpacing="0.05em" textTransform="uppercase">
+                        Load Value
                       </text>
                     </PieChart>
                   );
