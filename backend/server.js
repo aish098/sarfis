@@ -9,14 +9,14 @@ async function startServer() {
     console.log('[Migrations] Running migrations...');
     await db.migrate.latest();
     console.log('[Migrations] Migrations completed successfully');
-
-    app.listen(PORT, () => {
-      console.log(`Server running on port ${PORT}`);
-    });
   } catch (error) {
-    console.error('[Migrations] Migration failed:', error);
-    process.exit(1);
+    console.error('[Migrations] Migration failed:', error.message);
+    console.error('[Migrations] Continuing server startup despite migration failure.');
   }
+
+  app.listen(PORT, () => {
+    console.log(`Server running on port ${PORT}`);
+  });
 }
 
 startServer();
