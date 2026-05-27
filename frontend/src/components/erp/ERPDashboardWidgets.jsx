@@ -23,15 +23,15 @@ const axisTick = { fontSize: 11, fill: '#64748b', fontWeight: 600 };
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-xl border-none bg-white/95 backdrop-blur px-4 py-3 shadow-xl shadow-slate-900/10 min-w-[140px]">
-      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">{label}</p>
+    <div className="rounded-xl border border-slate-100/80 bg-white/95 backdrop-blur-md px-4 py-3 shadow-xl shadow-slate-900/5 min-w-[150px]">
+      <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-50 pb-1">{label}</p>
       {payload.map((p, i) => (
-        <div key={i} className="flex items-center justify-between gap-4 py-0.5">
+        <div key={i} className="flex items-center justify-between gap-4 py-1">
           <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full" style={{ background: p.color }} />
-            <span className="text-[12px] font-semibold text-slate-600">{p.name}</span>
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background: p.color || p.payload?.fill }} />
+            <span className="text-[11px] font-bold text-slate-500">{p.name}</span>
           </div>
-          <span className="font-mono font-bold text-slate-800 text-[12px]">${parseFloat(p.value || 0).toLocaleString()}</span>
+          <span className="font-mono font-extrabold text-slate-800 text-[11px]">${parseFloat(p.value || 0).toLocaleString()}</span>
         </div>
       ))}
     </div>
@@ -185,16 +185,31 @@ export function SectorRevenueWidget() {
         </div>
       ) : (
         <ResponsiveContainer width="100%" height={180} minWidth={0}>
-          <BarChart data={data} margin={{ top: 0, right: 0, left: 10, bottom: 0 }}>
+          <BarChart data={data} margin={{ top: 10, right: 5, left: -10, bottom: 0 }}>
+            <defs>
+              <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#118DFF" stopOpacity={0.95} />
+                <stop offset="100%" stopColor="#12239E" stopOpacity={0.95} />
+              </linearGradient>
+              <linearGradient id="profitGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#10b981" stopOpacity={0.95} />
+                <stop offset="100%" stopColor="#059669" stopOpacity={0.95} />
+              </linearGradient>
+            </defs>
             <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-            <XAxis dataKey="name" tick={axisTick} axisLine={false} tickLine={false} dy={10} />
-            <YAxis tick={axisTick} width={65} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
-            <Tooltip content={<CustomTooltip />} />
-            <Bar dataKey="revenue" name="Revenue" radius={[6, 6, 0, 0]} barSize={16}>
-              {data.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
+            <XAxis dataKey="name" tick={axisTick} axisLine={false} tickLine={false} dy={8} />
+            <YAxis tick={axisTick} width={50} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+            <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc', radius: 6 }} />
+            <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', paddingBottom: '10px', color: '#64748b' }} />
+            <Bar dataKey="revenue" name="Revenue" radius={[4, 4, 0, 0]} barSize={12} fill="url(#revenueGrad)">
+              {data.map((entry, i) => (
+                <Cell key={i} style={{ transition: 'opacity 0.2s', outline: 'none' }} className="hover:opacity-85" />
+              ))}
             </Bar>
-            <Bar dataKey="profit" name="Profit" radius={[6, 6, 0, 0]} barSize={16}>
-              {data.map((_, i) => <Cell key={i} fill={PALETTE[(i + 1) % PALETTE.length]} opacity={0.6} />)}
+            <Bar dataKey="profit" name="Profit" radius={[4, 4, 0, 0]} barSize={12} fill="url(#profitGrad)">
+              {data.map((entry, i) => (
+                <Cell key={i} style={{ transition: 'opacity 0.2s', outline: 'none' }} className="hover:opacity-85" />
+              ))}
             </Bar>
           </BarChart>
         </ResponsiveContainer>

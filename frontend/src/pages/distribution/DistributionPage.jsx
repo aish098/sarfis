@@ -12,7 +12,38 @@ import {
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 
-const CHART_COLORS = ['#6366f1', '#8b5cf6', '#ec4899', '#f43f5e', '#f59e0b', '#10b981', '#06b6d4', '#f97316', '#14b8a6'];
+const CHART_COLORS = ['#118DFF', '#12239E', '#E66C37', '#6B007B', '#10b981', '#ef4444'];
+
+const PROGRESS_GRADIENTS = [
+  'linear-gradient(90deg, #118DFF, #12239E)', // Blue to Sapphire
+  'linear-gradient(90deg, #10b981, #059669)', // Emerald to Teal
+  'linear-gradient(90deg, #E66C37, #f97316)', // Warm Amber to Orange
+  'linear-gradient(90deg, #8b5cf6, #6B007B)', // Violet to Lavender
+  'linear-gradient(90deg, #3b82f6, #06b6d4)', // Sky Blue to Cyan
+  'linear-gradient(90deg, #f43f5e, #be123c)', // Rose to Deep Crimson
+];
+
+function CustomTooltip({ active, payload, label }) {
+  if (!active || !payload?.length) return null;
+  const tooltipLabel = label || payload[0]?.name || payload[0]?.payload?.sector_name || '';
+  return (
+    <div className="rounded-xl border border-slate-100/80 bg-white/95 backdrop-blur-md px-4 py-3 shadow-xl shadow-slate-900/5 min-w-[150px]">
+      <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-50 pb-1">{tooltipLabel}</p>
+      {payload.map((p, i) => (
+        <div key={i} className="flex items-center justify-between gap-4 py-1">
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background: p.color || p.payload?.fill }} />
+            <span className="text-[11px] font-bold text-slate-500">{p.name}</span>
+          </div>
+          <span className="font-mono font-extrabold text-slate-800 text-[11px]">
+            ${Number(p.value || 0).toLocaleString()}
+          </span>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 
 const stagger = { animate: { transition: { staggerChildren: 0.05 } } };
 const fadeUp = { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
@@ -385,26 +416,35 @@ export default function DistributionPage() {
               <div className="h-[280px] w-full min-h-[280px]">
                 <ResponsiveContainer width="100%" height={280}>
                     <PieChart>
-                      <Pie
-                        data={sectorRevenue}
-                        nameKey="sector_name"
-                        dataKey="total_revenue"
-                        cx="50%"
-                        cy="50%"
-                        innerRadius={0}
-                        outerRadius={90}
-                        paddingAngle={2}
-                        stroke="#fff"
-                        strokeWidth={2}
-                      >
-                        {sectorRevenue.map((entry, index) => (
-                          <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} />
-                        ))}
-                      </Pie>
-                    <Tooltip 
-                      contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px' }}
-                      formatter={(v) => `$${parseFloat(v).toLocaleString()}`}
-                    />
+                      {(() => {
+                        const totalSectorRev = sectorRevenue.reduce((acc, curr) => acc + (parseFloat(curr.total_revenue) || 0), 0);
+                        return (
+                          <>
+                            <Pie
+                              data={sectorRevenue}
+                              nameKey="sector_name"
+                              dataKey="total_revenue"
+                              cx="50%"
+                              cy="50%"
+                              innerRadius="65%"
+                              outerRadius="88%"
+                              paddingAngle={3}
+                              stroke="none"
+                            >
+                              {sectorRevenue.map((entry, index) => (
+                                <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} style={{ outline: 'none' }} />
+                              ))}
+                            </Pie>
+                            <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
+                              <tspan x="50%" dy="-6" fontSize="10" fontWeight="800" fill="#64748b" letterSpacing="0.05em" textTransform="uppercase">Total Rev</tspan>
+                              <tspan x="50%" dy="18" fontSize="15" fontWeight="900" fill="#0f172a" fontFamily="monospace">
+                                ${totalSectorRev.toLocaleString('en-US', { maximumFractionDigits: 0 })}
+                              </tspan>
+                            </text>
+                          </>
+                        );
+                      })()}
+                    <Tooltip content={<CustomTooltip />} />
                   </PieChart>
                 </ResponsiveContainer>
               </div>
@@ -440,6 +480,16 @@ export default function DistributionPage() {
                     }))} 
                     margin={{ left: 40, right: 30, top: 10, bottom: 10 }}
                   >
+                    <defs>
+                      <linearGradient id="revenueGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#118DFF" stopOpacity={0.95} />
+                        <stop offset="100%" stopColor="#12239E" stopOpacity={0.95} />
+                      </linearGradient>
+                      <linearGradient id="profitGrad" x1="0" y1="0" x2="1" y2="0">
+                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.95} />
+                        <stop offset="100%" stopColor="#059669" stopOpacity={0.95} />
+                      </linearGradient>
+                    </defs>
                     <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
                     <XAxis 
                       type="number"
@@ -456,13 +506,10 @@ export default function DistributionPage() {
                       tick={{ fontSize: 11, fill: '#475569', fontWeight: 700 }} 
                       width={110}
                     />
-                    <Tooltip 
-                       contentStyle={{ borderRadius: '12px', border: 'none', boxShadow: '0 10px 15px -3px rgba(0,0,0,0.1)', fontSize: '12px' }}
-                       formatter={(v) => `$${parseFloat(v).toLocaleString()}`}
-                    />
+                    <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc', radius: 4 }} />
                     <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '20px', fontSize: '11px', fontWeight: 'bold' }} />
-                    <Bar dataKey="total_revenue" name="Revenue" fill="#6366f1" radius={[0, 4, 4, 0]} barSize={12} />
-                    <Bar dataKey="gross_profit" name="Profit" fill="#10b981" radius={[0, 4, 4, 0]} barSize={12} />
+                    <Bar dataKey="total_revenue" name="Revenue" fill="url(#revenueGrad)" radius={[0, 4, 4, 0]} barSize={12} />
+                    <Bar dataKey="gross_profit" name="Profit" fill="url(#profitGrad)" radius={[0, 4, 4, 0]} barSize={12} />
                   </BarChart>
                 </ResponsiveContainer>
               </div>
@@ -544,7 +591,7 @@ export default function DistributionPage() {
                           animate={{ width: `${pct}%` }} 
                           transition={{ duration: 1, delay: i * 0.1, ease: "easeOut" }}
                           className="h-full rounded-full" 
-                          style={{ background: `linear-gradient(90deg, ${CHART_COLORS[i % CHART_COLORS.length]}, #94a3b8)` }} 
+                          style={{ background: PROGRESS_GRADIENTS[i % PROGRESS_GRADIENTS.length] }} 
                         />
                       </div>
                     </div>

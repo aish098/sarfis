@@ -19,12 +19,16 @@ const fmt = v => '$' + parseFloat(v || 0).toLocaleString('en-US', { minimumFract
 function ChartTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="tooltip-custom">
-      <p className="font-bold text-white/70 text-xs mb-2">{label}</p>
+    <div className="rounded-xl border border-slate-100/80 bg-white/95 backdrop-blur-md px-4 py-3 shadow-xl shadow-slate-900/5 min-w-[150px]">
+      <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-50 pb-1">{label}</p>
       {payload.map((p, i) => (
-        <p key={i} className="text-[13px]" style={{ color: p.color }}>
-          {p.name}: ${parseFloat(p.value || 0).toLocaleString()}
-        </p>
+        <div key={i} className="flex items-center justify-between gap-4 py-1">
+          <div className="flex items-center gap-2">
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background: p.color || p.payload?.fill }} />
+            <span className="text-[11px] font-bold text-slate-500">{p.name}</span>
+          </div>
+          <span className="font-mono font-extrabold text-slate-800 text-[11px]">${parseFloat(p.value || 0).toLocaleString()}</span>
+        </div>
       ))}
     </div>
   );
@@ -367,16 +371,16 @@ function AIForecast({ forecast, loading }) {
 
       {/* Chart */}
       <div className="card p-6">
-        <h4 className="font-display font-bold text-[13px] uppercase tracking-widest text-slate-600 border-b border-slate-100 pb-3 mb-5">Historical vs Forecast Timeline</h4>
+        <h4 className="font-display font-bold text-[13px] uppercase tracking-widest text-slate-500 border-b border-slate-100 pb-3 mb-5">Historical vs Forecast Timeline</h4>
         <ResponsiveContainer width="100%" height={380}>
-          <LineChart data={chartData} margin={{ top: 8, right: 8, left: -12, bottom: 0 }}>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-            <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#94a3b8', fontFamily: 'DM Sans' }} axisLine={false} tickLine={false} />
-            <YAxis tick={{ fontSize: 11, fill: '#94a3b8', fontFamily: 'DM Sans' }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} />
+          <LineChart data={chartData} margin={{ top: 12, right: 10, left: -10, bottom: 0 }}>
+            <CartesianGrid strokeDasharray="3 3" stroke="#e2e8f0" vertical={false} />
+            <XAxis dataKey="month" tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600, fontFamily: 'DM Sans' }} axisLine={false} tickLine={false} dy={8} />
+            <YAxis tick={{ fontSize: 11, fill: '#64748b', fontWeight: 600, fontFamily: 'DM Sans' }} axisLine={false} tickLine={false} tickFormatter={v => `$${(v / 1000).toFixed(0)}k`} width={50} />
             <Tooltip content={<ChartTooltip />} />
-            <Legend wrapperStyle={{ fontSize: 12, color: '#64748b', fontFamily: 'DM Sans', paddingTop: 16 }} />
-            <Line type="monotone" dataKey="actualRevenue" name="Historical Actuals" stroke="#10b981" strokeWidth={3} dot={{ r: 4, fill: '#10b981' }} activeDot={{ r: 6 }} connectNulls />
-            <Line type="monotone" dataKey="forecastRevenue" name="AI Target Projection" stroke="#8b5cf6" strokeWidth={3} strokeDasharray="6 4" dot={{ r: 4, fill: '#8b5cf6' }} activeDot={{ r: 6 }} connectNulls />
+            <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: 'bold', paddingBottom: 16 }} />
+            <Line type="monotone" dataKey="actualRevenue" name="Historical Actuals" stroke="#12239E" strokeWidth={3.5} dot={{ r: 4, fill: '#12239E', stroke: '#fff', strokeWidth: 1.5 }} activeDot={{ r: 6, fill: '#12239E', stroke: '#fff', strokeWidth: 2 }} connectNulls />
+            <Line type="monotone" dataKey="forecastRevenue" name="AI Target Projection" stroke="#E66C37" strokeWidth={3} strokeDasharray="6 4" dot={{ r: 4, fill: '#E66C37', stroke: '#fff', strokeWidth: 1.5 }} activeDot={{ r: 6, fill: '#E66C37', stroke: '#fff', strokeWidth: 2 }} connectNulls />
           </LineChart>
         </ResponsiveContainer>
       </div>

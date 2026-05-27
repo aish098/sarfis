@@ -44,12 +44,18 @@ const W = {
   textPri:   "#0f172a",
   textSec:   "#64748b",
   textDim:   "#94a3b8",
-  gridLine:  "#f1f5f9",
+  gridLine:  "#e2e8f0",
 };
 
 const PALETTE = [
-  "#3b82f6","#10b981","#f59e0b","#8b5cf6",
-  "#ef4444","#06b6d4","#14b8a6","#f43f5e",
+  "#118DFF", // Corporate Blue
+  "#12239E", // Deep Sapphire
+  "#10b981", // Teal
+  "#E66C37", // Warm Amber
+  "#6B007B", // Purple
+  "#E044A7", // Pink/Magenta
+  "#00b4d8", // Light Blue/Teal
+  "#ef4444", // Red
 ];
 
 const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
@@ -128,18 +134,18 @@ function WhiteTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
     <div style={{
-      background: "#fff", border: `1px solid ${W.border}`,
-      borderRadius: 12, padding: "10px 16px", minWidth: 160,
-      boxShadow: "0 8px 24px rgba(0,0,0,0.10)",
+      background: "rgba(255, 255, 255, 0.95)", backdropFilter: "blur(8px)", border: `1px solid rgba(226, 232, 240, 0.8)`,
+      borderRadius: 12, padding: "10px 14px", minWidth: 160,
+      boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
     }}>
-      <p style={{ fontSize:11, fontWeight:700, color:W.textDim, letterSpacing:"0.1em", textTransform:"uppercase", marginBottom:8 }}>{label}</p>
+      <p style={{ fontSize:10, fontWeight:800, color:W.textDim, letterSpacing:"0.05em", textTransform:"uppercase", marginBottom:6, borderBottom: `1px solid #f1f5f9`, paddingBottom: 4 }}>{label}</p>
       {payload.map((p, i) => (
-        <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:14, marginBottom:3 }}>
+        <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:14, padding: "2px 0" }}>
           <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-            <div style={{ width:8, height:8, borderRadius:2, background:p.color }} />
-            <span style={{ fontSize:12, color:W.textSec }}>{p.name}</span>
+            <div style={{ width:8, height:8, borderRadius:2, background:p.color || p.payload?.fill }} />
+            <span style={{ fontSize:11, fontWeight:600, color:W.textSec }}>{p.name}</span>
           </div>
-          <span style={{ fontFamily:"monospace", fontSize:12, fontWeight:700, color:W.textPri }}>
+          <span style={{ fontFamily:"monospace", fontSize:11, fontWeight:700, color:W.textPri }}>
             PKR {fmt(p.value)}
           </span>
         </div>
@@ -230,25 +236,25 @@ function DonutChart({ data, colors, height = 200, centerLabel = "", centerValue 
     <ResponsiveContainer width="100%" height={height}>
       <PieChart>
         <Pie data={data} cx="50%" cy="50%"
-          innerRadius="56%" outerRadius="78%"
-          paddingAngle={2} dataKey="value"
-          animationBegin={0} animationDuration={800} strokeWidth={0}>
-          {data.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} />)}
+          innerRadius="65%" outerRadius="88%"
+          paddingAngle={3} dataKey="value"
+          animationBegin={0} animationDuration={750} strokeWidth={0}>
+          {data.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} style={{ outline: 'none' }} />)}
         </Pie>
         <Tooltip content={({ active, payload }) => {
           if (!active || !payload?.length) return null;
           const p = payload[0];
           const pct = total > 0 ? ((p.value / total) * 100).toFixed(1) : 0;
           return (
-            <div style={{ background:"#fff", border:`1px solid ${W.border}`, borderRadius:10, padding:"8px 12px", boxShadow:"0 8px 24px rgba(0,0,0,0.1)" }}>
-              <p style={{ fontSize:12, fontWeight:700, color:W.textPri, marginBottom:2 }}>{p.name}</p>
-              <p style={{ fontFamily:"monospace", fontSize:12, color:p.payload.fill }}>{fmt(p.value)} ({pct}%)</p>
+            <div style={{ background:"rgba(255,255,255,0.95)", border:`1px solid rgba(226, 232, 240, 0.8)`, borderRadius:10, padding:"8px 12px", boxShadow:"0 10px 15px -3px rgba(0,0,0,0.05)" }}>
+              <p style={{ fontSize:11, fontWeight:700, color:W.textPri, marginBottom:2 }}>{p.name}</p>
+              <p style={{ fontFamily:"monospace", fontSize:11, color:p.payload.fill, fontWeight:700 }}>PKR {fmt(p.value)} ({pct}%)</p>
             </div>
           );
         }} />
         <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
-          <tspan x="50%" dy="-8" fontSize="18" fontWeight="800" fill={W.textPri}>{centerValue || fmt(total)}</tspan>
-          <tspan x="50%" dy="20" fontSize="11" fill={W.textSec}>{centerLabel}</tspan>
+          <tspan x="50%" dy="-6" fontSize="16" fontWeight="800" fill={W.textPri}>{centerValue || fmt(total)}</tspan>
+          <tspan x="50%" dy="18" fontSize="10" fontWeight="700" fill={W.textSec} letterSpacing="0.05em" textTransform="uppercase">{centerLabel}</tspan>
         </text>
       </PieChart>
     </ResponsiveContainer>
@@ -359,11 +365,11 @@ function TrendTab({ companyId }) {
       <Card title="Revenue & Profit Trend"
         actions={<span style={{ fontSize:11, color:W.textDim }}>Last {months} months</span>}>
         <ResponsiveContainer width="100%" height={280}>
-          <AreaChart data={data} margin={{ top:8, right:8, left:0, bottom:0 }}>
+          <AreaChart data={data} margin={{ top:12, right:8, left:-15, bottom:0 }}>
             <defs>
               <linearGradient id="wgRev" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#10b981" stopOpacity={0.15} />
-                <stop offset="95%" stopColor="#10b981" stopOpacity={0.01} />
+                <stop offset="5%"  stopColor="#118DFF" stopOpacity={0.18} />
+                <stop offset="95%" stopColor="#118DFF" stopOpacity={0.01} />
               </linearGradient>
               <linearGradient id="wgExp" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%"  stopColor="#ef4444" stopOpacity={0.08} />
@@ -375,12 +381,12 @@ function TrendTab({ companyId }) {
             <YAxis {...yStyle} />
             <Tooltip content={<WhiteTooltip />} cursor={{ stroke:W.border, strokeWidth:1 }} />
             <Legend iconType="circle" verticalAlign="top" align="right"
-              wrapperStyle={{ paddingBottom:16, fontSize:11 }} />
+              wrapperStyle={{ paddingBottom:16, fontSize:11, fontWeight: 'bold' }} />
             
             {/* Revenue Area — Sleek & Modern */}
             <Area type="monotone" dataKey="revenue" name="Revenue"
-              stroke="#10b981" strokeWidth={3} fill="url(#wgRev)"
-              dot={false} activeDot={{ r:6, fill:"#10b981", stroke:"#fff", strokeWidth:2 }} />
+              stroke="#118DFF" strokeWidth={3.5} fill="url(#wgRev)"
+              dot={false} activeDot={{ r:6, fill:"#118DFF", stroke:"#fff", strokeWidth:2 }} />
             
             {/* Expenses Area — Layered Contrast */}
             <Area type="monotone" dataKey="expenses" name="Expenses"
@@ -389,7 +395,7 @@ function TrendTab({ companyId }) {
             
             {/* Profit Line — Sharp Reference */}
             <Line type="monotone" dataKey="profit" name="Net Profit"
-              stroke={W.accent} strokeWidth={2} dot={false} />
+              stroke="#10b981" strokeWidth={2.5} dot={false} />
           </AreaChart>
         </ResponsiveContainer>
       </Card>
@@ -397,13 +403,13 @@ function TrendTab({ companyId }) {
       {/* Monthly profit bars */}
       <Card title="Monthly Profit">
         <ResponsiveContainer width="100%" height={190}>
-          <BarChart data={data} margin={{ top:4, right:8, left:0, bottom:0 }}>
-            <CartesianGrid stroke={W.gridLine} vertical={false} />
+          <BarChart data={data} margin={{ top:10, right:8, left:-15, bottom:0 }}>
+            <CartesianGrid stroke={W.gridLine} vertical={false} strokeDasharray="3 3" />
             <XAxis dataKey="label" {...xStyle({ dy:8 })} />
             <YAxis {...yStyle} />
-            <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc" }} />
-            <Bar dataKey="profit" name="Profit" radius={[6,6,0,0]} barSize={20}>
-              {data.map((d, i) => <Cell key={i} fill={d.profit >= 0 ? "#10b981" : "#ef4444"} />)}
+            <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc", radius: 4 }} />
+            <Bar dataKey="profit" name="Profit" radius={[4,4,0,0]} barSize={20}>
+              {data.map((d, i) => <Cell key={i} fill={d.profit >= 0 ? "#10b981" : "#ef4444"} style={{ outline: 'none' }} />)}
             </Bar>
           </BarChart>
         </ResponsiveContainer>
@@ -472,23 +478,13 @@ function ComparativeTab({ companyId }) {
               <BarChart layout="vertical"
                 data={rows.map(r => ({ name: r.account_name, p1: Math.abs(r.period1?.net||0), p2: Math.abs(r.period2?.net||0) }))}
                 margin={{ top:0, right:16, left:0, bottom:0 }}>
-                <defs>
-                  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="2.5" result="blur" />
-                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                  </filter>
-                </defs>
-                <CartesianGrid stroke={W.gridLine} horizontal={false} />
+                <CartesianGrid stroke={W.gridLine} horizontal={false} vertical={true} strokeDasharray="3 3" />
                 <XAxis type="number" {...xStyle({})} tickFormatter={fmt} />
                 <YAxis type="category" dataKey="name" width={130} tick={<SmartYTick />} axisLine={false} tickLine={false} />
-                <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc" }} />
-                <Legend iconType="square" wrapperStyle={{ fontSize:11 }} />
-                <Bar dataKey="p1" name="Period 1" radius={[0,4,4,0]} barSize={10}>
-                  {rows.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} opacity={0.4} />)}
-                </Bar>
-                <Bar dataKey="p2" name="Period 2" radius={[0,4,4,0]} barSize={10}>
-                  {rows.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
-                </Bar>
+                <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc", opacity:0.5 }} />
+                <Legend iconType="circle" wrapperStyle={{ fontSize:11, fontWeight: 'bold' }} />
+                <Bar dataKey="p1" name="Period 1" fill="#94a3b8" radius={[0,4,4,0]} barSize={8} />
+                <Bar dataKey="p2" name="Period 2" fill="#118DFF" radius={[0,4,4,0]} barSize={8} />
               </BarChart>
             </ResponsiveContainer>
           )}
@@ -637,29 +633,31 @@ function SectorTab({ companyId }) {
         <div style={{ display:"flex", flexWrap:"wrap", gap:16, alignItems:"stretch" }}>
           <Card title="Sector Revenue Comparison" style={{ flex:"2 1 480px" }}>
             <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={barData} margin={{ top:4, right:8, left:0, bottom:44 }}>
+              <BarChart data={barData} margin={{ top:10, right:8, left:0, bottom:44 }}>
                 <defs>
-                  <filter id="glow" x="-20%" y="-20%" width="140%" height="140%">
-                    <feGaussianBlur stdDeviation="3" result="blur" />
-                    <feComposite in="SourceGraphic" in2="blur" operator="over" />
-                  </filter>
+                  <linearGradient id="sectorRevenueGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#118DFF" stopOpacity={0.9} />
+                    <stop offset="100%" stopColor="#12239E" stopOpacity={0.9} />
+                  </linearGradient>
                 </defs>
-                <CartesianGrid stroke={W.gridLine} vertical={false} />
+                <CartesianGrid stroke={W.gridLine} vertical={false} strokeDasharray="3 3" />
                 <XAxis dataKey="name"
                   tick={({ x, y, payload }) => (
                     <g transform={`translate(${x},${y})`}>
                       <title>{payload.value}</title>
-                      <text transform="rotate(-35)" textAnchor="end" x={0} y={0} dy={4}
-                        fill={W.textDim} fontSize={11} fontWeight={500}>
+                      <text transform="rotate(-25)" textAnchor="end" x={0} y={0} dy={6}
+                        fill={W.textSec} fontSize={10} fontWeight={600}>
                         {trunc(payload.value, 12)}
                       </text>
                     </g>
                   )}
-                  interval={0} axisLine={false} tickLine={false} height={60} />
+                  interval={0} axisLine={false} tickLine={false} height={50} />
                 <YAxis {...yStyle} />
-                <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc" }} />
-                <Bar dataKey="revenue" name="Revenue" radius={[6,6,0,0]} barSize={32}>
-                  {barData.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
+                <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc", radius: 6 }} />
+                <Bar dataKey="revenue" name="Revenue" fill="url(#sectorRevenueGrad)" radius={[4,4,0,0]} barSize={24}>
+                  {barData.map((entry, i) => (
+                    <Cell key={i} style={{ transition: 'opacity 0.2s', outline: 'none' }} className="hover:opacity-85" />
+                  ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
@@ -749,23 +747,32 @@ function OperationsTab({ companyId }) {
             ? <p style={{ color:W.textDim, fontSize:13 }}>No warehouse data.</p>
             : (
               <ResponsiveContainer width="100%" height={280}>
-                <PieChart>
-                  <Pie
-                    data={warehouses}
-                    cx="50%" cy="50%"
-                    innerRadius="50%" outerRadius="85%"
-                    paddingAngle={4}
-                    dataKey="estimated_value"
-                    nameKey="warehouse_name"
-                    stroke="none"
-                    animationBegin={0}
-                    animationDuration={1000}
-                  >
-                    {warehouses.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
-                  </Pie>
-                  <Tooltip content={<WhiteTooltip />} />
-                  <Legend iconType="circle" layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ fontSize:11 }} />
-                </PieChart>
+                {(() => {
+                  const totalVal = warehouses.reduce((acc, curr) => acc + (curr.estimated_value || 0), 0);
+                  return (
+                    <PieChart>
+                      <Pie
+                        data={warehouses}
+                        cx="50%" cy="50%"
+                        innerRadius="65%" outerRadius="88%"
+                        paddingAngle={3}
+                        dataKey="estimated_value"
+                        nameKey="warehouse_name"
+                        stroke="none"
+                        animationBegin={0}
+                        animationDuration={750}
+                      >
+                        {warehouses.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} style={{ outline: 'none' }} />)}
+                      </Pie>
+                      <Tooltip content={<WhiteTooltip />} />
+                      <Legend iconType="circle" layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ fontSize:11, fontWeight: 'bold', color: '#64748b' }} />
+                      <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
+                        <tspan x="50%" dy="-6" fontSize="15" fontWeight="800" fill={W.textPri}>PKR {fmt(totalVal)}</tspan>
+                        <tspan x="50%" dy="18" fontSize="9" fontWeight="700" fill={W.textSec} letterSpacing="0.05em" textTransform="uppercase">Load Value</tspan>
+                      </text>
+                    </PieChart>
+                  );
+                })()}
               </ResponsiveContainer>
             )
           }
@@ -957,14 +964,14 @@ function VarianceTab({ companyId }) {
               <Card title="360° Financial Performance Radar">
                 <ResponsiveContainer width="100%" height={380}>
                   <RadarChart cx="50%" cy="50%" outerRadius="72%" data={data.items}>
-                    <PolarGrid stroke={W.border} />
+                    <PolarGrid stroke="#e2e8f0" />
                     <PolarAngleAxis dataKey="account_name"
                       tick={({ x, y, payload, cx }) => {
                         const anchor = x < cx ? "end" : x > cx ? "start" : "middle";
                         return (
                           <g>
                             <title>{payload.value}</title>
-                            <text x={x} y={y} textAnchor={anchor} fill={W.textSec} fontSize={10} fontWeight={500}>
+                            <text x={x} y={y} textAnchor={anchor} fill={W.textSec} fontSize={10} fontWeight={600}>
                               {trunc(payload.value, 12)}
                             </text>
                           </g>
@@ -972,10 +979,10 @@ function VarianceTab({ companyId }) {
                       }}
                     />
                     <PolarRadiusAxis angle={30} domain={[0,"auto"]} tick={{ fill:W.textDim, fontSize:9 }} axisLine={false} tickLine={false} />
-                    <Radar name="Budget" dataKey="budget_amount" stroke={W.border} strokeWidth={1.5} fill={W.border} fillOpacity={0.2} />
-                    <Radar name="Actual" dataKey="actual_amount" stroke={W.accent} strokeWidth={2.5} fill={W.accent} fillOpacity={0.15} />
-                    <Tooltip contentStyle={{ background:"#fff", border:`1px solid ${W.border}`, borderRadius:10, boxShadow:"0 8px 24px rgba(0,0,0,0.08)" }} formatter={v=>fmt(v)} />
-                    <Legend iconType="circle" wrapperStyle={{ fontSize:11, paddingTop:16 }} />
+                    <Radar name="Budget Limit" dataKey="budget_amount" stroke="#cbd5e1" strokeWidth={1.5} fill="#f1f5f9" fillOpacity={0.3} />
+                    <Radar name="Actual Spend" dataKey="actual_amount" stroke="#118DFF" strokeWidth={2.5} fill="#118DFF" fillOpacity={0.15} />
+                    <Tooltip content={<WhiteTooltip />} />
+                    <Legend iconType="circle" wrapperStyle={{ fontSize:11, fontWeight: 'bold', paddingTop:16 }} />
                   </RadarChart>
                 </ResponsiveContainer>
                 <p style={{ fontSize:11, color:W.textDim, textAlign:"center", marginTop:8 }}>

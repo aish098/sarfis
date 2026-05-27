@@ -60,15 +60,15 @@ const axisTick = { fontSize: 11, fill: '#64748b', fontWeight: 600 };
 function CustomTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
   return (
-    <div className="rounded-xl border-none bg-white/95 backdrop-blur px-4 py-3 shadow-xl shadow-slate-900/10 min-w-[140px]">
-      <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">{label}</p>
+    <div className="rounded-xl border border-slate-100/80 bg-white/95 backdrop-blur-md px-4 py-3 shadow-xl shadow-slate-900/5 min-w-[150px]">
+      <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-50 pb-1">{label}</p>
       {payload.map((p, i) => (
-        <div key={i} className="flex items-center justify-between gap-4 py-0.5">
+        <div key={i} className="flex items-center justify-between gap-4 py-1">
           <div className="flex items-center gap-2">
-            <div className="w-1.5 h-1.5 rounded-full" style={{ background: p.color }} />
-            <span className="text-[12px] font-semibold text-slate-600">{p.name}</span>
+            <div className="w-2.5 h-2.5 rounded-full" style={{ background: p.color || p.payload?.fill }} />
+            <span className="text-[11px] font-bold text-slate-500">{p.name}</span>
           </div>
-          <span className="font-mono font-bold text-slate-800 text-[12px]">${Number(p.value || 0).toLocaleString()}</span>
+          <span className="font-mono font-extrabold text-slate-800 text-[11px]">${Number(p.value || 0).toLocaleString()}</span>
         </div>
       ))}
     </div>
@@ -195,19 +195,25 @@ function DashboardOverview() {
                     <Pie
                       data={pieData}
                       cx="50%" cy="50%"
-                      innerRadius={65}
-                      outerRadius={95}
-                      paddingAngle={5}
+                      innerRadius="65%"
+                      outerRadius="88%"
+                      paddingAngle={3}
                       dataKey="value"
                       stroke="none"
+                      animationBegin={0}
+                      animationDuration={750}
                     >
                       {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.color} />
+                        <Cell key={`cell-${index}`} fill={entry.color} style={{ outline: 'none' }} />
                       ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
                     <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle"
-                      wrapperStyle={{ fontSize: '12px', fontWeight: 'bold', paddingLeft: '20px' }} />
+                      wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', paddingLeft: '15px', color: '#64748b' }} />
+                    <text x="50%" y="50%" textAnchor="middle" dominantBaseline="middle">
+                      <tspan x="50%" dy="-6" fontSize="16" fontWeight="800" fill="#0f172a">${Math.max(0, profit).toLocaleString(undefined, { maximumFractionDigits: 0 })}</tspan>
+                      <tspan x="50%" dy="18" fontSize="10" fontWeight="700" fill="#94a3b8" letterSpacing="0.05em" textTransform="uppercase">Net Profit</tspan>
+                    </text>
                   </FinancialPieChart>
                 );
               })()}
@@ -220,12 +226,20 @@ function DashboardOverview() {
             <h3 className="font-display font-black text-slate-900 text-[16px] mb-6">Operating Cash Flow</h3>
             <ResponsiveContainer width="100%" height={200} minWidth={0}>
               <BarChart data={chartData} margin={{ top: 15, right: 15, left: 10, bottom: 0 }}>
-                <CartesianGrid {...chartGrid} />
-                <XAxis dataKey="month" tick={axisTick} axisLine={false} tickLine={false} dy={10} />
-                <YAxis tick={axisTick} width={65} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
-                <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc', radius: 12 }} />
-                <Bar dataKey="cashFlow" name="Cash Flow" radius={[6, 6, 0, 0]} barSize={25}>
-                  {chartData.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
+                <defs>
+                  <linearGradient id="barFlow" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#118DFF" stopOpacity={0.9} />
+                    <stop offset="100%" stopColor="#12239E" stopOpacity={0.9} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
+                <XAxis dataKey="month" tick={axisTick} axisLine={false} tickLine={false} dy={8} />
+                <YAxis tick={axisTick} width={55} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
+                <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc', radius: 8 }} />
+                <Bar dataKey="cashFlow" name="Cash Flow" radius={[4, 4, 0, 0]} barSize={20} fill="url(#barFlow)">
+                  {chartData.map((entry, i) => (
+                    <Cell key={i} style={{ transition: 'opacity 0.2s', outline: 'none' }} className="hover:opacity-85" />
+                  ))}
                 </Bar>
               </BarChart>
             </ResponsiveContainer>
