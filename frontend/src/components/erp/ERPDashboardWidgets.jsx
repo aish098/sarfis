@@ -6,7 +6,7 @@
 import { useState, useEffect } from 'react';
 import { motion as Motion } from 'framer-motion';
 import { AlertTriangle, Package, TrendingUp, Users, BarChart3, ArrowUpRight } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell } from 'recharts';
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
 
 const PALETTE = [
   "#3b82f6","#10b981","#f59e0b","#8b5cf6",

@@ -40,13 +40,13 @@ async function getMonthlyAccountTotals(companyId, startYear, startMonth, endYear
       db.raw("EXTRACT(YEAR FROM je.entry_date)::int as period_year"),
       "jel.account_id",
       "a.name as account_name",
-      "a.type as account_type",
+      "a.category as account_type",
       db.raw("SUM(jel.debit) as total_debit"),
       db.raw("SUM(jel.credit) as total_credit")
     )
     .groupBy(
       "period_month", "period_year",
-      "jel.account_id", "a.name", "a.type"
+      "jel.account_id", "a.name", "a.category"
     )
     .orderBy(["period_year", "period_month"]);
 
@@ -427,7 +427,7 @@ async function getBudgets(companyId, year, month = null) {
       "b.*",
       "a.name as account_name",
       "a.code as account_code",
-      "a.type as account_type"
+      "a.category as account_type"
     ).orderBy(["b.period_month", "a.name", "b.id"]);
   } catch (e) {
     // Graceful fallback for environments where budget schema isn't ready yet
