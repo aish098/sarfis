@@ -755,8 +755,8 @@ function OperationsTab({ companyId }) {
                     <PieChart>
                       <Pie
                         data={warehouses}
-                        cx="38%" cy="50%"
-                        innerRadius="65%" outerRadius="88%"
+                        cx="50%" cy="45%"
+                        innerRadius="60%" outerRadius="80%"
                         paddingAngle={3}
                         dataKey="estimated_value"
                         nameKey="warehouse_name"
@@ -767,11 +767,11 @@ function OperationsTab({ companyId }) {
                         {warehouses.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} style={{ outline: 'none' }} />)}
                       </Pie>
                       <Tooltip content={<WhiteTooltip />} />
-                      <Legend iconType="circle" layout="vertical" align="right" verticalAlign="middle" wrapperStyle={{ fontSize:11, fontWeight: 'bold', color: '#64748b' }} />
-                      <text x="38%" y="46%" textAnchor="middle" dominantBaseline="middle" fontSize="15" fontWeight="800" fill={W.textPri}>
+                      <Legend iconType="circle" layout="horizontal" align="center" verticalAlign="bottom" wrapperStyle={{ fontSize:11, fontWeight: 'bold', paddingTop: 10, color: '#64748b' }} />
+                      <text x="50%" y="41%" textAnchor="middle" dominantBaseline="middle" fontSize="15" fontWeight="800" fill={W.textPri}>
                         PKR {fmt(totalVal)}
                       </text>
-                      <text x="38%" y="56%" textAnchor="middle" dominantBaseline="middle" fontSize="9" fontWeight="700" fill={W.textSec} letterSpacing="0.05em" textTransform="uppercase">
+                      <text x="50%" y="51%" textAnchor="middle" dominantBaseline="middle" fontSize="9" fontWeight="700" fill={W.textSec} letterSpacing="0.05em" textTransform="uppercase">
                         Load Value
                       </text>
                     </PieChart>

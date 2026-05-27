@@ -194,9 +194,9 @@ function DashboardOverview() {
                   <FinancialPieChart>
                     <Pie
                       data={pieData}
-                      cx="38%" cy="50%"
-                      innerRadius="65%"
-                      outerRadius="88%"
+                      cx="50%" cy="45%"
+                      innerRadius="60%"
+                      outerRadius="80%"
                       paddingAngle={3}
                       dataKey="value"
                       stroke="none"
@@ -208,12 +208,12 @@ function DashboardOverview() {
                       ))}
                     </Pie>
                     <Tooltip content={<CustomTooltip />} />
-                    <Legend verticalAlign="middle" align="right" layout="vertical" iconType="circle"
-                      wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', paddingLeft: '15px', color: '#64748b' }} />
-                    <text x="38%" y="46%" textAnchor="middle" dominantBaseline="middle" fontSize="16" fontWeight="800" fill="#0f172a">
+                    <Legend verticalAlign="bottom" align="center" layout="horizontal" iconType="circle"
+                      wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', paddingTop: '10px', color: '#64748b' }} />
+                    <text x="50%" y="41%" textAnchor="middle" dominantBaseline="middle" fontSize="16" fontWeight="800" fill="#0f172a">
                       ${Math.max(0, profit).toLocaleString(undefined, { maximumFractionDigits: 0 })}
                     </text>
-                    <text x="38%" y="56%" textAnchor="middle" dominantBaseline="middle" fontSize="10" fontWeight="700" fill="#94a3b8" letterSpacing="0.05em" textTransform="uppercase">
+                    <text x="50%" y="51%" textAnchor="middle" dominantBaseline="middle" fontSize="10" fontWeight="700" fill="#94a3b8" letterSpacing="0.05em" textTransform="uppercase">
                       Net Profit
                     </text>
                   </FinancialPieChart>
