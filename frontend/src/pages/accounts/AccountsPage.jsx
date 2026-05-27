@@ -272,16 +272,16 @@ export default function AccountsPage({ globalSearch = "" }) {
                   </div>
                   <div className="flex flex-col justify-center pt-5">
                     <label className="flex items-center gap-2 cursor-pointer group">
+                      <input type="checkbox" className="hidden" checked={form.is_contra} onChange={e => {
+                        const isContra = e.target.checked;
+                        const stdBalance = ['Asset', 'Expense'].includes(form.category) ? 'Debit' : 'Credit';
+                        setForm({ ...form, is_contra: isContra, normal_balance: isContra ? (stdBalance === 'Debit' ? 'Credit' : 'Debit') : stdBalance });
+                      }} />
                       <div className={`relative inline-flex h-5 w-9 items-center rounded-full transition-colors ${form.is_contra ? 'bg-indigo-500' : 'bg-slate-200'}`}>
                         <span className={`inline-block h-3.5 w-3.5 transform rounded-full bg-white transition-transform ${form.is_contra ? 'translate-x-4' : 'translate-x-1'}`} />
                       </div>
                       <span className="text-[13px] font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">Is Contra Account?</span>
                     </label>
-                    <input type="checkbox" className="hidden" checked={form.is_contra} onChange={e => {
-                      const isContra = e.target.checked;
-                      const stdBalance = ['Asset', 'Expense'].includes(form.category) ? 'Debit' : 'Credit';
-                      setForm({ ...form, is_contra: isContra, normal_balance: isContra ? (stdBalance === 'Debit' ? 'Credit' : 'Debit') : stdBalance });
-                    }} />
                   </div>
                 </div>
                 <div className="flex gap-3 pt-1">
