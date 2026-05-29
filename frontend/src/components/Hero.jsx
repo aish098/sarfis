@@ -1,14 +1,8 @@
-import { useRef } from 'react';
+import { useRef, useState } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Sparkles, TrendingUp, ShieldCheck, Cpu, BarChart3, Zap } from 'lucide-react';
-
-const stats = [
-  { value: '10K+', label: 'Daily Transactions' },
-  { value: '500+', label: 'Businesses Onboarded' },
-  { value: '99.9%', label: 'Uptime Guarantee' },
-];
+import { ArrowRight, Sparkles, TrendingUp, ShieldCheck, Cpu, BarChart3, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
 
 const floatingBadges = [
   { icon: TrendingUp, text: 'Revenue +24%', sub: 'vs last quarter', color: '#10b981' },
@@ -16,85 +10,164 @@ const floatingBadges = [
   { icon: Cpu, text: 'AI Forecasting', sub: '94% accuracy rate', color: '#8b5cf6' },
 ];
 
-const mockKPIs = [
-  { label: 'Total Revenue', value: '$284,920', change: '+18.4%', positive: true },
-  { label: 'Net Profit', value: '$91,340', change: '+12.1%', positive: true },
-  { label: 'Expenses', value: '$193,580', change: '-3.2%', positive: false },
-  { label: 'Cash Flow', value: '$47,820', change: '+9.7%', positive: true },
+const DASHBOARD_VIEWS = [
+  {
+    title: "SARFIS Analytics Dashboard",
+    url: "app.SARFIS.io/dashboard/analytics",
+    kpis: [
+      { label: 'Total Revenue', value: '$284,920', change: '+18.4%', positive: true },
+      { label: 'Net Profit', value: '$91,340', change: '+12.1%', positive: true },
+      { label: 'Expenses', value: '$193,580', change: '-3.2%', positive: false },
+      { label: 'Cash Flow', value: '$47,820', change: '+9.7%', positive: true },
+    ],
+    chartData: [40, 65, 45, 80, 55, 90, 70, 95, 75, 88, 60, 100],
+    badgeColor: '#10b981'
+  },
+  {
+    title: "AI Forecasting & Budgeting",
+    url: "app.SARFIS.io/dashboard/forecasting",
+    kpis: [
+      { label: 'Projected Revenue', value: '$342,800', change: '+20.3%', positive: true },
+      { label: 'Forecast Margin', value: '$112,400', change: '+15.6%', positive: true },
+      { label: 'AI Accuracy', value: '94.2%', change: '+0.8%', positive: true },
+      { label: 'Burn Rate', value: '$24,500', change: '-8.5%', positive: false },
+    ],
+    chartData: [50, 55, 62, 70, 68, 75, 83, 80, 89, 95, 92, 100],
+    badgeColor: '#8b5cf6'
+  },
+  {
+    title: "Inventory & Distribution",
+    url: "app.SARFIS.io/dashboard/inventory",
+    kpis: [
+      { label: 'Stock Level', value: '45,280 Units', change: '+11.2%', positive: true },
+      { label: 'Shipped Orders', value: '1,420', change: '+24.5%', positive: true },
+      { label: 'Active Hubs', value: '12 Locations', change: 'Stable', positive: true },
+      { label: 'Backorder Rate', value: '0.45%', change: '-12.3%', positive: false },
+    ],
+    chartData: [85, 78, 90, 82, 75, 88, 92, 85, 96, 90, 88, 94],
+    badgeColor: '#06b6d4'
+  }
 ];
 
 export default function Hero() {
   const containerRef = useRef(null);
+  const [activeView, setActiveView] = useState(0);
+
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start start', 'end start'] });
   const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '30%']);
   const contentY = useTransform(scrollYProgress, [0, 0.6], [0, -50]);
   const contentOpacity = useTransform(scrollYProgress, [0, 0.55], [1, 0]);
 
+  // Inject cinematic liquid glass and blur-fade-up styles programmatically
+  if (typeof document !== 'undefined' && !document.getElementById('scafis-liquid-glass')) {
+    const s = document.createElement('style');
+    s.id = 'scafis-liquid-glass';
+    s.textContent = `
+      .liquid-glass {
+        background: rgba(255, 255, 255, 0.015);
+        background-blend-mode: luminosity;
+        backdrop-filter: blur(4px);
+        -webkit-backdrop-filter: blur(4px);
+        box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+        position: relative;
+        overflow: hidden;
+      }
+      .liquid-glass::before {
+        content: '';
+        position: absolute;
+        inset: 0;
+        border-radius: inherit;
+        padding: 1.4px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.15) 20%, rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%, rgba(255,255,255,0.15) 80%, rgba(255,255,255,0.45) 100%);
+        -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
+        -webkit-mask-composite: xor;
+        mask-composite: exclude;
+        pointer-events: none;
+      }
+      
+      @keyframes blurFadeUp {
+        0% { opacity: 0; filter: blur(20px); transform: translateY(40px); }
+        100% { opacity: 1; filter: blur(0); transform: translateY(0); }
+      }
+      .animate-blur-fade-up {
+        opacity: 0;
+        animation: blurFadeUp 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+      }
+    `;
+    document.head.appendChild(s);
+  }
+
   return (
     <section
       ref={containerRef}
-      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-20 pb-16"
-      style={{ background: '#030b1a' }}
+      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-24 pb-20 bg-black"
     >
-      {/* Animated background blobs */}
-      <motion.div style={{ y: bgY }} className="absolute inset-0 pointer-events-none overflow-hidden">
-        <motion.div
-          animate={{ scale: [1, 1.2, 1], opacity: [0.14, 0.22, 0.14] }}
-          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
-          className="absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full"
-          style={{ background: 'radial-gradient(circle, #10b981 0%, transparent 70%)', filter: 'blur(80px)' }}
+      {/* Cinematic Background Video */}
+      <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
+        <video
+          src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260406_094145_4a271a6c-3869-4f1c-8aa7-aeb0cb227994.mp4"
+          autoPlay
+          loop
+          muted
+          playsInline
+          className="w-full h-full object-cover"
+          style={{ filter: 'brightness(0.45) contrast(1.05)' }}
         />
-        <motion.div
-          animate={{ scale: [1.1, 1, 1.1], opacity: [0.08, 0.16, 0.08] }}
-          transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut', delay: 3 }}
-          className="absolute -bottom-48 -right-24 w-[600px] h-[600px] rounded-full"
-          style={{ background: 'radial-gradient(circle, #06b6d4 0%, transparent 70%)', filter: 'blur(80px)' }}
-        />
-        <motion.div
-          animate={{ scale: [1, 1.3, 1], opacity: [0.05, 0.1, 0.05] }}
-          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
-          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full"
-          style={{ background: 'radial-gradient(circle, #10b981 0%, transparent 70%)', filter: 'blur(60px)' }}
-        />
-        {/* Grid texture */}
+        {/* SCAFIS Branding Overlay (radial gradient) */}
         <div
-          className="absolute inset-0 opacity-[0.02]"
+          className="absolute inset-0"
           style={{
-            backgroundImage: 'linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)',
-            backgroundSize: '52px 52px',
+            background: 'radial-gradient(circle at 50% 50%, rgba(3, 11, 26, 0.4) 0%, rgba(3, 11, 26, 0.8) 100%)',
           }}
         />
-      </motion.div>
+        {/* Interactive Grid overlay */}
+        <motion.div
+          style={{ y: bgY }}
+          className="absolute inset-0 opacity-[0.03] pointer-events-none"
+        >
+          <div
+            className="w-full h-full"
+            style={{
+              backgroundImage: 'linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)',
+              backgroundSize: '52px 52px',
+            }}
+          />
+        </motion.div>
+      </div>
 
+      {/* Bottom Blur Overlay */}
+      <div
+        className="absolute inset-0 pointer-events-none z-10"
+        style={{
+          backdropFilter: 'blur(24px)',
+          WebkitBackdropFilter: 'blur(24px)',
+          maskImage: 'linear-gradient(to top, black 0%, transparent 45%)',
+          WebkitMaskImage: 'linear-gradient(to top, black 0%, transparent 45%)',
+        }}
+      />
+
+      {/* Hero Content Wrapper */}
       <motion.div
         style={{ opacity: contentOpacity, y: contentY }}
-        className="relative z-10 w-full max-w-6xl mx-auto px-5 sm:px-8 text-center"
+        className="relative z-20 w-full max-w-6xl mx-auto px-5 sm:px-8 text-center flex flex-col justify-center h-full"
       >
         {/* Badge */}
-        <motion.div
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.55, delay: 0.1 }}
-          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border mb-8 text-sm font-medium"
-          style={{
-            background: 'rgba(16, 185, 129, 0.08)',
-            borderColor: 'rgba(16, 185, 129, 0.25)',
-            color: '#6ee7b7',
-          }}
-        >
-          <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ duration: 2.5, repeat: Infinity }}>
-            <Sparkles size={13} />
-          </motion.div>
-          Trusted by 500+ businesses worldwide
-        </motion.div>
+        <div className="flex justify-center mb-8">
+          <div
+            className="animate-blur-fade-up liquid-glass inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-semibold uppercase tracking-wider border border-emerald-500/20 text-[#6ee7b7]"
+            style={{ animationDelay: '0ms' }}
+          >
+            <div className="animate-pulse">
+              <Sparkles size={13} className="text-emerald-400" />
+            </div>
+            Trusted by 500+ businesses worldwide
+          </div>
+        </div>
 
         {/* Headline */}
-        <motion.h1
-          initial={{ opacity: 0, y: 28 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
-          className="text-5xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.06] mb-5"
-          style={{ fontFamily: "'Sora', 'DM Sans', system-ui, sans-serif" }}
+        <h1
+          className="animate-blur-fade-up text-5xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.06] mb-5"
+          style={{ fontFamily: "'Sora', 'DM Sans', system-ui, sans-serif", animationDelay: '250ms' }}
         >
           Smarter Accounting,
           <br />
@@ -104,25 +177,21 @@ export default function Hero() {
           >
             Powered by SARFIS
           </span>
-        </motion.h1>
+        </h1>
 
         {/* Subline */}
-        <motion.p
-          initial={{ opacity: 0, y: 20 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.32 }}
-          className="text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed"
+        <p
+          className="animate-blur-fade-up text-base sm:text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed font-normal"
+          style={{ animationDelay: '400ms' }}
         >
           SARFIS automates your full accounting cycle journal entries, ledger, AI analytics, and
           forecasting so your team can focus on what matters most.
-        </motion.p>
+        </p>
 
         {/* Buttons */}
-        <motion.div
-          initial={{ opacity: 0, y: 18 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.7, delay: 0.42 }}
-          className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
+        <div
+          className="animate-blur-fade-up flex flex-col sm:flex-row gap-4 justify-center mb-16"
+          style={{ animationDelay: '500ms' }}
         >
           <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
             <Link
@@ -142,55 +211,53 @@ export default function Hero() {
           <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
             <Link
               to="/login"
-              className="inline-flex items-center gap-2.5 px-8 py-4 text-base font-medium text-white rounded-2xl border transition-all duration-300"
-              style={{
-                background: 'rgba(255,255,255,0.04)',
-                borderColor: 'rgba(255,255,255,0.1)',
-              }}
+              className="liquid-glass inline-flex items-center gap-2.5 px-8 py-4 text-base font-medium text-white rounded-2xl hover:bg-white/5 transition-all duration-300 shadow-lg"
             >
               Sign In to Dashboard
             </Link>
           </motion.div>
-        </motion.div>
+        </div>
 
-        {/* Stats row */}
-        <motion.div
-          initial={{ opacity: 0 }}
-          animate={{ opacity: 1 }}
-          transition={{ duration: 0.8, delay: 0.55 }}
-          className="flex flex-col sm:flex-row justify-center items-center gap-10 sm:gap-16 mb-20"
+        {/* Metrics/Stats Row (Business KPI Metadata) */}
+        <div
+          className="animate-blur-fade-up flex flex-col sm:flex-row justify-center items-center gap-10 sm:gap-16 mb-20"
+          style={{ animationDelay: '600ms' }}
         >
-          {stats.map((s, i) => (
-            <motion.div
-              key={i}
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6 + i * 0.1 }}
-              className="text-center"
-            >
-              <motion.div
-                whileHover={{ scale: 1.06 }}
-                className="text-4xl font-black text-white mb-1 leading-none"
-                style={{ fontFamily: "'Sora', 'DM Sans', system-ui, sans-serif" }}
+          {[
+            { value: '10K+', label: 'Daily Transactions', icon: BarChart3, color: '#10b981' },
+            { value: '500+', label: 'Businesses Onboarded', icon: ShieldCheck, color: '#06b6d4' },
+            { value: '99.9%', label: 'Uptime Guarantee', icon: Zap, color: '#8b5cf6' }
+          ].map((s, i) => (
+            <div key={i} className="flex items-center gap-3.5 text-left group">
+              <div
+                className="w-12 h-12 rounded-2xl flex items-center justify-center liquid-glass transition-all duration-300 group-hover:scale-110"
+                style={{ boxShadow: `0 8px 24px rgba(0,0,0,0.15)` }}
               >
-                {s.value}
-              </motion.div>
-              <div className="text-sm text-slate-500">{s.label}</div>
-            </motion.div>
+                <s.icon size={18} style={{ color: s.color }} />
+              </div>
+              <div>
+                <div className="text-3xl font-black text-white leading-none mb-0.5" style={{ fontFamily: "'Sora', monospace" }}>{s.value}</div>
+                <div className="text-[10px] text-slate-500 uppercase tracking-widest font-bold">{s.label}</div>
+              </div>
+            </div>
           ))}
-        </motion.div>
+        </div>
 
-        {/* Floating dashboard mockup */}
+        {/* Floating dashboard mockup with Multi-View Controller */}
         <motion.div
           initial={{ opacity: 0, y: 80, scale: 0.92 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           transition={{ duration: 1.1, delay: 0.65, ease: [0.22, 1, 0.36, 1] }}
-          className="relative"
+          className="relative max-w-4xl mx-auto w-full"
         >
-          {/* Glow behind image */}
+          {/* Dynamic Glow behind image */}
           <div
-            className="absolute -inset-8 rounded-3xl opacity-30 pointer-events-none"
-            style={{ background: 'radial-gradient(ellipse, #10b981 0%, transparent 70%)', filter: 'blur(40px)' }}
+            className="absolute -inset-8 rounded-3xl opacity-25 pointer-events-none"
+            style={{
+              background: `radial-gradient(ellipse, ${DASHBOARD_VIEWS[activeView].badgeColor} 0%, transparent 70%)`,
+              filter: 'blur(40px)',
+              transition: 'background 0.5s ease'
+            }}
           />
 
           {/* Floating animation wrapper */}
@@ -202,43 +269,39 @@ export default function Hero() {
             {/* Browser chrome */}
             <div
               className="relative rounded-2xl overflow-hidden border"
-              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}
+              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', backdropFilter: 'blur(10px)' }}
             >
               {/* Titlebar */}
               <div
                 className="flex items-center gap-3 px-5 py-3.5 border-b"
                 style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.06)' }}
               >
-                <div className="flex gap-1.5">
+                <div className="flex gap-1.5 font-sans">
                   <div className="w-3 h-3 rounded-full bg-red-400/50" />
                   <div className="w-3 h-3 rounded-full bg-yellow-400/50" />
                   <div className="w-3 h-3 rounded-full bg-green-400/50" />
                 </div>
                 <div
-                  className="flex-1 mx-4 bg-white/[0.05] rounded-md px-3 py-1.5 text-xs text-slate-600"
-                  style={{ fontFamily: 'monospace' }}
+                  className="flex-1 mx-4 bg-white/[0.05] rounded-md px-3 py-1.5 text-xs text-slate-500 text-left font-mono"
                 >
-                  app.SARFIS.io/dashboard/analytics
+                  {DASHBOARD_VIEWS[activeView].url}
                 </div>
               </div>
 
               {/* Dashboard content */}
               <div className="p-6" style={{ background: 'linear-gradient(180deg, #0d1829 0%, #06101e 100%)' }}>
                 {/* KPI cards */}
-                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
-                  {mockKPIs.map((kpi, i) => (
-                    <motion.div
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 font-sans">
+                  {DASHBOARD_VIEWS[activeView].kpis.map((kpi, i) => (
+                    <div
                       key={i}
-                      initial={{ opacity: 0, y: 12 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      transition={{ delay: 0.9 + i * 0.08 }}
-                      className="p-4 rounded-xl border"
+                      className="p-4 rounded-xl border text-left"
                       style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}
                     >
                       <div className="text-[10px] text-slate-500 mb-1.5 font-medium uppercase tracking-wider">{kpi.label}</div>
                       <div className="text-lg font-black text-white mb-1" style={{ fontFamily: "'Sora', monospace" }}>{kpi.value}</div>
                       <div className={`text-[11px] font-semibold ${kpi.positive ? 'text-emerald-400' : 'text-rose-400'}`}>{kpi.change}</div>
-                    </motion.div>
+                    </div>
                   ))}
                 </div>
 
@@ -247,17 +310,17 @@ export default function Hero() {
                   className="rounded-xl border p-5 flex items-end gap-1.5 h-32"
                   style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)' }}
                 >
-                  {[40, 65, 45, 80, 55, 90, 70, 95, 75, 88, 60, 100].map((h, i) => (
+                  {DASHBOARD_VIEWS[activeView].chartData.map((h, i) => (
                     <motion.div
                       key={i}
                       initial={{ height: 0 }}
                       animate={{ height: `${h}%` }}
-                      transition={{ delay: 1.1 + i * 0.04, duration: 0.4, ease: 'easeOut' }}
+                      transition={{ duration: 0.4, ease: 'easeOut' }}
                       className="flex-1 rounded-t-sm"
                       style={{
                         background: i === 11
-                          ? 'linear-gradient(180deg, #10b981, #059669)'
-                          : `rgba(16,185,129,${0.15 + (h / 100) * 0.35})`,
+                          ? `linear-gradient(180deg, ${DASHBOARD_VIEWS[activeView].badgeColor}, ${DASHBOARD_VIEWS[activeView].badgeColor}cc)`
+                          : `${DASHBOARD_VIEWS[activeView].badgeColor}${Math.floor(0.15 * 255).toString(16)}`,
                         minWidth: 0,
                       }}
                     />
@@ -293,7 +356,7 @@ export default function Hero() {
                   >
                     <badge.icon size={16} style={{ color: badge.color }} />
                   </div>
-                  <div>
+                  <div className="text-left">
                     <div className="text-white text-[13px] font-semibold leading-none mb-0.5">{badge.text}</div>
                     <div className="text-slate-500 text-[11px]">{badge.sub}</div>
                   </div>
@@ -301,6 +364,35 @@ export default function Hero() {
               );
             })}
           </motion.div>
+
+          {/* Cinematic Interactive Dashboard Switcher Controls */}
+          <div className="flex items-center gap-4 mt-8 justify-center z-30 relative animate-blur-fade-up" style={{ animationDelay: '750ms' }}>
+            <button
+              onClick={() => setActiveView((prev) => (prev === 0 ? DASHBOARD_VIEWS.length - 1 : prev - 1))}
+              className="liquid-glass w-11 h-11 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-all shadow-lg cursor-pointer hover:scale-105 active:scale-95 border-none"
+              title="Previous Module View"
+            >
+              <ChevronLeft size={18} />
+            </button>
+
+            <div className="flex flex-col items-center">
+              <span className="text-[10px] text-slate-500 font-mono tracking-widest uppercase mb-1">
+                Active Module {activeView + 1} of {DASHBOARD_VIEWS.length}
+              </span>
+              <span className="text-sm font-semibold text-white tracking-tight">
+                {DASHBOARD_VIEWS[activeView].title}
+              </span>
+            </div>
+
+            <button
+              onClick={() => setActiveView((prev) => (prev === DASHBOARD_VIEWS.length - 1 ? 0 : prev + 1))}
+              className="liquid-glass w-11 h-11 rounded-full flex items-center justify-center text-slate-400 hover:text-white transition-all shadow-lg cursor-pointer hover:scale-105 active:scale-95 border-none"
+              title="Next Module View"
+            >
+              <ChevronRight size={18} />
+            </button>
+          </div>
+
         </motion.div>
       </motion.div>
     </section>
