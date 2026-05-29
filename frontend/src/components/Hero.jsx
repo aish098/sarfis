@@ -1,17 +1,16 @@
 import { useState, useEffect } from "react";
 import { Link } from "react-router-dom";
 import { motion as M, AnimatePresence, useReducedMotion } from "framer-motion";
-import { ArrowRight, Menu, X, ArrowUpRight } from "lucide-react";
+import { ArrowRight, Menu, X, Zap, ArrowUpRight } from "lucide-react";
 import ShinyText from "./ShinyText";
 
 const NAV_LINKS = [
   { label: "Home", href: "/" },
-  { label: "About Us", href: "/about" },
-  { label: "Courses", href: "/courses" },
-  { label: "Instructors", href: "/instructors" },
-  { label: "Testimonials", href: "/testimonials" },
-  { label: "Blog", href: "/blog" },
-  { label: "Contact us", href: "/contact", isContact: true },
+  { label: "Features", href: "/#features" },
+  { label: "Pricing", href: "/#pricing" },
+  { label: "About", href: "/about" },
+  { label: "Leadership", href: "/leadership" },
+  { label: "Contact", href: "/contact", isContact: true },
 ];
 
 export default function Hero() {
@@ -48,19 +47,30 @@ export default function Hero() {
           />
         </video>
         {/* Layered cinematic gradients + dark overlay for maximum readability */}
-        <div className="absolute inset-0 bg-black/55 animate-fade-in" />
+        <div className="absolute inset-0 bg-black/55" />
         <div className="absolute top-0 inset-x-0 h-1/3 bg-gradient-to-b from-black via-black/40 to-transparent" />
         <div className="absolute bottom-0 inset-x-0 h-1/3 bg-gradient-to-t from-black via-black/40 to-transparent" />
       </div>
 
-      {/* 2. Navigation Bar */}
+      {/* 2. Navigation Bar (SCAFIS Style) */}
       <header className="relative z-20 w-full max-w-7xl mx-auto px-6 py-5 flex items-center justify-between pointer-events-auto">
-        {/* Logo */}
-        <Link to="/" className="flex items-center gap-3 group">
-          <div className="w-8 h-8 rounded-full border-2 border-white flex items-center justify-center transition-transform duration-300 group-hover:rotate-12">
-            <div className="w-2.5 h-2.5 rounded-full bg-white" />
-          </div>
-          <span className="font-bold text-white text-lg tracking-tight">DesignPro</span>
+        {/* SCAFIS Logo & Label */}
+        <Link to="/" className="flex items-center gap-2.5 group">
+          <M.div
+            whileHover={{ rotate: 12, scale: 1.08 }}
+            transition={{ type: "spring", stiffness: 500, damping: 18 }}
+            className="w-8 h-8 rounded-[9px] flex items-center justify-center relative overflow-hidden"
+            style={{ background: "linear-gradient(135deg, #10b981 0%, #06b6d4 100%)" }}
+          >
+            <div className="absolute inset-0 bg-white/20 rounded-[9px]" />
+            <Zap size={14} className="text-white fill-white relative z-10" />
+          </M.div>
+          <span
+            className="text-[17px] font-black text-white tracking-tight"
+            style={{ fontFamily: "'Sora', 'DM Sans', system-ui, sans-serif" }}
+          >
+            SARFIS
+          </span>
         </Link>
 
         {/* Desktop Rounded Pill Nav links */}
@@ -94,27 +104,27 @@ export default function Hero() {
         <div className="w-full pt-4 pointer-events-auto">
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8 w-full border-t border-gray-900/60 pt-6">
             <p className="text-white/80 text-sm lg:text-base max-w-xl leading-relaxed">
-              We deliver transformative programs that empower emerging product designers with cutting-edge expertise and vision to thrive globally.
+              We deliver transformative systems that empower emerging enterprises with cutting-edge real-time financial intelligence and autonomous accounting to thrive globally.
             </p>
             <p className="text-white/80 text-sm lg:text-base lg:text-right font-medium flex items-center lg:justify-end">
-              8000+ Talented Designers Launched !
+              500+ Enterprises Onboarded !
             </p>
           </div>
         </div>
 
         {/* Center Hero Section */}
         <div className="flex-1 flex flex-col justify-center items-center text-center pointer-events-auto">
-          {/* Seats notices */}
+          {/* SCAFIS Sub-header */}
           <span className="text-white/80 text-xs lg:text-sm uppercase tracking-tight mb-4 font-semibold">
-            Seats for Next Program Opening Soon
+            Next Generation Accounting Engine
           </span>
           
           {/* Main Heading */}
           <h1 className="text-[clamp(3rem,8vw,9rem)] leading-[0.85] tracking-tighter flex flex-col items-center mb-10 font-bold">
-            <span className="text-white font-medium mb-1">Become</span>
+            <span className="text-white font-medium mb-1">Smarter</span>
             <ShinyText
-              text="Product Leader."
-              baseColor="#64CEFB"
+              text="Financial Operations."
+              baseColor="#06b6d4"
               shineColor="#ffffff"
               speed={3}
               spread={100}
@@ -127,10 +137,10 @@ export default function Hero() {
             whileTap={shouldReduceMotion ? {} : { scale: 0.97 }}
           >
             <Link
-              to="/apply"
-              className="group inline-flex items-center gap-2.5 px-7 md:px-9 py-3.5 md:py-4 bg-black hover:bg-neutral-900 text-white font-semibold rounded-full border border-gray-800 transition-all duration-300 hover:shadow-[0_0_20px_rgba(100,206,251,0.2)] text-sm md:text-base"
+              to="/register"
+              className="group inline-flex items-center gap-2.5 px-7 md:px-9 py-3.5 md:py-4 bg-black hover:bg-neutral-900 text-white font-semibold rounded-full border border-gray-800 transition-all duration-300 hover:shadow-[0_0_20px_rgba(6,182,212,0.25)] text-sm md:text-base"
             >
-              Apply for Next Enrollment
+              Start Free Trial
               <ArrowRight
                 size={16}
                 className="group-hover:translate-x-1 transition-transform duration-200"
@@ -177,7 +187,7 @@ export default function Hero() {
             </nav>
 
             <div className="relative z-10 w-full text-center text-white/40 text-xs mt-auto">
-              © {new Date().getFullYear()} DesignPro. All rights reserved.
+              © {new Date().getFullYear()} SARFIS. All rights reserved.
             </div>
           </M.div>
         )}
