@@ -54,11 +54,21 @@ if (typeof document !== "undefined" && !document.getElementById("lp-styles-v4"))
     @keyframes lp-pulse      { 0%{box-shadow:0 0 0 0 rgba(99,102,241,.45)} 70%{box-shadow:0 0 0 18px rgba(99,102,241,0)} 100%{box-shadow:0 0 0 0 rgba(99,102,241,0)} }
     @keyframes lp-shimmer    { 0%,100%{opacity:.4} 50%{opacity:1} }
     @keyframes lp-spin-slow  { from{transform:rotate(0deg)} to{transform:rotate(360deg)} }
+    @keyframes lp-svg-pulse  { 0%{stroke-dashoffset:0} 100%{stroke-dashoffset:-20} }
     .lp-mq-track            { animation: lp-marquee 38s linear infinite; }
     .lp-mq-track:hover      { animation-play-state: paused; }
     .lp-float               { animation: lp-float 6s ease-in-out infinite; }
     .lp-pulse               { animation: lp-pulse 2.8s ease-out infinite; }
     .lp-shimmer             { animation: lp-shimmer 3s ease-in-out infinite; }
+    .svg-line-pulse          { animation: lp-svg-pulse 1s linear infinite; }
+    @media (max-width: 859px) {
+      .lh-tree-desktop { display: none !important; }
+      .lh-tree-mobile { display: flex !important; flex-direction: column !important; gap: 24px !important; }
+    }
+    @media (min-width: 860px) {
+      .lh-tree-desktop { display: block !important; }
+      .lh-tree-mobile { display: none !important; }
+    }
   `;
   document.head.appendChild(s);
 }
@@ -318,49 +328,461 @@ function HierCard({ m }) {
   );
 }
 
-function VerticalCard({ v, i }) {
-  const [hov, setHov] = useState(false);
+function StatusCanvas() {
+  const canvasRef = useRef(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext("2d");
+    let animationFrameId;
+    let width = (canvas.width = canvas.offsetWidth || 140);
+    let height = (canvas.height = canvas.offsetHeight || 50);
+
+    const resize = () => {
+      width = canvas.width = canvas.offsetWidth || 140;
+      height = canvas.height = canvas.offsetHeight || 50;
+    };
+    window.addEventListener("resize", resize);
+
+    const nodes = Array.from({ length: 6 }, () => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      vx: (Math.random() - 0.5) * 0.4,
+      vy: (Math.random() - 0.5) * 0.4,
+      radius: Math.random() * 2 + 1.5,
+    }));
+
+    const draw = () => {
+      ctx.clearRect(0, 0, width, height);
+
+      // Draw connections
+      ctx.strokeStyle = "rgba(16, 185, 129, 0.15)";
+      ctx.lineWidth = 0.8;
+      for (let i = 0; i < nodes.length; i++) {
+        for (let j = i + 1; j < nodes.length; j++) {
+          const dx = nodes[i].x - nodes[j].x;
+          const dy = nodes[i].y - nodes[j].y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < 45) {
+            ctx.beginPath();
+            ctx.moveTo(nodes[i].x, nodes[i].y);
+            ctx.lineTo(nodes[j].x, nodes[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+
+      // Draw nodes
+      nodes.forEach((node) => {
+        node.x += node.vx;
+        node.y += node.vy;
+
+        if (node.x < 0 || node.x > width) node.vx *= -1;
+        if (node.y < 0 || node.y > height) node.vy *= -1;
+
+        ctx.beginPath();
+        ctx.arc(node.x, node.y, node.radius, 0, Math.PI * 2);
+        ctx.fillStyle = "rgba(16, 185, 129, 0.7)";
+        ctx.fill();
+      });
+
+      animationFrameId = requestAnimationFrame(draw);
+    };
+
+    draw();
+
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener("resize", resize);
+    };
+  }, []);
+
+  return <canvas ref={canvasRef} style={{ width: "100%", height: "100%", opacity: 0.85 }} />;
+}
+
+const VERTICAL_DETAILS = [
+  {
+    title: "Strategic Core",
+    label: "Vertical 01",
+    accent: C.accent,
+    bgColor: "rgba(99,102,241,0.05)",
+    tagline: "Foundational vision and executive steering.",
+    desc: "The Strategic Core shapes SCAFIS's long-term business models, technical roadmaps, and autonomous growth objectives. It directs cross-disciplinary synchronization across Advisory and Engineering to achieve industry-leading solutions.",
+    tags: ["Foundational Vision", "Executive Steering", "SaaS Strategy", "GTM Execution"],
+    objectives: [
+      "Define long-term technical architecture principles and system design priorities.",
+      "Formulate market acquisition, sector-specific expansion, and GTM strategy.",
+      "Oversee and coordinate cooperation between Advisory Board and Engineering groups."
+    ],
+    members: [
+      { initials: "RZ", name: "Rana Muhammad Zain", title: "Chairman & Founder", accent: C.skyBlue, desc: "Architected SCAFIS ERP system & financial intelligence engine from the ground up." },
+      { initials: "AK", name: "Ayesha Kashif", title: "CEO & Co-Founder", accent: C.violet, desc: "Drives strategic operational vision, SaaS outreach, and sector-specific scaling." }
+    ]
+  },
+  {
+    title: "Advisory Council",
+    label: "Vertical 02",
+    accent: C.amber,
+    bgColor: "rgba(245,158,11,0.05)",
+    tagline: "Academic oversight and regulatory compliance.",
+    desc: "The Advisory Council provides academic verification, legal frameworks, and regulatory auditing. This oversight guarantees SCAFIS matches strict tax codes and IFRS compliance standards worldwide.",
+    tags: ["Academic Rigour", "Regulatory Auditing", "IFRS Compliance", "Tax Legislation"],
+    objectives: [
+      "Formulate and audit SCAFIS data schemas against international IFRS compliance standards.",
+      "Advise on taxation compliance rules and regulatory legal definitions.",
+      "Perform continuous audits of decision-making algorithms to ensure intellectual precision."
+    ],
+    members: [
+      { initials: "MS", name: "Prof. Mohammad Saad Anwar", title: "Taxation Lawyer", accent: C.cyan, desc: "Certified trainer providing strategic oversight on data pipelines and tax law." },
+      { initials: "MR", name: "Prof. Muhammed Rehan Anjum", title: "Accountant", accent: C.amber, desc: "IFRS compliance authority and expert on enterprise data governance." }
+    ]
+  },
+  {
+    title: "Product & Tech",
+    label: "Vertical 03",
+    accent: C.green,
+    bgColor: "rgba(16,185,129,0.05)",
+    tagline: "Architecture, AI logic, and SaaS engineering.",
+    desc: "Product & Tech builds and tests the core codebase of the SCAFIS platform, engineering automated transaction matchers, real-time analytics engines, and clean web application dashboards.",
+    tags: ["Ledger Architecture", "AI Matching Logic", "SaaS Engineering", "Real-time Queries"],
+    objectives: [
+      "Build high-speed ledger query engines and automatic journal-matching pipelines.",
+      "Develop predictive cash flow analysis and autonomous accounting logic.",
+      "Deploy and maintain modern, secure cloud infrastructure for SaaS delivery."
+    ],
+    members: [
+      { initials: "HT", name: "Team Member", title: "Role TBA", accent: C.green, desc: "SaaS platform developer specializing in secure backend structures and interface state." },
+      { initials: "SM", name: "Team Member", title: "Role TBA", accent: C.green, desc: "AI matching logic systems builder and query optimizer." }
+    ]
+  },
+  {
+    title: "Global Ops",
+    label: "Vertical 04",
+    accent: C.cyan,
+    bgColor: "rgba(34,211,238,0.05)",
+    tagline: "Market strategy, legal, and financial framework.",
+    desc: "Global Ops coordinates market operations, platform risks, legal entity setups, and licensing protocols to scale SCAFIS safely in global markets.",
+    tags: ["Market Expansion", "Legal Framework", "Financial Systems", "Risk Auditing"],
+    objectives: [
+      "Manage licensing, IP protection, and cross-border regulatory compliance.",
+      "Coordinate customer support protocols and user onboarding frameworks.",
+      "Oversee company financial audits, bookkeeping systems, and treasury logic."
+    ],
+    members: [
+      { initials: "FA", name: "Farhan", title: "Legal Advisor", accent: C.green, desc: "Handles legal framework, contract templates, and platform corporate compliance." }
+    ]
+  }
+];
+
+function DetailPanel({ activeId, onClose }) {
+  const data = VERTICAL_DETAILS[activeId];
+  if (!data) return null;
+
+  return (
+    <M.div
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      exit={{ opacity: 0, y: -20 }}
+      transition={{ duration: 0.35, ease: "easeOut" }}
+      style={{
+        marginTop: 40,
+        background: C.card,
+        border: `1px solid ${data.accent}44`,
+        borderRadius: 24,
+        padding: "36px",
+        position: "relative",
+        boxShadow: `0 24px 60px rgba(0,0,0,0.5), 0 0 30px ${data.accent}10`,
+        overflow: "hidden"
+      }}
+    >
+      {/* Accent corner glow */}
+      <div style={{
+        position: "absolute", top: -80, right: -80, width: 220, height: 220,
+        borderRadius: "50%", background: `${data.accent}15`,
+        filter: "blur(40px)", pointerEvents: "none"
+      }} />
+
+      {/* Header */}
+      <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 28, flexWrap: "wrap", gap: 16 }}>
+        <div>
+          <span style={{
+            fontFamily: ff.m, fontSize: 10, color: data.accent,
+            letterSpacing: ".2em", textTransform: "uppercase", display: "block", marginBottom: 6
+          }}>
+            {data.label}
+          </span>
+          <h3 style={{
+            fontFamily: ff.d, fontSize: "clamp(20px, 3vw, 28px)", fontWeight: 800,
+            color: C.textPri, margin: 0, letterSpacing: "-.02em"
+          }}>
+            {data.title}
+          </h3>
+          <p style={{
+            fontFamily: ff.s, fontSize: 14, color: C.textSec,
+            margin: "6px 0 0", fontWeight: 400
+          }}>
+            {data.tagline}
+          </p>
+        </div>
+        <button
+          onClick={onClose}
+          style={{
+            background: `${C.border}44`,
+            border: `1px solid ${C.border}`,
+            borderRadius: "50%",
+            width: 32,
+            height: 32,
+            display: "flex",
+            alignItems: "center",
+            justifyContent: "center",
+            color: C.textSec,
+            cursor: "pointer",
+            transition: "all 0.2s"
+          }}
+          onMouseEnter={(e) => { e.currentTarget.style.color = C.textPri; e.currentTarget.style.borderColor = data.accent; }}
+          onMouseLeave={(e) => { e.currentTarget.style.color = C.textSec; e.currentTarget.style.borderColor = C.border; }}
+        >
+          ✕
+        </button>
+      </div>
+
+      <div style={{ display: "flex", flexWrap: "wrap", gap: 32 }}>
+        {/* Left Side: Overview & Objectives */}
+        <div style={{ flex: "1 1 450px" }}>
+          <p style={{
+            fontFamily: ff.s, fontSize: 14.5, color: C.textPri,
+            lineHeight: 1.75, margin: "0 0 24px"
+          }}>
+            {data.desc}
+          </p>
+
+          <p style={{
+            fontFamily: ff.m, fontSize: 10, color: data.accent,
+            letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 12
+          }}>Key Objectives</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
+            {data.objectives.map((obj, index) => (
+              <div key={index} style={{ display: "flex", gap: 12, alignItems: "flex-start" }}>
+                <div style={{
+                  width: 6, height: 6, borderRadius: "50%", background: data.accent,
+                  marginTop: 8, flexShrink: 0
+                }} />
+                <p style={{
+                  fontFamily: ff.s, fontSize: 13.5, color: C.textSec,
+                  lineHeight: 1.6, margin: 0
+                }}>{obj}</p>
+              </div>
+            ))}
+          </div>
+
+          <div style={{ marginTop: 24 }}>
+            <p style={{
+              fontFamily: ff.m, fontSize: 10, color: data.accent,
+              letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 10
+            }}>Focus Areas</p>
+            <div style={{ display: "flex", flexWrap: "wrap", gap: 8 }}>
+              {data.tags.map((tag) => (
+                <span key={tag} style={{
+                  fontFamily: ff.m, fontSize: 9, color: C.textPri,
+                  background: `${data.accent}12`, border: `1px solid ${data.accent}33`,
+                  borderRadius: 20, padding: "4px 12px", letterSpacing: ".05em"
+                }}>
+                  {tag}
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+
+        {/* Right Side: Associated Members */}
+        <div style={{ flex: "1 1 300px" }}>
+          <p style={{
+            fontFamily: ff.m, fontSize: 10, color: data.accent,
+            letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 16
+          }}>Mapped Personnel</p>
+          <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+            {data.members.map((m) => (
+              <div key={m.name} style={{
+                background: C.cardDeep,
+                border: `1px solid ${C.border}`,
+                borderRadius: 16,
+                padding: "16px 18px",
+                display: "flex",
+                gap: 14,
+                alignItems: "flex-start",
+                transition: "border-color 0.25s",
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.borderColor = m.accent + "55"}
+              onMouseLeave={(e) => e.currentTarget.style.borderColor = C.border}
+              >
+                <div style={{
+                  width: 44, height: 44, borderRadius: "50%",
+                  background: `radial-gradient(circle at 36% 36%, #252d52, ${C.cardDeep})`,
+                  border: `2px solid ${m.accent}`,
+                  display: "flex", alignItems: "center", justifyContent: "center",
+                  fontFamily: ff.d, fontWeight: 800, fontSize: 14, color: m.accent,
+                  flexShrink: 0
+                }}>
+                  {m.initials}
+                </div>
+                <div>
+                  <p style={{
+                    fontFamily: ff.d, fontSize: 13.5, fontWeight: 700, color: C.textPri,
+                    margin: "0 0 2px"
+                  }}>{m.name}</p>
+                  <p style={{
+                    fontFamily: ff.m, fontSize: 8.5, color: m.accent,
+                    letterSpacing: ".12em", textTransform: "uppercase", margin: "0 0 6px"
+                  }}>{m.title}</p>
+                  <p style={{
+                    fontFamily: ff.s, fontSize: 11.5, color: C.textSec,
+                    lineHeight: 1.5, margin: 0
+                  }}>{m.desc}</p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    </M.div>
+  );
+}
+
+function VerticalCard({ v, i, activeId, setActiveId, setHoverId }) {
+  const cardRef = useRef(null);
+  const [coords, setCoords] = useState({ x: 0, y: 0 });
+  const [rotate, setRotate] = useState({ x: 0, y: 0 });
+  const [isHovered, setIsHovered] = useState(false);
+
+  const handleMouseMove = (e) => {
+    const card = cardRef.current;
+    if (!card) return;
+    const rect = card.getBoundingClientRect();
+    const x = e.clientX - rect.left;
+    const y = e.clientY - rect.top;
+    setCoords({ x, y });
+
+    const cardWidth = rect.width;
+    const cardHeight = rect.height;
+    const rotateX = ((y / cardHeight) - 0.5) * -12;
+    const rotateY = ((x / cardWidth) - 0.5) * 12;
+    setRotate({ x: rotateX, y: rotateY });
+  };
+
+  const handleMouseLeave = () => {
+    setIsHovered(false);
+    setHoverId(null);
+    setRotate({ x: 0, y: 0 });
+  };
+
+  const handleMouseEnter = () => {
+    setIsHovered(true);
+    setHoverId(i);
+  };
+
+  const isActive = activeId === i;
+
   return (
     <FV delay={i * 0.1}>
       <div
-        onMouseEnter={() => setHov(true)}
-        onMouseLeave={() => setHov(false)}
+        ref={cardRef}
+        onMouseMove={handleMouseMove}
+        onMouseEnter={handleMouseEnter}
+        onMouseLeave={handleMouseLeave}
+        onClick={() => setActiveId(isActive ? null : i)}
         style={{
-          padding: "24px",
-          background: hov ? `linear-gradient(145deg,#161b34,${C.cardDeep})` : C.card,
-          border: `1px solid ${hov ? v.accent + "55" : C.border}`,
+          padding: "26px 24px",
+          background: isHovered
+            ? `radial-gradient(circle 180px at ${coords.x}px ${coords.y}px, ${v.accent}1a, ${C.card})`
+            : C.card,
+          border: `1px solid ${isActive ? v.accent : (isHovered ? `${v.accent}66` : C.border)}`,
           borderRadius: 20,
           height: "100%",
           position: "relative",
           overflow: "hidden",
-          cursor: "default",
-          transition: "all .32s cubic-bezier(.22,1,.36,1)",
-          transform: hov ? "translateY(-4px) scale(1.01)" : "none",
-          boxShadow: hov ? `0 20px 40px rgba(0,0,0,.4), 0 0 0 1px ${v.accent}15` : "none",
+          cursor: "pointer",
+          transition: "border-color 0.25s, box-shadow 0.25s, transform 0.25s cubic-bezier(.22,1,.36,1)",
+          transform: isHovered
+            ? `perspective(1000px) rotateX(${rotate.x}deg) rotateY(${rotate.y}deg) translateY(-6px)`
+            : "perspective(1000px) rotateX(0deg) rotateY(0deg) translateY(0)",
+          boxShadow: isHovered
+            ? `0 20px 40px rgba(0,0,0,.45), 0 0 25px ${v.accent}15`
+            : "none",
         }}
       >
         <div style={{
           position: "absolute", top: 0, left: 0, width: 3, height: "100%",
-          background: v.accent, opacity: hov ? 1 : 0.6, transition: "opacity .3s"
+          background: v.accent, opacity: isHovered || isActive ? 1 : 0.6, transition: "opacity .3s"
         }} />
-        <p style={{
-          fontFamily: ff.m, fontSize: 9, color: v.accent,
-          letterSpacing: ".15em", textTransform: "uppercase", marginBottom: 12
-        }}>Vertical 0{i + 1}</p>
+        
+        {/* Glow point follower */}
+        {isHovered && (
+          <div style={{
+            position: "absolute", left: coords.x - 40, top: coords.y - 40,
+            width: 80, height: 80, borderRadius: "50%", background: v.accent,
+            filter: "blur(40px)", opacity: 0.15, pointerEvents: "none"
+          }} />
+        )}
+
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "flex-start", marginBottom: 12 }}>
+          <p style={{
+            fontFamily: ff.m, fontSize: 9, color: v.accent,
+            letterSpacing: ".15em", textTransform: "uppercase", margin: 0
+          }}>Vertical 0{i + 1}</p>
+          
+          {/* Pulsing indicator when active */}
+          {isActive && (
+            <div style={{
+              width: 6, height: 6, borderRadius: "50%", background: v.accent,
+              boxShadow: `0 0 8px ${v.accent}`
+            }} />
+          )}
+        </div>
+
         <p style={{
           fontFamily: ff.d, fontSize: 17, fontWeight: 800,
           color: C.textPri, marginBottom: 8
         }}>{v.label}</p>
+        
         <p style={{
           fontFamily: ff.s, fontSize: 13, color: C.textSec,
-          lineHeight: 1.6, margin: 0
+          lineHeight: 1.6, margin: "0 0 16px"
         }}>{v.desc}</p>
+        
+        {/* Interactive indicator at bottom */}
+        <div style={{ display: "flex", alignItems: "center", gap: 6, marginTop: "auto" }}>
+          <span style={{
+            fontFamily: ff.m, fontSize: 8.5, color: isHovered || isActive ? v.accent : C.textDim,
+            letterSpacing: ".08em", textTransform: "uppercase", transition: "color 0.2s"
+          }}>
+            {isActive ? "Collapse details" : "Explore vertical"}
+          </span>
+          <svg
+            width="12"
+            height="12"
+            viewBox="0 0 24 24"
+            fill="none"
+            stroke="currentColor"
+            strokeWidth="2.5"
+            style={{
+              color: isHovered || isActive ? v.accent : C.textDim,
+              transform: isActive ? "rotate(90deg)" : "rotate(0deg)",
+              transition: "transform 0.25s, color 0.25s"
+            }}
+          >
+            <path d="M5 12h14M12 5l7 7-7 7" />
+          </svg>
+        </div>
       </div>
     </FV>
   );
 }
 
 function LeadershipHierarchy() {
+  const [activeId, setActiveId] = useState(null);
+  const [hoverId, setHoverId] = useState(null);
+
   const verticals = [
     { label: "Strategic Core", desc: "Foundational vision and executive steering.", accent: C.accent },
     { label: "Advisory Council", desc: "Academic oversight and regulatory compliance.", accent: C.amber },
@@ -371,6 +793,7 @@ function LeadershipHierarchy() {
   return (
     <section style={{ background: C.bg, padding: "96px 24px 80px" }}>
       <div style={{ maxWidth: 1080, margin: "0 auto" }}>
+        {/* Header Section */}
         <div style={{ display: "flex", flexWrap: "wrap", gap: 44, alignItems: "flex-end", marginBottom: 64 }}>
           <FV style={{ flex: "1 1 400px" }}>
             <Tag label="Organisation" accent={C.green} />
@@ -382,21 +805,164 @@ function LeadershipHierarchy() {
               SCAFIS is built on a multi-disciplinary framework where academic rigour meets technical precision. Our structure ensures data integrity at every level.
             </p>
           </FV>
-          <FV delay={0.2} style={{ flex: "1 1 300px" }}>
-            <div style={{ padding: "20px", background: `${C.green}08`, border: `1px solid ${C.green}22`, borderRadius: 16 }}>
-              <p style={{ fontFamily: ff.m, fontSize: 10, color: C.green, letterSpacing: ".1em", textTransform: "uppercase", marginBottom: 8 }}>Operational Status</p>
-              <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
-                <div className="lp-pulse" style={{ width: 8, height: 8, borderRadius: "50%", background: C.green }} />
-                <span style={{ fontFamily: ff.s, fontSize: 13, color: C.textPri, fontWeight: 600 }}>Decentralised & Scalable</span>
+          
+          {/* Operational Status with Active StatusCanvas */}
+          <FV delay={0.2} style={{ flex: "1 1 300px", minWidth: 260 }}>
+            <div style={{
+              padding: "20px",
+              background: `${C.green}04`,
+              border: `1px solid ${C.green}22`,
+              borderRadius: 16,
+              position: "relative",
+              overflow: "hidden",
+              height: 90,
+              display: "flex",
+              flexDirection: "column",
+              justifyContent: "center"
+            }}>
+              <div style={{ position: "absolute", inset: 0, opacity: 0.25, pointerEvents: "none" }}>
+                <StatusCanvas />
+              </div>
+              <div style={{ position: "relative", zIndex: 2 }}>
+                <p style={{ fontFamily: ff.m, fontSize: 10, color: C.green, letterSpacing: ".12em", textTransform: "uppercase", marginBottom: 6 }}>Operational Status</p>
+                <div style={{ display: "flex", alignItems: "center", gap: 10 }}>
+                  <div className="lp-pulse" style={{ width: 8, height: 8, borderRadius: "50%", background: C.green, animation: "lp-pulse 2s ease-out infinite" }} />
+                  <span style={{ fontFamily: ff.s, fontSize: 14, color: C.textPri, fontWeight: 700, letterSpacing: "-0.01em" }}>Decentralised & Scalable</span>
+                </div>
               </div>
             </div>
           </FV>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(240px, 1fr))", gap: 16 }}>
-          {verticals.map((v, i) => (
-            <VerticalCard key={v.label} v={v} i={i} />
-          ))}
+        {/* Connected Organization Hierarchy Map */}
+        <div style={{ position: "relative" }}>
+          
+          {/* Desktop Tree View */}
+          <div className="lh-tree-desktop">
+            {/* Row 1: Strategic Core Card centered */}
+            <div style={{ display: "flex", justifyContent: "center", marginBottom: 48, position: "relative", zIndex: 2 }}>
+              <div style={{ width: 340 }}>
+                <VerticalCard
+                  v={verticals[0]}
+                  i={0}
+                  activeId={activeId}
+                  setActiveId={setActiveId}
+                  hoverId={hoverId}
+                  setHoverId={setHoverId}
+                />
+              </div>
+            </div>
+
+            {/* Spacer with connection lines */}
+            <div style={{ height: 70, position: "relative", width: "100%", zIndex: 1 }}>
+              <svg width="100%" height="100%" style={{ overflow: "visible" }}>
+                <defs>
+                  <linearGradient id="line-grad-1" x1="50%" y1="0%" x2="16.67%" y2="100%">
+                    <stop offset="0%" stopColor={C.accent} stopOpacity="0.8" />
+                    <stop offset="100%" stopColor={C.amber} stopOpacity="0.3" />
+                  </linearGradient>
+                  <linearGradient id="line-grad-2" x1="50%" y1="0%" x2="50%" y2="100%">
+                    <stop offset="0%" stopColor={C.accent} stopOpacity="0.8" />
+                    <stop offset="100%" stopColor={C.green} stopOpacity="0.3" />
+                  </linearGradient>
+                  <linearGradient id="line-grad-3" x1="50%" y1="0%" x2="83.33%" y2="100%">
+                    <stop offset="0%" stopColor={C.accent} stopOpacity="0.8" />
+                    <stop offset="100%" stopColor={C.cyan} stopOpacity="0.3" />
+                  </linearGradient>
+                </defs>
+
+                {/* Left curve to Advisory Council */}
+                <path
+                  d="M 50% 0 C 50% 35, 16.67% 35, 16.67% 70"
+                  stroke="url(#line-grad-1)"
+                  strokeWidth="2.5"
+                  fill="none"
+                  strokeDasharray="8 4"
+                  className={hoverId === 0 || hoverId === 1 ? "svg-line-pulse" : ""}
+                  style={{ opacity: hoverId === null || hoverId === 0 || hoverId === 1 ? 0.75 : 0.2, transition: "opacity 0.3s" }}
+                />
+
+                {/* Center line to Product & Tech */}
+                <path
+                  d="M 50% 0 L 50% 70"
+                  stroke="url(#line-grad-2)"
+                  strokeWidth="2.5"
+                  fill="none"
+                  strokeDasharray="8 4"
+                  className={hoverId === 0 || hoverId === 2 ? "svg-line-pulse" : ""}
+                  style={{ opacity: hoverId === null || hoverId === 0 || hoverId === 2 ? 0.75 : 0.2, transition: "opacity 0.3s" }}
+                />
+
+                {/* Right curve to Global Ops */}
+                <path
+                  d="M 50% 0 C 50% 35, 83.33% 35, 83.33% 70"
+                  stroke="url(#line-grad-3)"
+                  strokeWidth="2.5"
+                  fill="none"
+                  strokeDasharray="8 4"
+                  className={hoverId === 0 || hoverId === 3 ? "svg-line-pulse" : ""}
+                  style={{ opacity: hoverId === null || hoverId === 0 || hoverId === 3 ? 0.75 : 0.2, transition: "opacity 0.3s" }}
+                />
+              </svg>
+            </div>
+
+            {/* Row 2: Bottom Verticals Grid */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(3, 1fr)", gap: 32, position: "relative", zIndex: 2 }}>
+              <VerticalCard
+                v={verticals[1]}
+                i={1}
+                activeId={activeId}
+                setActiveId={setActiveId}
+                hoverId={hoverId}
+                setHoverId={setHoverId}
+              />
+              <VerticalCard
+                v={verticals[2]}
+                i={2}
+                activeId={activeId}
+                setActiveId={setActiveId}
+                hoverId={hoverId}
+                setHoverId={setHoverId}
+              />
+              <VerticalCard
+                v={verticals[3]}
+                i={3}
+                activeId={activeId}
+                setActiveId={setActiveId}
+                hoverId={hoverId}
+                setHoverId={setHoverId}
+              />
+            </div>
+          </div>
+
+          {/* Mobile Stacked View */}
+          <div className="lh-tree-mobile" style={{ position: "relative" }}>
+            {/* Vertical connection dashed line behind */}
+            <div style={{
+              position: "absolute", left: "calc(26px + 24px)", top: 40, bottom: 40,
+              width: 2, borderLeft: `1.5px dashed ${C.border}`, zIndex: 1, opacity: 0.5
+            }} />
+            {verticals.map((v, i) => (
+              <div key={v.label} style={{ position: "relative", zIndex: 2 }}>
+                <VerticalCard
+                  v={v}
+                  i={i}
+                  activeId={activeId}
+                  setActiveId={setActiveId}
+                  hoverId={hoverId}
+                  setHoverId={setHoverId}
+                />
+              </div>
+            ))}
+          </div>
+
+          {/* Expandable Detail Panel with AnimatePresence */}
+          <AnimatePresence>
+            {activeId !== null && (
+              <DetailPanel activeId={activeId} onClose={() => setActiveId(null)} />
+            )}
+          </AnimatePresence>
+
         </div>
       </div>
     </section>
