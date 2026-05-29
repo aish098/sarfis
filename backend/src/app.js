@@ -29,6 +29,7 @@ app.use('/api/analytics', require('./routes/analytics.routes'));
 
 // ERP Modules (Now includes Analytics)
 app.use('/api', require('./routes/erp.routes'));
+app.use('/api', require('./routes/voucher.routes'));
 
 const path = require('path');
 

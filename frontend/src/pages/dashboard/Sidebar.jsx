@@ -19,8 +19,10 @@ const NAV_SECTIONS = [
     label: 'Transactions',
     items: [
       { to: '/dashboard/accounts', icon: BookOpen, label: 'Chart of Accounts' },
-      { to: '/dashboard/journal', icon: FilePlus, label: 'Journal Entries' },
-      { to: '/dashboard/ledger', icon: BookMarked, label: 'Ledger' },
+      { to: '/dashboard/vouchers', icon: FilePlus, label: 'ERP Vouchers' },
+      { to: '/dashboard/vendors', icon: Building2, label: 'Vendor Directory' },
+      { to: '/dashboard/journal', icon: Activity, label: 'Manual Journals' },
+      { to: '/dashboard/ledger', icon: BookMarked, label: 'General Ledger' },
     ],
   },
   {

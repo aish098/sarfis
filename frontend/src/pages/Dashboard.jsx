@@ -33,6 +33,8 @@ import AnalyticsDashboard from './AnalyticsDashboard.jsx';
 import InventoryPage from './inventory/InventoryPage.jsx';
 import WarehousePage from './inventory/WarehousePage.jsx';
 import DistributionPage from './distribution/DistributionPage.jsx';
+import VouchersPage from './vouchers/VouchersPage.jsx';
+import VendorsPage from './vendors/VendorsPage.jsx';
 
 // ERP Dashboard Widgets
 import { LowStockWidget, StockValueWidget, SectorRevenueWidget, TopClientsWidget } from '../components/erp/ERPDashboardWidgets.jsx';
@@ -366,6 +368,8 @@ export default function Dashboard() {
               <Route path="inventory" element={<InventoryPage globalSearch={globalSearch} />} />
               <Route path="warehouses" element={<WarehousePage globalSearch={globalSearch} />} />
               <Route path="distribution" element={<DistributionPage globalSearch={globalSearch} />} />
+              <Route path="vouchers/*" element={<VouchersPage />} />
+              <Route path="vendors" element={<VendorsPage />} />
             </Routes>
           </Motion.div>
         </AnimatePresence>
