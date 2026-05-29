@@ -1,197 +1,308 @@
-import { useState, useEffect } from "react";
-import { Link } from "react-router-dom";
-import { motion as M, AnimatePresence, useReducedMotion } from "framer-motion";
-import { ArrowRight, Menu, X, Zap, ArrowUpRight } from "lucide-react";
-import ShinyText from "./ShinyText";
+import { useRef } from 'react';
+// eslint-disable-next-line no-unused-vars
+import { motion, useScroll, useTransform } from 'framer-motion';
+import { Link } from 'react-router-dom';
+import { ArrowRight, Sparkles, TrendingUp, ShieldCheck, Cpu, BarChart3, Zap } from 'lucide-react';
 
-const NAV_LINKS = [
-  { label: "Home", href: "/" },
-  { label: "Features", href: "/#features" },
-  { label: "Pricing", href: "/#pricing" },
-  { label: "About", href: "/about" },
-  { label: "Leadership", href: "/leadership" },
-  { label: "Contact", href: "/contact", isContact: true },
+const stats = [
+  { value: '10K+', label: 'Daily Transactions' },
+  { value: '500+', label: 'Businesses Onboarded' },
+  { value: '99.9%', label: 'Uptime Guarantee' },
+];
+
+const floatingBadges = [
+  { icon: TrendingUp, text: 'Revenue +24%', sub: 'vs last quarter', color: '#10b981' },
+  { icon: ShieldCheck, text: 'AES-256 Encrypted', sub: 'Bank-grade security', color: '#06b6d4' },
+  { icon: Cpu, text: 'AI Forecasting', sub: '94% accuracy rate', color: '#8b5cf6' },
+];
+
+const mockKPIs = [
+  { label: 'Total Revenue', value: '$284,920', change: '+18.4%', positive: true },
+  { label: 'Net Profit', value: '$91,340', change: '+12.1%', positive: true },
+  { label: 'Expenses', value: '$193,580', change: '-3.2%', positive: false },
+  { label: 'Cash Flow', value: '$47,820', change: '+9.7%', positive: true },
 ];
 
 export default function Hero() {
-  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
-  const shouldReduceMotion = useReducedMotion();
-
-  // Body scroll lock when menu opens
-  useEffect(() => {
-    if (mobileMenuOpen) {
-      document.body.style.overflow = "hidden";
-    } else {
-      document.body.style.overflow = "";
-    }
-    return () => {
-      document.body.style.overflow = "";
-    };
-  }, [mobileMenuOpen]);
+  const containerRef = useRef(null);
+  const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start start', 'end start'] });
+  const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '30%']);
+  const contentY = useTransform(scrollYProgress, [0, 0.6], [0, -50]);
+  const contentOpacity = useTransform(scrollYProgress, [0, 0.55], [1, 0]);
 
   return (
-    <section className="relative h-screen w-full bg-black overflow-hidden flex flex-col font-sans select-none">
-      {/* 1. Optimized Full-Screen Loop Video Background */}
-      <div className="absolute inset-0 w-full h-full z-0 pointer-events-none bg-black">
-        <video
-          autoPlay
-          loop
-          muted
-          playsInline
-          preload="metadata"
-          className="w-full h-full object-cover"
-        >
-          <source
-            src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260328_105406_16f4600d-7a92-4292-b96e-b19156c7830a.mp4"
-            type="video/mp4"
-          />
-        </video>
-        {/* Layered cinematic gradients + dark overlay for maximum readability */}
-        <div className="absolute inset-0 bg-black/55" />
-        <div className="absolute top-0 inset-x-0 h-1/3 bg-gradient-to-b from-black via-black/40 to-transparent" />
-        <div className="absolute bottom-0 inset-x-0 h-1/3 bg-gradient-to-t from-black via-black/40 to-transparent" />
-      </div>
+    <section
+      ref={containerRef}
+      className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-20 pb-16"
+      style={{ background: '#030b1a' }}
+    >
+      {/* Animated background blobs */}
+      <motion.div style={{ y: bgY }} className="absolute inset-0 pointer-events-none overflow-hidden">
+        <motion.div
+          animate={{ scale: [1, 1.2, 1], opacity: [0.14, 0.22, 0.14] }}
+          transition={{ duration: 10, repeat: Infinity, ease: 'easeInOut' }}
+          className="absolute -top-40 -left-40 w-[700px] h-[700px] rounded-full"
+          style={{ background: 'radial-gradient(circle, #10b981 0%, transparent 70%)', filter: 'blur(80px)' }}
+        />
+        <motion.div
+          animate={{ scale: [1.1, 1, 1.1], opacity: [0.08, 0.16, 0.08] }}
+          transition={{ duration: 13, repeat: Infinity, ease: 'easeInOut', delay: 3 }}
+          className="absolute -bottom-48 -right-24 w-[600px] h-[600px] rounded-full"
+          style={{ background: 'radial-gradient(circle, #06b6d4 0%, transparent 70%)', filter: 'blur(80px)' }}
+        />
+        <motion.div
+          animate={{ scale: [1, 1.3, 1], opacity: [0.05, 0.1, 0.05] }}
+          transition={{ duration: 8, repeat: Infinity, ease: 'easeInOut', delay: 1.5 }}
+          className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[400px] h-[400px] rounded-full"
+          style={{ background: 'radial-gradient(circle, #10b981 0%, transparent 70%)', filter: 'blur(60px)' }}
+        />
+        {/* Grid texture */}
+        <div
+          className="absolute inset-0 opacity-[0.02]"
+          style={{
+            backgroundImage: 'linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)',
+            backgroundSize: '52px 52px',
+          }}
+        />
+      </motion.div>
 
-      {/* 2. Navigation Bar (SCAFIS Style) */}
-      <header className="relative z-20 w-full max-w-7xl mx-auto px-6 py-5 flex items-center justify-between pointer-events-auto">
-        {/* SCAFIS Logo & Label */}
-        <Link to="/" className="flex items-center gap-2.5 group">
-          <M.div
-            whileHover={{ rotate: 12, scale: 1.08 }}
-            transition={{ type: "spring", stiffness: 500, damping: 18 }}
-            className="w-8 h-8 rounded-[9px] flex items-center justify-center relative overflow-hidden"
-            style={{ background: "linear-gradient(135deg, #10b981 0%, #06b6d4 100%)" }}
-          >
-            <div className="absolute inset-0 bg-white/20 rounded-[9px]" />
-            <Zap size={14} className="text-white fill-white relative z-10" />
-          </M.div>
+      <motion.div
+        style={{ opacity: contentOpacity, y: contentY }}
+        className="relative z-10 w-full max-w-6xl mx-auto px-5 sm:px-8 text-center"
+      >
+        {/* Badge */}
+        <motion.div
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.55, delay: 0.1 }}
+          className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border mb-8 text-sm font-medium"
+          style={{
+            background: 'rgba(16, 185, 129, 0.08)',
+            borderColor: 'rgba(16, 185, 129, 0.25)',
+            color: '#6ee7b7',
+          }}
+        >
+          <motion.div animate={{ scale: [1, 1.5, 1] }} transition={{ duration: 2.5, repeat: Infinity }}>
+            <Sparkles size={13} />
+          </motion.div>
+          Trusted by 500+ businesses worldwide
+        </motion.div>
+
+        {/* Headline */}
+        <motion.h1
+          initial={{ opacity: 0, y: 28 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.8, delay: 0.2, ease: [0.22, 1, 0.36, 1] }}
+          className="text-5xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.06] mb-5"
+          style={{ fontFamily: "'Sora', 'DM Sans', system-ui, sans-serif" }}
+        >
+          Smarter Accounting,
+          <br />
           <span
-            className="text-[17px] font-black text-white tracking-tight"
-            style={{ fontFamily: "'Sora', 'DM Sans', system-ui, sans-serif" }}
+            className="text-transparent bg-clip-text"
+            style={{ backgroundImage: 'linear-gradient(135deg, #10b981 0%, #06b6d4 60%, #10b981 100%)', backgroundSize: '200% 200%' }}
           >
-            SARFIS
+            Powered by SARFIS
           </span>
-        </Link>
+        </motion.h1>
 
-        {/* Desktop Rounded Pill Nav links */}
-        <nav className="hidden lg:flex items-center gap-6 px-6 py-2.5 rounded-full border border-gray-700 bg-black/40 backdrop-blur-md">
-          {NAV_LINKS.map((link) => (
-            <Link
-              key={link.label}
-              to={link.href}
-              className="text-sm font-medium text-white/80 hover:text-white transition-colors duration-200 flex items-center gap-1"
-            >
-              {link.label}
-              {link.isContact && <ArrowUpRight size={13} className="opacity-80" />}
-            </Link>
-          ))}
-        </nav>
-
-        {/* Mobile Hamburger menu */}
-        <button
-          onClick={() => setMobileMenuOpen(!mobileMenuOpen)}
-          className="lg:hidden p-2 text-white hover:text-white/80 transition-colors focus:outline-none"
-          aria-label="Toggle Menu"
+        {/* Subline */}
+        <motion.p
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.32 }}
+          className="text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed"
         >
-          {mobileMenuOpen ? <X size={24} /> : <Menu size={24} />}
-        </button>
-      </header>
+          SARFIS automates your full accounting cycle journal entries, ledger, AI analytics, and
+          forecasting so your team can focus on what matters most.
+        </motion.p>
 
-      {/* 3. Content Layout */}
-      <div className="relative z-10 w-full max-w-7xl mx-auto px-6 flex-1 flex flex-col justify-between pb-12 pointer-events-none">
-        
-        {/* Top Section (below nav) */}
-        <div className="w-full pt-4 pointer-events-auto">
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-4 lg:gap-8 w-full border-t border-gray-900/60 pt-6">
-            <p className="text-white/80 text-sm lg:text-base max-w-xl leading-relaxed">
-              We deliver transformative systems that empower emerging enterprises with cutting-edge real-time financial intelligence and autonomous accounting to thrive globally.
-            </p>
-            <p className="text-white/80 text-sm lg:text-base lg:text-right font-medium flex items-center lg:justify-end">
-              500+ Enterprises Onboarded !
-            </p>
-          </div>
-        </div>
-
-        {/* Center Hero Section */}
-        <div className="flex-1 flex flex-col justify-center items-center text-center pointer-events-auto">
-          {/* SCAFIS Sub-header */}
-          <span className="text-white/80 text-xs lg:text-sm uppercase tracking-tight mb-4 font-semibold">
-            Next Generation Accounting Engine
-          </span>
-          
-          {/* Main Heading */}
-          <h1 className="text-[clamp(3rem,8vw,9rem)] leading-[0.85] tracking-tighter flex flex-col items-center mb-10 font-bold">
-            <span className="text-white font-medium mb-1">Smarter</span>
-            <ShinyText
-              text="Financial Operations."
-              baseColor="#06b6d4"
-              shineColor="#ffffff"
-              speed={3}
-              spread={100}
-            />
-          </h1>
-
-          {/* CTA Button */}
-          <M.div
-            whileHover={shouldReduceMotion ? {} : { scale: 1.03 }}
-            whileTap={shouldReduceMotion ? {} : { scale: 0.97 }}
-          >
+        {/* Buttons */}
+        <motion.div
+          initial={{ opacity: 0, y: 18 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.42 }}
+          className="flex flex-col sm:flex-row gap-4 justify-center mb-16"
+        >
+          <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
             <Link
               to="/register"
-              className="group inline-flex items-center gap-2.5 px-7 md:px-9 py-3.5 md:py-4 bg-black hover:bg-neutral-900 text-white font-semibold rounded-full border border-gray-800 transition-all duration-300 hover:shadow-[0_0_20px_rgba(6,182,212,0.25)] text-sm md:text-base"
+              className="group inline-flex items-center gap-2.5 px-8 py-4 text-base font-semibold text-white rounded-2xl relative overflow-hidden"
+              style={{ background: 'linear-gradient(135deg, #059669 0%, #0891b2 100%)' }}
             >
-              Start Free Trial
-              <ArrowRight
-                size={16}
-                className="group-hover:translate-x-1 transition-transform duration-200"
+              <span className="absolute inset-0 bg-white/0 group-hover:bg-white/10 transition-colors duration-300" />
+              <span
+                className="absolute -inset-1 opacity-0 group-hover:opacity-40 transition-opacity duration-500 blur-xl"
+                style={{ background: 'linear-gradient(135deg, #10b981, #06b6d4)' }}
               />
+              Start Free Trial
+              <ArrowRight size={17} className="relative z-10 group-hover:translate-x-0.5 transition-transform duration-200" />
             </Link>
-          </M.div>
-        </div>
+          </motion.div>
+          <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
+            <Link
+              to="/login"
+              className="inline-flex items-center gap-2.5 px-8 py-4 text-base font-medium text-white rounded-2xl border transition-all duration-300"
+              style={{
+                background: 'rgba(255,255,255,0.04)',
+                borderColor: 'rgba(255,255,255,0.1)',
+              }}
+            >
+              Sign In to Dashboard
+            </Link>
+          </motion.div>
+        </motion.div>
 
-        {/* Bottom spacing helper */}
-        <div className="h-4" />
-      </div>
+        {/* Stats row */}
+        <motion.div
+          initial={{ opacity: 0 }}
+          animate={{ opacity: 1 }}
+          transition={{ duration: 0.8, delay: 0.55 }}
+          className="flex flex-col sm:flex-row justify-center items-center gap-10 sm:gap-16 mb-20"
+        >
+          {stats.map((s, i) => (
+            <motion.div
+              key={i}
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6 + i * 0.1 }}
+              className="text-center"
+            >
+              <motion.div
+                whileHover={{ scale: 1.06 }}
+                className="text-4xl font-black text-white mb-1 leading-none"
+                style={{ fontFamily: "'Sora', 'DM Sans', system-ui, sans-serif" }}
+              >
+                {s.value}
+              </motion.div>
+              <div className="text-sm text-slate-500">{s.label}</div>
+            </motion.div>
+          ))}
+        </motion.div>
 
-      {/* 4. Mobile Navigation Drawer Overlay */}
-      <AnimatePresence>
-        {mobileMenuOpen && (
-          <M.div
-            initial={{ opacity: 0, y: -20 }}
-            animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0, y: -20 }}
-            transition={{ duration: 0.25, ease: "easeInOut" }}
-            className="absolute inset-0 z-15 bg-black flex flex-col lg:hidden px-6 pt-24 pb-10"
+        {/* Floating dashboard mockup */}
+        <motion.div
+          initial={{ opacity: 0, y: 80, scale: 0.92 }}
+          animate={{ opacity: 1, y: 0, scale: 1 }}
+          transition={{ duration: 1.1, delay: 0.65, ease: [0.22, 1, 0.36, 1] }}
+          className="relative"
+        >
+          {/* Glow behind image */}
+          <div
+            className="absolute -inset-8 rounded-3xl opacity-30 pointer-events-none"
+            style={{ background: 'radial-gradient(ellipse, #10b981 0%, transparent 70%)', filter: 'blur(40px)' }}
+          />
+
+          {/* Floating animation wrapper */}
+          <motion.div
+            animate={{ y: [0, -12, 0] }}
+            transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
+            className="relative"
           >
-            {/* Background layered gradients for drawer readability */}
-            <div className="absolute inset-0 bg-black/90 pointer-events-none z-0" />
-            
-            <nav className="relative z-10 flex flex-col gap-6 items-center justify-center flex-1">
-              {NAV_LINKS.map((link, idx) => (
-                <M.div
-                  key={link.label}
-                  initial={{ opacity: 0, y: 10 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: idx * 0.05 }}
+            {/* Browser chrome */}
+            <div
+              className="relative rounded-2xl overflow-hidden border"
+              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)' }}
+            >
+              {/* Titlebar */}
+              <div
+                className="flex items-center gap-3 px-5 py-3.5 border-b"
+                style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.06)' }}
+              >
+                <div className="flex gap-1.5">
+                  <div className="w-3 h-3 rounded-full bg-red-400/50" />
+                  <div className="w-3 h-3 rounded-full bg-yellow-400/50" />
+                  <div className="w-3 h-3 rounded-full bg-green-400/50" />
+                </div>
+                <div
+                  className="flex-1 mx-4 bg-white/[0.05] rounded-md px-3 py-1.5 text-xs text-slate-600"
+                  style={{ fontFamily: 'monospace' }}
                 >
-                  <Link
-                    to={link.href}
-                    onClick={() => setMobileMenuOpen(false)}
-                    className="text-2xl font-semibold text-white/80 hover:text-white transition-colors duration-200 flex items-center gap-2"
-                  >
-                    {link.label}
-                    {link.isContact && <ArrowUpRight size={20} className="opacity-80" />}
-                  </Link>
-                </M.div>
-              ))}
-            </nav>
+                  app.SARFIS.io/dashboard/analytics
+                </div>
+              </div>
 
-            <div className="relative z-10 w-full text-center text-white/40 text-xs mt-auto">
-              © {new Date().getFullYear()} SARFIS. All rights reserved.
+              {/* Dashboard content */}
+              <div className="p-6" style={{ background: 'linear-gradient(180deg, #0d1829 0%, #06101e 100%)' }}>
+                {/* KPI cards */}
+                <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5">
+                  {mockKPIs.map((kpi, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ opacity: 0, y: 12 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      transition={{ delay: 0.9 + i * 0.08 }}
+                      className="p-4 rounded-xl border"
+                      style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}
+                    >
+                      <div className="text-[10px] text-slate-500 mb-1.5 font-medium uppercase tracking-wider">{kpi.label}</div>
+                      <div className="text-lg font-black text-white mb-1" style={{ fontFamily: "'Sora', monospace" }}>{kpi.value}</div>
+                      <div className={`text-[11px] font-semibold ${kpi.positive ? 'text-emerald-400' : 'text-rose-400'}`}>{kpi.change}</div>
+                    </motion.div>
+                  ))}
+                </div>
+
+                {/* Chart placeholder */}
+                <div
+                  className="rounded-xl border p-5 flex items-end gap-1.5 h-32"
+                  style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)' }}
+                >
+                  {[40, 65, 45, 80, 55, 90, 70, 95, 75, 88, 60, 100].map((h, i) => (
+                    <motion.div
+                      key={i}
+                      initial={{ height: 0 }}
+                      animate={{ height: `${h}%` }}
+                      transition={{ delay: 1.1 + i * 0.04, duration: 0.4, ease: 'easeOut' }}
+                      className="flex-1 rounded-t-sm"
+                      style={{
+                        background: i === 11
+                          ? 'linear-gradient(180deg, #10b981, #059669)'
+                          : `rgba(16,185,129,${0.15 + (h / 100) * 0.35})`,
+                        minWidth: 0,
+                      }}
+                    />
+                  ))}
+                </div>
+              </div>
             </div>
-          </M.div>
-        )}
-      </AnimatePresence>
+
+            {/* Floating badges */}
+            {floatingBadges.map((badge, i) => {
+              const positions = [
+                'absolute -left-6 top-16 lg:-left-16',
+                'absolute -right-6 top-10 lg:-right-16',
+                'absolute -left-4 bottom-16 lg:-left-14',
+              ];
+              return (
+                <motion.div
+                  key={i}
+                  initial={{ opacity: 0, x: i % 2 === 0 ? -20 : 20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 1.3 + i * 0.15, duration: 0.6, ease: [0.22, 1, 0.36, 1] }}
+                  whileHover={{ scale: 1.05, y: -2 }}
+                  className={`${positions[i]} hidden lg:flex items-center gap-3 px-4 py-3 rounded-2xl border shadow-2xl`}
+                  style={{
+                    background: 'rgba(3,11,26,0.9)',
+                    borderColor: 'rgba(255,255,255,0.1)',
+                    backdropFilter: 'blur(20px)',
+                  }}
+                >
+                  <div
+                    className="w-9 h-9 rounded-xl flex items-center justify-center"
+                    style={{ background: `${badge.color}18` }}
+                  >
+                    <badge.icon size={16} style={{ color: badge.color }} />
+                  </div>
+                  <div>
+                    <div className="text-white text-[13px] font-semibold leading-none mb-0.5">{badge.text}</div>
+                    <div className="text-slate-500 text-[11px]">{badge.sub}</div>
+                  </div>
+                </motion.div>
+              );
+            })}
+          </motion.div>
+        </motion.div>
+      </motion.div>
     </section>
   );
 }
