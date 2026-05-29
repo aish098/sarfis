@@ -181,7 +181,7 @@ export default function Hero() {
 
         {/* Subline */}
         <p
-          className="animate-blur-fade-up text-base sm:text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed font-normal"
+          className="animate-blur-fade-up text-base sm:text-lg text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed font-normal"
           style={{ animationDelay: '400ms' }}
         >
           SARFIS automates your full accounting cycle journal entries, ledger, AI analytics, and

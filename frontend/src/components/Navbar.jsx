@@ -134,7 +134,7 @@ export default function Navbar() {
                     <Link
                       to={link.href}
                       onClick={() => setMobileOpen(false)}
-                      className="flex items-center px-4 py-3.5 text-base font-medium text-slate-300 hover:text-white rounded-xl hover:bg-white/[0.06] transition-all"
+                      className="flex items-center px-4 py-3.5 text-base font-medium text-slate-200 hover:text-white rounded-xl hover:bg-white/[0.06] transition-all"
                     >
                       {link.label}
                     </Link>
@@ -142,7 +142,7 @@ export default function Navbar() {
                     <a
                       href={link.href}
                       onClick={() => setMobileOpen(false)}
-                      className="flex items-center px-4 py-3.5 text-base font-medium text-slate-300 hover:text-white rounded-xl hover:bg-white/[0.06] transition-all"
+                      className="flex items-center px-4 py-3.5 text-base font-medium text-slate-200 hover:text-white rounded-xl hover:bg-white/[0.06] transition-all"
                     >
                       {link.label}
                     </a>
@@ -186,7 +186,7 @@ function NavLink({ link, active }) {
         <Link
           to={link.href}
           className={`relative px-4 py-2 text-[13.5px] font-medium transition-colors duration-200 rounded-lg hover:bg-white/[0.05] ${
-            active ? 'text-white' : 'text-slate-400 hover:text-white'
+            active ? 'text-white' : 'text-slate-300 hover:text-white'
           }`}
         >
           {link.label}
@@ -201,7 +201,7 @@ function NavLink({ link, active }) {
       ) : (
         <a
           href={link.href}
-          className="relative px-4 py-2 text-[13.5px] font-medium text-slate-400 hover:text-white transition-colors duration-200 rounded-lg hover:bg-white/[0.05]"
+          className="relative px-4 py-2 text-[13.5px] font-medium text-slate-300 hover:text-white transition-colors duration-200 rounded-lg hover:bg-white/[0.05]"
         >
           {link.label}
           <span className="absolute bottom-0 left-4 right-4 h-[1.5px] rounded-full opacity-0 scale-x-0 group-hover:opacity-70 group-hover:scale-x-100 transition-all duration-300"
