@@ -111,13 +111,13 @@ export default function Hero() {
           muted
           playsInline
           className="w-full h-full object-cover"
-          style={{ filter: 'brightness(0.72) contrast(1.05)' }}
+          style={{ filter: 'brightness(0.92) contrast(1.02)' }}
         />
         {/* SCAFIS Branding Overlay (radial gradient) */}
         <div
           className="absolute inset-0"
           style={{
-            background: 'radial-gradient(circle at 50% 50%, rgba(3, 11, 26, 0.22) 0%, rgba(3, 11, 26, 0.65) 100%)',
+            background: 'radial-gradient(circle at 50% 50%, rgba(3, 11, 26, 0.08) 0%, rgba(3, 11, 26, 0.42) 100%)',
           }}
         />
         {/* Interactive Grid overlay */}
@@ -141,8 +141,8 @@ export default function Hero() {
         style={{
           backdropFilter: 'blur(24px)',
           WebkitBackdropFilter: 'blur(24px)',
-          maskImage: 'linear-gradient(to top, black 0%, transparent 45%)',
-          WebkitMaskImage: 'linear-gradient(to top, black 0%, transparent 45%)',
+          maskImage: 'linear-gradient(to top, black 0%, transparent 33%)',
+          WebkitMaskImage: 'linear-gradient(to top, black 0%, transparent 33%)',
         }}
       />
 
