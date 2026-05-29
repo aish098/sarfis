@@ -58,19 +58,23 @@ export default function Hero() {
   const contentY = useTransform(scrollYProgress, [0, 0.6], [0, -50]);
   const contentOpacity = useTransform(scrollYProgress, [0, 0.55], [1, 0]);
 
-  // Inject cinematic liquid glass and blur-fade-up styles programmatically
+  // Inject cinematic liquid glass and blur-fade-up styles programmatically with high contrast tuning
   if (typeof document !== 'undefined' && !document.getElementById('scafis-liquid-glass')) {
     const s = document.createElement('style');
     s.id = 'scafis-liquid-glass';
     s.textContent = `
       .liquid-glass {
-        background: rgba(255, 255, 255, 0.015);
+        background: rgba(255, 255, 255, 0.045);
         background-blend-mode: luminosity;
-        backdrop-filter: blur(4px);
-        -webkit-backdrop-filter: blur(4px);
-        box-shadow: inset 0 1px 1px rgba(255, 255, 255, 0.1);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+        box-shadow: inset 0 1px 1.5px rgba(255, 255, 255, 0.15), 0 8px 32px rgba(0, 0, 0, 0.28);
         position: relative;
         overflow: hidden;
+        transition: background 0.3s, border-color 0.35s, transform 0.3s;
+      }
+      .liquid-glass:hover {
+        background: rgba(255, 255, 255, 0.08);
       }
       .liquid-glass::before {
         content: '';
@@ -78,7 +82,7 @@ export default function Hero() {
         inset: 0;
         border-radius: inherit;
         padding: 1.4px;
-        background: linear-gradient(180deg, rgba(255,255,255,0.45) 0%, rgba(255,255,255,0.15) 20%, rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%, rgba(255,255,255,0.15) 80%, rgba(255,255,255,0.45) 100%);
+        background: linear-gradient(180deg, rgba(255,255,255,0.65) 0%, rgba(255,255,255,0.25) 20%, rgba(255,255,255,0) 40%, rgba(255,255,255,0) 60%, rgba(255,255,255,0.25) 80%, rgba(255,255,255,0.65) 100%);
         -webkit-mask: linear-gradient(#fff 0 0) content-box, linear-gradient(#fff 0 0);
         -webkit-mask-composite: xor;
         mask-composite: exclude;
@@ -102,7 +106,7 @@ export default function Hero() {
       ref={containerRef}
       className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-24 pb-20 bg-black"
     >
-      {/* Cinematic Background Video */}
+      {/* Cinematic Background Video (highly darkened for premium contrast) */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <video
           src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260406_094145_4a271a6c-3869-4f1c-8aa7-aeb0cb227994.mp4"
@@ -111,13 +115,13 @@ export default function Hero() {
           muted
           playsInline
           className="w-full h-full object-cover"
-          style={{ filter: 'brightness(0.45) contrast(1.05)' }}
+          style={{ filter: 'brightness(0.16) contrast(1.15) saturate(0.95)' }}
         />
-        {/* SCAFIS Branding Overlay (radial gradient) */}
+        {/* SCAFIS Branding Overlay (strengthened dark blue/cyan radial gradient) */}
         <div
           className="absolute inset-0"
           style={{
-            background: 'radial-gradient(circle at 50% 50%, rgba(3, 11, 26, 0.4) 0%, rgba(3, 11, 26, 0.8) 100%)',
+            background: 'radial-gradient(circle at 50% 50%, rgba(3, 11, 26, 0.6) 0%, rgba(3, 11, 26, 0.95) 100%)',
           }}
         />
         {/* Interactive Grid overlay */}
@@ -164,10 +168,14 @@ export default function Hero() {
           </div>
         </div>
 
-        {/* Headline */}
+        {/* Headline (with text-shadow for absolute legibility) */}
         <h1
           className="animate-blur-fade-up text-5xl sm:text-6xl lg:text-7xl font-black text-white tracking-tight leading-[1.06] mb-5"
-          style={{ fontFamily: "'Sora', 'DM Sans', system-ui, sans-serif", animationDelay: '250ms' }}
+          style={{ 
+            fontFamily: "'Sora', 'DM Sans', system-ui, sans-serif", 
+            textShadow: '0 4px 24px rgba(1, 4, 10, 0.95), 0 2px 4px rgba(1, 4, 10, 0.85)',
+            animationDelay: '250ms' 
+          }}
         >
           Smarter Accounting,
           <br />
@@ -179,10 +187,13 @@ export default function Hero() {
           </span>
         </h1>
 
-        {/* Subline */}
+        {/* Subline (brightened to text-slate-200 with text-shadow) */}
         <p
-          className="animate-blur-fade-up text-base sm:text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed font-normal"
-          style={{ animationDelay: '400ms' }}
+          className="animate-blur-fade-up text-base sm:text-lg text-slate-200 max-w-2xl mx-auto mb-10 leading-relaxed font-normal"
+          style={{ 
+            textShadow: '0 3px 16px rgba(1, 4, 10, 0.95)',
+            animationDelay: '400ms' 
+          }}
         >
           SARFIS automates your full accounting cycle journal entries, ledger, AI analytics, and
           forecasting so your team can focus on what matters most.
@@ -218,7 +229,7 @@ export default function Hero() {
           </motion.div>
         </div>
 
-        {/* Metrics/Stats Row (Business KPI Metadata) */}
+        {/* Metrics/Stats Row (Upgraded Liquid Glass KPI Cards) */}
         <div
           className="animate-blur-fade-up flex flex-col sm:flex-row justify-center items-center gap-10 sm:gap-16 mb-20"
           style={{ animationDelay: '600ms' }}
@@ -231,7 +242,7 @@ export default function Hero() {
             <div key={i} className="flex items-center gap-3.5 text-left group">
               <div
                 className="w-12 h-12 rounded-2xl flex items-center justify-center liquid-glass transition-all duration-300 group-hover:scale-110"
-                style={{ boxShadow: `0 8px 24px rgba(0,0,0,0.15)` }}
+                style={{ boxShadow: `0 8px 24px rgba(0,0,0,0.3)` }}
               >
                 <s.icon size={18} style={{ color: s.color }} />
               </div>
@@ -252,10 +263,10 @@ export default function Hero() {
         >
           {/* Dynamic Glow behind image */}
           <div
-            className="absolute -inset-8 rounded-3xl opacity-25 pointer-events-none"
+            className="absolute -inset-8 rounded-3xl opacity-30 pointer-events-none"
             style={{
               background: `radial-gradient(ellipse, ${DASHBOARD_VIEWS[activeView].badgeColor} 0%, transparent 70%)`,
-              filter: 'blur(40px)',
+              filter: 'blur(45px)',
               transition: 'background 0.5s ease'
             }}
           />
@@ -266,15 +277,15 @@ export default function Hero() {
             transition={{ duration: 5, repeat: Infinity, ease: 'easeInOut' }}
             className="relative"
           >
-            {/* Browser chrome */}
+            {/* Browser chrome (strengthened border and backblur) */}
             <div
-              className="relative rounded-2xl overflow-hidden border"
-              style={{ borderColor: 'rgba(255,255,255,0.08)', background: 'rgba(255,255,255,0.02)', backdropFilter: 'blur(10px)' }}
+              className="relative rounded-2xl overflow-hidden border shadow-2xl"
+              style={{ borderColor: 'rgba(255,255,255,0.12)', background: 'rgba(3,11,26,0.35)', backdropFilter: 'blur(16px)' }}
             >
               {/* Titlebar */}
               <div
                 className="flex items-center gap-3 px-5 py-3.5 border-b"
-                style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.06)' }}
+                style={{ background: 'rgba(0,0,0,0.35)', borderColor: 'rgba(255,255,255,0.06)' }}
               >
                 <div className="flex gap-1.5 font-sans">
                   <div className="w-3 h-3 rounded-full bg-red-400/50" />
@@ -282,21 +293,21 @@ export default function Hero() {
                   <div className="w-3 h-3 rounded-full bg-green-400/50" />
                 </div>
                 <div
-                  className="flex-1 mx-4 bg-white/[0.05] rounded-md px-3 py-1.5 text-xs text-slate-500 text-left font-mono"
+                  className="flex-1 mx-4 bg-white/[0.05] rounded-md px-3 py-1.5 text-xs text-slate-400 text-left font-mono"
                 >
                   {DASHBOARD_VIEWS[activeView].url}
                 </div>
               </div>
 
               {/* Dashboard content */}
-              <div className="p-6" style={{ background: 'linear-gradient(180deg, #0d1829 0%, #06101e 100%)' }}>
-                {/* KPI cards */}
+              <div className="p-6" style={{ background: 'linear-gradient(180deg, #07101e 0%, #030812 100%)' }}>
+                {/* KPI cards (with high-contrast liquid glass frames) */}
                 <div className="grid grid-cols-2 md:grid-cols-4 gap-3 mb-5 font-sans">
                   {DASHBOARD_VIEWS[activeView].kpis.map((kpi, i) => (
                     <div
                       key={i}
-                      className="p-4 rounded-xl border text-left"
-                      style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}
+                      className="p-4 rounded-xl border text-left shadow-sm bg-white/[0.03] transition-all duration-300 hover:border-white/20"
+                      style={{ borderColor: 'rgba(255,255,255,0.08)' }}
                     >
                       <div className="text-[10px] text-slate-500 mb-1.5 font-medium uppercase tracking-wider">{kpi.label}</div>
                       <div className="text-lg font-black text-white mb-1" style={{ fontFamily: "'Sora', monospace" }}>{kpi.value}</div>
@@ -308,7 +319,7 @@ export default function Hero() {
                 {/* Chart placeholder */}
                 <div
                   className="rounded-xl border p-5 flex items-end gap-1.5 h-32"
-                  style={{ background: 'rgba(255,255,255,0.02)', borderColor: 'rgba(255,255,255,0.05)' }}
+                  style={{ background: 'rgba(0,0,0,0.25)', borderColor: 'rgba(255,255,255,0.05)' }}
                 >
                   {DASHBOARD_VIEWS[activeView].chartData.map((h, i) => (
                     <motion.div
@@ -320,7 +331,7 @@ export default function Hero() {
                       style={{
                         background: i === 11
                           ? `linear-gradient(180deg, ${DASHBOARD_VIEWS[activeView].badgeColor}, ${DASHBOARD_VIEWS[activeView].badgeColor}cc)`
-                          : `${DASHBOARD_VIEWS[activeView].badgeColor}${Math.floor(0.15 * 255).toString(16)}`,
+                          : `${DASHBOARD_VIEWS[activeView].badgeColor}${Math.floor(0.18 * 255).toString(16)}`,
                         minWidth: 0,
                       }}
                     />
@@ -345,8 +356,8 @@ export default function Hero() {
                   whileHover={{ scale: 1.05, y: -2 }}
                   className={`${positions[i]} hidden lg:flex items-center gap-3 px-4 py-3 rounded-2xl border shadow-2xl`}
                   style={{
-                    background: 'rgba(3,11,26,0.9)',
-                    borderColor: 'rgba(255,255,255,0.1)',
+                    background: 'rgba(3,11,26,0.95)',
+                    borderColor: 'rgba(255,255,255,0.12)',
                     backdropFilter: 'blur(20px)',
                   }}
                 >
@@ -379,7 +390,7 @@ export default function Hero() {
               <span className="text-[10px] text-slate-500 font-mono tracking-widest uppercase mb-1">
                 Active Module {activeView + 1} of {DASHBOARD_VIEWS.length}
               </span>
-              <span className="text-sm font-semibold text-white tracking-tight">
+              <span className="text-sm font-semibold text-white tracking-tight" style={{ textShadow: '0 2px 8px rgba(0,0,0,0.5)' }}>
                 {DASHBOARD_VIEWS[activeView].title}
               </span>
             </div>
