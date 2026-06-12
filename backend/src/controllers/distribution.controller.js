@@ -35,14 +35,18 @@ exports.getClientById = async (req, res) => {
 
 exports.createClient = async (req, res) => {
   try {
-    const client = await distModel.createClient({ company_id: req.params.companyId, ...req.body });
+    const data = { ...req.body };
+    if (data.sector_id === '') data.sector_id = null;
+    const client = await distModel.createClient({ company_id: req.params.companyId, ...data });
     res.status(201).json(client);
   } catch (err) { res.status(400).json({ error: err.message }); }
 };
 
 exports.updateClient = async (req, res) => {
   try {
-    const client = await distModel.updateClient(req.params.id, req.params.companyId, req.body);
+    const data = { ...req.body };
+    if (data.sector_id === '') data.sector_id = null;
+    const client = await distModel.updateClient(req.params.id, req.params.companyId, data);
     if (!client) return res.status(404).json({ error: 'Client not found' });
     res.json(client);
   } catch (err) { res.status(400).json({ error: err.message }); }
