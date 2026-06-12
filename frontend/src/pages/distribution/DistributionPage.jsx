@@ -169,7 +169,7 @@ export default function DistributionPage() {
     catch (err) { alert(err.response?.data?.error || 'Status update failed'); }
   };
 
-  const arAccounts = accounts.filter(a => a.type === 'Asset');
+  const arAccounts = accounts.filter(a => a.category === 'Asset');
   const filteredDeliveries = deliveries.filter(d =>
     d.client_name?.toLowerCase().includes(search.toLowerCase()) ||
     d.delivery_number?.toLowerCase().includes(search.toLowerCase())
