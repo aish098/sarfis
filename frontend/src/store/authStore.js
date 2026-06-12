@@ -98,10 +98,9 @@ const useAuthStore = create((set) => ({
       if (companies.length > 0) {
         const found = companies.find(c => c.id.toString() === savedId);
         if (found) {
-          set({ activeCompany: found });
+          useAuthStore.getState().setActiveCompany(found);
         } else {
-          localStorage.setItem('activeCompanyId', companies[0].id);
-          set({ activeCompany: companies[0] });
+          useAuthStore.getState().setActiveCompany(companies[0]);
         }
       }
     } catch (err) {

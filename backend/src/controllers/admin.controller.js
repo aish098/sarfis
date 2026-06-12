@@ -54,7 +54,7 @@ exports.getOverview = async (req, res) => {
       db('company_users as cu')
         .join('users as u', 'u.id', 'cu.user_id')
         .where('cu.company_id', companyId)
-        .select('u.id', 'u.name', 'u.email', 'u.role as global_role', 'u.created_at', 'cu.role as company_role', 'cu.created_at as joined_at')
+        .select('u.id', 'u.name', 'u.email', 'u.role as global_role', 'u.created_at', 'cu.role as company_role')
         .orderBy('u.name', 'asc'),
       req.user.role === 'Super Admin'
         ? db('companies as c')
@@ -146,6 +146,20 @@ exports.addMember = async (req, res) => {
         .onConflict(['company_id', 'user_id'])
         .merge({ role });
 
+      let mappedRoleName = role;
+      if (role === 'Company Admin') mappedRoleName = 'Admin';
+      if (role === 'Super Admin') mappedRoleName = 'Admin';
+      const roleRecord = await trx('roles').where('name', mappedRoleName).first();
+      
+      if (roleRecord) {
+        // Clear old roles for this company first
+        await trx('user_roles').where({ company_id: companyId, user_id: found.id }).del();
+        
+        await trx('user_roles')
+          .insert({ company_id: companyId, user_id: found.id, role_id: roleRecord.id })
+          .onConflict(['user_id', 'company_id', 'role_id']).ignore();
+      }
+
       return found;
     });
 
@@ -169,6 +183,18 @@ exports.updateMemberRole = async (req, res) => {
       .update({ role })
       .returning('*');
 
+    let mappedRoleName = role;
+    if (role === 'Company Admin') mappedRoleName = 'Admin';
+    if (role === 'Super Admin') mappedRoleName = 'Admin';
+    const roleRecord = await db('roles').where('name', mappedRoleName).first();
+
+    if (roleRecord) {
+      await db('user_roles').where({ company_id: companyId, user_id: userId }).del();
+      await db('user_roles')
+        .insert({ company_id: companyId, user_id: userId, role_id: roleRecord.id })
+        .onConflict(['user_id', 'company_id', 'role_id']).ignore();
+    }
+
     if (!membership) return res.status(404).json({ message: 'Member not found' });
     res.json(membership);
   } catch (err) {
@@ -187,6 +213,10 @@ exports.removeMember = async (req, res) => {
     }
 
     const deleted = await db('company_users')
+      .where({ company_id: companyId, user_id: userId })
+      .del();
+      
+    await db('user_roles')
       .where({ company_id: companyId, user_id: userId })
       .del();
 
