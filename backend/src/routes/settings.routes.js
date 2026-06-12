@@ -1,12 +1,12 @@
 const express = require('express');
 const router = express.Router();
 const SettingsModel = require('../models/settings.model');
-const { authMiddleware, checkRole, companyGuard } = require('../middleware/auth.middleware');
+const { authMiddleware, requirePermission, companyGuard } = require('../middleware/auth.middleware');
 
 router.use(authMiddleware);
 
 // Get settings for a company
-router.get('/:companyId', companyGuard, checkRole(['Company Admin', 'Accountant', 'Manager', 'Inventory Manager', 'Purchasing Agent', 'Viewer']), async (req, res) => {
+router.get('/:companyId', companyGuard, requirePermission('settings.manage'), async (req, res) => {
   try {
     const { companyId } = req.params;
     const settings = await SettingsModel.getSettings(companyId);
@@ -18,7 +18,7 @@ router.get('/:companyId', companyGuard, checkRole(['Company Admin', 'Accountant'
 });
 
 // Update settings for a company
-router.put('/:companyId', companyGuard, checkRole(['Company Admin', 'Accountant', 'Super Admin', 'Admin', 'Owner', 'CEO']), async (req, res) => {
+router.put('/:companyId', companyGuard, requirePermission('settings.manage'), async (req, res) => {
   try {
     const { companyId } = req.params;
     const value = req.body;

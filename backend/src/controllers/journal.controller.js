@@ -19,7 +19,7 @@ exports.createJournalEntry = async (req, res) => {
       lines
     });
 
-    res.status(201).json({ id: entryId, message: 'Journal entry posted successfully' });
+    res.status(201).json({ id: entryId, message: 'Journal entry drafted successfully' });
   } catch (err) {
     console.error('Journal entry error:', err);
     res.status(err.message.includes('required') || err.message.includes('lines') || err.message.includes('Uneven') || err.message.includes('Negative') ? 400 : 500).json({ message: err.message });
@@ -74,5 +74,22 @@ exports.deleteJournalEntry = async (req, res) => {
   } catch (err) {
     console.error('Delete Error:', err);
     res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * Posts a drafted journal entry
+ */
+exports.postJournalEntry = async (req, res) => {
+  const { id } = req.params;
+  const companyId = req.companyId;
+  const userId = req.user.id;
+
+  try {
+    await JournalService.postJournalEntry(id, companyId, userId);
+    res.json({ message: 'Journal entry posted successfully' });
+  } catch (err) {
+    console.error('Post Error:', err);
+    res.status(err.message.includes('not found') || err.message.includes('already') ? 400 : 500).json({ error: err.message });
   }
 };

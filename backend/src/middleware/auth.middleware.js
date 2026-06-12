@@ -30,19 +30,25 @@ const authMiddleware = async (req, res, next) => {
         // Log the error but don't crash if we can recover
         console.warn(`[AUTH] Cleaning invalid company ID header: "${companyIdRaw}"`);
       } else {
-        // Verify user belongs to this company
-        const membership = await db('company_users')
-          .select('role')
-          .where('user_id', req.user.id)
-          .andWhere('company_id', companyId)
+        // Verify user belongs to this company and fetch role + permissions
+        const RoleService = require('../services/role.service');
+        const db = require('../config/db');
+        
+        const membership = await db('user_roles')
+          .join('roles', 'user_roles.role_id', 'roles.id')
+          .select('roles.name as role')
+          .where('user_roles.user_id', req.user.id)
+          .andWhere('user_roles.company_id', companyId)
           .first();
 
         if (membership) {
           req.companyId = companyId;
-          req.userCompanyRole = membership.role; 
+          req.userCompanyRole = membership.role;
+          req.userPermissions = await RoleService.getUserPermissions(req.user.id, companyId);
         } else if (req.user.role === 'Super Admin') {
           req.companyId = companyId;
           req.userCompanyRole = 'Super Admin';
+          req.userPermissions = await RoleService.getSuperAdminPermissions();
         } else {
           console.warn(`[AUTH] 403 Denied: User ${req.user.id} NOT in Company ${companyId}`);
           return res.status(403).json({ 
@@ -64,19 +70,38 @@ const authMiddleware = async (req, res, next) => {
 };
 
 /**
- * RBAC Helper Middleware
- * Checks if the user's role (global or company-specific) matches allowed roles
+ * RBAC Helper Middleware: requirePermission
+ * Validates that the user has the required permission code
+ */
+const requirePermission = (permissionCode) => {
+  return (req, res, next) => {
+    // Super Admin overrides everything
+    if (req.user.role === 'Super Admin') {
+      return next();
+    }
+    
+    const permissions = req.userPermissions || [];
+    
+    if (permissions.includes(permissionCode)) {
+      next();
+    } else {
+      res.status(403).json({ 
+        message: `Forbidden: Action requires permission '${permissionCode}'`
+      });
+    }
+  };
+};
+
+/**
+ * Legacy checkRole fallback mapping for smooth transition
  */
 const checkRole = (allowedRoles) => {
   return (req, res, next) => {
     const userRole = req.userCompanyRole || req.user.role;
-    
     if (allowedRoles.includes(userRole) || req.user.role === 'Super Admin') {
       next();
     } else {
-      res.status(403).json({ 
-        message: `Forbidden: This action requires one of these roles: ${allowedRoles.join(', ')}` 
-      });
+      res.status(403).json({ message: 'Forbidden' });
     }
   };
 };
@@ -95,4 +120,4 @@ const companyGuard = (req, res, next) => {
   next();
 };
 
-module.exports = { authMiddleware, checkRole, companyGuard };
+module.exports = { authMiddleware, checkRole, requirePermission, companyGuard };

@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import RequirePermission from '../../components/RequirePermission';
 
 function AccountSelect({ accounts, value, onChange, disabled }) {
   const [open, setOpen] = useState(false);
@@ -125,16 +126,26 @@ export default function JournalEntryPage() {
     const cleanLines = lines.filter(l => l.accountId && (parseFloat(l.debit || 0) > 0 || parseFloat(l.credit || 0) > 0))
       .map(l => ({ accountId: l.accountId, description: l.description, debit: parseFloat(l.debit || 0), credit: parseFloat(l.credit || 0) }));
     try {
-      await api.post('/journal', {
+      const response = await api.post('/journal', {
         company_id: activeCompany.id, entry_date: date, reference,
         description: cleanLines[0]?.description || 'Journal Entry', lines: cleanLines,
       });
+      
+      const entryId = response.data.id;
+      
+      if (nextAction === 'post') {
+        await api.post(`/journal/${entryId}/post`);
+      }
+
       setToast(true); setTimeout(() => setToast(false), 3500);
-      if (nextAction === 'save_add') {
+      
+      if (nextAction === 'save_add' || nextAction === 'draft_add') {
         setLines([genRow(), genRow()]);
         setReference('JE-' + Math.floor(1000 + Math.random() * 9000));
-      } else { navigate('/dashboard/ledger'); }
-    } catch (err) { setError(err.response?.data?.message || 'Failed to post entry.'); }
+      } else { 
+        navigate('/dashboard/ledger'); 
+      }
+    } catch (err) { setError(err.response?.data?.message || 'Failed to process entry.'); }
     setSaving(false);
   };
 
@@ -151,14 +162,18 @@ export default function JournalEntryPage() {
           <h1 className="font-display font-extrabold text-[22px] text-slate-900">Journal Entry</h1>
         </div>
         <div className="flex gap-2.5">
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-            onClick={() => validate('save_add')} disabled={saving}
-            className="btn btn-secondary btn-sm">Save & Add New</motion.button>
-          <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-            onClick={() => validate('save')} disabled={saving}
-            className="btn btn-primary">
-            {saving ? <><RefreshCw size={14} className="animate-spin" /> Saving...</> : <><Save size={14} /> Save Entry</>}
-          </motion.button>
+          <RequirePermission permission="journal.create">
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+              onClick={() => validate('draft')} disabled={saving}
+              className="btn btn-secondary btn-sm">Save Draft</motion.button>
+          </RequirePermission>
+          <RequirePermission permission="journal.post">
+            <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
+              onClick={() => validate('post')} disabled={saving}
+              className="btn btn-primary">
+              {saving ? <><RefreshCw size={14} className="animate-spin" /> Processing...</> : <><Save size={14} /> Review & Post</>}
+            </motion.button>
+          </RequirePermission>
         </div>
       </div>
 
@@ -314,7 +329,7 @@ export default function JournalEntryPage() {
                 <button onClick={() => setConfirmOpen(false)} className="btn btn-secondary flex-1">Back to Edit</button>
                 <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
                   onClick={submit} className="btn btn-primary flex-[2]">
-                  <FileText size={14} /> Post to Ledger
+                  <FileText size={14} /> {nextAction === 'post' ? 'Post to Ledger' : 'Save as Draft'}
                 </motion.button>
               </div>
             </motion.div>

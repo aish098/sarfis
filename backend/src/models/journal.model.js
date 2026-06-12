@@ -10,6 +10,7 @@ class JournalModel {
         company_id: entryData.companyId,
         entry_date: entryData.entryDate || new Date(),
         description: entryData.description,
+        status: entryData.status || 'DRAFT',
         created_by: entryData.userId
       })
       .returning('id');
@@ -83,6 +84,12 @@ class JournalModel {
       await trx('journal_entries').where('id', entryId).delete();
       return true;
     });
+  }
+
+  static async postEntry(entryId, companyId) {
+    return db('journal_entries')
+      .where({ id: entryId, company_id: companyId })
+      .update({ status: 'POSTED' });
   }
 }
 

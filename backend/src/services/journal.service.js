@@ -25,15 +25,16 @@ class JournalService {
     }
 
     return await db.transaction(async (trx) => {
-      // 1. Insert Header
+      // 1. Insert Header as DRAFT
       const entryId = await JournalModel.createEntry({
         companyId,
         entryDate,
         description,
-        userId
+        userId,
+        status: 'DRAFT'
       }, trx);
 
-      // 2. Insert Lines & Update Balances
+      // 2. Insert Lines
       for (const line of lines) {
         await JournalModel.createLine({
           entryId,
@@ -41,11 +42,39 @@ class JournalService {
           debit: line.debit,
           credit: line.credit
         }, trx);
-
-        // Auto-Posting: Update account balance
-        await AccountModel.updateBalance(line.accountId, companyId, line.debit, line.credit, trx);
       }
       return entryId;
+    });
+  }
+
+  /**
+   * Posts a draft journal entry (Updates ledgers)
+   */
+  static async postJournalEntry(entryId, companyId, userId) {
+    return await db.transaction(async (trx) => {
+      const header = await trx('journal_entries').where({ id: entryId, company_id: companyId }).first();
+      if (!header) throw new Error('Journal entry not found.');
+      if (header.status === 'POSTED') throw new Error('Journal entry is already posted.');
+
+      const lines = await trx('journal_lines').where('entry_id', entryId);
+
+      for (const line of lines) {
+        // Auto-Posting: Update account balance
+        await AccountModel.updateBalance(line.account_id, companyId, line.debit, line.credit, trx);
+      }
+
+      await trx('journal_entries').where({ id: entryId }).update({ status: 'POSTED' });
+
+      // Audit Log
+      await trx('transaction_audit_logs').insert({
+        company_id: companyId,
+        voucher_id: null,
+        action: 'POST',
+        user_id: userId,
+        description: `Posted Journal Entry #${entryId}`
+      });
+
+      return true;
     });
   }
 }

@@ -18,49 +18,59 @@ const NAV_SECTIONS = [
   {
     label: 'Transactions',
     items: [
-      { to: '/dashboard/accounts', icon: BookOpen, label: 'Chart of Accounts' },
-      { to: '/dashboard/vouchers', icon: FilePlus, label: 'ERP Vouchers' },
-      { to: '/dashboard/vendors', icon: Building2, label: 'Vendor Directory' },
-      { to: '/dashboard/journal', icon: Activity, label: 'Manual Journals' },
-      { to: '/dashboard/ledger', icon: BookMarked, label: 'General Ledger' },
+      { to: '/dashboard/accounts', icon: BookOpen, label: 'Chart of Accounts', permission: 'ledger.view' },
+      { to: '/dashboard/vouchers', icon: FilePlus, label: 'ERP Vouchers', permission: 'voucher.view' },
+      { to: '/dashboard/vendors', icon: Building2, label: 'Vendor Directory', permission: 'vendor.manage' },
+      { to: '/dashboard/journal', icon: Activity, label: 'Manual Journals', permission: 'journal.view' },
+      { to: '/dashboard/ledger', icon: BookMarked, label: 'General Ledger', permission: 'ledger.view' },
     ],
   },
   {
     label: 'Reports',
     items: [
-      { to: '/dashboard/reports', icon: BarChart2, label: 'Financial Reports' },
+      { to: '/dashboard/reports', icon: BarChart2, label: 'Financial Reports', permission: 'report.view' },
     ],
   },
   {
     label: 'Intelligence',
     items: [
-      { to: '/dashboard/analytics', icon: TrendingUp, label: 'Analytics & Planning' },
+      { to: '/dashboard/analytics', icon: TrendingUp, label: 'Analytics & Planning', permission: 'analytics.view' },
     ],
   },
   {
     label: 'Operations',
     items: [
-      { to: '/dashboard/inventory',    icon: Package,    label: 'Inventory' },
-      { to: '/dashboard/warehouses',   icon: Building2,  label: 'Warehouses' },
-      { to: '/dashboard/distribution', icon: Truck,      label: 'Distribution' },
+      { to: '/dashboard/inventory',    icon: Package,    label: 'Inventory', permission: 'inventory.view' },
+      { to: '/dashboard/warehouses',   icon: Building2,  label: 'Warehouses', permission: 'warehouse.manage' },
+      { to: '/dashboard/distribution', icon: Truck,      label: 'Distribution', permission: 'analytics.view' },
     ],
   },
 ];
 
 const BOTTOM_ITEMS = [
   { to: '/', icon: Home, label: 'Back to Home' },
-  { to: '/dashboard/settings', icon: Settings, label: 'Settings' },
+  { to: '/dashboard/settings', icon: Settings, label: 'Settings', permission: 'settings.manage' },
 ];
 
 export default function Sidebar({ collapsed, onToggle }) {
   const navigate = useNavigate();
-  const { logout, activeCompany, user } = useAuthStore();
-  const effectiveRole = activeCompany?.user_role || user?.role || 'Member';
-  const adminRoles = ['Company Admin', 'Super Admin', 'Admin', 'Owner', 'CEO'];
-  const canAdmin = adminRoles.includes(effectiveRole) || adminRoles.includes(user?.role);
-  const navSections = canAdmin
+  const { logout, activeCompany, user, permissions } = useAuthStore();
+  
+  const isSuperAdmin = user?.role === 'Super Admin';
+  const hasPermission = (perm) => {
+    if (!perm) return true;
+    if (isSuperAdmin) return true;
+    return permissions?.includes(perm);
+  };
+
+  const filteredSections = NAV_SECTIONS.map(section => ({
+    ...section,
+    items: section.items.filter(item => hasPermission(item.permission))
+  })).filter(section => section.items.length > 0);
+
+  const navSections = hasPermission('user.manage')
     ? [
-        ...NAV_SECTIONS,
+        ...filteredSections,
         {
           label: 'Administration',
           items: [
@@ -68,7 +78,7 @@ export default function Sidebar({ collapsed, onToggle }) {
           ],
         },
       ]
-    : NAV_SECTIONS;
+    : filteredSections;
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -161,7 +171,7 @@ export default function Sidebar({ collapsed, onToggle }) {
 
         {/* Bottom */}
         <div className="border-t pb-3 pt-2" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-          {BOTTOM_ITEMS.map((item) => (
+          {BOTTOM_ITEMS.filter(item => hasPermission(item.permission)).map((item) => (
             <SidebarItem key={item.to} item={item} collapsed={collapsed} />
           ))}
           <button

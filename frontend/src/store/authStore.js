@@ -5,6 +5,8 @@ const useAuthStore = create((set) => ({
   user: null,
   companies: [],
   activeCompany: null,
+  permissions: [],
+  companyRole: null,
   token: localStorage.getItem('token') || null,
   isAuthenticated: !!localStorage.getItem('token'),
   error: null,
@@ -15,6 +17,18 @@ const useAuthStore = create((set) => ({
     set({ user, token, isAuthenticated: true, error: null });
   },
 
+  fetchPermissions: async () => {
+    try {
+      const response = await api.get('/auth/me');
+      set({ 
+        permissions: response.data.permissions || [], 
+        companyRole: response.data.companyRole || null 
+      });
+    } catch (err) {
+      console.error('Failed to fetch permissions', err);
+    }
+  },
+
   setActiveCompany: (company) => {
     if (company) {
       localStorage.setItem('activeCompanyId', company.id);
@@ -22,6 +36,11 @@ const useAuthStore = create((set) => ({
       localStorage.removeItem('activeCompanyId');
     }
     set({ activeCompany: company });
+    
+    // Fetch permissions for the newly active company
+    if (company) {
+      setTimeout(() => useAuthStore.getState().fetchPermissions(), 0);
+    }
   },
 
   login: async (email, password) => {
