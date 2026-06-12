@@ -38,7 +38,7 @@ const path = require('path');
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
   app.use(express.static(path.join(__dirname, '../../frontend/dist')));
-  app.get('*path', (req, res) => {
+  app.get('/*', (req, res) => {
     if (!req.url.startsWith('/api')) {
       res.sendFile(path.resolve(__dirname, '../../frontend', 'dist', 'index.html'));
     }
