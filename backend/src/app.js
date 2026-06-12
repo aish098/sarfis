@@ -26,6 +26,8 @@ app.use('/api/journal', require('./routes/journal.routes'));
 app.use('/api/ledger', require('./routes/ledger.routes'));
 app.use('/api/reports', require('./routes/report.routes'));
 app.use('/api/analytics', require('./routes/analytics.routes'));
+app.use('/api/admin', require('./routes/admin.routes'));
+app.use('/api/settings', require('./routes/settings.routes'));
 
 // ERP Modules (Now includes Analytics)
 app.use('/api', require('./routes/erp.routes'));

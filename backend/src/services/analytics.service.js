@@ -113,13 +113,19 @@ function groupByType(rows) {
 // 2. TREND ANALYSIS (Time Series)
 // ─────────────────────────────────────────────
 
-async function getTrendAnalysis(companyId, months = 12) {
+async function getTrendAnalysis(companyId, months = 12, endPeriod = null) {
   /**
    * Returns monthly revenue, expense, profit trends for past N months
    */
   const now = new Date();
-  const endMonth = now.getMonth() + 1;
-  const endYear = now.getFullYear();
+  let endMonth = now.getMonth() + 1;
+  let endYear = now.getFullYear();
+
+  if (endPeriod && /^\d{4}-\d{2}$/.test(endPeriod)) {
+    const [y, m] = endPeriod.split("-");
+    endYear = parseInt(y, 10);
+    endMonth = parseInt(m, 10);
+  }
 
   // Calculate start date
   let startMonth = endMonth - months + 1;

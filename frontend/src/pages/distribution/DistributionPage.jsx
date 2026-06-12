@@ -5,12 +5,12 @@ import {
   CheckCircle2, Clock, XCircle, ChevronRight, X,
   RefreshCw, AlertTriangle, Eye, TrendingUp, BarChart2
 } from 'lucide-react';
-import { 
-  PieChart, Pie, Cell, ResponsiveContainer, Tooltip, Legend, 
-  BarChart, Bar, XAxis, YAxis, CartesianGrid, AreaChart, Area
-} from 'recharts';
+import { ResponsiveContainer, AreaChart, Area } from 'recharts';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import { PowerBIDonut } from '../../components/charts/PowerBIDonut';
+import { computeChartLayout, normalizeChartRows, AdaptiveChartFrame } from '../../components/charts/chartEngine';
+import { DynamicClusteredBarChart } from '../../components/charts/DynamicCharts';
 
 const CHART_COLORS = ['#118DFF', '#12239E', '#E66C37', '#6B007B', '#10b981', '#ef4444'];
 
@@ -23,37 +23,15 @@ const PROGRESS_GRADIENTS = [
   'linear-gradient(90deg, #f43f5e, #be123c)', // Rose to Deep Crimson
 ];
 
-function CustomTooltip({ active, payload, label }) {
-  if (!active || !payload?.length) return null;
-  const tooltipLabel = label || payload[0]?.name || payload[0]?.payload?.sector_name || '';
-  return (
-    <div className="rounded-xl border border-slate-100/80 bg-white/95 backdrop-blur-md px-4 py-3 shadow-xl shadow-slate-900/5 min-w-[150px]">
-      <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-50 pb-1">{tooltipLabel}</p>
-      {payload.map((p, i) => (
-        <div key={i} className="flex items-center justify-between gap-4 py-1">
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full" style={{ background: p.color || p.payload?.fill }} />
-            <span className="text-[11px] font-bold text-slate-500">{p.name}</span>
-          </div>
-          <span className="font-mono font-extrabold text-slate-800 text-[11px]">
-            ${Number(p.value || 0).toLocaleString()}
-          </span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-
 const stagger = { animate: { transition: { staggerChildren: 0.05 } } };
 const fadeUp = { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
 
 const STATUS_CONFIG = {
-  PENDING:    { icon: Clock,        color: '#d97706', bg: '#fef3c7', label: 'Pending' },
-  CONFIRMED:  { icon: CheckCircle2, color: '#2563eb', bg: '#dbeafe', label: 'Confirmed' },
-  DISPATCHED: { icon: Truck,        color: '#7c3aed', bg: '#ede9fe', label: 'Dispatched' },
-  DELIVERED:  { icon: CheckCircle2, color: '#059669', bg: '#d1fae5', label: 'Delivered' },
-  CANCELLED:  { icon: XCircle,      color: '#dc2626', bg: '#fee2e2', label: 'Cancelled' },
+  PENDING: { icon: Clock, color: '#d97706', bg: '#fef3c7', label: 'Pending' },
+  CONFIRMED: { icon: CheckCircle2, color: '#2563eb', bg: '#dbeafe', label: 'Confirmed' },
+  DISPATCHED: { icon: Truck, color: '#7c3aed', bg: '#ede9fe', label: 'Dispatched' },
+  DELIVERED: { icon: CheckCircle2, color: '#059669', bg: '#d1fae5', label: 'Delivered' },
+  CANCELLED: { icon: XCircle, color: '#dc2626', bg: '#fee2e2', label: 'Cancelled' },
 };
 
 export default function DistributionPage() {
@@ -406,115 +384,70 @@ export default function DistributionPage() {
       {/* ─── Sectors & Revenue Analytics ─── */}
       {tab === 'sectors' && (
         <div className="space-y-6">
-          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Revenue Distribution Pie Chart */}
-            <Motion.div variants={fadeUp} className="card p-6 lg:col-span-1">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="font-display font-bold text-[15px] text-slate-800">Revenue Distribution</h3>
-                <TrendingUp size={14} className="text-emerald-500" />
-              </div>
-              <div className="h-[280px] w-full min-h-[280px]">
-                <ResponsiveContainer width="100%" height={280}>
-                    <PieChart>
-                      {(() => {
-                        const totalSectorRev = sectorRevenue.reduce((acc, curr) => acc + (parseFloat(curr.total_revenue) || 0), 0);
-                        return (
-                          <>
-                            <Pie
-                              data={sectorRevenue}
-                              nameKey="sector_name"
-                              dataKey="total_revenue"
-                              cx="50%"
-                              cy="50%"
-                              innerRadius="65%"
-                              outerRadius="88%"
-                              paddingAngle={3}
-                              stroke="none"
-                            >
-                              {sectorRevenue.map((entry, index) => (
-                                <Cell key={`cell-${index}`} fill={CHART_COLORS[index % CHART_COLORS.length]} style={{ outline: 'none' }} />
-                              ))}
-                            </Pie>
-                            <text x="50%" y="46%" textAnchor="middle" dominantBaseline="middle" fontSize="10" fontWeight="800" fill="#64748b" letterSpacing="0.05em" textTransform="uppercase">
-                              Total Rev
-                            </text>
-                            <text x="50%" y="56%" textAnchor="middle" dominantBaseline="middle" fontSize="15" fontWeight="900" fill="#0f172a" fontFamily="monospace">
-                              ${totalSectorRev.toLocaleString('en-US', { maximumFractionDigits: 0 })}
-                            </text>
-                          </>
-                        );
-                      })()}
-                    <Tooltip content={<CustomTooltip />} />
-                  </PieChart>
-                </ResponsiveContainer>
-              </div>
-              {/* Detailed Side Legend */}
-              <div className="space-y-2 mt-4">
-                {sectorRevenue.map((s, i) => (
-                  <div key={i} className="flex items-center justify-between text-[11px]">
-                    <div className="flex items-center gap-2">
-                      <div className="w-2.5 h-2.5 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
-                      <span className="text-slate-600 font-bold">{s.sector_name}</span>
-                    </div>
-                    <span className="text-slate-400 font-mono font-bold">
-                      {((parseFloat(s.total_revenue) / sectorRevenue.reduce((a, b) => a + parseFloat(b.total_revenue), 0)) * 100).toFixed(1)}%
-                    </span>
-                  </div>
-                ))}
-              </div>
-            </Motion.div>
+          {(() => {
+            const totalSectorRev = sectorRevenue.reduce((acc, curr) => acc + (parseFloat(curr.total_revenue) || 0), 0);
+            const sectorBarRows = sectorRevenue.map((s) => ({
+              account_name: s.sector_name === 'Logistics & Supply Chain' ? 'Logistics & SCM' : s.sector_name,
+              p1: parseFloat(s.total_revenue) || 0,
+              p2: parseFloat(s.gross_profit) || 0,
+            }));
+            const sectorCategories = sectorBarRows.map((r) => r.account_name);
+            const sectorMagnitudes = sectorBarRows.flatMap((r) => [r.p1, r.p2]);
+            const sectorLayout = computeChartLayout(sectorCategories, {
+              seriesCount: 2,
+              valueMagnitudes: sectorMagnitudes,
+              minHeight: 360,
+              maxHeight: 640,
+              forceHorizontal: true,
+            });
+            const sectorChartRows = normalizeChartRows(sectorBarRows, 'account_name', sectorLayout);
+            const sectorSeries = [
+              { dataKey: 'p1', name: 'Revenue', fill: '#118DFF' },
+              { dataKey: 'p2', name: 'Gross Profit', fill: '#107C10' },
+            ];
 
-            {/* Redesigned Revenue vs Profit Vertical Bar Chart */}
-            <Motion.div variants={fadeUp} className="card p-6 lg:col-span-2">
-              <div className="flex items-center justify-between mb-6">
-                <h3 className="font-display font-bold text-[15px] text-slate-800">Revenue vs Gross Profit by Sector</h3>
-                <BarChart2 size={14} className="text-slate-400" />
-              </div>
-              <div className="h-[400px] w-full min-h-[400px]">
-                <ResponsiveContainer width="100%" height={400}>
-                  <BarChart 
-                    layout="vertical" 
-                    data={sectorRevenue.map(s => ({
-                      ...s,
-                      displayName: s.sector_name === 'Logistics & Supply Chain' ? 'Logistics & SCM' : s.sector_name
-                    }))} 
-                    margin={{ left: 40, right: 30, top: 10, bottom: 10 }}
-                  >
-                    <defs>
-                      <linearGradient id="revenueGrad" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor="#118DFF" stopOpacity={0.95} />
-                        <stop offset="100%" stopColor="#12239E" stopOpacity={0.95} />
-                      </linearGradient>
-                      <linearGradient id="profitGrad" x1="0" y1="0" x2="1" y2="0">
-                        <stop offset="0%" stopColor="#10b981" stopOpacity={0.95} />
-                        <stop offset="100%" stopColor="#059669" stopOpacity={0.95} />
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" horizontal={true} vertical={false} stroke="#f1f5f9" />
-                    <XAxis 
-                      type="number"
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fontSize: 11, fill: '#64748b' }} 
-                      tickFormatter={(v) => `$${v >= 1000 ? (v / 1000) + 'k' : v}`} 
+            return (
+              <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                <Motion.div variants={fadeUp} className="card p-6 lg:col-span-1">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-display font-bold text-[15px] text-slate-800">Revenue Distribution</h3>
+                    <TrendingUp size={14} className="text-emerald-500" />
+                  </div>
+                  {totalSectorRev === 0 ? (
+                    <p className="text-[13px] text-slate-400 py-12 text-center">No sector revenue data.</p>
+                  ) : (
+                    <PowerBIDonut
+                      data={sectorRevenue.map((s) => ({ name: s.sector_name, value: parseFloat(s.total_revenue) || 0 }))}
+                      colors={CHART_COLORS}
+                      height={240}
+                      currency="$"
+                      centerLabel="Total Revenue"
+                      centerValue={`$${totalSectorRev.toLocaleString('en-US', { maximumFractionDigits: 0 })}`}
                     />
-                    <YAxis 
-                      type="category"
-                      dataKey="displayName" 
-                      axisLine={false} 
-                      tickLine={false} 
-                      tick={{ fontSize: 11, fill: '#475569', fontWeight: 700 }} 
-                      width={110}
-                    />
-                    <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc', radius: 4 }} />
-                    <Legend verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: '20px', fontSize: '11px', fontWeight: 'bold' }} />
-                    <Bar dataKey="total_revenue" name="Revenue" fill="url(#revenueGrad)" radius={[0, 4, 4, 0]} barSize={12} />
-                    <Bar dataKey="gross_profit" name="Profit" fill="url(#profitGrad)" radius={[0, 4, 4, 0]} barSize={12} />
-                  </BarChart>
-                </ResponsiveContainer>
+                  )}
+                </Motion.div>
+
+                <Motion.div variants={fadeUp} className="card p-6 lg:col-span-2">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-display font-bold text-[15px] text-slate-800">Revenue vs Gross Profit by Sector</h3>
+                    <BarChart2 size={14} className="text-slate-400" />
+                  </div>
+                  {sectorRevenue.length > 0 ? (
+                    <AdaptiveChartFrame layout={sectorLayout}>
+                      <DynamicClusteredBarChart
+                        chartRows={sectorChartRows}
+                        layout={sectorLayout}
+                        lookup={sectorChartRows}
+                        series={sectorSeries}
+                      />
+                    </AdaptiveChartFrame>
+                  ) : (
+                    <p className="text-[13px] text-slate-400">No sector data available</p>
+                  )}
+                </Motion.div>
               </div>
-            </Motion.div>
-          </div>
+            );
+          })()}
 
           <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
             {/* Sector Breakdown Table */}
@@ -535,24 +468,24 @@ export default function DistributionPage() {
                   </thead>
                   <tbody>
                     {loading ? Array.from({ length: 4 }).map((_, i) => <tr key={i}>{Array.from({ length: 4 }).map((_, j) => <td key={j}><div className="skeleton h-4" /></td>)}</tr>)
-                    : sectorRevenue.map((s, i) => {
-                      const gpPct = (parseFloat(s.gross_profit) / (parseFloat(s.total_revenue) || 1)) * 100;
-                      return (
-                        <tr key={s.sector_id}>
-                          <td>
-                            <div className="flex items-center gap-2">
-                              <div className="w-2 h-2 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
-                              <span className="font-semibold text-[13.5px]">{s.sector_name}</span>
-                            </div>
-                          </td>
-                          <td className="text-right font-mono text-[12px]">{s.delivery_count}</td>
-                          <td className="text-right font-mono font-semibold text-[13px] text-slate-900">${parseFloat(s.total_revenue).toLocaleString()}</td>
-                          <td className="text-right">
-                             <span className={`text-[12px] font-bold ${gpPct >= 20 ? 'text-emerald-600' : 'text-amber-600'}`}>{gpPct.toFixed(1)}%</span>
-                          </td>
-                        </tr>
-                      );
-                    })}
+                      : sectorRevenue.map((s, i) => {
+                        const gpPct = (parseFloat(s.gross_profit) / (parseFloat(s.total_revenue) || 1)) * 100;
+                        return (
+                          <tr key={s.sector_id}>
+                            <td>
+                              <div className="flex items-center gap-2">
+                                <div className="w-2 h-2 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
+                                <span className="font-semibold text-[13.5px]">{s.sector_name}</span>
+                              </div>
+                            </td>
+                            <td className="text-right font-mono text-[12px]">{s.delivery_count}</td>
+                            <td className="text-right font-mono font-semibold text-[13px] text-slate-900">${parseFloat(s.total_revenue).toLocaleString()}</td>
+                            <td className="text-right">
+                              <span className={`text-[12px] font-bold ${gpPct >= 20 ? 'text-emerald-600' : 'text-amber-600'}`}>{gpPct.toFixed(1)}%</span>
+                            </td>
+                          </tr>
+                        );
+                      })}
                   </tbody>
                 </table>
               </div>
@@ -581,17 +514,17 @@ export default function DistributionPage() {
                           </div>
                         </div>
                         <div className="text-right">
-                           <span className="font-mono font-extrabold text-[13.5px] text-slate-900 block">${parseFloat(c.total_revenue).toLocaleString()}</span>
-                           <span className="text-[10px] uppercase font-bold tracking-tighter text-emerald-600">Top Tier</span>
+                          <span className="font-mono font-extrabold text-[13.5px] text-slate-900 block">${parseFloat(c.total_revenue).toLocaleString()}</span>
+                          <span className="text-[10px] uppercase font-bold tracking-tighter text-emerald-600">Top Tier</span>
                         </div>
                       </div>
                       <div className="h-1.5 w-full bg-slate-100 rounded-full overflow-hidden">
-                        <Motion.div 
+                        <Motion.div
                           initial={{ width: 0 }}
-                          animate={{ width: `${pct}%` }} 
+                          animate={{ width: `${pct}%` }}
                           transition={{ duration: 1, delay: i * 0.1, ease: "easeOut" }}
-                          className="h-full rounded-full" 
-                          style={{ background: PROGRESS_GRADIENTS[i % PROGRESS_GRADIENTS.length] }} 
+                          className="h-full rounded-full"
+                          style={{ background: PROGRESS_GRADIENTS[i % PROGRESS_GRADIENTS.length] }}
                         />
                       </div>
                     </div>

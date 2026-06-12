@@ -16,11 +16,21 @@ import { useState, useEffect, useCallback, useMemo } from "react";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
-  ResponsiveContainer, Cell, PieChart, Pie,
+  ResponsiveContainer, Cell,
   RadarChart, PolarGrid, PolarAngleAxis, PolarRadiusAxis, Radar,
 } from "recharts";
 import { analyticsApi } from "../services/analyticsApi";
 import useAuthStore from "../store/authStore";
+import {
+  PBI, fmtChart, computeChartLayout, buildWaterfall,
+  AdaptiveChartFrame, ChartTooltip, DynamicPolarTick, DynamicXTick, DynamicYCategoryTick, normalizeChartRows,
+  legendStyle, yAxisProps, buildChartMargins, pbiGridProps,
+} from "../components/charts/chartEngine";
+import {
+  DynamicClusteredBarChart, DynamicVarianceBarChart, DynamicWaterfallChart,
+  DynamicComboChart, DynamicBarSeries,
+} from "../components/charts/DynamicCharts";
+import { PowerBIDonut } from "../components/charts/PowerBIDonut";
 
 /* ═══ THEME — white/light like reference image ══════════════════════════════ */
 const W = {
@@ -86,25 +96,17 @@ if (typeof document !== "undefined" && !document.getElementById("ad-white-css"))
     .recharts-legend-item-text { font-size: 11px !important; font-weight: 600 !important; color: #64748b !important; }
     .aw-pulse { animation: aw-p 3s ease-in-out infinite; }
     @keyframes aw-p { 0%, 100% { opacity: 1; stroke-width: 2.5; } 50% { opacity: 0.8; stroke-width: 3.5; } }
+    .pbi-card { background:#fff; border:1px solid #edebe9; border-radius:8px; box-shadow:0 1.6px 3.6px rgba(0,0,0,.06),0 0.3px 0.9px rgba(0,0,0,.04); }
+    .pbi-chart-title { font-size:13px; font-weight:600; color:#252423; margin:0 0 2px; }
+    .pbi-chart-sub { font-size:11px; color:#605e5c; margin:0 0 16px; }
+    .pbi-databar { height:6px; border-radius:3px; background:#f3f2f1; overflow:hidden; margin-top:4px; }
+    .pbi-databar-fill { height:100%; border-radius:3px; transition:width .4s ease; }
   `;
   document.head.appendChild(s);
 }
 
 /* ═══ HELPERS ════════════════════════════════════════════════════════════════ */
-function fmt(n, short = true) {
-  if (n === undefined || n === null || isNaN(n)) return "—";
-  const abs = Math.abs(n);
-  if (short) {
-    if (abs >= 1_000_000) return (n / 1_000_000).toFixed(1) + "M";
-    if (abs >= 1_000) return (n / 1_000).toFixed(1) + "K";
-  }
-  return Number(n).toLocaleString("en-PK", { maximumFractionDigits: 0 });
-}
-
-function trunc(str, max = 14) {
-  if (!str) return "";
-  return str.length > max ? str.slice(0, max) + "…" : str;
-}
+const fmt = fmtChart;
 
 function Badge({ val }) {
   if (val > 0) return (
@@ -121,48 +123,27 @@ function Badge({ val }) {
 }
 
 /* ═══ CHART PRIMITIVES ════════════════════════════════════════════════════════ */
-const yStyle = {
-  tick: { fill: W.textDim, fontSize: 11, fontWeight: 500 },
-  axisLine: false, tickLine: false, tickFormatter: fmt, width: 56,
-};
-const xStyle = (extra = {}) => ({
-  tick: { fill: W.textDim, fontSize: 11, fontWeight: 500 },
-  axisLine: false, tickLine: false, ...extra,
-});
-
 function WhiteTooltip({ active, payload, label }) {
   if (!active || !payload?.length) return null;
+  return <ChartTooltip active={active} payload={payload} label={label} formatter={(v) => `PKR ${fmt(v)}`} />;
+}
+
+function PBIChartCard({ title, subtitle, children, height, style = {} }) {
   return (
-    <div style={{
-      background: "rgba(255, 255, 255, 0.95)", backdropFilter: "blur(8px)", border: `1px solid rgba(226, 232, 240, 0.8)`,
-      borderRadius: 12, padding: "10px 14px", minWidth: 160,
-      boxShadow: "0 10px 25px -5px rgba(0, 0, 0, 0.05), 0 8px 10px -6px rgba(0, 0, 0, 0.05)",
-    }}>
-      <p style={{ fontSize:10, fontWeight:800, color:W.textDim, letterSpacing:"0.05em", textTransform:"uppercase", marginBottom:6, borderBottom: `1px solid #f1f5f9`, paddingBottom: 4 }}>{label}</p>
-      {payload.map((p, i) => (
-        <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between", gap:14, padding: "2px 0" }}>
-          <div style={{ display:"flex", alignItems:"center", gap:6 }}>
-            <div style={{ width:8, height:8, borderRadius:2, background:p.color || p.payload?.fill }} />
-            <span style={{ fontSize:11, fontWeight:600, color:W.textSec }}>{p.name}</span>
-          </div>
-          <span style={{ fontFamily:"monospace", fontSize:11, fontWeight:700, color:W.textPri }}>
-            PKR {fmt(p.value)}
-          </span>
-        </div>
-      ))}
+    <div className="pbi-card" style={{ padding: "18px 20px", ...style }}>
+      {title && <p className="pbi-chart-title">{title}</p>}
+      {subtitle && <p className="pbi-chart-sub">{subtitle}</p>}
+      <div style={{ width: "100%", height: height || "auto" }}>{children}</div>
     </div>
   );
 }
 
-function SmartYTick({ x, y, payload }) {
-  const full = payload?.value ?? "";
+function DataBar({ value, max, color = PBI.actual }) {
+  const pct = max > 0 ? Math.min(100, (Math.abs(value) / max) * 100) : 0;
   return (
-    <g transform={`translate(${x},${y})`}>
-      <title>{full}</title>
-      <text x={-6} y={0} dy={4} textAnchor="end" fill={W.textDim} fontSize={11} fontWeight={500}>
-        {trunc(full, 18)}
-      </text>
-    </g>
+    <div className="pbi-databar">
+      <div className="pbi-databar-fill" style={{ width: `${pct}%`, background: color }} />
+    </div>
   );
 }
 
@@ -226,40 +207,6 @@ function KpiCard({ icon, label, value, growth, vsLabel, color = W.accent, bgColo
         </div>
       )}
     </div>
-  );
-}
-
-/* ── Donut with inner label ── */
-function DonutChart({ data, colors, height = 200, centerLabel = "", centerValue = "" }) {
-  const total = useMemo(() => data.reduce((s, d) => s + (d.value || 0), 0), [data]);
-  return (
-    <ResponsiveContainer width="100%" height={height}>
-      <PieChart>
-        <Pie data={data} cx="50%" cy="50%"
-          innerRadius="65%" outerRadius="88%"
-          paddingAngle={3} dataKey="value"
-          animationBegin={0} animationDuration={750} strokeWidth={0}>
-          {data.map((_, i) => <Cell key={i} fill={colors[i % colors.length]} style={{ outline: 'none' }} />)}
-        </Pie>
-        <Tooltip content={({ active, payload }) => {
-          if (!active || !payload?.length) return null;
-          const p = payload[0];
-          const pct = total > 0 ? ((p.value / total) * 100).toFixed(1) : 0;
-          return (
-            <div style={{ background:"rgba(255,255,255,0.95)", border:`1px solid rgba(226, 232, 240, 0.8)`, borderRadius:10, padding:"8px 12px", boxShadow:"0 10px 15px -3px rgba(0,0,0,0.05)" }}>
-              <p style={{ fontSize:11, fontWeight:700, color:W.textPri, marginBottom:2 }}>{p.name}</p>
-              <p style={{ fontFamily:"monospace", fontSize:11, color:p.payload.fill, fontWeight:700 }}>PKR {fmt(p.value)} ({pct}%)</p>
-            </div>
-          );
-        }} />
-        <text x="50%" y="46%" textAnchor="middle" dominantBaseline="middle" fontSize="16" fontWeight="800" fill={W.textPri}>
-          {centerValue || fmt(total)}
-        </text>
-        <text x="50%" y="56%" textAnchor="middle" dominantBaseline="middle" fontSize="10" fontWeight="700" fill={W.textSec} letterSpacing="0.05em" textTransform="uppercase">
-          {centerLabel}
-        </text>
-      </PieChart>
-    </ResponsiveContainer>
   );
 }
 
@@ -338,6 +285,11 @@ function TrendTab({ companyId }) {
     return () => { ig = true; };
   }, [companyId, months]);
 
+  const labels = useMemo(() => data.map((d) => d.label), [data]);
+  const magnitudes = useMemo(() => data.flatMap((d) => [d.revenue, d.expenses, d.profit]), [data]);
+  const trendLayout = useMemo(() => computeChartLayout(labels, { seriesCount: 3, valueMagnitudes: magnitudes, minHeight: 280 }), [labels, magnitudes]);
+  const profitLayout = useMemo(() => computeChartLayout(labels, { valueMagnitudes: data.map((d) => d.profit), minHeight: 200 }), [labels, data]);
+
   if (loading && !data.length) return <Spinner />;
   const latest = data[data.length - 1] || {};
 
@@ -365,9 +317,9 @@ function TrendTab({ companyId }) {
 
       {/* Main area chart — like reference image */}
       <Card title="Revenue & Profit Trend"
-        actions={<span style={{ fontSize:11, color:W.textDim }}>Last {months} months</span>}>
-        <ResponsiveContainer width="100%" height={280}>
-          <AreaChart data={data} margin={{ top:12, right:8, left:-15, bottom:0 }}>
+        actions={<span style={{ fontSize:11, color:W.textDim }}>Last {months} months · {trendLayout.orientation} layout</span>}>
+        <AdaptiveChartFrame layout={trendLayout}>
+          <AreaChart data={data} margin={buildChartMargins(trendLayout)}>
             <defs>
               <linearGradient id="wgRev" x1="0" y1="0" x2="0" y2="1">
                 <stop offset="5%"  stopColor="#118DFF" stopOpacity={0.18} />
@@ -379,55 +331,47 @@ function TrendTab({ companyId }) {
               </linearGradient>
             </defs>
             <CartesianGrid stroke={W.gridLine} vertical={false} strokeDasharray="3 3" />
-            <XAxis dataKey="label" {...xStyle({ dy:8 })} />
-            <YAxis {...yStyle} />
+            <XAxis dataKey="label" interval={trendLayout.tickInterval} height={trendLayout.bottomMargin}
+              tick={(p) => <DynamicXTick {...p} layout={trendLayout} lookup={data.map(d => ({ name: d.label, fullName: d.label }))} />} axisLine={false} tickLine={false} />
+            <YAxis {...yAxisProps(trendLayout)} />
             <Tooltip content={<WhiteTooltip />} cursor={{ stroke:W.border, strokeWidth:1 }} />
-            <Legend iconType="circle" verticalAlign="top" align="right"
-              wrapperStyle={{ paddingBottom:16, fontSize:11, fontWeight: 'bold' }} />
-            
-            {/* Revenue Area — Sleek & Modern */}
-            <Area type="monotone" dataKey="revenue" name="Revenue"
-              stroke="#118DFF" strokeWidth={3.5} fill="url(#wgRev)"
-              dot={false} activeDot={{ r:6, fill:"#118DFF", stroke:"#fff", strokeWidth:2 }} />
-            
-            {/* Expenses Area — Layered Contrast */}
-            <Area type="monotone" dataKey="expenses" name="Expenses"
-              stroke="#ef4444" strokeWidth={2.5} fill="url(#wgExp)"
-              strokeDasharray="5 5" dot={false} />
-            
-            {/* Profit Line — Sharp Reference */}
-            <Line type="monotone" dataKey="profit" name="Net Profit"
-              stroke="#10b981" strokeWidth={2.5} dot={false} />
+            <Legend iconType="circle" verticalAlign="top" align="right" wrapperStyle={{ paddingBottom:16, fontSize:11, fontWeight: "bold" }} />
+            <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#118DFF" strokeWidth={3} fill="url(#wgRev)" dot={false} activeDot={{ r:6, fill:"#118DFF", stroke:"#fff", strokeWidth:2 }} />
+            <Area type="monotone" dataKey="expenses" name="Expenses" stroke="#ef4444" strokeWidth={2} fill="url(#wgExp)" strokeDasharray="5 5" dot={false} />
+            <Line type="monotone" dataKey="profit" name="Net Profit" stroke="#10b981" strokeWidth={2.5} dot={false} />
           </AreaChart>
-        </ResponsiveContainer>
+        </AdaptiveChartFrame>
       </Card>
 
-      {/* Monthly profit bars */}
       <Card title="Monthly Profit">
-        <ResponsiveContainer width="100%" height={190}>
-          <BarChart data={data} margin={{ top:10, right:8, left:-15, bottom:0 }}>
+        <AdaptiveChartFrame layout={profitLayout}>
+          <BarChart data={data} margin={buildChartMargins(profitLayout)}>
             <CartesianGrid stroke={W.gridLine} vertical={false} strokeDasharray="3 3" />
-            <XAxis dataKey="label" {...xStyle({ dy:8 })} />
-            <YAxis {...yStyle} />
+            <XAxis dataKey="label" interval={profitLayout.tickInterval} height={profitLayout.bottomMargin}
+              tick={(p) => <DynamicXTick {...p} layout={profitLayout} lookup={data.map(d => ({ name: d.label, fullName: d.label }))} />} axisLine={false} tickLine={false} />
+            <YAxis {...yAxisProps(profitLayout)} />
             <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc", radius: 4 }} />
-            <Bar dataKey="profit" name="Profit" radius={[4,4,0,0]} barSize={20}>
-              {data.map((d, i) => <Cell key={i} fill={d.profit >= 0 ? "#10b981" : "#ef4444"} style={{ outline: 'none' }} />)}
+            <Bar dataKey="profit" name="Profit" radius={[4,4,0,0]} maxBarSize={profitLayout.maxBarSize}>
+              {data.map((d, i) => <Cell key={i} fill={d.profit >= 0 ? "#10b981" : "#ef4444"} style={{ outline: "none" }} />)}
             </Bar>
           </BarChart>
-        </ResponsiveContainer>
+        </AdaptiveChartFrame>
       </Card>
     </div>
   );
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   COMPARATIVE TAB
+   COMPARATIVE TAB — Power BI style
 ═══════════════════════════════════════════════════════════════════════════ */
 function ComparativeTab({ companyId }) {
   const now = new Date();
-  const [p1, setP1] = useState({ month: now.getMonth(), year: now.getFullYear() });
-  const [p2, setP2] = useState({ month: now.getMonth() + 1, year: now.getFullYear() });
-  const [data, setData]   = useState(null);
+  const curMonth = now.getMonth() + 1;
+  const prevMonth = curMonth === 1 ? 12 : curMonth - 1;
+  const prevYear = curMonth === 1 ? now.getFullYear() - 1 : now.getFullYear();
+  const [p1, setP1] = useState({ month: prevMonth, year: prevYear });
+  const [p2, setP2] = useState({ month: curMonth, year: now.getFullYear() });
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(() => {
@@ -445,71 +389,167 @@ function ComparativeTab({ companyId }) {
     return () => { ig = true; };
   }, [companyId, p1, p2]);
 
+  const allRows = useMemo(() => {
+    if (!data) return [];
+    return Object.values(data).flat();
+  }, [data]);
+
+  const summary = useMemo(() => {
+    const t1 = allRows.reduce((s, r) => s + Math.abs(r.period1?.net || 0), 0);
+    const t2 = allRows.reduce((s, r) => s + Math.abs(r.period2?.net || 0), 0);
+    const variance = t2 - t1;
+    const pct = t1 !== 0 ? parseFloat(((variance / t1) * 100).toFixed(1)) : 0;
+    return { t1, t2, variance, pct };
+  }, [allRows]);
+
+  const p1Label = data && allRows[0]?.period1?.label ? allRows[0].period1.label : `${MONTHS[p1.month - 1]} ${p1.year}`;
+  const p2Label = data && allRows[0]?.period2?.label ? allRows[0].period2.label : `${MONTHS[p2.month - 1]} ${p2.year}`;
+
   const sel = (val, setter) => (
-    <div style={{ display:"flex", gap:8 }}>
-      <select value={val.month} onChange={e => setter(v => ({ ...v, month: +e.target.value }))} className="aw-inp" style={{ flex:1 }}>
-        {MONTHS.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
+    <div style={{ display: "flex", gap: 8 }}>
+      <select value={val.month} onChange={e => setter(v => ({ ...v, month: +e.target.value }))} className="aw-inp" style={{ flex: 1 }}>
+        {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
       </select>
       <input type="number" value={val.year} onChange={e => setter(v => ({ ...v, year: +e.target.value }))}
-        className="aw-inp" style={{ width:84 }} />
+        className="aw-inp" style={{ width: 84 }} />
     </div>
   );
 
+  const renderTypeSection = (type, rows) => {
+    if (!rows?.length) return null;
+
+    const sorted = [...rows].sort((a, b) => Math.abs(b.variance) - Math.abs(a.variance));
+    const rawRows = sorted.map((r) => ({
+      account_name: r.account_name,
+      p1: Math.abs(r.period1?.net || 0),
+      p2: Math.abs(r.period2?.net || 0),
+      variance: r.variance,
+      variance_pct: r.variance_pct,
+    }));
+
+    const categories = rawRows.map((r) => r.account_name);
+    const magnitudes = rawRows.flatMap((r) => [r.p1, r.p2, r.variance]);
+    const layout = computeChartLayout(categories, { seriesCount: 2, valueMagnitudes: magnitudes, minHeight: 280, maxHeight: 720, forceHorizontal: true });
+    const chartRows = normalizeChartRows(rawRows, "account_name", layout);
+    const waterfall = buildWaterfall(sorted.slice(0, layout.orientation === "horizontal" ? sorted.length : Math.min(12, sorted.length)));
+    const wfLayout = computeChartLayout(waterfall.map((w) => w.fullName), { valueMagnitudes: waterfall.map((w) => w.variance), minHeight: 260 });
+    const maxVal = Math.max(...chartRows.flatMap((r) => [r.p1, r.p2]), 1);
+
+    const series = [
+      { dataKey: "p1", name: p1Label, fill: PBI.p1 },
+      { dataKey: "p2", name: p2Label, fill: PBI.p2 },
+    ];
+
+    return (
+      <div key={type} style={{ display: "flex", flexDirection: "column", gap: 16 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 10, marginTop: 8, flexWrap: "wrap" }}>
+          <div style={{ width: 4, height: 22, borderRadius: 2, background: PBI.p2 }} />
+          <h3 style={{ fontSize: 15, fontWeight: 700, color: W.textPri, margin: 0 }}>{type}</h3>
+          <span style={{ fontSize: 11, color: W.textDim, fontWeight: 600 }}>{rows.length} accounts</span>
+          <span style={{ fontSize: 10, color: W.textDim, background: "#f1f5f9", padding: "2px 8px", borderRadius: 4 }}>
+            {layout.orientation === "horizontal" ? "Auto horizontal · all accounts" : `Vertical · ${chartRows.length} shown`}
+          </span>
+        </div>
+
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16 }}>
+          <PBIChartCard title="Clustered Column Chart" subtitle={`${p1Label} vs ${p2Label}`} height={layout.chartHeight + 20}>
+            <AdaptiveChartFrame layout={layout}>
+              <DynamicClusteredBarChart chartRows={chartRows} layout={layout} lookup={chartRows} series={series} />
+            </AdaptiveChartFrame>
+          </PBIChartCard>
+
+          <PBIChartCard title="Period Combo Analysis" subtitle="Bars + variance % trend" height={layout.chartHeight + 20}>
+            <AdaptiveChartFrame layout={layout}>
+              <DynamicComboChart
+                chartRows={chartRows}
+                layout={layout}
+                lookup={chartRows}
+                barSeries={series}
+                lineKey="variance_pct"
+                lineName="Variance %"
+                lineFormatter={(v, name) => String(name).includes("%") ? `${v}%` : `PKR ${fmt(v)}`}
+              />
+            </AdaptiveChartFrame>
+          </PBIChartCard>
+        </div>
+
+        {waterfall.length > 0 && (
+          <PBIChartCard title="Variance Waterfall" subtitle="Period-over-period change bridge" height={wfLayout.chartHeight + 20}>
+            <AdaptiveChartFrame layout={wfLayout}>
+              <DynamicWaterfallChart waterfall={waterfall} layout={wfLayout} lookup={waterfall} />
+            </AdaptiveChartFrame>
+          </PBIChartCard>
+        )}
+
+        <div className="pbi-card" style={{ padding: "18px 20px" }}>
+          <p className="pbi-chart-title">Detail Table</p>
+          <p className="pbi-chart-sub">Full names on hover · conditional data bars</p>
+          <DataTable
+            headers={[
+              { label: "Account" },
+              { label: p1Label, right: true },
+              { label: p2Label, right: true },
+              { label: "Variance", right: true },
+              { label: "%", right: true },
+            ]}
+            rows={rows.map((r) => {
+              const p2v = Math.abs(r.period2?.net || 0);
+              return [
+                {
+                  node: (
+                    <div title={r.account_name}>
+                      <span style={{ fontWeight: 600, color: W.textPri, fontSize: 12, wordBreak: "break-word" }}>{r.account_name}</span>
+                      <DataBar value={p2v} max={maxVal} color={PBI.p2} />
+                    </div>
+                  ),
+                },
+                { node: <span style={{ fontFamily: "monospace", color: W.textSec, fontSize: 12 }}>{fmt(r.period1?.net)}</span>, style: { textAlign: "right" } },
+                { node: <span style={{ fontFamily: "monospace", fontSize: 12 }}>{fmt(r.period2?.net)}</span>, style: { textAlign: "right" } },
+                { node: <span style={{ fontFamily: "monospace", fontWeight: 700, color: r.variance >= 0 ? PBI.positive : PBI.negative, fontSize: 12 }}>{fmt(r.variance)}</span>, style: { textAlign: "right" } },
+                { node: <Badge val={r.variance_pct} />, style: { textAlign: "right" } },
+              ];
+            })}
+          />
+        </div>
+      </div>
+    );
+  };
+
   return (
-    <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
-      <Card title="Select Periods to Compare">
-        <div style={{ display:"grid", gridTemplateColumns:"1fr 1fr", gap:14, marginBottom:16 }}>
+    <div className="aw-fade" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div className="pbi-card" style={{ padding: "20px 22px" }}>
+        <p className="pbi-chart-title">Period Comparison Slicer</p>
+        <p className="pbi-chart-sub">Select two periods — visuals update automatically (Power BI slicer style)</p>
+        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 14, alignItems: "end" }}>
           <div>
-            <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>Period 1</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 6 }}>Period 1 (Baseline)</p>
             {sel(p1, setP1)}
           </div>
           <div>
-            <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>Period 2</p>
+            <p style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 6 }}>Period 2 (Comparison)</p>
             {sel(p2, setP2)}
           </div>
+          <button onClick={load} className="aw-btn-primary" style={{ height: 40 }}>Refresh</button>
         </div>
-        <button onClick={load} className="aw-btn-primary">Compare Periods →</button>
-      </Card>
+      </div>
 
       {loading && <Spinner />}
 
-      {!loading && data && Object.entries(data).map(([type, rows]) => (
-        <Card key={type} title={type}>
-          {rows.length > 0 && (
-            <ResponsiveContainer width="100%" height={Math.max(140, rows.length * 30)}>
-              <BarChart layout="vertical"
-                data={rows.map(r => ({ name: r.account_name, p1: Math.abs(r.period1?.net||0), p2: Math.abs(r.period2?.net||0) }))}
-                margin={{ top:0, right:16, left:0, bottom:0 }}>
-                <CartesianGrid stroke={W.gridLine} horizontal={false} vertical={true} strokeDasharray="3 3" />
-                <XAxis type="number" {...xStyle({})} tickFormatter={fmt} />
-                <YAxis type="category" dataKey="name" width={130} tick={<SmartYTick />} axisLine={false} tickLine={false} />
-                <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc", opacity:0.5 }} />
-                <Legend iconType="circle" wrapperStyle={{ fontSize:11, fontWeight: 'bold' }} />
-                <Bar dataKey="p1" name="Period 1" fill="#94a3b8" radius={[0,4,4,0]} barSize={8} />
-                <Bar dataKey="p2" name="Period 2" fill="#118DFF" radius={[0,4,4,0]} barSize={8} />
-              </BarChart>
-            </ResponsiveContainer>
-          )}
-          <div style={{ marginTop:14 }}>
-            <DataTable
-              headers={[
-                { label:"Account" },
-                { label:"Period 1", right:true },
-                { label:"Period 2", right:true },
-                { label:"Variance", right:true },
-                { label:"%", right:true },
-              ]}
-              rows={rows.map(r => [
-                { node: <span style={{ fontWeight:600, color:W.textPri }}>{r.account_name}</span> },
-                { node: <span style={{ fontFamily:"monospace", color:W.textSec }}>{fmt(r.period1?.net)}</span>, style:{textAlign:"right"} },
-                { node: <span style={{ fontFamily:"monospace" }}>{fmt(r.period2?.net)}</span>, style:{textAlign:"right"} },
-                { node: <span style={{ fontFamily:"monospace", fontWeight:700, color:r.variance>=0?W.green:W.red }}>{fmt(r.variance)}</span>, style:{textAlign:"right"} },
-                { node: <Badge val={r.variance_pct} />, style:{textAlign:"right"} },
-              ])}
-            />
+      {!loading && data && allRows.length > 0 && (
+        <>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
+            <KpiCard icon="📅" label={p1Label} value={`PKR ${fmt(summary.t1)}`} color={PBI.p1} />
+            <KpiCard icon="📅" label={p2Label} value={`PKR ${fmt(summary.t2)}`} color={PBI.p2} />
+            <KpiCard icon="Δ" label="Net Change" value={`PKR ${fmt(summary.variance)}`} growth={summary.pct} vsLabel="vs baseline" color={summary.variance >= 0 ? PBI.positive : PBI.negative} />
           </div>
-        </Card>
-      ))}
+
+          {Object.entries(data).map(([type, rows]) => renderTypeSection(type, rows))}
+        </>
+      )}
+
+      {!loading && data && allRows.length === 0 && (
+        <Card title="No comparative data"><p style={{ color: W.textSec, fontSize: 13 }}>No ledger activity found for the selected periods.</p></Card>
+      )}
     </div>
   );
 }
@@ -538,8 +578,37 @@ function VerticalTab({ companyId }) {
     return () => { ig = true; };
   }, [companyId, month, year]);
 
-  const renderSection = (title, items, total) => (
+  const renderSection = (title, items, total) => {
+    const categories = (items || []).map((i) => i.account_name);
+    const layout = computeChartLayout(categories, { valueMagnitudes: (items || []).map((i) => i.amount), minHeight: 240, forceHorizontal: (items || []).length > 5 });
+    const chartRows = normalizeChartRows(items || [], "account_name", layout);
+
+    return (
     <Card title={title} subtitle={`Total: PKR ${fmt(total)}`}>
+      {(items || []).length > 0 && (
+        <div style={{ marginBottom: 20 }}>
+          <AdaptiveChartFrame layout={layout}>
+            <BarChart layout={layout.orientation === "horizontal" ? "vertical" : "horizontal"} data={chartRows} margin={buildChartMargins(layout)}>
+              <CartesianGrid {...pbiGridProps} />
+              {layout.orientation === "horizontal" ? (
+                <>
+                  <XAxis type="number" tickFormatter={fmt} tick={{ fill: "#605e5c", fontSize: layout.tickFontSize }} axisLine={false} tickLine={false} />
+                  <YAxis type="category" dataKey="name" width={layout.yAxisWidth} tick={(p) => <DynamicYCategoryTick {...p} layout={layout} lookup={chartRows} />} axisLine={false} tickLine={false} />
+                </>
+              ) : (
+                <>
+                  <XAxis dataKey="name" interval={layout.tickInterval} height={layout.bottomMargin} tick={(p) => <DynamicXTick {...p} layout={layout} lookup={chartRows} />} axisLine={false} tickLine={false} />
+                  <YAxis {...yAxisProps(layout)} />
+                </>
+              )}
+              <Tooltip content={(p) => <ChartTooltip {...p} fullLabel={p.label} formatter={(v) => `PKR ${fmt(v)}`} />} />
+              <Bar dataKey="amount" name="Amount" radius={layout.orientation === "horizontal" ? [0, 4, 4, 0] : [4, 4, 0, 0]} maxBarSize={layout.maxBarSize}>
+                {chartRows.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
+              </Bar>
+            </BarChart>
+          </AdaptiveChartFrame>
+        </div>
+      )}
       {items.map((item, i) => (
         <div key={i} style={{ marginBottom:12 }}>
           <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
@@ -556,7 +625,8 @@ function VerticalTab({ companyId }) {
         </div>
       ))}
     </Card>
-  );
+    );
+  };
 
   return (
     <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
@@ -600,11 +670,20 @@ function SectorTab({ companyId }) {
     return () => { ig = true; };
   }, [companyId]);
 
-  if (loading && !data.length) return <Spinner />;
+  const barData = useMemo(() => data.map((s) => ({
+    name: s.sector,
+    fullName: s.sector,
+    revenue: s.periods.reduce((a, p) => a + p.revenue, 0),
+  })), [data]);
+  const sectorLayout = useMemo(() => computeChartLayout(
+    barData.map((d) => d.name),
+    { valueMagnitudes: barData.map((d) => d.revenue), minHeight: 280, maxHeight: 560, forceHorizontal: true }
+  ), [barData]);
+  const sectorChartRows = useMemo(() => normalizeChartRows(barData, "name", sectorLayout), [barData, sectorLayout]);
+  const total = barData.reduce((s, d) => s + d.revenue, 0);
+  const donutColors = PALETTE.slice(0, barData.length);
 
-  const barData = data.map(s => ({ name: s.sector, revenue: s.periods.reduce((a, p) => a + p.revenue, 0) }));
-  const total   = barData.reduce((s, d) => s + d.revenue, 0);
-  const donutColors = PALETTE.slice(0, data.length);
+  if (loading && !data.length) return <Spinner />;
 
   return (
     <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
@@ -634,54 +713,27 @@ function SectorTab({ companyId }) {
       {data.length > 0 && (
         <div style={{ display:"flex", flexWrap:"wrap", gap:16, alignItems:"stretch" }}>
           <Card title="Sector Revenue Comparison" style={{ flex:"2 1 480px" }}>
-            <ResponsiveContainer width="100%" height={280}>
-              <BarChart data={barData} margin={{ top:10, right:8, left:0, bottom:44 }}>
-                <defs>
-                  <linearGradient id="sectorRevenueGrad" x1="0" y1="0" x2="0" y2="1">
-                    <stop offset="0%" stopColor="#118DFF" stopOpacity={0.9} />
-                    <stop offset="100%" stopColor="#12239E" stopOpacity={0.9} />
-                  </linearGradient>
-                </defs>
-                <CartesianGrid stroke={W.gridLine} vertical={false} strokeDasharray="3 3" />
-                <XAxis dataKey="name"
-                  tick={({ x, y, payload }) => (
-                    <g transform={`translate(${x},${y})`}>
-                      <title>{payload.value}</title>
-                      <text transform="rotate(-25)" textAnchor="end" x={0} y={0} dy={6}
-                        fill={W.textSec} fontSize={10} fontWeight={600}>
-                        {trunc(payload.value, 12)}
-                      </text>
-                    </g>
-                  )}
-                  interval={0} axisLine={false} tickLine={false} height={50} />
-                <YAxis {...yStyle} />
-                <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc", radius: 6 }} />
-                <Bar dataKey="revenue" name="Revenue" fill="url(#sectorRevenueGrad)" radius={[4,4,0,0]} barSize={24}>
-                  {barData.map((entry, i) => (
-                    <Cell key={i} style={{ transition: 'opacity 0.2s', outline: 'none' }} className="hover:opacity-85" />
-                  ))}
-                </Bar>
-              </BarChart>
-            </ResponsiveContainer>
+            <AdaptiveChartFrame layout={sectorLayout}>
+              <DynamicBarSeries
+                chartRows={sectorChartRows}
+                layout={sectorLayout}
+                lookup={sectorChartRows}
+                dataKey="revenue"
+                name="Revenue"
+                fill="#118DFF"
+              />
+            </AdaptiveChartFrame>
           </Card>
 
           {/* Donut — matches reference image "Traffic Sources" */}
           <Card title="Revenue Distribution" style={{ flex:"1 1 300px" }}>
-            <DonutChart data={barData.map(d => ({ name:d.name, value:d.revenue }))}
-              colors={donutColors} height={180} centerLabel="Total Revenue" />
-            <div style={{ marginTop:14, display:"flex", flexDirection:"column", gap:8 }}>
-              {barData.map((d, i) => (
-                <div key={i} style={{ display:"flex", alignItems:"center", justifyContent:"space-between" }}>
-                  <div style={{ display:"flex", alignItems:"center", gap:8 }}>
-                    <div style={{ width:10, height:10, borderRadius:2, background:PALETTE[i%PALETTE.length] }} />
-                    <span style={{ fontSize:12, color:W.textSec, fontWeight:500 }}>{d.name}</span>
-                  </div>
-                  <span style={{ fontSize:12, color:W.textPri, fontFamily:"monospace", fontWeight:700 }}>
-                    {total > 0 ? ((d.revenue/total)*100).toFixed(0) : 0}%
-                  </span>
-                </div>
-              ))}
-            </div>
+            <PowerBIDonut
+              data={barData.map(d => ({ name: d.name, value: d.revenue }))}
+              colors={donutColors}
+              height={220}
+              centerLabel="Total Revenue"
+              centerValue={`PKR ${fmt(total)}`}
+            />
           </Card>
         </div>
       )}
@@ -748,36 +800,13 @@ function OperationsTab({ companyId }) {
           {!warehouses.length
             ? <p style={{ color:W.textDim, fontSize:13 }}>No warehouse data.</p>
             : (
-              <ResponsiveContainer width="100%" height={280}>
-                {(() => {
-                  const totalVal = warehouses.reduce((acc, curr) => acc + (curr.estimated_value || 0), 0);
-                  return (
-                    <PieChart>
-                      <Pie
-                        data={warehouses}
-                        cx="50%" cy="45%"
-                        innerRadius="60%" outerRadius="80%"
-                        paddingAngle={3}
-                        dataKey="estimated_value"
-                        nameKey="warehouse_name"
-                        stroke="none"
-                        animationBegin={0}
-                        animationDuration={750}
-                      >
-                        {warehouses.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} style={{ outline: 'none' }} />)}
-                      </Pie>
-                      <Tooltip content={<WhiteTooltip />} />
-                      <Legend iconType="circle" layout="horizontal" align="center" verticalAlign="bottom" wrapperStyle={{ fontSize:11, fontWeight: 'bold', paddingTop: 10, color: '#64748b' }} />
-                      <text x="50%" y="41%" textAnchor="middle" dominantBaseline="middle" fontSize="15" fontWeight="800" fill={W.textPri}>
-                        PKR {fmt(totalVal)}
-                      </text>
-                      <text x="50%" y="51%" textAnchor="middle" dominantBaseline="middle" fontSize="9" fontWeight="700" fill={W.textSec} letterSpacing="0.05em" textTransform="uppercase">
-                        Load Value
-                      </text>
-                    </PieChart>
-                  );
-                })()}
-              </ResponsiveContainer>
+              <PowerBIDonut
+                data={warehouses.map((w) => ({ name: w.warehouse_name, value: w.estimated_value || 0 }))}
+                colors={PALETTE}
+                height={240}
+                centerLabel="Load Value"
+                centerValue={`PKR ${fmt(warehouses.reduce((a, c) => a + (c.estimated_value || 0), 0))}`}
+              />
             )
           }
         </Card>
@@ -914,117 +943,227 @@ function BudgetTab({ companyId }) {
 }
 
 /* ═══════════════════════════════════════════════════════════════════════════
-   VARIANCE TAB
+   VARIANCE TAB — Power BI style
 ═══════════════════════════════════════════════════════════════════════════ */
 function VarianceTab({ companyId }) {
   const now = new Date();
-  const [year,setYear]   = useState(now.getFullYear());
-  const [month,setMonth] = useState(now.getMonth()+1);
-  const [data,setData]   = useState(null);
-  const [loading,setLoading] = useState(true);
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [data, setData] = useState(null);
+  const [loading, setLoading] = useState(true);
 
   const load = useCallback(() => {
     setLoading(true);
-    analyticsApi.getBudgetVsActual(companyId,year,month).then(setData).catch(console.error).finally(()=>setLoading(false));
-  }, [companyId,year,month]);
+    analyticsApi.getBudgetVsActual(companyId, year, month).then(setData).catch(console.error).finally(() => setLoading(false));
+  }, [companyId, year, month]);
 
   useEffect(() => {
-    let ig=false; Promise.resolve().then(()=>{if(!ig)setLoading(true);});
-    analyticsApi.getBudgetVsActual(companyId,year,month).then(r=>{if(!ig)setData(r)}).catch(console.error).finally(()=>{if(!ig)setLoading(false);});
-    return()=>{ig=true};
-  }, [companyId,year,month]);
+    let ig = false;
+    Promise.resolve().then(() => { if (!ig) setLoading(true); });
+    analyticsApi.getBudgetVsActual(companyId, year, month).then(r => { if (!ig) setData(r); }).catch(console.error).finally(() => { if (!ig) setLoading(false); });
+    return () => { ig = true; };
+  }, [companyId, year, month]);
+
+  const items = useMemo(() => data?.items || [], [data?.items]);
+  const summary = data?.summary || {};
+  const utilization = summary.total_budget > 0
+    ? Math.min(100, (summary.total_actual / summary.total_budget) * 100)
+    : 0;
+
+  const rawVarianceRows = useMemo(() =>
+    [...items]
+      .map((r) => ({
+        account_name: r.account_name || r.sector_id || "Account",
+        budget: Math.abs(r.budget_amount || 0),
+        actual: Math.abs(r.actual_amount || 0),
+        variance: r.variance,
+        variance_pct: r.variance_pct,
+        status: r.status,
+      }))
+      .sort((a, b) => Math.abs(b.variance) - Math.abs(a.variance)),
+  [items]);
+
+  const varianceLayout = useMemo(() => computeChartLayout(
+    rawVarianceRows.map((r) => r.account_name),
+    { seriesCount: 2, valueMagnitudes: rawVarianceRows.flatMap((r) => [r.budget, r.actual, r.variance]), minHeight: 300, maxHeight: 720, forceHorizontal: true }
+  ), [rawVarianceRows]);
+
+  const chartItems = useMemo(() => normalizeChartRows(rawVarianceRows, "account_name", varianceLayout), [rawVarianceRows, varianceLayout]);
+
+  const waterfall = useMemo(() => buildWaterfall(
+    rawVarianceRows.slice(0, varianceLayout.orientation === "horizontal" ? rawVarianceRows.length : Math.min(15, rawVarianceRows.length))
+  ), [rawVarianceRows, varianceLayout]);
+
+  const wfLayout = useMemo(() => computeChartLayout(
+    waterfall.map((w) => w.fullName),
+    { valueMagnitudes: waterfall.map((w) => w.variance), minHeight: 260 }
+  ), [waterfall]);
+
+  const radarItems = useMemo(() => rawVarianceRows.slice(0, Math.min(12, rawVarianceRows.length)), [rawVarianceRows]);
+
+  const maxBudget = Math.max(...rawVarianceRows.map((i) => Math.max(i.budget, i.actual)), 1);
 
   return (
-    <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
-      <div style={{ display:"flex", gap:10, alignItems:"flex-end", flexWrap:"wrap" }}>
-        <div>
-          <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>Month</p>
-          <select value={month} onChange={e=>setMonth(+e.target.value)} className="aw-inp">
-            {MONTHS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}
-          </select>
+    <div className="aw-fade" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div className="pbi-card" style={{ padding: "20px 22px" }}>
+        <p className="pbi-chart-title">Variance Analysis Slicer</p>
+        <p className="pbi-chart-sub">{MONTHS[month - 1]} {year} — Budget vs Actual performance</p>
+        <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 6 }}>Month</p>
+            <select value={month} onChange={e => setMonth(+e.target.value)} className="aw-inp">
+              {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
+            </select>
+          </div>
+          <div>
+            <p style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 6 }}>Year</p>
+            <input type="number" value={year} onChange={e => setYear(+e.target.value)} className="aw-inp" style={{ width: 90 }} />
+          </div>
+          <button onClick={load} className="aw-btn-primary">Refresh</button>
         </div>
-        <div>
-          <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>Year</p>
-          <input type="number" value={year} onChange={e=>setYear(+e.target.value)} className="aw-inp" style={{ width:90 }} />
-        </div>
-        <button onClick={load} className="aw-btn-primary">Load</button>
       </div>
 
       {loading && <Spinner />}
 
       {!loading && data && (
         <>
-          <div style={{ display:"grid", gridTemplateColumns:"repeat(3,1fr)", gap:14 }}>
-            <KpiCard icon="🎯" label="Total Budget" value={`PKR ${fmt(data.summary?.total_budget)}`}   color={W.accent} />
-            <KpiCard icon="📊" label="Total Actual" value={`PKR ${fmt(data.summary?.total_actual)}`}   color={W.textPri} />
-            <KpiCard icon="📉" label="Variance"     value={`PKR ${fmt(data.summary?.total_variance)}`}
-              growth={data.summary?.total_variance_pct}
-              color={data.summary?.total_variance>=0?W.green:W.red} />
+          {/* KPI cards with utilization gauge */}
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
+            <KpiCard icon="🎯" label="Total Budget" value={`PKR ${fmt(summary.total_budget)}`} color={PBI.budget} />
+            <KpiCard icon="📊" label="Total Actual" value={`PKR ${fmt(summary.total_actual)}`} color={PBI.actual} />
+            <KpiCard icon="📉" label="Total Variance" value={`PKR ${fmt(summary.total_variance)}`}
+              growth={summary.total_variance_pct}
+              color={summary.total_variance >= 0 ? PBI.positive : PBI.negative} />
+            <div className="pbi-card" style={{ padding: "20px 22px" }}>
+              <p style={{ fontSize: 13, fontWeight: 600, color: W.textSec, margin: "0 0 12px" }}>Budget Utilization</p>
+              <div style={{ position: "relative", height: 8, background: "#f3f2f1", borderRadius: 4, overflow: "hidden" }}>
+                <div style={{
+                  height: "100%", width: `${utilization}%`, borderRadius: 4,
+                  background: utilization > 100 ? PBI.negative : utilization > 85 ? "#E66C37" : PBI.positive,
+                  transition: "width 0.6s ease",
+                }} />
+              </div>
+              <p style={{ fontFamily: "monospace", fontSize: 22, fontWeight: 800, color: W.textPri, margin: "10px 0 0" }}>
+                {utilization.toFixed(1)}%
+              </p>
+              <p style={{ fontSize: 11, color: W.textDim }}>Actual ÷ Budget</p>
+            </div>
           </div>
 
-          {data.items?.length > 0 && (
+          {items.length > 0 && (
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 16 }}>
+              <PBIChartCard title="Budget vs Actual" subtitle={`Clustered · ${varianceLayout.orientation} · ${chartItems.length} accounts`} height={varianceLayout.chartHeight + 20} style={{ gridColumn: chartItems.length > 6 ? "1 / -1" : undefined }}>
+                <AdaptiveChartFrame layout={varianceLayout}>
+                  <DynamicClusteredBarChart
+                    chartRows={chartItems}
+                    layout={varianceLayout}
+                    lookup={chartItems}
+                    series={[
+                      { dataKey: "budget", name: "Budget", fill: PBI.budget },
+                      { dataKey: "actual", name: "Actual", fill: PBI.actual },
+                    ]}
+                  />
+                </AdaptiveChartFrame>
+              </PBIChartCard>
+
+              <PBIChartCard title="Variance by Account" subtitle="Favorable vs unfavorable" height={varianceLayout.chartHeight + 20}>
+                <AdaptiveChartFrame layout={varianceLayout}>
+                  <DynamicVarianceBarChart chartRows={chartItems} layout={varianceLayout} lookup={chartItems} />
+                </AdaptiveChartFrame>
+              </PBIChartCard>
+            </div>
+          )}
+
+          {waterfall.length > 0 && (
+            <PBIChartCard title="Variance Waterfall Bridge" subtitle="Cumulative budget variance decomposition" height={wfLayout.chartHeight + 20}>
+              <AdaptiveChartFrame layout={wfLayout}>
+                <DynamicWaterfallChart waterfall={waterfall} layout={wfLayout} lookup={waterfall} />
+              </AdaptiveChartFrame>
+            </PBIChartCard>
+          )}
+
+          {items.length > 0 && (
             <>
-              {/* Radar */}
-              <Card title="360° Financial Performance Radar">
-                <ResponsiveContainer width="100%" height={380}>
-                  <RadarChart cx="50%" cy="50%" outerRadius="72%" data={data.items}>
-                    <PolarGrid stroke="#e2e8f0" />
-                    <PolarAngleAxis dataKey="account_name"
-                      tick={({ x, y, payload, cx }) => {
-                        const anchor = x < cx ? "end" : x > cx ? "start" : "middle";
-                        return (
-                          <g>
-                            <title>{payload.value}</title>
-                            <text x={x} y={y} textAnchor={anchor} fill={W.textSec} fontSize={10} fontWeight={600}>
-                              {trunc(payload.value, 12)}
-                            </text>
-                          </g>
-                        );
-                      }}
-                    />
-                    <PolarRadiusAxis angle={30} domain={[0,"auto"]} tick={{ fill:W.textDim, fontSize:9 }} axisLine={false} tickLine={false} />
-                    <Radar name="Budget Limit" dataKey="budget_amount" stroke="#cbd5e1" strokeWidth={1.5} fill="#f1f5f9" fillOpacity={0.3} />
-                    <Radar name="Actual Spend" dataKey="actual_amount" stroke="#118DFF" strokeWidth={2.5} fill="#118DFF" fillOpacity={0.15} />
-                    <Tooltip content={<WhiteTooltip />} />
-                    <Legend iconType="circle" wrapperStyle={{ fontSize:11, fontWeight: 'bold', paddingTop:16 }} />
+              <PBIChartCard title="Multi-Axis Performance Radar" subtitle="Budget envelope vs actual spend" height={Math.max(360, radarItems.length * 28)}>
+                <AdaptiveChartFrame layout={{ chartHeight: Math.max(360, radarItems.length * 28) }}>
+                  <RadarChart cx="50%" cy="50%" outerRadius={radarItems.length > 8 ? "68%" : "75%"} data={radarItems}>
+                    <PolarGrid stroke="#edebe9" />
+                    <PolarAngleAxis dataKey="account_name" tick={(p) => <DynamicPolarTick {...p} maxChars={radarItems.length > 8 ? 9 : 12} />} />
+                    <PolarRadiusAxis angle={30} tick={{ fill: "#a19f9d", fontSize: 8 }} axisLine={false} tickLine={false} tickFormatter={fmt} />
+                    <Radar name="Budget" dataKey="budget" stroke={PBI.budget} strokeWidth={2} fill={PBI.budget} fillOpacity={0.25} />
+                    <Radar name="Actual" dataKey="actual" stroke={PBI.actual} strokeWidth={2.5} fill={PBI.actual} fillOpacity={0.2} />
+                    <Tooltip content={(p) => <ChartTooltip {...p} fullLabel={p.label} />} />
+                    <Legend iconType="circle" wrapperStyle={legendStyle} />
                   </RadarChart>
-                </ResponsiveContainer>
-                <p style={{ fontSize:11, color:W.textDim, textAlign:"center", marginTop:8 }}>
-                  Area outside the gray ring indicates budget overrun
-                </p>
-              </Card>
+                </AdaptiveChartFrame>
+              </PBIChartCard>
+
+              <PBIChartCard title="Budget · Actual · Variance %" subtitle="Power BI combo visual" height={varianceLayout.chartHeight + 20}>
+                <AdaptiveChartFrame layout={varianceLayout}>
+                  <DynamicComboChart
+                    chartRows={chartItems}
+                    layout={varianceLayout}
+                    lookup={chartItems}
+                    barSeries={[
+                      { dataKey: "budget", name: "Budget", fill: PBI.budget },
+                      { dataKey: "actual", name: "Actual", fill: PBI.actual },
+                    ]}
+                    lineKey="variance_pct"
+                    lineName="Var %"
+                    lineFormatter={(v, name) => String(name).includes("%") ? `${v}%` : `PKR ${fmt(v)}`}
+                  />
+                </AdaptiveChartFrame>
+              </PBIChartCard>
             </>
           )}
 
-          <Card title="Variance Detail">
+          <div className="pbi-card" style={{ padding: "18px 20px" }}>
+            <p className="pbi-chart-title">Variance Detail Matrix</p>
+            <p className="pbi-chart-sub">Table with conditional variance bars</p>
             <DataTable
               headers={[
-                { label:"Account" }, { label:"Budget", right:true },
-                { label:"Actual", right:true }, { label:"Variance", right:true },
-                { label:"%", right:true }, { label:"Status", right:true },
+                { label: "Account" },
+                { label: "Budget", right: true },
+                { label: "Actual", right: true },
+                { label: "Variance", right: true },
+                { label: "%", right: true },
+                { label: "Status", right: true },
               ]}
-              rows={(data.items||[]).map(row => [
-                { node: <span style={{ fontWeight:600, color:W.textPri }}>{row.account_name||row.sector_id}</span> },
-                { node: <span style={{ fontFamily:"monospace", color:W.textSec }}>{fmt(row.budget_amount)}</span>, style:{textAlign:"right"} },
-                { node: <span style={{ fontFamily:"monospace" }}>{fmt(row.actual_amount)}</span>, style:{textAlign:"right"} },
-                { node: <span style={{ fontFamily:"monospace", fontWeight:700, color:row.variance>=0?W.green:W.red }}>{fmt(row.variance)}</span>, style:{textAlign:"right"} },
-                { node: <Badge val={row.variance_pct} />, style:{textAlign:"right"} },
+              rows={items.map(row => [
+                {
+                  node: (
+                    <div>
+                      <span style={{ fontWeight: 600, color: W.textPri, fontSize: 12 }}>{row.account_name || row.sector_id}</span>
+                      <DataBar value={row.actual_amount} max={maxBudget} color={row.status === "favorable" ? PBI.positive : PBI.negative} />
+                    </div>
+                  ),
+                },
+                { node: <span style={{ fontFamily: "monospace", color: W.textSec, fontSize: 12 }}>{fmt(row.budget_amount)}</span>, style: { textAlign: "right" } },
+                { node: <span style={{ fontFamily: "monospace", fontSize: 12 }}>{fmt(row.actual_amount)}</span>, style: { textAlign: "right" } },
+                { node: <span style={{ fontFamily: "monospace", fontWeight: 700, color: row.variance >= 0 ? PBI.positive : PBI.negative, fontSize: 12 }}>{fmt(row.variance)}</span>, style: { textAlign: "right" } },
+                { node: <Badge val={row.variance_pct} />, style: { textAlign: "right" } },
                 {
                   node: (
                     <span style={{
-                      padding:"3px 10px", borderRadius:20, fontSize:11, fontWeight:700,
-                      background: row.status==="favorable" ? W.greenBg : W.redBg,
-                      color: row.status==="favorable" ? W.green : W.red,
+                      padding: "3px 10px", borderRadius: 4, fontSize: 10, fontWeight: 700, textTransform: "uppercase",
+                      background: row.status === "favorable" ? "#dff6dd" : "#fde7e9",
+                      color: row.status === "favorable" ? PBI.positive : PBI.negative,
                     }}>
                       {row.status}
                     </span>
                   ),
-                  style:{ textAlign:"right" },
+                  style: { textAlign: "right" },
                 },
               ])}
             />
-          </Card>
+          </div>
         </>
+      )}
+
+      {!loading && data && !items.length && (
+        <Card title="No variance data">
+          <p style={{ color: W.textSec, fontSize: 13 }}>Create budgets in the Budget tab to see variance analysis here.</p>
+        </Card>
       )}
     </div>
   );

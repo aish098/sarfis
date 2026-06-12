@@ -1,44 +1,14 @@
-// ──────────────────────────────────────────────────
-// Drop these widgets into your existing DashboardOverview.jsx
-// Import and add to the grid layout
-// ──────────────────────────────────────────────────
-
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useMemo } from 'react';
 import { motion as Motion } from 'framer-motion';
-import { AlertTriangle, Package, TrendingUp, Users, BarChart3, ArrowUpRight } from 'lucide-react';
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, Cell, Legend } from 'recharts';
-
-const PALETTE = [
-  "#3b82f6","#10b981","#f59e0b","#8b5cf6",
-  "#ef4444","#06b6d4","#14b8a6","#f43f5e",
-];
+import { AlertTriangle, Package, Users, BarChart3, ArrowUpRight } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import { computeChartLayout, normalizeChartRows, AdaptiveChartFrame, PBI } from '../../components/charts/chartEngine';
+import { DynamicClusteredBarChart } from '../../components/charts/DynamicCharts';
+import { PowerBICard } from '../../components/charts/PBIDashboardPrimitives';
+import { pbiFadeUp, pbiStagger } from '../../components/charts/pbiAnimations';
 
-const stagger = { animate: { transition: { staggerChildren: 0.07 } } };
-const fadeUp = { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0, transition: { duration: 0.38 } } };
-const axisTick = { fontSize: 11, fill: '#64748b', fontWeight: 600 };
-
-function CustomTooltip({ active, payload, label }) {
-  if (!active || !payload?.length) return null;
-  return (
-    <div className="rounded-xl border border-slate-100/80 bg-white/95 backdrop-blur-md px-4 py-3 shadow-xl shadow-slate-900/5 min-w-[150px]">
-      <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest mb-2 border-b border-slate-50 pb-1">{label}</p>
-      {payload.map((p, i) => (
-        <div key={i} className="flex items-center justify-between gap-4 py-1">
-          <div className="flex items-center gap-2">
-            <div className="w-2.5 h-2.5 rounded-full" style={{ background: p.color || p.payload?.fill }} />
-            <span className="text-[11px] font-bold text-slate-500">{p.name}</span>
-          </div>
-          <span className="font-mono font-extrabold text-slate-800 text-[11px]">${parseFloat(p.value || 0).toLocaleString()}</span>
-        </div>
-      ))}
-    </div>
-  );
-}
-
-// ─── 1. Low Stock Alert Widget ────────────────────────────
 export function LowStockWidget() {
   const { activeCompany } = useAuthStore();
   const navigate = useNavigate();
@@ -56,57 +26,49 @@ export function LowStockWidget() {
   if (!loading && lowStock.length === 0) return null;
 
   return (
-    <Motion.div variants={fadeUp} className="card overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#fef3c7' }}>
-            <AlertTriangle size={15} style={{ color: '#d97706' }} />
-          </div>
-          <h3 className="font-display font-bold text-[14px] text-slate-900">Low Stock Alerts</h3>
-        </div>
-        <button onClick={() => navigate('/dashboard/inventory')}
-          className="text-[12px] font-semibold text-amber-600 hover:text-amber-700 transition-colors flex items-center gap-0.5">
+    <PowerBICard title="Low Stock Alerts" subtitle="Items below reorder level" accent={PBI.negative}
+      action={
+        <button onClick={() => navigate('/dashboard/inventory')} className="text-[11px] font-semibold text-[#E81123] flex items-center gap-0.5 shrink-0">
           Manage <ArrowUpRight size={12} />
         </button>
-      </div>
-      <div className="divide-y divide-slate-50">
+      }
+    >
+      <div className="divide-y divide-[#f3f2f1] -mx-1">
         {loading ? (
           Array.from({ length: 3 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3 px-5 py-3">
+            <div key={i} className="flex items-center gap-3 py-2.5 px-1">
               <div className="skeleton h-4 w-20" />
               <div className="skeleton h-4 flex-1" />
               <div className="skeleton h-4 w-14" />
             </div>
           ))
         ) : (
-          <Motion.div variants={stagger} initial="initial" animate="animate">
+          <Motion.div variants={pbiStagger} initial="initial" animate="animate">
             {lowStock.map((p) => (
-              <Motion.div key={p.product_id} variants={fadeUp}
-                className="flex items-center justify-between px-5 py-3 hover:bg-amber-50/30 transition-colors">
+              <Motion.div key={p.product_id} variants={pbiFadeUp}
+                className="flex items-center justify-between py-2.5 px-1 hover:bg-[#faf9f8] rounded transition-colors">
                 <div className="flex items-center gap-2.5 min-w-0">
-                  <div className="w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0"
-                    style={{ background: '#fef3c7' }}>
-                    <Package size={12} style={{ color: '#d97706' }} />
+                  <div className="w-7 h-7 rounded-md flex items-center justify-center flex-shrink-0 bg-[#fde7e9]">
+                    <Package size={12} style={{ color: PBI.negative }} />
                   </div>
                   <div className="min-w-0">
-                    <p className="font-semibold text-[13px] text-slate-800 truncate">{p.product_name}</p>
-                    <p className="font-mono text-[10px] text-slate-400">{p.sku}</p>
+                    <p className="font-semibold text-[12px] text-[#252423] truncate">{p.product_name}</p>
+                    <p className="font-mono text-[10px] text-[#8a8886]">{p.sku}</p>
                   </div>
                 </div>
                 <div className="text-right flex-shrink-0 ml-3">
-                  <p className="font-mono font-bold text-[13px] text-amber-600">{parseFloat(p.total_qty).toFixed(0)} left</p>
-                  <p className="text-[10px] text-slate-400">min: {p.reorder_level}</p>
+                  <p className="font-mono font-bold text-[12px]" style={{ color: PBI.negative }}>{parseFloat(p.total_qty).toFixed(0)} left</p>
+                  <p className="text-[10px] text-[#8a8886]">min {p.reorder_level}</p>
                 </div>
               </Motion.div>
             ))}
           </Motion.div>
         )}
       </div>
-    </Motion.div>
+    </PowerBICard>
   );
 }
 
-// ─── 2. Stock Value Widget ─────────────────────────────────
 export function StockValueWidget() {
   const { activeCompany } = useAuthStore();
   const navigate = useNavigate();
@@ -122,30 +84,31 @@ export function StockValueWidget() {
   }, [activeCompany]);
 
   return (
-    <Motion.div variants={fadeUp} whileHover={{ y: -2 }}
-      className="card p-5 cursor-pointer" onClick={() => navigate('/dashboard/inventory')}
-      style={{ borderLeft: '3px solid #2563eb' }}>
+    <Motion.div variants={pbiFadeUp} whileHover={{ boxShadow: '0 6.4px 14.4px rgba(0,0,0,.08)' }}
+      className="bg-white rounded-lg border border-[#edebe9] p-5 shadow-[0_1.6px_3.6px_rgba(0,0,0,.06)] cursor-pointer transition-shadow"
+      style={{ borderTop: `3px solid ${PBI.revenue}` }}
+      onClick={() => navigate('/dashboard/inventory')}
+    >
       <div className="flex items-start justify-between mb-3">
-        <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">Stock Value</p>
-        <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: '#dbeafe' }}>
-          <BarChart3 size={16} style={{ color: '#2563eb' }} />
+        <p className="text-[11px] font-semibold uppercase tracking-wide text-[#605e5c]">Stock Value</p>
+        <div className="w-8 h-8 rounded-md flex items-center justify-center" style={{ background: `${PBI.revenue}18` }}>
+          <BarChart3 size={15} style={{ color: PBI.revenue }} />
         </div>
       </div>
       {loading ? (
         <div className="skeleton h-7 w-32" />
       ) : (
-        <p className="font-display font-extrabold text-[22px] text-slate-900">
-          ${parseFloat(stats?.totalStockValue || 0).toLocaleString('en-US', { minimumFractionDigits: 0 })}
+        <p className="font-mono font-bold text-[24px] text-[#252423]">
+          PKR {parseFloat(stats?.totalStockValue || 0).toLocaleString('en-PK', { minimumFractionDigits: 0 })}
         </p>
       )}
-      <p className="text-[12px] text-slate-500 mt-1">
+      <p className="text-[11px] text-[#8a8886] mt-1.5">
         {stats?.totalProducts || 0} products · {stats?.lowStockCount || 0} low stock
       </p>
     </Motion.div>
   );
 }
 
-// ─── 3. Sector Revenue Chart ───────────────────────────────
 export function SectorRevenueWidget() {
   const { activeCompany } = useAuthStore();
   const navigate = useNavigate();
@@ -155,8 +118,9 @@ export function SectorRevenueWidget() {
   useEffect(() => {
     if (!activeCompany) return;
     api.get(`/sectors/${activeCompany.id}/revenue`)
-      .then(r => setData(r.data.slice(0, 6).map(s => ({
-        name: s.sector_name.length > 12 ? s.sector_name.slice(0, 12) + '…' : s.sector_name,
+      .then(r => setData(r.data.slice(0, 12).map(s => ({
+        name: s.sector_name,
+        fullName: s.sector_name,
         revenue: parseFloat(s.total_revenue),
         profit: parseFloat(s.gross_profit),
       }))))
@@ -164,61 +128,43 @@ export function SectorRevenueWidget() {
       .finally(() => setLoading(false));
   }, [activeCompany]);
 
+  const layout = useMemo(() => computeChartLayout(
+    data.map(d => d.name),
+    { seriesCount: 2, valueMagnitudes: data.flatMap(d => [d.revenue, d.profit]), minHeight: 240, maxHeight: 520, forceHorizontal: true }
+  ), [data]);
+  const chartRows = useMemo(() => normalizeChartRows(data, 'name', layout), [data, layout]);
+
+  const series = [
+    { dataKey: 'revenue', name: 'Revenue', fill: PBI.revenue },
+    { dataKey: 'profit', name: 'Gross Profit', fill: PBI.positive },
+  ];
+
   return (
-    <Motion.div variants={fadeUp} className="card p-5">
-      <div className="flex items-center justify-between mb-5">
-        <div>
-          <h3 className="font-display font-bold text-[15px] text-slate-900">Sector Revenue</h3>
-          <p className="text-[12px] text-slate-500 mt-0.5">Profitability by business segment</p>
-        </div>
-        <button onClick={() => navigate('/dashboard/distribution')}
-          className="text-[12px] font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5">
-          View All <ArrowUpRight size={12} />
+    <PowerBICard
+      title="Sector Revenue"
+      subtitle="Revenue and gross profit by segment"
+      action={
+        <button onClick={() => navigate('/dashboard/distribution')} className="text-[11px] font-semibold text-[#118DFF] flex items-center gap-0.5 shrink-0">
+          View all <ArrowUpRight size={12} />
         </button>
-      </div>
+      }
+    >
       {loading ? (
-        <div className="skeleton h-40 w-full" />
+        <div className="skeleton h-44 w-full rounded" />
       ) : data.length === 0 ? (
         <div className="flex flex-col items-center justify-center py-10">
-          <BarChart3 size={28} className="text-slate-200 mb-2" />
-          <p className="text-[13px] text-slate-400">No sector data yet</p>
+          <BarChart3 size={28} className="text-[#edebe9] mb-2" />
+          <p className="text-[12px] text-[#8a8886]">No sector data yet</p>
         </div>
       ) : (
-        <ResponsiveContainer width="100%" height={180} minWidth={0}>
-          <BarChart data={data} margin={{ top: 10, right: 5, left: -10, bottom: 0 }}>
-            <defs>
-              <linearGradient id="revenueGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#118DFF" stopOpacity={0.95} />
-                <stop offset="100%" stopColor="#12239E" stopOpacity={0.95} />
-              </linearGradient>
-              <linearGradient id="profitGrad" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="0%" stopColor="#10b981" stopOpacity={0.95} />
-                <stop offset="100%" stopColor="#059669" stopOpacity={0.95} />
-              </linearGradient>
-            </defs>
-            <CartesianGrid strokeDasharray="3 3" stroke="#f1f5f9" vertical={false} />
-            <XAxis dataKey="name" tick={axisTick} axisLine={false} tickLine={false} dy={8} />
-            <YAxis tick={axisTick} width={50} axisLine={false} tickLine={false} tickFormatter={v => `$${(v/1000).toFixed(0)}k`} />
-            <Tooltip content={<CustomTooltip />} cursor={{ fill: '#f8fafc', radius: 6 }} />
-            <Legend verticalAlign="top" align="right" iconType="circle" wrapperStyle={{ fontSize: '10px', fontWeight: 'bold', paddingBottom: '10px', color: '#64748b' }} />
-            <Bar dataKey="revenue" name="Revenue" radius={[4, 4, 0, 0]} barSize={12} fill="url(#revenueGrad)">
-              {data.map((entry, i) => (
-                <Cell key={i} style={{ transition: 'opacity 0.2s', outline: 'none' }} className="hover:opacity-85" />
-              ))}
-            </Bar>
-            <Bar dataKey="profit" name="Profit" radius={[4, 4, 0, 0]} barSize={12} fill="url(#profitGrad)">
-              {data.map((entry, i) => (
-                <Cell key={i} style={{ transition: 'opacity 0.2s', outline: 'none' }} className="hover:opacity-85" />
-              ))}
-            </Bar>
-          </BarChart>
-        </ResponsiveContainer>
+        <AdaptiveChartFrame layout={layout} fallbackHeight={240}>
+          <DynamicClusteredBarChart chartRows={chartRows} layout={layout} lookup={chartRows} series={series} />
+        </AdaptiveChartFrame>
       )}
-    </Motion.div>
+    </PowerBICard>
   );
 }
 
-// ─── 4. Top Clients Widget ─────────────────────────────────
 export function TopClientsWidget() {
   const { activeCompany } = useAuthStore();
   const navigate = useNavigate();
@@ -234,58 +180,55 @@ export function TopClientsWidget() {
   }, [activeCompany]);
 
   return (
-    <Motion.div variants={fadeUp} className="card overflow-hidden">
-      <div className="flex items-center justify-between px-5 py-4 border-b border-slate-100">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center" style={{ background: '#d1fae5' }}>
-            <Users size={15} style={{ color: '#059669' }} />
-          </div>
-          <h3 className="font-display font-bold text-[14px] text-slate-900">Top Clients</h3>
-        </div>
-        <button onClick={() => navigate('/dashboard/distribution')}
-          className="text-[12px] font-semibold text-emerald-600 hover:text-emerald-700 flex items-center gap-0.5">
-          All Clients <ArrowUpRight size={12} />
+    <PowerBICard
+      title="Top Clients"
+      subtitle="By delivery revenue"
+      action={
+        <button onClick={() => navigate('/dashboard/distribution')} className="text-[11px] font-semibold text-[#107C10] flex items-center gap-0.5 shrink-0">
+          All clients <ArrowUpRight size={12} />
         </button>
-      </div>
-      <div className="p-5 space-y-3.5">
-        {loading ? (
-          Array.from({ length: 4 }).map((_, i) => (
-            <div key={i} className="flex items-center gap-3">
-              <div className="skeleton w-6 h-6 rounded-full" />
-              <div className="skeleton h-3.5 flex-1" />
-              <div className="skeleton h-3.5 w-20" />
-            </div>
-          ))
-        ) : clients.length === 0 ? (
-          <p className="text-center text-[13px] text-slate-400 py-6">No delivery data yet</p>
-        ) : (
-          <Motion.div variants={stagger} initial="initial" animate="animate" className="space-y-3.5">
-            {clients.map((c, i) => {
-              const maxRev = parseFloat(clients[0]?.total_revenue || 1);
-              const pct = (parseFloat(c.total_revenue) / maxRev) * 100;
-              return (
-                <Motion.div key={c.id} variants={fadeUp}>
-                  <div className="flex items-center justify-between mb-1">
-                    <div className="flex items-center gap-2">
-                      <span className="w-5 h-5 rounded-full flex items-center justify-center text-[10px] font-bold"
-                        style={{ background: '#f1f5f9', color: '#64748b' }}>{i + 1}</span>
-                      <span className="font-semibold text-[13px] text-slate-800">{c.name}</span>
-                    </div>
-                    <span className="font-mono text-[12px] font-semibold text-emerald-700">
-                      ${parseFloat(c.total_revenue).toLocaleString('en-US', { minimumFractionDigits: 0 })}
-                    </span>
+      }
+    >
+      {loading ? (
+        Array.from({ length: 4 }).map((_, i) => (
+          <div key={i} className="flex items-center gap-3 mb-3">
+            <div className="skeleton w-6 h-6 rounded-full" />
+            <div className="skeleton h-3.5 flex-1" />
+            <div className="skeleton h-3.5 w-20" />
+          </div>
+        ))
+      ) : clients.length === 0 ? (
+        <p className="text-center text-[12px] text-[#8a8886] py-6">No delivery data yet</p>
+      ) : (
+        <Motion.div variants={pbiStagger} initial="initial" animate="animate" className="space-y-4">
+          {clients.map((c, i) => {
+            const maxRev = parseFloat(clients[0]?.total_revenue || 1);
+            const pct = (parseFloat(c.total_revenue) / maxRev) * 100;
+            return (
+              <Motion.div key={c.id} variants={pbiFadeUp}>
+                <div className="flex items-center justify-between mb-1.5">
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="w-5 h-5 rounded flex items-center justify-center text-[10px] font-bold bg-[#f3f2f1] text-[#605e5c] shrink-0">{i + 1}</span>
+                    <span className="font-semibold text-[12px] text-[#252423] truncate">{c.name}</span>
                   </div>
-                    <div className="progress-bar">
-                    <Motion.div className="progress-fill" initial={{ width: 0 }}
-                      animate={{ width: `${pct}%` }} transition={{ duration: 0.7, delay: i * 0.08 }}
-                      style={{ background: 'linear-gradient(90deg, #059669, #10b981)' }} />
-                  </div>
-                </Motion.div>
-              );
-            })}
-          </Motion.div>
-        )}
-      </div>
-    </Motion.div>
+                  <span className="font-mono text-[11px] font-bold shrink-0 ml-2" style={{ color: PBI.positive }}>
+                    PKR {parseFloat(c.total_revenue).toLocaleString('en-PK', { minimumFractionDigits: 0 })}
+                  </span>
+                </div>
+                <div className="h-1.5 w-full rounded-full overflow-hidden" style={{ background: '#f3f2f1' }}>
+                  <Motion.div
+                    className="h-full rounded-full"
+                    initial={{ width: 0 }}
+                    animate={{ width: `${pct}%` }}
+                    transition={{ duration: 0.7, delay: i * 0.08 }}
+                    style={{ background: `linear-gradient(90deg, ${PBI.positive}, ${PBI.revenue})` }}
+                  />
+                </div>
+              </Motion.div>
+            );
+          })}
+        </Motion.div>
+      )}
+    </PowerBICard>
   );
 }

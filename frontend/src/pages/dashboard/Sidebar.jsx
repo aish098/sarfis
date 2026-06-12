@@ -4,7 +4,7 @@ import {
   LayoutDashboard, BookOpen, FilePlus, BookMarked,
   BarChart2, TrendingUp, Target, Settings, LogOut,
   Home, ChevronLeft, ChevronRight, Zap, Building2, Activity,
-  Package, Truck
+  Package, Truck, ShieldCheck
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
@@ -54,7 +54,21 @@ const BOTTOM_ITEMS = [
 
 export default function Sidebar({ collapsed, onToggle }) {
   const navigate = useNavigate();
-  const { logout, activeCompany } = useAuthStore();
+  const { logout, activeCompany, user } = useAuthStore();
+  const effectiveRole = activeCompany?.user_role || user?.role || 'Member';
+  const adminRoles = ['Company Admin', 'Super Admin', 'Admin', 'Owner', 'CEO'];
+  const canAdmin = adminRoles.includes(effectiveRole) || adminRoles.includes(user?.role);
+  const navSections = canAdmin
+    ? [
+        ...NAV_SECTIONS,
+        {
+          label: 'Administration',
+          items: [
+            { to: '/dashboard/admin', icon: ShieldCheck, label: 'Admin & Roles' },
+          ],
+        },
+      ]
+    : NAV_SECTIONS;
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -129,7 +143,7 @@ export default function Sidebar({ collapsed, onToggle }) {
 
         {/* Navigation */}
         <div className="flex-1 overflow-y-auto overflow-x-hidden py-2" style={{ scrollbarWidth: 'none' }}>
-          {NAV_SECTIONS.map((section) => (
+          {navSections.map((section) => (
             <div key={section.label}>
               {!collapsed && (
                 <div className="px-5 pt-4 pb-1.5 text-[10px] font-extrabold uppercase tracking-widest"

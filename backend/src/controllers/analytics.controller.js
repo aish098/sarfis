@@ -11,7 +11,8 @@ exports.getTrends = async (req, res) => {
   try {
     const { companyId } = req.params;
     const months = parseInt(req.query.months) || 12;
-    const data = await analyticsService.getTrendAnalysis(companyId, months);
+    const period = req.query.period || null; // optional YYYY-MM end period
+    const data = await analyticsService.getTrendAnalysis(companyId, months, period);
     res.json({ success: true, data });
   } catch (err) {
     console.error("getTrends error:", err);

@@ -5,8 +5,13 @@ import useAuthStore from '../store/authStore';
 import { AuthLayout, AuthInput, AuthButton, AuthError, AuthWrapper, AuthSelect } from './Auth';
 
 const ROLE_DESCRIPTIONS = {
+  'CEO': 'Executive full system access and high-level reporting.',
+  'Owner': 'Executive full system access and business controls.',
   'Company Admin': 'Full access: manage users, settings, and all financial data.',
   'Accountant': 'Post journal entries, manage ledger, view all reports.',
+  'Manager': 'Approve workflows and view operational data.',
+  'Inventory Manager': 'Manage stock, warehouses, and product catalogs.',
+  'Purchasing Agent': 'Manage vendors and create purchase vouchers.',
   'Viewer': 'Read-only access to financial reports and dashboards.',
 };
 
@@ -49,8 +54,13 @@ export default function RegisterPage() {
             onChange={handleChange} placeholder="Minimum 8 characters" />
           <AuthSelect id="role" name="role" label="I am a..."
             value={formData.role} onChange={handleChange}>
+            <option value="CEO" className="bg-slate-900">CEO (Executive Access)</option>
+            <option value="Owner" className="bg-slate-900">Owner (Executive Access)</option>
             <option value="Company Admin" className="bg-slate-900">Company Admin (Full Access)</option>
             <option value="Accountant" className="bg-slate-900">Accountant (Transaction Management)</option>
+            <option value="Manager" className="bg-slate-900">Manager (Operations)</option>
+            <option value="Inventory Manager" className="bg-slate-900">Inventory Manager</option>
+            <option value="Purchasing Agent" className="bg-slate-900">Purchasing Agent</option>
             <option value="Viewer" className="bg-slate-900">Viewer (Reports Only)</option>
           </AuthSelect>
           {/* Dynamic role hint — visual only */}

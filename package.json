@@ -11,7 +11,7 @@
     "build": "npm run install-all && npm run build-frontend",
     "migrate": "cd backend && npx knex migrate:latest --env production",
     "start": "npm run migrate && cross-env NODE_ENV=production node backend/server.js",
-    "dev": "concurrently \"cd backend && npm run dev\" \"cd frontend && npm run dev\""
+    "dev": "concurrently \"cd backend && npm start\" \"cd frontend && npm run dev\""
   },
   "devDependencies": {
     "concurrently": "^9.1.0",
