@@ -61,18 +61,19 @@ export default function SettingsPage() {
   const activeCompanyId = activeCompany?.id;
   const effectiveRole = activeCompany?.user_role || user?.role || 'Member';
   const canEdit = ['Company Admin', 'Accountant', 'Super Admin'].includes(effectiveRole);
-  const canSave = Boolean(activeCompanyId && canEdit && !saving);
-  const requestConfig = useMemo(
-    () => activeCompanyId ? { headers: { 'x-company-id': String(activeCompanyId) } } : undefined,
-    [activeCompanyId]
-  );
-
   const [activeTab, setActiveTab] = useState('company');
   const [accounts, setAccounts] = useState([]);
   const [settings, setSettings] = useState({});
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null); // { type: 'success' | 'error', text: '' }
+
+  const canSave = Boolean(activeCompanyId && canEdit && !saving);
+  
+  const requestConfig = useMemo(
+    () => activeCompanyId ? { headers: { 'x-company-id': String(activeCompanyId) } } : undefined,
+    [activeCompanyId]
+  );
 
   const loadData = useCallback(async () => {
     if (!activeCompanyId) {
