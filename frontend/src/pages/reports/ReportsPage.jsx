@@ -3,7 +3,7 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { Download, Calendar, AlertTriangle, CheckCircle2, ShieldAlert, RefreshCw, Calculator, Activity, PieChart, FileText, Zap, X } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 const TABS = [

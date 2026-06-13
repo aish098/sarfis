@@ -3,7 +3,7 @@ import { motion } from 'framer-motion';
 import { Search, Calendar, Download, RefreshCw, ChevronDown, FileText, Trash2, ArrowUpRight, ArrowDownRight, DollarSign, LayoutPanelLeft, Zap } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
-import jsPDF from 'jspdf';
+import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 
 export default function LedgerPage({ globalSearch = "" }) {
@@ -85,13 +85,17 @@ export default function LedgerPage({ globalSearch = "" }) {
     doc.text(`Account: ${selectedAcc.code} • Company: ${activeCompany?.name}`, 14, 28);
     autoTable(doc, {
       head: [['Date', 'Description / Reference', 'Debit', 'Credit', 'Balance']],
-      body: ledgerData.entries.map(tx => [
-        new Date(tx.entry_date).toLocaleDateString(),
-        tx.description + (tx.reference ? ` (${tx.reference})` : ''),
-        tx.parsedDebit > 0 ? fmt(tx.parsedDebit) : '—',
-        tx.parsedCredit > 0 ? fmt(tx.parsedCredit) : '—',
-        fmt(tx.runningBalance),
-      ]),
+      body: ledgerData.entries.map(tx => {
+        const txDate = tx.entry_date ? new Date(tx.entry_date) : null;
+        const formattedDate = txDate && !isNaN(txDate.getTime()) ? txDate.toLocaleDateString() : '—';
+        return [
+          formattedDate,
+          tx.description + (tx.reference ? ` (${tx.reference})` : ''),
+          tx.parsedDebit > 0 ? fmt(tx.parsedDebit) : '—',
+          tx.parsedCredit > 0 ? fmt(tx.parsedCredit) : '—',
+          fmt(tx.runningBalance),
+        ];
+      }),
       startY: 35,
       styles: { fontSize: 8 },
       headStyles: { fillColor: [6, 13, 36] },
