@@ -36,6 +36,7 @@ import VendorsPage from './vendors/VendorsPage.jsx';
 import SettingsPage from './settings/SettingsPage.jsx';
 import AdminPage from './admin/AdminPage.jsx';
 import { LowStockWidget, StockValueWidget, SectorRevenueWidget, TopClientsWidget } from '../components/erp/ERPDashboardWidgets.jsx';
+import { formatDateOnly, isSameYearMonth } from '../utils/formatDate';
 
 const pageVariants = {
   initial: { opacity: 0, y: 14 },
@@ -68,10 +69,7 @@ function DashboardOverview() {
       setMetrics(ratios.data.metrics);
       setJournals(
         journalRes.data
-          .filter((entry) => {
-            const d = new Date(entry.entry_date);
-            return d.getFullYear() === year && d.getMonth() + 1 === month;
-          })
+          .filter((entry) => isSameYearMonth(entry.entry_date, year, month))
           .slice(0, 8)
       );
       const hist = trends.data?.data || [];
@@ -151,7 +149,7 @@ function DashboardOverview() {
               <CartesianGrid {...pbiGridProps} />
               <XAxis dataKey="month" interval={trendLayout.tickInterval} height={trendLayout.bottomMargin}
                 tick={(p) => <DynamicXTick {...p} layout={trendLayout} lookup={chartData.map(d => ({ name: d.month, fullName: d.month }))} />} axisLine={false} tickLine={false} />
-              <YAxis {...yAxisProps(trendLayout, v => `PKR ${(v / 1000).toFixed(0)}k`)} />
+              <YAxis {...yAxisProps(trendLayout, v => `PKR ${(v / 1000).toFixed(0)}k`)} domain={[0, 'auto']} />
               <Tooltip content={(p) => <ChartTooltip {...p} fullLabel={p.label} formatter={(v) => fmt(v)} />} />
               <Area type="monotone" dataKey="revenue" name="Revenue" stroke={PBI.revenue} strokeWidth={2.5} fill="url(#revGrad)" dot={false} />
               <Area type="monotone" dataKey="expenses" name="Expenses" stroke={PBI.negative} strokeWidth={2} fill="url(#expGrad)" dot={false} />
@@ -173,7 +171,7 @@ function DashboardOverview() {
             <CartesianGrid {...pbiGridProps} />
             <XAxis dataKey="month" interval={cashLayout.tickInterval} height={cashLayout.bottomMargin}
               tick={(p) => <DynamicXTick {...p} layout={cashLayout} lookup={chartData.map(d => ({ name: d.month, fullName: d.month }))} />} axisLine={false} tickLine={false} />
-            <YAxis {...yAxisProps(cashLayout, v => `PKR ${(v / 1000).toFixed(0)}k`)} />
+            <YAxis {...yAxisProps(cashLayout, v => `PKR ${(v / 1000).toFixed(0)}k`)} domain={[(min) => Math.min(0, min), (max) => Math.max(0, max)]} />
             <Tooltip content={(p) => <ChartTooltip {...p} fullLabel={p.label} formatter={(v) => fmt(v)} />} cursor={{ fill: 'rgba(17,141,255,0.06)' }} />
             <Bar dataKey="cashFlow" name="Cash Flow" radius={[4, 4, 0, 0]} maxBarSize={cashLayout.maxBarSize} fill="url(#barFlow)">
               {chartData.map((_, i) => <Cell key={i} style={{ outline: 'none' }} />)}
@@ -240,7 +238,7 @@ function DashboardOverview() {
                     <div className="flex-1 min-w-0">
                       <p className="text-[12px] font-semibold text-[#252423] truncate">{j.description}</p>
                       <p className="text-[10px] text-[#8a8886] mt-0.5">
-                        {new Date(j.entry_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}
+                        {formatDateOnly(j.entry_date)}
                       </p>
                     </div>
                     <p className="font-mono font-bold text-[12px] text-[#252423] flex-shrink-0">
