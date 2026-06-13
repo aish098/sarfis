@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Calendar, AlertTriangle, CheckCircle2, ShieldAlert, RefreshCw, Calculator, Activity, PieChart, FileText } from 'lucide-react';
+import { Download, Calendar, AlertTriangle, CheckCircle2, ShieldAlert, RefreshCw, Calculator, Activity, PieChart, FileText, Zap, X } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import jsPDF from 'jspdf';
@@ -171,69 +171,154 @@ export default function ReportsPage() {
   };
 
   return (
-    <div className="pb-16">
-      {/* Top header */}
-      <div style={{ background: 'var(--blue-900)' }} className="px-6 lg:px-8 py-7 relative overflow-hidden">
-        <div className="absolute inset-0 opacity-30"
-          style={{ backgroundImage: 'linear-gradient(rgba(255,255,255,0.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,0.04) 1px,transparent 1px)', backgroundSize: '40px 40px' }} />
-        <div className="relative flex flex-col sm:flex-row sm:items-center gap-4">
+    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6]">
+      <style>{`
+        /* Hide scrollbar completely by default, only show when hovering and overflow exists */
+        body .sarfis-scrollbar::-webkit-scrollbar {
+          width: 0px !important;
+          background: transparent !important;
+        }
+        body .sarfis-scrollbar:hover::-webkit-scrollbar {
+          width: 5px !important;
+        }
+        body .sarfis-scrollbar::-webkit-scrollbar-track {
+          background: transparent !important;
+        }
+        body .sarfis-scrollbar::-webkit-scrollbar-thumb {
+          background: transparent !important;
+          border-radius: 99px !important;
+          transition: background 0.2s ease;
+        }
+        body .sarfis-scrollbar:hover::-webkit-scrollbar-thumb {
+          background: rgba(16, 185, 129, 0.3) !important;
+        }
+        .sarfis-scrollbar {
+          scrollbar-width: none !important;
+        }
+        .sarfis-scrollbar:hover {
+          scrollbar-width: thin !important;
+          scrollbar-color: rgba(16, 185, 129, 0.3) transparent !important;
+        }
+      `}</style>
+
+      {/* Top Banner Toolbar */}
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 mb-6 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          {/* Sarfis Logo */}
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
+            <Zap size={18} className="text-white fill-white" />
+          </div>
           <div>
-            <h1 className="font-display font-extrabold text-[22px] text-white">Financial Reports</h1>
-            <p className="text-[13px] mt-1" style={{ color: 'rgba(255,255,255,0.5)' }}>Real-time statements directly aligned with ledger activity.</p>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">SARFIS</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Financial Reports</span>
+            </div>
+            <p className="text-[11.5px] font-semibold text-slate-500 mt-0.5">Real-time statements directly aligned with ledger activity.</p>
           </div>
-          <div className="flex gap-3 sm:ml-auto">
-            <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              onClick={load} className="btn btn-sm" style={{ background: 'rgba(255,255,255,0.1)', color: 'white', border: '1px solid rgba(255,255,255,0.15)' }}>
-              <RefreshCw size={13} /> Refresh
-            </motion.button>
-            <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              onClick={handleExport}
-              className="btn btn-secondary btn-sm"><Download size={13} /> Export</motion.button>
-            <motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              onClick={() => setCloseModal(true)} className="btn btn-danger btn-sm">
-              <ShieldAlert size={13} /> Close Period
-            </motion.button>
-          </div>
+        </div>
+        
+        <div className="flex flex-wrap gap-2.5 mt-3 md:mt-0">
+          <button 
+            type="button"
+            onClick={load} 
+            disabled={loading}
+            className="flex items-center gap-1.5 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl px-4 py-2 text-[12px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
+          >
+            <RefreshCw size={13} className={loading ? "animate-spin" : ""} /> Refresh
+          </button>
+          
+          <button 
+            type="button"
+            onClick={handleExport}
+            disabled={!data || loading}
+            className="flex items-center gap-1.5 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white disabled:opacity-40 disabled:pointer-events-none px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer"
+          >
+            <Download size={13} /> Export Report
+          </button>
+
+          <button 
+            type="button"
+            onClick={() => setCloseModal(true)}
+            className="flex items-center gap-1.5 bg-rose-50 hover:bg-rose-100 text-rose-800 px-4 py-2 text-[12px] font-bold rounded-xl border border-rose-200 transition-all active:scale-95 cursor-pointer"
+          >
+            <ShieldAlert size={13} /> Close Period
+          </button>
         </div>
       </div>
 
       {/* Tab bar + date filters */}
-      <div className="sticky top-[60px] z-30 bg-white/95 backdrop-blur border-b border-slate-100 px-6 lg:px-8">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 py-3">
-          <div className="flex gap-1 overflow-x-auto hide-scrollbar">
-            {TABS.map(t => (
-              <button key={t.id} onClick={() => setTab(t.id)}
-                className={`tab-item flex-shrink-0 ${tab === t.id ? 'active' : ''}`}>
-                <t.icon size={14} /> {t.label}
-              </button>
-            ))}
+      <div className="card !rounded-2xl border border-slate-100 bg-white p-4 mb-5 shadow-sm">
+        <div className="flex flex-col xl:flex-row gap-4 xl:items-center justify-between">
+          <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1 xl:pb-0 sarfis-scrollbar">
+            {TABS.map(t => {
+              const isActive = tab === t.id;
+              return (
+                <button 
+                  key={t.id} 
+                  type="button"
+                  onClick={() => setTab(t.id)}
+                  className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12.5px] font-bold transition-all cursor-pointer border-2 ${
+                    isActive 
+                      ? 'text-emerald-800 bg-emerald-50 border-emerald-200' 
+                      : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50 border-transparent'
+                  }`}
+                >
+                  <t.icon size={13} className={isActive ? 'text-emerald-700' : 'text-slate-400'} />
+                  <span>{t.label}</span>
+                </button>
+              );
+            })}
           </div>
-          <div className="flex items-center gap-2 sm:ml-auto">
+
+          <div className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-white border-2 border-slate-100 shadow-sm focus-within:border-emerald-500/50 focus-within:ring-4 focus-within:ring-emerald-500/5">
             <Calendar size={14} className="text-slate-400 flex-shrink-0" />
             {tab === 'balance_sheet' ? (
-              <span className="text-[12px] text-slate-500 font-semibold">AS OF
-                <input type="date" className="ml-2 text-[13px] text-slate-700 bg-transparent border-none outline-none" value={asOfDate} onChange={e => setAsOfDate(e.target.value)} />
-              </span>
+              <div className="flex items-center gap-1.5">
+                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">AS OF</span>
+                <input 
+                  type="date" 
+                  className="text-[13px] text-slate-700 border-none outline-none bg-transparent font-semibold cursor-pointer" 
+                  value={asOfDate} 
+                  onChange={e => setAsOfDate(e.target.value)} 
+                />
+              </div>
             ) : (
-              <>
-                <input type="date" className="text-[13px] text-slate-700 bg-transparent border-none outline-none" value={startDate} onChange={e => setStartDate(e.target.value)} />
-                <span className="text-slate-300">–</span>
-                <input type="date" className="text-[13px] text-slate-700 bg-transparent border-none outline-none" value={endDate} onChange={e => setEndDate(e.target.value)} />
-              </>
+              <div className="flex items-center gap-1.5">
+                <input 
+                  type="date" 
+                  className="text-[13px] text-slate-700 border-none outline-none bg-transparent font-semibold cursor-pointer" 
+                  value={startDate} 
+                  onChange={e => setStartDate(e.target.value)} 
+                />
+                <span className="text-slate-300 font-bold">—</span>
+                <input 
+                  type="date" 
+                  className="text-[13px] text-slate-700 border-none outline-none bg-transparent font-semibold cursor-pointer" 
+                  value={endDate} 
+                  onChange={e => setEndDate(e.target.value)} 
+                />
+              </div>
             )}
           </div>
         </div>
       </div>
 
-      <div className="p-6 lg:p-8">
+      <div>
         {error && (
-          <div className="flex items-center gap-2.5 p-4 rounded-xl bg-amber-50 border border-amber-100 mb-5">
-            <AlertTriangle size={15} className="text-amber-500 flex-shrink-0" />
-            <p className="text-[13px] text-amber-700 font-medium">{error}</p>
-          </div>
+          <motion.div 
+            initial={{ opacity: 0, y: -8 }} 
+            animate={{ opacity: 1, y: 0 }}
+            className="flex items-start gap-2.5 p-3.5 rounded-xl bg-rose-50 border border-rose-100 mb-5"
+          >
+            <AlertTriangle size={15} className="text-rose-600 mt-0.5 flex-shrink-0" />
+            <p className="text-[13px] text-rose-700 font-semibold flex-1">{error}</p>
+            <button type="button" onClick={() => setError('')} className="cursor-pointer">
+              <X size={14} className="text-rose-400" />
+            </button>
+          </motion.div>
         )}
 
-        <div className="card overflow-hidden min-h-[600px]">
+        <div className="card !rounded-2xl border border-slate-100 bg-white shadow-sm min-h-[600px] overflow-hidden">
           {loading ? (
             <div className="p-8 space-y-4">
               {Array.from({ length: 14 }).map((_, i) => (
@@ -247,8 +332,14 @@ export default function ReportsPage() {
             </div>
           ) : (
             <AnimatePresence mode="wait">
-              <motion.div key={tab} initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0 }}
-                transition={{ duration: 0.25 }} className="p-6 lg:p-8">
+              <motion.div 
+                key={tab} 
+                initial={{ opacity: 0, y: 12 }} 
+                animate={{ opacity: 1, y: 0 }} 
+                exit={{ opacity: 0 }}
+                transition={{ duration: 0.25 }} 
+                className="p-6 lg:p-8"
+              >
                 {tab === 'trial_balance' && <TrialBalance data={data} />}
                 {tab === 'income_statement' && <IncomeStatement data={data} companyName={activeCompany?.name} startDate={startDate} endDate={endDate} />}
                 {tab === 'balance_sheet' && <BalanceSheet data={data} companyName={activeCompany?.name} asOfDate={asOfDate} />}
@@ -263,8 +354,12 @@ export default function ReportsPage() {
       <AnimatePresence>
         {closeModal && (
           <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div className="modal-box w-full max-w-md"
-              initial={{ opacity: 0, scale: 0.95, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 16 }}>
+            <motion.div 
+              className="modal-box w-full max-w-md"
+              initial={{ opacity: 0, scale: 0.95, y: 16 }} 
+              animate={{ opacity: 1, scale: 1, y: 0 }} 
+              exit={{ opacity: 0, scale: 0.95, y: 16 }}
+            >
               <div className="text-center px-7 pt-7 pb-5" style={{ background: '#fff1f2', borderRadius: '20px 20px 0 0' }}>
                 <div className="w-12 h-12 rounded-xl bg-red-100 flex items-center justify-center mx-auto mb-3">
                   <ShieldAlert size={22} className="text-red-500" />
@@ -285,22 +380,31 @@ export default function ReportsPage() {
                   <>
                     <div>
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Close Through Date</label>
-                      <input type="date" className="input-enterprise" value={closeDate} onChange={e => setCloseDate(e.target.value)} />
+                      <input type="date" className="input-enterprise font-semibold" value={closeDate} onChange={e => setCloseDate(e.target.value)} />
                     </div>
                     <div>
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Journal Memo</label>
-                      <input className="input-enterprise" value={closeMemo} onChange={e => setCloseMemo(e.target.value)} />
+                      <input className="input-enterprise font-semibold" value={closeMemo} onChange={e => setCloseMemo(e.target.value)} />
                     </div>
                   </>
                 )}
               </div>
               <div className="flex gap-3 px-7 pb-7">
-                <button onClick={() => { setCloseModal(false); setCloseResult(null); }} className="btn btn-secondary flex-1">
+                <button 
+                  type="button" 
+                  onClick={() => { setCloseModal(false); setCloseResult(null); }} 
+                  className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-600 px-4 py-2.5 text-[12.5px] font-bold rounded-xl border border-slate-200 transition-all active:scale-95 cursor-pointer"
+                >
                   {closeResult ? 'Close' : 'Cancel'}
                 </button>
                 {!closeResult && (
-                  <motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-                    onClick={handleClose} disabled={closing} className="btn btn-danger flex-[2]">
+                  <motion.button 
+                    whileHover={{ scale: 1.02 }} 
+                    whileTap={{ scale: 0.97 }}
+                    onClick={handleClose} 
+                    disabled={closing} 
+                    className="flex-[2] flex items-center justify-center gap-1.5 bg-rose-600 hover:bg-rose-700 text-white px-5 py-2.5 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                  >
                     {closing ? <><RefreshCw size={14} className="animate-spin" /> Processing...</> : 'Execute Closing'}
                   </motion.button>
                 )}
@@ -323,37 +427,66 @@ function TrialBalance({ data }) {
   const sumC = rows.reduce((s, r) => s + r.finalCredit, 0);
   const balanced = Math.abs(sumD - sumC) < 0.01;
   return (
-    <div>
-      <table className="data-table">
-        <thead>
-          <tr>
-            <th style={{ width: 90 }}>Code</th>
-            <th>Account Name</th>
-            <th className="text-right" style={{ width: 160 }}>Debit Balance</th>
-            <th className="text-right" style={{ width: 160 }}>Credit Balance</th>
-          </tr>
-        </thead>
-        <tbody>
-          {rows.map((r, i) => (
-            <motion.tr key={r.id} initial={{ opacity: 0 }} animate={{ opacity: 1 }} transition={{ delay: i * 0.02 }}>
-              <td><span className="font-mono text-[12px] text-slate-500">{r.code}</span></td>
-              <td><span className="font-medium text-[14px]">{r.name}</span></td>
-              <td className="text-right font-mono text-[13px] font-semibold">{r.finalDebit > 0 ? fmt(r.finalDebit) : '—'}</td>
-              <td className="text-right font-mono text-[13px] font-semibold">{r.finalCredit > 0 ? fmt(r.finalCredit) : '—'}</td>
-            </motion.tr>
-          ))}
-        </tbody>
-        <tfoot>
-          <tr>
-            <td colSpan={2} className="text-right uppercase font-extrabold tracking-widest text-[11px]">Grand Totals</td>
-            <td className="text-right font-mono font-extrabold text-[14px]">{fmt(sumD)}</td>
-            <td className="text-right font-mono font-extrabold text-[14px]">{fmt(sumC)}</td>
-          </tr>
-        </tfoot>
-      </table>
-      <div className={`flex items-center gap-2.5 mt-4 p-4 rounded-xl border text-[13px] font-semibold ${balanced ? 'bg-emerald-50 border-emerald-100 text-emerald-700' : 'bg-red-50 border-red-100 text-red-600'}`}>
-        {balanced ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
-        {balanced ? 'TRIAL BALANCE EQUILIBRIUM VERIFIED' : `IMBALANCE DETECTED: ${fmt(Math.abs(sumD - sumC))}`}
+    <div className="space-y-6">
+      <div className="overflow-x-auto lg:overflow-visible pb-6 sarfis-scrollbar">
+        <table className="w-full text-left" style={{ minWidth: 600 }}>
+          <thead>
+            <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
+              <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]" style={{ width: 120 }}>Code</th>
+              <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Account Name</th>
+              <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-right" style={{ width: 160 }}>Debit Balance</th>
+              <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-right" style={{ width: 160 }}>Credit Balance</th>
+            </tr>
+          </thead>
+          <tbody className="divide-y divide-[#E6EBE8]">
+            {rows.map((r, i) => (
+              <motion.tr 
+                key={r.id} 
+                initial={{ opacity: 0 }} 
+                animate={{ opacity: 1 }} 
+                transition={{ delay: i * 0.015 }}
+                className={`group transition-colors relative ${
+                  i % 2 === 0 ? 'bg-[#FFFDFB] hover:bg-emerald-50/15' : 'bg-[#FAFAF9] hover:bg-emerald-50/15'
+                }`}
+              >
+                <td className="px-4 py-2.5">
+                  <span className="font-mono text-[12px] text-slate-500 font-bold">{r.code}</span>
+                </td>
+                <td className="px-4 py-2.5">
+                  <span className="font-bold text-[13.5px] text-slate-800">{r.name}</span>
+                </td>
+                <td className="px-4 py-2.5 text-right font-mono text-[13px] font-black text-slate-700">
+                  {r.finalDebit > 0 ? fmt(r.finalDebit) : '—'}
+                </td>
+                <td className="px-4 py-2.5 text-right font-mono text-[13px] font-black text-slate-700">
+                  {r.finalCredit > 0 ? fmt(r.finalCredit) : '—'}
+                </td>
+              </motion.tr>
+            ))}
+          </tbody>
+          <tfoot>
+            <tr style={{ background: '#EBF2EE' }}>
+              <td colSpan={2} className="px-4 py-3 text-right uppercase font-extrabold tracking-widest text-[10px] text-[#2E4D3F]" style={{ borderTop: '2px solid #D1E0D8', borderBottom: '4px double #2E4D3F' }}>
+                Grand Totals
+              </td>
+              <td className="px-4 py-3 text-right font-mono font-black text-[13px] text-[#2E4D3F]" style={{ borderTop: '2px solid #D1E0D8', borderBottom: '4px double #2E4D3F' }}>
+                {fmt(sumD)}
+              </td>
+              <td className="px-4 py-3 text-right font-mono font-black text-[13px] text-[#2E4D3F]" style={{ borderTop: '2px solid #D1E0D8', borderBottom: '4px double #2E4D3F' }}>
+                {fmt(sumC)}
+              </td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      
+      <div className={`flex items-center gap-2.5 p-4 rounded-2xl border-2 border-dashed text-[13px] font-bold ${
+        balanced 
+          ? 'bg-[#EBFDF5] border-[#C2F3DC] text-[#064E3B] shadow-sm shadow-emerald-500/5' 
+          : 'bg-rose-50 border-rose-200 text-rose-800'
+      }`}>
+        {balanced ? <CheckCircle2 size={16} className="text-emerald-600" /> : <AlertTriangle size={16} className="text-rose-600" />}
+        <span>{balanced ? 'TRIAL BALANCE EQUILIBRIUM VERIFIED' : `IMBALANCE DETECTED: ${fmt(Math.abs(sumD - sumC))}`}</span>
       </div>
     </div>
   );
@@ -368,30 +501,59 @@ function IncomeStatement({ data, companyName, startDate, endDate }) {
   const net = totalRev - totalExp;
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="text-center mb-8 pb-6" style={{ borderBottom: '2px solid #0f172a' }}>
+      <div className="text-center mb-8 pb-6 border-b-2 border-[#10b981]/20">
         <p className="stmt-company">{companyName}</p>
         <p className="stmt-title mt-1">Income Statement</p>
-        <p className="text-[12px] text-slate-400 mt-1">For the period {startDate} to {endDate}</p>
+        <p className="text-[12px] text-slate-400 mt-1 font-semibold">For the period {startDate} to {endDate}</p>
       </div>
-      <div className="mb-6">
-        <div className="stmt-section-header border-emerald-500 text-emerald-700">Operating Revenue</div>
-        {rev.map(r => <div key={r.id} className="stmt-row"><span className={`text-[14px] ${r.is_contra ? 'ml-4 text-slate-500' : ''}`}>{r.name}</span><span className="font-mono text-[14px]">{fmt(r.net)}</span></div>)}
-        <div className="stmt-row stmt-total" style={{ background: '#f0fdf4', padding: '10px 8px', borderRadius: 8, marginTop: 4 }}>
-          <span className="text-[14px]">Total Revenue</span>
-          <span className="font-mono text-[15px] text-emerald-700">{fmt(totalRev)}</span>
+      
+      <div className="mb-8">
+        <div className="stmt-section-header border-emerald-500 text-emerald-800 font-extrabold text-[12px] mb-3">Operating Revenue</div>
+        <div className="rounded-xl border border-slate-100 overflow-hidden divide-y divide-[#E6EBE8] mb-3">
+          {rev.map((r, idx) => (
+            <div 
+              key={r.id} 
+              className={`flex justify-between py-2.5 px-3 text-slate-700 transition-colors font-semibold text-[13.5px] ${
+                idx % 2 === 0 ? 'bg-[#FFFDFB]' : 'bg-[#FAFAF9]'
+              }`}
+            >
+              <span className={r.is_contra ? 'ml-4 text-slate-400' : ''}>{r.name}</span>
+              <span className="font-mono font-bold text-slate-800">{fmt(r.net)}</span>
+            </div>
+          ))}
+          {rev.length === 0 && <p className="text-[12.5px] text-slate-400 italic py-3 px-3">No revenue recorded</p>}
+        </div>
+        <div className="flex justify-between items-center mt-2 px-3 py-2.5 rounded-xl font-black text-[13.5px] bg-[#EBFDF5] border border-[#C2F3DC]">
+          <span className="text-[#064E3B] uppercase tracking-wider text-[10px] font-black">Total Revenue</span>
+          <span className="font-mono text-emerald-800 font-black text-[15px]">{fmt(totalRev)}</span>
         </div>
       </div>
-      <div className="mb-6">
-        <div className="stmt-section-header border-red-400 text-red-600">Operating Expenses</div>
-        {exp.map(r => <div key={r.id} className="stmt-row"><span className={`text-[14px] ${r.is_contra ? 'ml-4 text-slate-500' : ''}`}>{r.name}</span><span className="font-mono text-[14px]">{fmt(r.net)}</span></div>)}
-        <div className="stmt-row stmt-total" style={{ background: '#fff1f2', padding: '10px 8px', borderRadius: 8, marginTop: 4 }}>
-          <span className="text-[14px]">Total Expenses</span>
-          <span className="font-mono text-[15px] text-red-600">{fmt(totalExp)}</span>
+      
+      <div className="mb-8">
+        <div className="stmt-section-header border-cyan-500 text-cyan-800 font-extrabold text-[12px] mb-3">Operating Expenses</div>
+        <div className="rounded-xl border border-slate-100 overflow-hidden divide-y divide-[#E6EBE8] mb-3">
+          {exp.map((e, idx) => (
+            <div 
+              key={e.id} 
+              className={`flex justify-between py-2.5 px-3 text-slate-700 transition-colors font-semibold text-[13.5px] ${
+                idx % 2 === 0 ? 'bg-[#FFFDFB]' : 'bg-[#FAFAF9]'
+              }`}
+            >
+              <span className={e.is_contra ? 'ml-4 text-slate-400' : ''}>{e.name}</span>
+              <span className="font-mono font-bold text-slate-800">{fmt(e.net)}</span>
+            </div>
+          ))}
+          {exp.length === 0 && <p className="text-[12.5px] text-slate-400 italic py-3 px-3">No expenses recorded</p>}
+        </div>
+        <div className="flex justify-between items-center mt-2 px-3 py-2.5 rounded-xl font-black text-[13.5px] bg-cyan-50 border border-cyan-100">
+          <span className="text-cyan-900 uppercase tracking-wider text-[10px] font-black">Total Expenses</span>
+          <span className="font-mono text-cyan-800 font-black text-[15px]">{fmt(totalExp)}</span>
         </div>
       </div>
-      <div className="stmt-grand-total">
-        <span className="font-display font-extrabold uppercase tracking-widest text-[13px]">Net Income</span>
-        <span className={`font-mono font-extrabold text-[20px] ${net >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmt(net)}</span>
+      
+      <div className="bg-gradient-to-r from-[#10b981] to-[#06b6d4] text-white shadow-md shadow-emerald-500/10 p-5 rounded-2xl flex justify-between items-center mt-10">
+        <span className="font-display font-extrabold uppercase tracking-widest text-[13px] text-emerald-50">Net Income</span>
+        <span className="font-mono font-black text-[22px] text-white">{fmt(net)}</span>
       </div>
     </div>
   );
@@ -411,35 +573,86 @@ function BalanceSheet({ data, companyName, asOfDate }) {
   const tE = equity.reduce((s,r)=>s+r.net,0);
   const balanced = Math.abs(tA - (tL + tE)) < 0.01;
   return (
-    <div className="max-w-3xl mx-auto">
-      {!balanced && <div className="mb-4 p-3 rounded-xl bg-red-50 border border-red-100 text-[12px] font-semibold text-red-600 text-center">Balance Sheet Imbalance Detected</div>}
-      <div className="text-center mb-8 pb-6" style={{ borderBottom: '2px solid #0f172a' }}>
+    <div className="max-w-4xl mx-auto">
+      {!balanced && (
+        <div className="mb-5 p-3 rounded-2xl bg-rose-50 border border-rose-100 text-[12px] font-bold text-rose-700 text-center uppercase tracking-wider flex items-center justify-center gap-2">
+          <AlertTriangle size={14} className="text-rose-600 animate-pulse" />
+          <span>Balance Sheet Imbalance Detected</span>
+        </div>
+      )}
+      <div className="text-center mb-8 pb-6 border-b-2 border-[#10b981]/20">
         <p className="stmt-company">{companyName}</p>
         <p className="stmt-title mt-1">Balance Sheet</p>
-        <p className="text-[12px] text-slate-400 mt-1">As of {asOfDate}</p>
+        <p className="text-[12px] text-slate-400 mt-1 font-semibold">As of {asOfDate}</p>
       </div>
+      
       <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
         <div>
-          <div className="stmt-section-header border-emerald-500 text-emerald-700 mb-3">Assets</div>
-          {assets.map(r => <div key={r.id} className="stmt-row"><span className={`text-[14px] ${r.is_contra ? 'ml-4 text-slate-500' : ''}`}>{r.name}</span><span className="font-mono text-[13px]">{fmt(r.net)}</span></div>)}
-          <div className="stmt-row stmt-total mt-2" style={{ background: '#f0fdf4', padding: '10px 8px', borderRadius: 8 }}>
-            <span className="text-emerald-800">Total Assets</span><span className="font-mono text-emerald-700">{fmt(tA)}</span>
+          <div className="stmt-section-header border-emerald-500 text-emerald-800 font-extrabold text-[12px] mb-3">Assets</div>
+          <div className="rounded-xl border border-slate-100 overflow-hidden divide-y divide-[#E6EBE8] mb-3">
+            {assets.map((r, idx) => (
+              <div 
+                key={r.id} 
+                className={`flex justify-between py-2.5 px-3 text-slate-700 transition-colors font-semibold text-[13.5px] ${
+                  idx % 2 === 0 ? 'bg-[#FFFDFB]' : 'bg-[#FAFAF9]'
+                }`}
+              >
+                <span className={r.is_contra ? 'ml-4 text-slate-400' : ''}>{r.name}</span>
+                <span className="font-mono font-bold text-slate-800">{fmt(r.net)}</span>
+              </div>
+            ))}
+            {assets.length === 0 && <p className="text-[12.5px] text-slate-400 italic py-3 px-3">No assets recorded</p>}
+          </div>
+          <div className="flex justify-between items-center mt-2 px-3 py-2.5 rounded-xl font-black text-[13.5px] bg-[#EBFDF5] border border-[#C2F3DC]">
+            <span className="text-[#064E3B] uppercase tracking-wider text-[10px] font-black">Total Assets</span>
+            <span className="font-mono text-emerald-800 font-black text-[15px]">{fmt(tA)}</span>
           </div>
         </div>
+        
         <div>
-          <div className="stmt-section-header border-red-400 text-red-600 mb-3">Liabilities</div>
-          {liabs.map(r => <div key={r.id} className="stmt-row"><span className={`text-[14px] ${r.is_contra ? 'ml-4 text-slate-500' : ''}`}>{r.name}</span><span className="font-mono text-[13px]">{fmt(r.net)}</span></div>)}
-          <div className="stmt-row stmt-total mt-2 mb-6" style={{ background: '#fff1f2', padding: '10px 8px', borderRadius: 8 }}>
-            <span className="text-red-800">Total Liabilities</span><span className="font-mono text-red-700">{fmt(tL)}</span>
+          <div className="stmt-section-header border-cyan-500 text-cyan-800 font-extrabold text-[12px] mb-3">Liabilities</div>
+          <div className="rounded-xl border border-slate-100 overflow-hidden divide-y divide-[#E6EBE8] mb-3">
+            {liabs.map((r, idx) => (
+              <div 
+                key={r.id} 
+                className={`flex justify-between py-2.5 px-3 text-slate-700 transition-colors font-semibold text-[13.5px] ${
+                  idx % 2 === 0 ? 'bg-[#FFFDFB]' : 'bg-[#FAFAF9]'
+                }`}
+              >
+                <span className={r.is_contra ? 'ml-4 text-slate-400' : ''}>{r.name}</span>
+                <span className="font-mono font-bold text-slate-800">{fmt(r.net)}</span>
+              </div>
+            ))}
+            {liabs.length === 0 && <p className="text-[12.5px] text-slate-400 italic py-3 px-3">No liabilities recorded</p>}
           </div>
-          <div className="stmt-section-header border-blue-400 text-blue-700 mb-3">Equity</div>
-          {equity.map(r => <div key={r.id} className="stmt-row"><span className={`text-[14px] ${r.is_contra ? 'ml-4 text-slate-500' : ''}`}>{r.name}</span><span className="font-mono text-[13px]">{fmt(r.net)}</span></div>)}
-          <div className="stmt-row stmt-total mt-2" style={{ background: '#eff6ff', padding: '10px 8px', borderRadius: 8 }}>
-            <span className="text-blue-800">Total Equity</span><span className="font-mono text-blue-700">{fmt(tE)}</span>
+          <div className="flex justify-between items-center mt-2 px-3 py-2.5 rounded-xl font-black text-[13.5px] bg-cyan-50 border border-cyan-100 mb-6">
+            <span className="text-cyan-900 uppercase tracking-wider text-[10px] font-black">Total Liabilities</span>
+            <span className="font-mono text-cyan-800 font-black text-[15px]">{fmt(tL)}</span>
           </div>
-          <div className="stmt-grand-total mt-4">
-            <span className="font-display font-extrabold uppercase tracking-widest text-[12px]">Total L & E</span>
-            <span className="font-mono font-extrabold text-[18px]">{fmt(tL + tE)}</span>
+          
+          <div className="stmt-section-header border-emerald-500 text-emerald-800 font-extrabold text-[12px] mb-3">Equity</div>
+          <div className="rounded-xl border border-slate-100 overflow-hidden divide-y divide-[#E6EBE8] mb-3">
+            {equity.map((r, idx) => (
+              <div 
+                key={r.id || idx} 
+                className={`flex justify-between py-2.5 px-3 text-slate-700 transition-colors font-semibold text-[13.5px] ${
+                  idx % 2 === 0 ? 'bg-[#FFFDFB]' : 'bg-[#FAFAF9]'
+                }`}
+              >
+                <span className={r.is_contra ? 'ml-4 text-slate-400' : ''}>{r.name}</span>
+                <span className="font-mono font-bold text-slate-800">{fmt(r.net)}</span>
+              </div>
+            ))}
+            {equity.length === 0 && <p className="text-[12.5px] text-slate-400 italic py-3 px-3">No equity recorded</p>}
+          </div>
+          <div className="flex justify-between items-center mt-2 px-3 py-2.5 rounded-xl font-black text-[13.5px] bg-[#EBFDF5] border border-[#C2F3DC]">
+            <span className="text-[#064E3B] uppercase tracking-wider text-[10px] font-black">Total Equity</span>
+            <span className="font-mono text-emerald-800 font-black text-[15px]">{fmt(tE)}</span>
+          </div>
+          
+          <div className="bg-gradient-to-r from-[#10b981] to-[#06b6d4] text-white shadow-md shadow-emerald-500/10 p-4 rounded-xl flex justify-between items-center mt-6">
+            <span className="font-display font-extrabold uppercase tracking-widest text-[12px] text-emerald-50">Total L & E</span>
+            <span className="font-mono font-black text-[18px] text-white">{fmt(tL + tE)}</span>
           </div>
         </div>
       </div>
@@ -456,33 +669,73 @@ function CashFlow({ data, companyName, startDate, endDate }) {
   const netInv = investing.reduce((s,r)=>s+(parseFloat(r.magnitude)||0),0);
   const netFin = financing.reduce((s,r)=>s+(parseFloat(r.magnitude)||0),0);
   const total = netOp + netInv + netFin;
-  const Section = ({ title, items, net, color }) => (
+  const Section = ({ title, items, net, sectionHeaderClass, netBg, netBorder, netText }) => (
     <div className="mb-7">
-      <div className={`stmt-section-header mb-3`} style={{ borderColor: color, color }}>{title}</div>
-      {items.map((item,i) => <div key={i} className="stmt-row"><span className="text-[14px]">{item.name}</span><span className="font-mono text-[13px]">{fmt(item.magnitude)}</span></div>)}
-      {items.length === 0 && <p className="text-[12px] text-slate-300 italic py-1 px-1">No activity</p>}
-      <div className="flex justify-between items-center mt-2 px-2 py-2.5 rounded-lg font-bold text-[13px]" style={{ background: '#f8fafc', border: '1px solid #e2e8f0' }}>
-        <span>Net Cash — {title.split(' ')[0]}</span>
-        <span className="font-mono" style={{ color: net >= 0 ? '#059669' : '#dc2626' }}>{fmt(net)}</span>
+      <div className={`stmt-section-header font-extrabold text-[12px] mb-3 ${sectionHeaderClass}`}>{title}</div>
+      <div className="rounded-xl border border-slate-100 overflow-hidden divide-y divide-[#E6EBE8] mb-3">
+        {items.map((item, idx) => (
+          <div 
+            key={idx} 
+            className={`flex justify-between py-2.5 px-3 text-slate-700 transition-colors font-semibold text-[13.5px] ${
+              idx % 2 === 0 ? 'bg-[#FFFDFB]' : 'bg-[#FAFAF9]'
+            }`}
+          >
+            <span>{item.name}</span>
+            <span className="font-mono font-bold text-slate-800">{fmt(item.magnitude)}</span>
+          </div>
+        ))}
+        {items.length === 0 && <p className="text-[12.5px] text-slate-400 italic py-3 px-3">No activity recorded</p>}
+      </div>
+      <div className={`flex justify-between items-center mt-2 px-3 py-2.5 rounded-xl font-black text-[13px] border ${netBg} ${netBorder}`}>
+        <span className={`${netText} uppercase tracking-wider text-[10px] font-black`}>Net Cash — {title.split(' ')[0]}</span>
+        <span className="font-mono font-black text-[14px]" style={{ color: net >= 0 ? '#059669' : '#dc2626' }}>{fmt(net)}</span>
       </div>
     </div>
   );
   return (
     <div className="max-w-2xl mx-auto">
-      <div className="text-center mb-8 pb-6" style={{ borderBottom: '2px solid #0f172a' }}>
+      <div className="text-center mb-8 pb-6 border-b-2 border-[#10b981]/20">
         <p className="stmt-company">{companyName}</p>
-        <p className="stmt-title mt-1">Statement of Cash Flows · Direct Method</p>
-        <p className="text-[12px] text-slate-400 mt-1">{startDate} to {endDate}</p>
+        <p className="stmt-title mt-1 font-display">Statement of Cash Flows</p>
+        <p className="text-[12.5px] text-slate-400 mt-1 font-semibold">Direct Method • Period {startDate} to {endDate}</p>
       </div>
-      <Section title="Operating Activities" items={operating} net={netOp} color="#10b981" />
-      <Section title="Investing Activities" items={investing} net={netInv} color="#3b82f6" />
-      <Section title="Financing Activities" items={financing} net={netFin} color="#8b5cf6" />
-      <div className="stmt-grand-total">
+      
+      <Section 
+        title="Operating Activities" 
+        items={operating} 
+        net={netOp} 
+        sectionHeaderClass="border-emerald-500 text-emerald-800"
+        netBg="bg-[#EBFDF5]" 
+        netBorder="border-[#C2F3DC]" 
+        netText="text-[#064E3B]"
+      />
+      
+      <Section 
+        title="Investing Activities" 
+        items={investing} 
+        net={netInv} 
+        sectionHeaderClass="border-cyan-500 text-cyan-800"
+        netBg="bg-cyan-50" 
+        netBorder="border-cyan-100" 
+        netText="text-cyan-900"
+      />
+      
+      <Section 
+        title="Financing Activities" 
+        items={financing} 
+        net={netFin} 
+        sectionHeaderClass="border-teal-500 text-teal-800"
+        netBg="bg-teal-50/50" 
+        netBorder="border-teal-100/50" 
+        netText="text-teal-900"
+      />
+      
+      <div className="bg-gradient-to-r from-[#10b981] to-[#06b6d4] text-white shadow-md shadow-emerald-500/10 p-5 rounded-2xl flex justify-between items-center mt-10">
         <div>
-          <p className="text-[10px] font-bold uppercase tracking-widest text-emerald-400 mb-0.5">Total Impact</p>
-          <p className="font-display font-bold text-[15px] text-white">Net Increase / Decrease in Cash</p>
+          <p className="text-[10px] font-black uppercase tracking-widest text-emerald-50 mb-0.5">Total Impact</p>
+          <p className="font-display font-black text-[15px] text-white">Net Increase / Decrease in Cash</p>
         </div>
-        <span className={`font-mono font-extrabold text-[22px] ${total >= 0 ? 'text-emerald-400' : 'text-red-400'}`}>{fmt(total)}</span>
+        <span className="font-mono font-black text-[22px] text-white">{fmt(total)}</span>
       </div>
     </div>
   );
@@ -490,9 +743,12 @@ function CashFlow({ data, companyName, startDate, endDate }) {
 
 function Empty() {
   return (
-    <div className="flex flex-col items-center justify-center py-20 text-center">
-      <FileText size={32} className="text-slate-200 mb-3" />
-      <p className="text-[14px] font-semibold text-slate-400">No data available for the selected period.</p>
+    <div className="flex flex-col items-center justify-center py-24 text-center px-8">
+      <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 bg-[#EBFDF5] border border-[#C2F3DC]">
+        <FileText size={28} className="text-emerald-500" />
+      </div>
+      <p className="font-bold text-slate-700 text-[14px]">No Reports Data Found</p>
+      <p className="text-[13px] text-slate-400 mt-1 font-semibold max-w-xs mx-auto">Select a valid period and click Refresh to generate the report statements.</p>
     </div>
   );
 }
