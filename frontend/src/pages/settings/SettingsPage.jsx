@@ -177,7 +177,7 @@ export default function SettingsPage() {
         return (
           <div className="space-y-6">
             <h2 className="text-[18px] font-extrabold text-slate-900 border-b border-slate-100 pb-3">Company Information</h2>
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Field label="Legal Company Name" hint="Appears on official documents.">
                 <InputField value={settings.companyName || activeCompany?.name} onChange={v => update('companyName', v)} disabled={!canEdit} />
               </Field>
@@ -194,7 +194,7 @@ export default function SettingsPage() {
                 disabled={!canEdit}
               />
             </Field>
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Field label="Contact Email">
                 <InputField type="email" value={settings.contactEmail} onChange={v => update('contactEmail', v)} disabled={!canEdit} />
               </Field>
@@ -209,7 +209,7 @@ export default function SettingsPage() {
         return (
           <div className="space-y-6">
             <h2 className="text-[18px] font-extrabold text-slate-900 border-b border-slate-100 pb-3">Sales & Invoicing</h2>
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Field label="Default Sales Account" hint="Revenue account for sales invoices.">
                 <SelectField value={settings.defaultSalesAccountId} onChange={v => update('defaultSalesAccountId', v)} options={filterAccounts(['Revenue', 'Income'])} disabled={!canEdit} />
               </Field>
@@ -217,7 +217,7 @@ export default function SettingsPage() {
                 <SelectField value={settings.defaultArAccountId} onChange={v => update('defaultArAccountId', v)} options={filterAccounts(['Asset'])} disabled={!canEdit} />
               </Field>
             </div>
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Field label="Default Payment Terms">
                 <SelectField 
                   value={settings.defaultPaymentTerms} 
@@ -245,7 +245,7 @@ export default function SettingsPage() {
         return (
           <div className="space-y-6">
             <h2 className="text-[18px] font-extrabold text-slate-900 border-b border-slate-100 pb-3">Expenses & Vendors</h2>
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Field label="Accounts Payable (A/P)" hint="Liability account for unpaid bills.">
                 <SelectField value={settings.defaultApAccountId} onChange={v => update('defaultApAccountId', v)} options={filterAccounts(['Liability'])} disabled={!canEdit} />
               </Field>
@@ -271,7 +271,7 @@ export default function SettingsPage() {
         return (
           <div className="space-y-6">
             <h2 className="text-[18px] font-extrabold text-slate-900 border-b border-slate-100 pb-3">Advanced Accounting</h2>
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Field label="Default Cash / Bank Account" hint="Main operating account.">
                 <SelectField value={settings.defaultCashAccountId} onChange={v => update('defaultCashAccountId', v)} options={filterAccounts(['Asset'])} disabled={!canEdit} />
               </Field>
@@ -306,7 +306,7 @@ export default function SettingsPage() {
             <Field label="Inventory Asset Account" hint="Tracks the total value of stock on hand.">
               <SelectField value={settings.defaultInventoryAccountId} onChange={v => update('defaultInventoryAccountId', v)} options={filterAccounts(['Asset'])} disabled={!canEdit} />
             </Field>
-            <div className="grid grid-cols-2 gap-5">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Field label="Costing Method" hint="Inventory valuation logic.">
                 <SelectField 
                   value={settings.costingMethod || 'FIFO'} 

@@ -203,7 +203,7 @@ export default function LedgerPage({ globalSearch = "" }) {
 
           {selectedAcc && !isLoading && (
             <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
-              className="grid grid-cols-3 gap-3 md:gap-4 mt-4 xl:mt-0">
+              className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mt-4 xl:mt-0">
               {[
                 { icon: ArrowUpRight, label: 'Total Debits', value: fmt(ledgerData.totalDebits), color: '#059669', bg: '#EBFDF5', border: '#C2F3DC' },
                 { icon: ArrowDownRight, label: 'Total Credits', value: fmt(ledgerData.totalCredits), color: '#e11d48', bg: '#FFF1F2', border: '#FFE4E6' },
@@ -236,7 +236,7 @@ export default function LedgerPage({ globalSearch = "" }) {
             />
           </div>
           
-          <div className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-white border-2 border-slate-100 shadow-sm focus-within:border-emerald-500/50 focus-within:ring-4 focus-within:ring-emerald-500/5">
+          <div className="flex flex-wrap items-center gap-2.5 px-4 py-2 rounded-xl bg-white border-2 border-slate-100 shadow-sm focus-within:border-emerald-500/50 focus-within:ring-4 focus-within:ring-emerald-500/5">
             <Calendar size={14} className="text-slate-400 flex-shrink-0" />
             <input type="date" className="text-[13px] text-slate-700 border-none outline-none bg-transparent font-semibold cursor-pointer" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
             <span className="text-slate-300 font-bold">—</span>

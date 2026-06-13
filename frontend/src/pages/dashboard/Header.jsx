@@ -60,7 +60,7 @@ function HeaderDropdown({ open, onClose, align = 'right', children, className = 
   );
 }
 
-export default function Header({ sidebarCollapsed, onMenuToggle, searchQuery, onSearchChange }) {
+export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searchQuery, onSearchChange }) {
   const location = useLocation();
   const navigate = useNavigate();
   const { user, companies, activeCompany, setActiveCompany, logout } = useAuthStore();
@@ -69,7 +69,7 @@ export default function Header({ sidebarCollapsed, onMenuToggle, searchQuery, on
   const [menuState, setMenuState] = useState({ key: null, pathname: location.pathname });
   const searchRef = useRef(null);
 
-  const leftOffset = sidebarCollapsed ? 68 : 248;
+  const leftOffset = isMobile ? 0 : (sidebarCollapsed ? 68 : 248);
   const crumb = resolveBreadcrumb(location.pathname);
   const periodLabel = `${MONTHS[month - 1] || 'Period'} ${year}`;
   const openMenu = menuState.pathname === location.pathname ? menuState.key : null;

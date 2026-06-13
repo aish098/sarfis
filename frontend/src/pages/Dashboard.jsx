@@ -262,13 +262,29 @@ function DashboardOverview() {
 export default function Dashboard() {
   const [collapsed, setCollapsed] = useState(false);
   const [globalSearch, setGlobalSearch] = useState("");
-  const sidebarWidth = collapsed ? 68 : 248;
+  const [isMobile, setIsMobile] = useState(false);
+
+  useEffect(() => {
+    const handleResize = () => {
+      const mobile = window.innerWidth < 768;
+      setIsMobile(mobile);
+      if (mobile) {
+        setCollapsed(true);
+      }
+    };
+    handleResize();
+    window.addEventListener('resize', handleResize);
+    return () => window.removeEventListener('resize', handleResize);
+  }, []);
+
+  const sidebarWidth = isMobile ? 0 : (collapsed ? 68 : 248);
 
   return (
     <div className="flex min-h-screen" style={{ background: '#faf9f8' }}>
-      <Sidebar collapsed={collapsed} onToggle={() => setCollapsed(!collapsed)} />
+      <Sidebar collapsed={collapsed} isMobile={isMobile} onToggle={() => setCollapsed(!collapsed)} />
       <Header
         sidebarCollapsed={collapsed}
+        isMobile={isMobile}
         onMenuToggle={() => setCollapsed(!collapsed)}
         searchQuery={globalSearch}
         onSearchChange={setGlobalSearch}

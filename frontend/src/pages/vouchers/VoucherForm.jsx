@@ -635,7 +635,7 @@ export default function VoucherForm() {
 
                   <div className="border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
                     {/* Header */}
-                    <div className="grid grid-cols-12 gap-2.5 px-4 py-2 bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <div className="hidden md:grid grid-cols-12 gap-2.5 px-4 py-2 bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
                       <div className="col-span-5">Product/SKU</div>
                       <div className="col-span-2 text-right">Quantity</div>
                       <div className="col-span-3 text-right">{type === 'SALES' ? 'Unit Price ($)' : 'Unit Cost ($)'}</div>
@@ -647,8 +647,9 @@ export default function VoucherForm() {
                       {items.map((item, idx) => {
                         const rowTotal = (parseFloat(item.quantity) || 0) * (parseFloat(type === 'SALES' ? item.unitPrice : item.unitCost) || 0);
                         return (
-                          <div key={idx} className="grid grid-cols-12 gap-2.5 px-4 py-2.5 items-center bg-white hover:bg-slate-50/40">
-                            <div className="col-span-5">
+                          <div key={idx} className="flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-2.5 px-4 py-4 md:py-2.5 items-stretch md:items-center bg-white hover:bg-slate-50/40 border-b md:border-b-0 border-slate-100 last:border-b-0">
+                            <div className="flex flex-col gap-1 md:col-span-5">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 md:hidden">Product/SKU</span>
                               <select 
                                 required
                                 className="input-enterprise text-[12.5px] py-1.5"
@@ -663,41 +664,48 @@ export default function VoucherForm() {
                                 ))}
                               </select>
                             </div>
-                            <div className="col-span-2">
+                            <div className="flex flex-col gap-1 md:col-span-2">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 md:hidden">Quantity</span>
                               <input 
                                 type="number" 
                                 required
                                 min="0.01" 
                                 step="any"
                                 placeholder="0" 
-                                className="input-enterprise text-[12.5px] py-1.5 text-right font-mono font-semibold"
+                                className="input-enterprise text-[12.5px] py-1.5 md:text-right font-mono font-semibold"
                                 value={item.quantity}
                                 onChange={e => handleItemChange(idx, 'quantity', e.target.value)}
                               />
                             </div>
-                            <div className="col-span-3 flex items-center gap-1.5">
-                              <input 
-                                type="number" 
-                                required
-                                min="0.00" 
-                                step="any"
-                                placeholder="0.00" 
-                                className="input-enterprise text-[12.5px] py-1.5 text-right font-mono font-semibold"
-                                value={type === 'SALES' ? item.unitPrice : item.unitCost}
-                                onChange={e => handleItemChange(idx, type === 'SALES' ? 'unitPrice' : 'unitCost', e.target.value)}
-                              />
-                              {items.length > 1 && (
-                                <button 
-                                  type="button" 
-                                  onClick={() => handleRemoveItem(idx)}
-                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0"
-                                >
-                                  <Trash2 size={13} />
-                                </button>
-                              )}
+                            <div className="flex flex-col gap-1 md:col-span-3">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 md:hidden">
+                                {type === 'SALES' ? 'Unit Price ($)' : 'Unit Cost ($)'}
+                              </span>
+                              <div className="flex items-center gap-1.5">
+                                <input 
+                                  type="number" 
+                                  required
+                                  min="0.00" 
+                                  step="any"
+                                  placeholder="0.00" 
+                                  className="input-enterprise text-[12.5px] py-1.5 md:text-right font-mono font-semibold flex-grow"
+                                  value={type === 'SALES' ? item.unitPrice : item.unitCost}
+                                  onChange={e => handleItemChange(idx, type === 'SALES' ? 'unitPrice' : 'unitCost', e.target.value)}
+                                />
+                                {items.length > 1 && (
+                                  <button 
+                                    type="button" 
+                                    onClick={() => handleRemoveItem(idx)}
+                                    className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0"
+                                  >
+                                    <Trash2 size={13} />
+                                  </button>
+                                )}
+                              </div>
                             </div>
-                            <div className="col-span-2 text-right font-mono font-extrabold text-[12.5px] text-slate-800 pr-1">
-                              ${rowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                            <div className="flex justify-between md:block md:col-span-2 md:text-right font-mono font-extrabold text-[12.5px] text-slate-800 pr-1 mt-1 md:mt-0">
+                              <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 md:hidden font-sans">Total</span>
+                              <span>${rowTotal.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
                             </div>
                           </div>
                         );
@@ -814,7 +822,7 @@ export default function VoucherForm() {
 
                   <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
                     {/* Header */}
-                    <div className="grid grid-cols-12 gap-2.5 px-4 py-2 bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <div className="hidden md:grid grid-cols-12 gap-2.5 px-4 py-2 bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
                       <div className="col-span-6">General Ledger Account</div>
                       <div className="col-span-3 text-right">Debit ($)</div>
                       <div className="col-span-3 text-right">Credit ($)</div>
@@ -823,8 +831,9 @@ export default function VoucherForm() {
                     {/* Lines */}
                     <div className="divide-y divide-slate-100">
                       {journalLines.map((line, idx) => (
-                        <div key={idx} className="grid grid-cols-12 gap-2.5 px-4 py-2 bg-white hover:bg-slate-50/40 items-center">
-                          <div className="col-span-6">
+                        <div key={idx} className="flex flex-col md:grid md:grid-cols-12 gap-3 md:gap-2.5 px-4 py-4 md:py-2 bg-white hover:bg-slate-50/40 items-stretch md:items-center border-b md:border-b-0 border-slate-100 last:border-b-0">
+                          <div className="flex flex-col gap-1 md:col-span-6">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 md:hidden font-sans">General Ledger Account</span>
                             <select 
                               required 
                               className="input-enterprise text-[12.5px] py-1.5"
@@ -835,36 +844,40 @@ export default function VoucherForm() {
                               {accounts.map(a => <option key={a.id} value={a.id}>{getAccountLabel(a)}</option>)}
                             </select>
                           </div>
-                          <div className="col-span-3">
+                          <div className="flex flex-col gap-1 md:col-span-3">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 md:hidden font-sans">Debit ($)</span>
                             <input 
                               type="number" 
                               step="any"
                               placeholder="0.00" 
-                              className="input-enterprise text-[12.5px] py-1.5 text-right font-mono font-semibold"
+                              className="input-enterprise text-[12.5px] py-1.5 md:text-right font-mono font-semibold"
                               value={line.debit}
                               onChange={e => handleJournalLineChange(idx, 'debit', e.target.value)}
                               disabled={line.credit !== ''}
                             />
                           </div>
-                          <div className="col-span-3 flex items-center gap-1.5">
-                            <input 
-                              type="number" 
-                              step="any"
-                              placeholder="0.00" 
-                              className="input-enterprise text-[12.5px] py-1.5 text-right font-mono font-semibold"
-                              value={line.credit}
-                              onChange={e => handleJournalLineChange(idx, 'credit', e.target.value)}
-                              disabled={line.debit !== ''}
-                            />
-                            {journalLines.length > 2 && (
-                              <button 
-                                type="button" 
-                                onClick={() => handleRemoveJournalLine(idx)}
-                                className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0"
-                              >
-                                <Trash2 size={13} />
-                              </button>
-                            )}
+                          <div className="flex flex-col gap-1 md:col-span-3">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 md:hidden font-sans">Credit ($)</span>
+                            <div className="flex items-center gap-1.5">
+                              <input 
+                                type="number" 
+                                step="any"
+                                placeholder="0.00" 
+                                className="input-enterprise text-[12.5px] py-1.5 md:text-right font-mono font-semibold flex-grow"
+                                value={line.credit}
+                                onChange={e => handleJournalLineChange(idx, 'credit', e.target.value)}
+                                disabled={line.debit !== ''}
+                              />
+                              {journalLines.length > 2 && (
+                                <button 
+                                  type="button" 
+                                  onClick={() => handleRemoveJournalLine(idx)}
+                                  className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all flex-shrink-0"
+                                >
+                                  <Trash2 size={13} />
+                                </button>
+                              )}
+                            </div>
                           </div>
                         </div>
                       ))}

@@ -52,7 +52,7 @@ const BOTTOM_ITEMS = [
   { to: '/dashboard/settings', icon: Settings, label: 'Settings', permission: 'settings.manage' },
 ];
 
-export default function Sidebar({ collapsed, onToggle }) {
+export default function Sidebar({ collapsed, isMobile, onToggle }) {
   const navigate = useNavigate();
   const { logout, activeCompany, user, permissions } = useAuthStore();
   
@@ -86,17 +86,21 @@ export default function Sidebar({ collapsed, onToggle }) {
     <>
       {/* Mobile overlay */}
       <AnimatePresence>
-        {!collapsed && (
+        {isMobile && !collapsed && (
           <Motion.div
             initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
-            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm md:hidden"
+            className="fixed inset-0 z-40 bg-black/40 backdrop-blur-sm"
             onClick={onToggle}
           />
         )}
       </AnimatePresence>
 
       <Motion.aside
-        animate={{ width: collapsed ? 68 : 248 }}
+        animate={
+          isMobile
+            ? { x: collapsed ? -248 : 0, width: 248 }
+            : { x: 0, width: collapsed ? 68 : 248 }
+        }
         transition={{ duration: 0.28, ease: [0.4, 0, 0.2, 1] }}
         className="fixed top-0 left-0 h-screen flex flex-col z-50 overflow-hidden"
         style={{ background: 'var(--blue-900)', borderRight: '1px solid rgba(255,255,255,0.05)' }}

@@ -451,7 +451,7 @@ function ComparativeTab({ companyId }) {
           </span>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: 16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
           <PBIChartCard title="Clustered Column Chart" subtitle={`${p1Label} vs ${p2Label}`} height={layout.chartHeight + 20}>
             <AdaptiveChartFrame layout={layout}>
               <DynamicClusteredBarChart chartRows={chartRows} layout={layout} lookup={chartRows} series={series} />
@@ -520,7 +520,7 @@ function ComparativeTab({ companyId }) {
       <div className="pbi-card" style={{ padding: "20px 22px" }}>
         <p className="pbi-chart-title">Period Comparison Slicer</p>
         <p className="pbi-chart-sub">Select two periods — visuals update automatically (Power BI slicer style)</p>
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 14, alignItems: "end" }}>
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_1fr_auto] gap-3.5 items-end">
           <div>
             <p style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 6 }}>Period 1 (Baseline)</p>
             {sel(p1, setP1)}
@@ -645,7 +645,7 @@ function VerticalTab({ companyId }) {
       </div>
       {loading && <Spinner />}
       {!loading && data && (
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(340px,1fr))", gap:16 }}>
+        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))", gap:16 }}>
           {renderSection("Income Statement (% of Revenue)", data.income_statement?.items || [], data.income_statement?.total_revenue)}
           {renderSection("Balance Sheet (% of Total Assets)", data.balance_sheet?.items || [], data.balance_sheet?.total_assets)}
         </div>
@@ -779,37 +779,41 @@ function OperationsTab({ companyId }) {
         ))}
       </div>
 
-      <div style={{ display:"grid", gridTemplateColumns:"2fr 1fr", gap:16 }}>
-        <Card title="Top Inventory Products">
-          <DataTable
-            headers={[
-              { label:"Product" }, { label:"SKU" },
-              { label:"Qty", right:true }, { label:"Value", right:true },
-            ]}
-            emptyMsg="No product inventory data."
-            rows={products.map(p => [
-              { node: <span style={{ fontWeight:600, color:W.textPri }}>{p.product_name}</span> },
-              { node: <span style={{ fontFamily:"monospace", fontSize:11, color:W.textDim }}>{p.sku}</span> },
-              { node: <span style={{ fontFamily:"monospace" }}>{fmt(p.qty)}</span>, style:{textAlign:"right"} },
-              { node: <span style={{ fontFamily:"monospace", fontWeight:700, color:W.green }}>PKR {fmt(p.stock_value)}</span>, style:{textAlign:"right"} },
-            ])}
-          />
-        </Card>
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-2">
+          <Card title="Top Inventory Products">
+            <DataTable
+              headers={[
+                { label:"Product" }, { label:"SKU" },
+                { label:"Qty", right:true }, { label:"Value", right:true },
+              ]}
+              emptyMsg="No product inventory data."
+              rows={products.map(p => [
+                { node: <span style={{ fontWeight:600, color:W.textPri }}>{p.product_name}</span> },
+                { node: <span style={{ fontFamily:"monospace", fontSize:11, color:W.textDim }}>{p.sku}</span> },
+                { node: <span style={{ fontFamily:"monospace" }}>{fmt(p.qty)}</span>, style:{textAlign:"right"} },
+                { node: <span style={{ fontFamily:"monospace", fontWeight:700, color:W.green }}>PKR {fmt(p.stock_value)}</span>, style:{textAlign:"right"} },
+              ])}
+            />
+          </Card>
+        </div>
 
-        <Card title="Warehouse Load">
-          {!warehouses.length
-            ? <p style={{ color:W.textDim, fontSize:13 }}>No warehouse data.</p>
-            : (
-              <PowerBIDonut
-                data={warehouses.map((w) => ({ name: w.warehouse_name, value: w.estimated_value || 0 }))}
-                colors={PALETTE}
-                height={240}
-                centerLabel="Load Value"
-                centerValue={`PKR ${fmt(warehouses.reduce((a, c) => a + (c.estimated_value || 0), 0))}`}
-              />
-            )
-          }
-        </Card>
+        <div className="lg:col-span-1">
+          <Card title="Warehouse Load">
+            {!warehouses.length
+              ? <p style={{ color:W.textDim, fontSize:13 }}>No warehouse data.</p>
+              : (
+                <PowerBIDonut
+                  data={warehouses.map((w) => ({ name: w.warehouse_name, value: w.estimated_value || 0 }))}
+                  colors={PALETTE}
+                  height={240}
+                  centerLabel="Load Value"
+                  centerValue={`PKR ${fmt(warehouses.reduce((a, c) => a + (c.estimated_value || 0), 0))}`}
+                />
+              )
+            }
+          </Card>
+        </div>
       </div>
 
       <Card title="Sector Profitability">
@@ -1051,7 +1055,7 @@ function VarianceTab({ companyId }) {
           </div>
 
           {items.length > 0 && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(340px, 1fr))", gap: 16 }}>
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
               <PBIChartCard title="Budget vs Actual" subtitle={`Clustered · ${varianceLayout.orientation} · ${chartItems.length} accounts`} height={varianceLayout.chartHeight + 20} style={{ gridColumn: chartItems.length > 6 ? "1 / -1" : undefined }}>
                 <AdaptiveChartFrame layout={varianceLayout}>
                   <DynamicClusteredBarChart

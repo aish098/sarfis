@@ -553,7 +553,7 @@ export default function DistributionPage() {
               <div className="p-7 overflow-y-auto max-h-[75vh]">
                 <form onSubmit={handleCreateDelivery} className="space-y-4">
                   {formError && <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-[13px] text-red-600 font-medium"><AlertTriangle size={14} />{formError}</div>}
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="field-label">Client *</label>
                       <select required className="input-enterprise" value={deliveryForm.clientId} onChange={e => setDeliveryForm({ ...deliveryForm, clientId: e.target.value })}>
@@ -569,7 +569,7 @@ export default function DistributionPage() {
                       </select>
                     </div>
                   </div>
-                  <div className="grid grid-cols-2 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="field-label">Warehouse *</label>
                       <select required className="input-enterprise" value={deliveryForm.warehouseId} onChange={e => setDeliveryForm({ ...deliveryForm, warehouseId: e.target.value })}>
@@ -599,7 +599,7 @@ export default function DistributionPage() {
                       </button>
                     </div>
                     <div className="space-y-2 border border-slate-200 rounded-xl overflow-hidden">
-                      <div className="grid grid-cols-12 gap-2 px-3 py-2 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <div className="hidden sm:grid grid-cols-12 gap-2 px-3 py-2 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400">
                         <div className="col-span-5">Product</div>
                         <div className="col-span-2">Qty</div>
                         <div className="col-span-2">Unit Price</div>
@@ -607,27 +607,32 @@ export default function DistributionPage() {
                         <div className="col-span-1" />
                       </div>
                       {deliveryForm.items.map((item, idx) => (
-                        <div key={idx} className="grid grid-cols-12 gap-2 px-3 py-2 border-t border-slate-100">
-                          <div className="col-span-5">
+                        <div key={idx} className="flex flex-col sm:grid sm:grid-cols-12 gap-3 sm:gap-2 px-3 py-4 sm:py-2 border-t border-slate-100 last:border-b-0">
+                          <div className="flex flex-col gap-1 sm:col-span-5">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:hidden">Product</span>
                             <select className="input-enterprise text-[12px] py-1.5" value={item.product_id} onChange={e => setDeliveryItem(idx, 'product_id', e.target.value)}>
                               <option value="">Select product</option>
                               {products.map(p => <option key={p.id} value={p.id}>{p.sku} - {p.name}</option>)}
                             </select>
                           </div>
-                          <div className="col-span-2">
+                          <div className="flex flex-col gap-1 sm:col-span-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:hidden">Qty</span>
                             <input type="number" step="0.01" placeholder="0" className="input-enterprise text-[12px] py-1.5" value={item.quantity} onChange={e => setDeliveryItem(idx, 'quantity', e.target.value)} />
                           </div>
-                          <div className="col-span-2">
+                          <div className="flex flex-col gap-1 sm:col-span-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:hidden">Unit Price</span>
                             <input type="number" step="0.01" placeholder="0.00" className="input-enterprise text-[12px] py-1.5" value={item.unit_price} onChange={e => setDeliveryItem(idx, 'unit_price', e.target.value)} />
                           </div>
-                          <div className="col-span-2">
+                          <div className="flex flex-col gap-1 sm:col-span-2">
+                            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 sm:hidden">Cost</span>
                             <input type="number" step="0.01" placeholder="0.00" className="input-enterprise text-[12px] py-1.5" value={item.unit_cost} onChange={e => setDeliveryItem(idx, 'unit_cost', e.target.value)} />
                           </div>
-                          <div className="col-span-1 flex items-center justify-center">
+                          <div className="flex items-center justify-between sm:justify-center sm:col-span-1 pt-2 sm:pt-0">
                             {deliveryForm.items.length > 1 && (
                               <button type="button" onClick={() => removeDeliveryItem(idx)}
-                                className="w-6 h-6 rounded text-red-400 hover:bg-red-50 flex items-center justify-center">
+                                className="w-8 h-8 sm:w-6 sm:h-6 rounded text-red-400 hover:bg-red-50 flex items-center justify-center border border-red-100 sm:border-0">
                                 <X size={12} />
+                                <span className="text-[11px] font-semibold sm:hidden ml-1">Remove Line</span>
                               </button>
                             )}
                           </div>
@@ -669,7 +674,7 @@ export default function DistributionPage() {
               <form onSubmit={handleCreateClient} className="p-7 space-y-4">
                 {formError && <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-[13px] text-red-600 font-medium"><AlertTriangle size={14} />{formError}</div>}
                 <div><label className="field-label">Client Name *</label><input required className="input-enterprise" placeholder="Company or individual name" value={clientForm.name} onChange={e => setClientForm({ ...clientForm, name: e.target.value })} /></div>
-                <div className="grid grid-cols-2 gap-4">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                   <div><label className="field-label">Email</label><input type="email" className="input-enterprise" value={clientForm.email} onChange={e => setClientForm({ ...clientForm, email: e.target.value })} /></div>
                   <div><label className="field-label">Phone</label><input className="input-enterprise" value={clientForm.phone} onChange={e => setClientForm({ ...clientForm, phone: e.target.value })} /></div>
                 </div>

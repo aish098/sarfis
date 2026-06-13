@@ -258,7 +258,7 @@ body {
   @apply fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/40 backdrop-blur-sm;
 }
 .modal-box {
-  @apply bg-white rounded-[32px] shadow-2xl shadow-slate-900/20 overflow-hidden border border-white;
+  @apply bg-white rounded-[32px] shadow-2xl shadow-slate-900/20 overflow-y-auto border border-white max-h-[90vh];
 }
 
 /* Components: Tabs */

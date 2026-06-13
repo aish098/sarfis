@@ -26,6 +26,7 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown }) {
 
   useEffect(() => {
     if (open && triggerRef.current) {
+      triggerRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
       const rect = triggerRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
       const spaceBelow = viewportHeight - rect.bottom;
