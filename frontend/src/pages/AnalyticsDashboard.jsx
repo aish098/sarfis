@@ -432,7 +432,7 @@ function ComparativeTab({ companyId }) {
     const layout = computeChartLayout(categories, { seriesCount: 2, valueMagnitudes: magnitudes, minHeight: 280, maxHeight: 720, forceHorizontal: true });
     const chartRows = normalizeChartRows(rawRows, "account_name", layout);
     const waterfall = buildWaterfall(sorted.slice(0, layout.orientation === "horizontal" ? sorted.length : Math.min(12, sorted.length)));
-    const wfLayout = computeChartLayout(waterfall.map((w) => w.fullName), { valueMagnitudes: waterfall.map((w) => w.variance), minHeight: 260 });
+    const wfLayout = computeChartLayout(waterfall.map((w) => w.fullName), { valueMagnitudes: waterfall.map((w) => w.variance), minHeight: 260, forceVertical: true });
     const maxVal = Math.max(...chartRows.flatMap((r) => [r.p1, r.p2]), 1);
 
     const series = [

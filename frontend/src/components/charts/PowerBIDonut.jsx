@@ -35,8 +35,8 @@ export function PowerBIDonut({
   const topSlice = pieData[0];
 
   return (
-    <div style={{ display: "flex", alignItems: "stretch", gap: 14, minHeight: height }}>
-      <div style={{ flex: "0 0 50%", minWidth: 150, maxWidth: 260, position: "relative" }}>
+    <div style={{ display: "flex", flexWrap: "wrap", alignItems: "center", gap: 14, minHeight: height }}>
+      <div style={{ flex: "1 1 180px", minWidth: 150, maxWidth: 260, position: "relative", margin: "0 auto" }}>
         <ResponsiveContainer width="100%" height={height}>
           <PieChart>
             <Pie
@@ -71,21 +71,35 @@ export function PowerBIDonut({
                 );
               }}
             />
-            <text x="50%" y="46%" textAnchor="middle" dominantBaseline="middle" fontSize={14} fontWeight="800" fill="#0f172a">
-              {displayCenter}
-            </text>
-            <text x="50%" y="58%" textAnchor="middle" dominantBaseline="middle" fontSize={9} fontWeight="700" fill="#64748b">
-              {centerLabel}
-            </text>
           </PieChart>
         </ResponsiveContainer>
+        <div style={{
+          position: "absolute",
+          top: "50%",
+          left: "50%",
+          transform: "translate(-50%, -50%)",
+          textAlign: "center",
+          width: "55%",
+          pointerEvents: "none",
+          display: "flex",
+          flexDirection: "column",
+          alignItems: "center",
+          justifyContent: "center"
+        }}>
+          <span style={{ fontSize: "clamp(11px, 3.5vw, 15px)", fontWeight: "800", color: "#0f172a", lineHeight: 1.2, wordBreak: "break-word" }}>
+            {displayCenter}
+          </span>
+          <span style={{ fontSize: "clamp(8px, 2.5vw, 10px)", fontWeight: "700", color: "#64748b", lineHeight: 1.2, marginTop: 2, wordBreak: "break-word" }}>
+            {centerLabel}
+          </span>
+        </div>
       </div>
 
       <div
         style={{
-          flex: 1,
+          flex: "1 1 200px",
           minWidth: 0,
-          maxHeight: height,
+          maxHeight: height + 60,
           overflowY: "auto",
           paddingRight: 4,
         }}
@@ -96,7 +110,7 @@ export function PowerBIDonut({
             <span style={{ display: "block", fontSize: 10, color: "#8a8886", fontWeight: 700 }}>
               Largest segment
             </span>
-            <span style={{ display: "block", fontSize: 12, color: "#252423", fontWeight: 700, lineHeight: 1.25 }}>
+            <span style={{ display: "block", fontSize: 12, color: "#252423", fontWeight: 700, lineHeight: 1.25, wordBreak: "break-word" }}>
               {topSlice.fullName || topSlice.name}
             </span>
           </div>

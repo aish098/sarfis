@@ -53,6 +53,7 @@ export function computeChartLayout(categories = [], options = {}) {
     minHeight = 260,
     maxHeight = 620,
     forceHorizontal = false,
+    forceVertical = false,
     valueMagnitudes = [],
   } = options;
 
@@ -62,11 +63,12 @@ export function computeChartLayout(categories = [], options = {}) {
   const avgLen = lengths.reduce((a, b) => a + b, 0) / count;
 
   const useHorizontal =
-    forceHorizontal ||
-    count > 4 ||
-    maxLen > 12 ||
-    (count > 3 && avgLen > 8) ||
-    (seriesCount >= 2 && count > 2 && avgLen > 6);
+    !forceVertical &&
+    (forceHorizontal ||
+      count > 4 ||
+      maxLen > 12 ||
+      (count > 3 && avgLen > 8) ||
+      (seriesCount >= 2 && count > 2 && avgLen > 6));
 
   const maxVal = valueMagnitudes.length
     ? Math.max(...valueMagnitudes.map((v) => Math.abs(v || 0)), 1)
