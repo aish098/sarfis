@@ -20,30 +20,6 @@ function monthLabel(month, year) {
   return `${names[month - 1]} ${year}`;
 }
 
-function buildMonthRange(startYear, startMonth, endYear, endMonth) {
-  const range = [];
-  let y = startYear;
-  let m = startMonth;
-  while (y < endYear || (y === endYear && m <= endMonth)) {
-    range.push({
-      label: monthLabel(m, y),
-      year: y,
-      month: m,
-      revenue: 0,
-      expenses: 0,
-      assets: 0,
-      liabilities: 0,
-      equity: 0,
-    });
-    m += 1;
-    if (m > 12) {
-      m = 1;
-      y += 1;
-    }
-  }
-  return range;
-}
-
 /**
  * Core aggregator: monthly debit/credit totals per account from journal_entries → ledger
  * Uses your existing journal_entries table (debit/credit columns)
@@ -191,10 +167,9 @@ async function getTrendAnalysis(companyId, months = 12, endPeriod = null) {
     }
   }
 
-  const sorted = buildMonthRange(startYear, startMonth, endYear, endMonth).map((base) => {
-    const key = `${base.year}-${String(base.month).padStart(2, "0")}`;
-    return monthBuckets[key] ? { ...base, ...monthBuckets[key] } : base;
-  });
+  const sorted = Object.values(monthBuckets).sort(
+    (a, b) => a.year - b.year || a.month - b.month
+  );
 
   // Calculate profit and growth
   const trend = sorted.map((m, i) => {
