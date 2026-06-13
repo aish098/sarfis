@@ -519,12 +519,12 @@ export default function VoucherForm() {
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Posting Date</label>
-                  <div className="relative">
-                    <Calendar size={14} className="absolute left-[14px] top-1/2 -translate-y-1/2 text-slate-400" />
+                  <div className="relative inline-block w-full sm:w-auto">
+                    <Calendar size={14} className="absolute left-[14px] top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                     <input 
                       type="date" 
                       required 
-                      className="input-enterprise text-[13px] pl-10" 
+                      className="input-enterprise text-[13px] !pl-10 w-full sm:!w-[220px]" 
                       value={date} 
                       onChange={e => setDate(e.target.value)} 
                     />
@@ -539,7 +539,7 @@ export default function VoucherForm() {
                       <User size={14} className="absolute left-[14px] top-1/2 -translate-y-1/2 text-slate-400" />
                       <select 
                         required 
-                        className="input-enterprise text-[13px] pl-10"
+                        className="input-enterprise text-[13px] !pl-10"
                         value={clientId} 
                         onChange={e => setClientId(e.target.value)}
                       >
@@ -557,7 +557,7 @@ export default function VoucherForm() {
                       <User size={14} className="absolute left-[14px] top-1/2 -translate-y-1/2 text-slate-400" />
                       <select 
                         required 
-                        className="input-enterprise text-[13px] pl-10"
+                        className="input-enterprise text-[13px] !pl-10"
                         value={vendorId} 
                         onChange={e => setVendorId(e.target.value)}
                       >
@@ -578,7 +578,7 @@ export default function VoucherForm() {
                       <Warehouse size={14} className="absolute left-[14px] top-1/2 -translate-y-1/2 text-slate-400" />
                       <select 
                         required 
-                        className="input-enterprise text-[13px] pl-10"
+                        className="input-enterprise text-[13px] !pl-10"
                         value={warehouseId} 
                         onChange={e => setWarehouseId(e.target.value)}
                       >
@@ -766,7 +766,7 @@ export default function VoucherForm() {
                           min="0.01" 
                           step="0.01"
                           placeholder="0.00" 
-                          className="input-enterprise pl-10 text-[13.5px] font-mono font-semibold" 
+                          className="input-enterprise !pl-10 text-[13.5px] font-mono font-semibold" 
                           value={amount} 
                           onChange={e => setAmount(e.target.value)} 
                         />

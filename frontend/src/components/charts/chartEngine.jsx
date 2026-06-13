@@ -8,7 +8,7 @@ import { ResponsiveContainer } from "recharts";
 
 export const PBI = {
   p1: "#118DFF",
-  p2: "#118DFF",
+  p2: "#12239E",
   budget: "#94a3b8",
   actual: "#118DFF",
   positive: "#107C10",
