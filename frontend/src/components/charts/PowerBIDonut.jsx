@@ -103,7 +103,6 @@ export function PowerBIDonut({
           overflowY: "auto",
           paddingRight: 4,
         }}
-        className="hide-scrollbar"
       >
         {topSlice && (
           <div style={{ padding: "0 0 8px", borderBottom: "1px solid #edebe9", marginBottom: 3 }}>
