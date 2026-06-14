@@ -64,6 +64,18 @@ function VoucherList() {
     setSubmittingId(null);
   };
 
+  const handleSubmitApproval = async (id) => {
+    if (!window.confirm('Submit this voucher for manager approval?')) return;
+    setSubmittingId(id);
+    try {
+      await api.post(`/vouchers/${activeCompany.id}/${id}/submit`);
+      load();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to submit voucher for approval.');
+    }
+    setSubmittingId(null);
+  };
+
   const handleReverse = async (id) => {
     if (!window.confirm('Are you sure you want to REVERSE this posted transaction? SCAFIS will write automatic offsetting offset journal entries to zero out ledger and stock logs.')) return;
     setSubmittingId(id);
@@ -239,6 +251,13 @@ function VoucherList() {
                               className="px-3 py-1.5 text-[11.5px] font-bold text-indigo-600 bg-indigo-50/70 hover:bg-indigo-100/70 rounded-lg transition-all">
                               Edit Draft
                             </Link>
+                            <button
+                              disabled={submittingId === v.id}
+                              onClick={() => handleSubmitApproval(v.id)}
+                              className="px-3 py-1.5 text-[11.5px] font-bold text-indigo-600 bg-indigo-50 hover:bg-indigo-100 rounded-lg transition-all flex items-center gap-1 cursor-pointer"
+                            >
+                              <CheckCircle size={12} /> {submittingId === v.id ? 'Submitting...' : 'Submit Approval'}
+                            </button>
                             <button
                               disabled={submittingId === v.id}
                               onClick={() => handlePost(v.id)}

@@ -3,7 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { motion as Motion } from 'framer-motion';
 import { 
   ArrowLeft, Save, Plus, Trash2, BookOpen, AlertTriangle, 
-  HelpCircle, Check, Info, Calendar, Warehouse, User, DollarSign, ListCollapse, FileText
+  HelpCircle, Check, CheckCircle, Info, Calendar, Warehouse, User, DollarSign, ListCollapse, FileText
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -59,6 +59,7 @@ export default function VoucherForm() {
   const [saving, setSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [warnings, setWarnings] = useState([]);
+  const [submitAction, setSubmitAction] = useState('draft'); // draft | submit
 
   // Fetch catalogs
   const fetchCatalogs = useCallback(async () => {
@@ -368,6 +369,11 @@ export default function VoucherForm() {
           totalAmount,
           taxAmount
         });
+      }
+
+      const savedVoucher = response.data;
+      if (submitAction === 'submit') {
+        await api.post(`/vouchers/${activeCompany.id}/${savedVoucher.id}/submit`);
       }
 
       navigate('/dashboard/vouchers');
@@ -942,10 +948,20 @@ export default function VoucherForm() {
                 <button 
                   type="submit" 
                   disabled={saving}
-                  className="bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white flex-[2] py-3 flex items-center justify-center gap-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                  onClick={() => setSubmitAction('draft')}
+                  className="bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 flex-1 py-3 flex items-center justify-center gap-2 text-[12.5px] font-bold rounded-xl transition-all cursor-pointer disabled:opacity-50"
                 >
                   <Save size={15} />
-                  {saving ? 'Saving document...' : 'Save Draft Voucher'}
+                  {saving && submitAction === 'draft' ? 'Saving...' : 'Save Draft'}
+                </button>
+                <button 
+                  type="submit" 
+                  disabled={saving}
+                  onClick={() => setSubmitAction('submit')}
+                  className="bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white flex-[2] py-3 flex items-center justify-center gap-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
+                >
+                  <CheckCircle size={15} className="text-white" />
+                  {saving && submitAction === 'submit' ? 'Submitting...' : 'Submit for Approval'}
                 </button>
               </div>
             </form>
