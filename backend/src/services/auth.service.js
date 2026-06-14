@@ -10,7 +10,7 @@ class AuthService {
   /**
    * Orchestrates user registration, workspace creation, and COA seeding.
    */
-  static async registerUser({ name, email, password, role }) {
+  static async registerUser({ name, email, password, role, ip, device }) {
     const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
     if (!normalizedEmail || !password) {
       throw new Error('Email and password are required');
@@ -44,8 +44,19 @@ class AuthService {
       // Seed the company with COA data
       await AccountModel.seedCoa(company.id, coa_data, trx);
 
+      // Create initial active session
+      const [session] = await trx('user_sessions')
+        .insert({
+          user_id: newUser.id,
+          company_id: company.id,
+          ip_address: ip || '127.0.0.1',
+          device: device || 'Unknown',
+          is_active: true
+        })
+        .returning('*');
+
       const token = jwt.sign(
-        { id: newUser.id, email: newUser.email, role: newUser.role },
+        { id: newUser.id, email: newUser.email, role: newUser.role, sessionId: session.id },
         process.env.JWT_SECRET || 'secret',
         { expiresIn: '1d' }
       );
@@ -54,7 +65,7 @@ class AuthService {
     });
   }
 
-  static async loginUser({ email, password }) {
+  static async loginUser({ email, password, ip, device }) {
     const normalizedEmail = typeof email === 'string' ? email.trim().toLowerCase() : '';
     if (!normalizedEmail || !password) {
       throw new Error('Email and password are required');
@@ -66,8 +77,19 @@ class AuthService {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) throw new Error('Invalid credentials');
 
+    // Create session in DB (without company_id initially)
+    const [session] = await db('user_sessions')
+      .insert({
+        user_id: user.id,
+        company_id: null,
+        ip_address: ip || '127.0.0.1',
+        device: device || 'Unknown',
+        is_active: true
+      })
+      .returning('*');
+
     const token = jwt.sign(
-      { id: user.id, email: user.email, role: user.role },
+      { id: user.id, email: user.email, role: user.role, sessionId: session.id },
       process.env.JWT_SECRET || 'secret',
       { expiresIn: '1d' }
     );

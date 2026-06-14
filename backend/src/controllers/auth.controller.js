@@ -3,13 +3,17 @@ const UserModel = require('../models/user.model');
 
 exports.registerUser = async (req, res) => {
   const { name, email, password, role } = req.body;
+  const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const device = req.headers['user-agent'] || 'Unknown';
   
   try {
     const { user, token } = await AuthService.registerUser({
       name,
       email,
       password,
-      role
+      role,
+      ip,
+      device
     });
 
     res.status(201).json({ token, user });
@@ -21,8 +25,10 @@ exports.registerUser = async (req, res) => {
 
 exports.loginUser = async (req, res) => {
   const { email, password } = req.body;
+  const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const device = req.headers['user-agent'] || 'Unknown';
   try {
-    const result = await AuthService.loginUser({ email, password });
+    const result = await AuthService.loginUser({ email, password, ip, device });
     res.json(result);
   } catch (err) {
     res.status(err.message.includes('required') || err.message.includes('credentials') ? 401 : 500).json({ message: err.message });

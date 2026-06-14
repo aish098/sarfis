@@ -857,7 +857,6 @@ export default function SettingsPage() {
                     onClick={() => {
                       setImportType(opt.id);
                       setImportPreview([]);
-                      setImportFile(null);
                     }}
                     className={`w-full text-left p-3 border rounded-xl transition-all ${
                       importType === opt.id

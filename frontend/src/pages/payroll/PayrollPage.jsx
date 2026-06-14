@@ -35,6 +35,8 @@ export default function PayrollPage() {
   const [newEmpStatus, setNewEmpStatus] = useState('Processing');
   const [newEmpBankName, setNewEmpBankName] = useState('Habib Bank');
   const [newEmpBankAccount, setNewEmpBankAccount] = useState('');
+  const [companyUsers, setCompanyUsers] = useState([]);
+  const [linkedUserId, setLinkedUserId] = useState('');
 
   const requestConfig = useMemo(
     () => activeCompanyId ? { headers: { 'x-company-id': String(activeCompanyId) } } : undefined,
@@ -43,55 +45,92 @@ export default function PayrollPage() {
 
   // Default initial mock employees if none saved in settings
   const defaultEmployees = useMemo(() => [
-    { id: 1, name: 'Farhan Ali', role: 'Senior Software Engineer', department: 'Engineering', salary: 180000, status: 'Processing', bankName: 'Habib Bank', bankAccount: 'PK12HABB0000123456789012' },
-    { id: 2, name: 'Sana Khan', role: 'Product Manager', department: 'Product', salary: 150000, status: 'Processing', bankName: 'MCB Bank', bankAccount: 'PK24MCBB0000987654321098' },
-    { id: 3, name: 'Zainab Ahmed', role: 'UI/UX Designer', department: 'Product', salary: 110000, status: 'Processing', bankName: 'Bank Alfalah', bankAccount: 'PK76ALFH0000345678901234' },
-    { id: 4, name: 'Hamza Sheikh', role: 'DevOps Specialist', department: 'Engineering', salary: 165000, status: 'Processing', bankName: 'Habib Bank', bankAccount: 'PK12HABB0000987654321012' },
-    { id: 5, name: 'Ayesha Malik', role: 'HR Manager', department: 'People Operations', salary: 95000, status: 'On Hold', bankName: 'National Bank', bankAccount: 'PK45NBPA0000765432109876' },
+    { name: 'Farhan Ali', role: 'Senior Software Engineer', department: 'Engineering', salary: 180000, status: 'Processing', bankName: 'Habib Bank', bankAccount: 'PK12HABB0000123456789012' },
+    { name: 'Sana Khan', role: 'Product Manager', department: 'Product', salary: 150000, status: 'Processing', bankName: 'MCB Bank', bankAccount: 'PK24MCBB0000987654321098' },
+    { name: 'Zainab Ahmed', role: 'UI/UX Designer', department: 'Product', salary: 110000, status: 'Processing', bankName: 'Bank Alfalah', bankAccount: 'PK76ALFH0000345678901234' },
+    { name: 'Hamza Sheikh', role: 'DevOps Specialist', department: 'Engineering', salary: 165000, status: 'Processing', bankName: 'Habib Bank', bankAccount: 'PK12HABB0000987654321012' },
+    { name: 'Ayesha Malik', role: 'HR Manager', department: 'People Operations', salary: 95000, status: 'On Hold', bankName: 'National Bank', bankAccount: 'PK45NBPA0000765432109876' },
   ], []);
 
-  // Sync state with settings
-  useEffect(() => {
-    if (settings && settings.employees) {
-      setEmployees(settings.employees);
-    } else {
-      setEmployees(defaultEmployees);
-    }
+  // Map employee database row camelCase
+  const mapEmployeeRow = (row) => ({
+    id: row.id,
+    name: row.name,
+    role: row.role,
+    department: row.department,
+    salary: parseFloat(row.salary),
+    status: row.status,
+    bankName: row.bank_name,
+    bankAccount: row.account_number,
+    userId: row.user_id,
+    userName: row.user_name,
+    userEmail: row.user_email
+  });
 
-    if (settings && settings.bankConnection) {
-      setBankConnection(settings.bankConnection);
-    }
-  }, [settings, defaultEmployees]);
+  // Load Accounts, Employees & Company Members
+  const loadEmployeesAndUsers = async () => {
+    if (!activeCompanyId) return;
+    setLoading(true);
+    try {
+      // Load accounts
+      const accRes = await api.get(`/accounts/company/${activeCompanyId}`, requestConfig);
+      setAccounts(accRes.data || []);
 
-  // Load Accounts & Settings
-  useEffect(() => {
-    const loadData = async () => {
-      if (!activeCompanyId) return;
-      try {
-        const res = await api.get(`/accounts/company/${activeCompanyId}`, requestConfig);
-        setAccounts(res.data || []);
-      } catch (err) {
-        console.error('Failed to load accounts list', err);
+      // Load DB employees
+      const empRes = await api.get(`/employees/${activeCompanyId}`, requestConfig);
+      let list = (empRes.data || []).map(mapEmployeeRow);
+
+      // Auto-seed default employees if DB is completely empty
+      if (list.length === 0) {
+        const seededList = [];
+        for (const emp of defaultEmployees) {
+          const res = await api.post(`/employees/${activeCompanyId}`, {
+            name: emp.name,
+            role: emp.role,
+            department: emp.department,
+            salary: emp.salary,
+            bankName: emp.bankName,
+            accountNumber: emp.bankAccount,
+            status: emp.status,
+            userId: null
+          }, requestConfig);
+          seededList.push(mapEmployeeRow(res.data));
+        }
+        list = seededList;
       }
-    };
-    loadData();
-  }, [activeCompanyId, requestConfig]);
+      setEmployees(list);
 
-  // Save employees to settings helper
-  const saveEmployeesList = async (updatedList, updatedBankConnection = null) => {
+      // Load bank connection status from company settings
+      if (settings && settings.bankConnection) {
+        setBankConnection(settings.bankConnection);
+      }
+
+      // Load company users to allow linking
+      const usersRes = await api.get(`/admin/overview?companyId=${activeCompanyId}`, requestConfig);
+      setCompanyUsers(usersRes.data.members || []);
+    } catch (err) {
+      console.error('Failed to load employees, accounts, or members list', err);
+    }
+    setLoading(false);
+  };
+
+  useEffect(() => {
+    loadEmployeesAndUsers();
+  }, [activeCompanyId, requestConfig, settings?.bankConnection]);
+
+  // Save bank connection helper
+  const saveBankConnection = async (updatedBankConnection) => {
     if (!activeCompanyId) return false;
     setLoading(true);
     try {
-      const conn = updatedBankConnection || bankConnection;
-      const updatedSettings = { ...settings, employees: updatedList, bankConnection: conn };
+      const updatedSettings = { ...settings, bankConnection: updatedBankConnection };
       const res = await api.put(`/settings/${activeCompanyId}`, updatedSettings, requestConfig);
       setSettings(res.data);
-      setEmployees(updatedList);
-      setBankConnection(conn);
+      setBankConnection(updatedBankConnection);
       return true;
     } catch (err) {
       console.error(err);
-      setActionMessage({ type: 'error', text: 'Failed to save updated payroll preferences.' });
+      setActionMessage({ type: 'error', text: 'Failed to update bank connection preferences.' });
       return false;
     } finally {
       setLoading(false);
@@ -106,39 +145,49 @@ export default function PayrollPage() {
       return;
     }
 
-    const newEmpObj = {
-      id: Date.now(),
-      name: newEmpName,
-      role: newEmpRole,
-      department: newEmpDept,
-      salary: parseFloat(newEmpSalary),
-      status: newEmpStatus,
-      bankName: newEmpBankName,
-      bankAccount: newEmpBankAccount
-    };
+    setLoading(true);
+    try {
+      await api.post(`/employees/${activeCompanyId}`, {
+        name: newEmpName,
+        role: newEmpRole,
+        department: newEmpDept,
+        salary: parseFloat(newEmpSalary),
+        bankName: newEmpBankName,
+        accountNumber: newEmpBankAccount,
+        status: newEmpStatus,
+        userId: linkedUserId || null
+      }, requestConfig);
 
-    const updatedList = [...employees, newEmpObj];
-    const success = await saveEmployeesList(updatedList);
-    if (success) {
-      setActionMessage({ type: 'success', text: `Employee ${newEmpName} added successfully with bank account linked!` });
+      setActionMessage({ type: 'success', text: `Employee ${newEmpName} successfully added to database profile!` });
       setIsAddModalOpen(false);
+
       // Reset fields
       setNewEmpName('');
       setNewEmpRole('');
       setNewEmpSalary('');
       setNewEmpBankAccount('');
+      setLinkedUserId('');
       setNewEmpStatus('Processing');
+
+      await loadEmployeesAndUsers();
+    } catch (err) {
+      setActionMessage({ type: 'error', text: err.response?.data?.error || 'Failed to add employee profile.' });
     }
+    setLoading(false);
   };
 
   // Delete employee helper
   const handleDeleteEmployee = async (id) => {
     if (!window.confirm('Are you sure you want to remove this employee from payroll?')) return;
-    const updatedList = employees.filter(emp => emp.id !== id);
-    const success = await saveEmployeesList(updatedList);
-    if (success) {
-      setActionMessage({ type: 'success', text: 'Employee removed from payroll.' });
+    setLoading(true);
+    try {
+      await api.delete(`/employees/${activeCompanyId}/${id}`, requestConfig);
+      setActionMessage({ type: 'success', text: 'Employee profile deleted.' });
+      await loadEmployeesAndUsers();
+    } catch (err) {
+      setActionMessage({ type: 'error', text: 'Failed to remove employee.' });
     }
+    setLoading(false);
   };
 
   // Export Payroll to CSV
@@ -256,9 +305,12 @@ export default function PayrollPage() {
       }, requestConfig);
 
       // 2. Commit/Post to ledger
-      await api.post(`/journal/${journalRes.data.id}/post`, {}, requestConfig);
+      await api.post(`/journal/${journalRes.data.id}/post`, {}, requestConfig);      // 3. Update employees status in database
+      for (const emp of processingEmployees) {
+        await api.patch(`/employees/${activeCompanyId}/${emp.id}`, { status: 'Paid' }, requestConfig);
+      }
 
-      // 3. Mark processed employees as Paid
+      // Re-map list for audit logs
       const updatedList = employees.map(emp => {
         if (emp.status === 'Processing') {
           return { ...emp, status: 'Paid' };
@@ -266,27 +318,26 @@ export default function PayrollPage() {
         return emp;
       });
 
-      // 4. Save to settings
-      const settingsSuccess = await saveEmployeesList(updatedList);
-      if (settingsSuccess) {
-        // 5. Post audit log
-        await api.post(`/audit/${activeCompanyId}`, {
-          action: 'CREATE',
-          entityType: 'PAYROLL',
-          entityId: `PAYROLL_${journalRes.data.id}`,
-          beforeState: employees,
-          afterState: updatedList
-        }, requestConfig);
+      // 4. Post audit log
+      await api.post(`/audit/${activeCompanyId}`, {
+        action: 'CREATE',
+        entityType: 'PAYROLL',
+        entityId: `PAYROLL_${journalRes.data.id}`,
+        beforeState: employees,
+        afterState: updatedList
+      }, requestConfig);
 
-        const bankTransferMsg = bankConnection.status === 'Connected' 
-          ? ` & disbursed directly via ${bankConnection.bankName} API` 
-          : '';
+      const bankTransferMsg = bankConnection.status === 'Connected' 
+        ? ` & disbursed directly via ${bankConnection.bankName} API` 
+        : '';
 
-        setActionMessage({
-          type: 'success',
-          text: `✓ Payroll run successful! Created journal entry #${journalRes.data.id} in GL for ${formatPKR(totalSalarySum)}${bankTransferMsg}.`
-        });
-      }
+      setActionMessage({
+        type: 'success',
+        text: `✓ Payroll run successful! Created journal entry #${journalRes.data.id} in GL for ${formatPKR(totalSalarySum)}${bankTransferMsg}.`
+      });
+
+      // Reload list
+      await loadEmployeesAndUsers();
     } catch (err) {
       console.error(err);
       setActionMessage({ type: 'error', text: err.response?.data?.error || 'Failed to complete payroll run.' });
@@ -303,7 +354,7 @@ export default function PayrollPage() {
     // Simulate API link handshakes
     setTimeout(async () => {
       const conn = { status: 'Connected', bankName: selectedBank };
-      const success = await saveEmployeesList(employees, conn);
+      const success = await saveBankConnection(conn);
       if (success) {
         setActionMessage({ type: 'success', text: `Successfully established secure connection with ${selectedBank} Business Portal!` });
         setShowBankModal(false);
@@ -315,7 +366,7 @@ export default function PayrollPage() {
   const handleDisconnectBank = async () => {
     if (!window.confirm('Disconnect your bank API connection? Payroll runs will fallback to manual settlement.')) return;
     const conn = { status: 'Disconnected', bankName: '' };
-    const success = await saveEmployeesList(employees, conn);
+    const success = await saveBankConnection(conn);
     if (success) {
       setActionMessage({ type: 'success', text: 'Bank connection disconnected.' });
     }
@@ -472,7 +523,14 @@ export default function PayrollPage() {
                 <tbody className="divide-y divide-slate-100 text-[13px] text-slate-700">
                   {filteredEmployees.map(emp => (
                     <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-5 py-4 font-bold text-slate-900">{emp.name}</td>
+                      <td className="px-5 py-4">
+                        <span className="font-bold text-slate-900 block">{emp.name}</span>
+                        {emp.userName && (
+                          <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[9px] font-bold border border-blue-100">
+                            <Users size={8} /> {emp.userName}
+                          </span>
+                        )}
+                      </td>
                       <td className="px-5 py-4">{emp.department}</td>
                       <td className="px-5 py-4 text-slate-500">{emp.role}</td>
                       <td className="px-5 py-4">
@@ -719,6 +777,20 @@ export default function PayrollPage() {
                     placeholder="e.g. 150000"
                     className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
                   />
+                </div>
+
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Linked System User</label>
+                  <select
+                    value={linkedUserId}
+                    onChange={e => setLinkedUserId(e.target.value)}
+                    className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                  >
+                    <option value="">-- None (External Employee) --</option>
+                    {companyUsers.map(u => (
+                      <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                    ))}
+                  </select>
                 </div>
 
                 <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">

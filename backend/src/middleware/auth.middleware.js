@@ -19,6 +19,34 @@ const authMiddleware = async (req, res, next) => {
     const decoded = jwt.verify(bearer, process.env.JWT_SECRET || 'secret');
     req.user = decoded; 
 
+    // Validate active database-backed session
+    if (decoded.sessionId) {
+      const db = require('../config/db');
+      const session = await db('user_sessions').where({ id: decoded.sessionId }).first();
+      
+      if (!session || !session.is_active) {
+        return res.status(401).json({ message: 'Session has been terminated by administrator.' });
+      }
+
+      // Safe JSON parsing of cache
+      let cache = session.permissions_cache;
+      if (cache && typeof cache === 'string') {
+        try { cache = JSON.parse(cache); } catch (e) { cache = {}; }
+      }
+      req.session = { ...session, permissions_cache: cache || {} };
+
+      // Update last activity and company ID dynamically
+      const companyIdRaw = req.header('x-company-id');
+      const updatePayload = { last_activity: db.fn.now() };
+      if (companyIdRaw && companyIdRaw !== 'undefined' && companyIdRaw !== 'null') {
+        const companyId = parseInt(companyIdRaw);
+        if (!isNaN(companyId) && companyId > 0 && !session.company_id) {
+          updatePayload.company_id = companyId;
+        }
+      }
+      await db('user_sessions').where({ id: decoded.sessionId }).update(updatePayload);
+    }
+
     // Check for company context
     const companyIdRaw = req.header('x-company-id');
     
@@ -44,7 +72,30 @@ const authMiddleware = async (req, res, next) => {
         if (membership) {
           req.companyId = companyId;
           req.userCompanyRole = membership.role;
-          req.userPermissions = await RoleService.getUserPermissions(req.user.id, companyId);
+
+          // Check permissions cache
+          let cachedPerms = null;
+          if (req.session && req.session.permissions_cache) {
+            if (Array.isArray(req.session.permissions_cache[companyId])) {
+              cachedPerms = req.session.permissions_cache[companyId];
+            }
+          }
+
+          if (cachedPerms) {
+            req.userPermissions = cachedPerms;
+          } else {
+            req.userPermissions = await RoleService.getUserPermissions(req.user.id, companyId);
+            
+            // Cache the loaded permissions in current session
+            if (req.session) {
+              const currentCache = req.session.permissions_cache || {};
+              currentCache[companyId] = req.userPermissions;
+
+              await db('user_sessions')
+                .where({ id: req.session.id })
+                .update({ permissions_cache: JSON.stringify(currentCache) });
+            }
+          }
         } else if (req.user.role === 'Super Admin') {
           req.companyId = companyId;
           req.userCompanyRole = 'Super Admin';
