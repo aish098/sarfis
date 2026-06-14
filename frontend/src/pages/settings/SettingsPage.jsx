@@ -128,6 +128,7 @@ export default function SettingsPage() {
         defaultInventoryAccountId: raw.defaultInventoryAccountId || raw.default_inventory_account_id || '',
         defaultCogsAccountId: raw.defaultCogsAccountId || raw.default_cogs_account_id || '',
         defaultCashAccountId: raw.defaultCashAccountId || raw.default_cash_account_id || '',
+        defaultSalariesAccountId: raw.defaultSalariesAccountId || raw.default_salaries_account_id || '',
         closingDate: raw.closingDate || '',
         
         logoUrl: raw.logoUrl || null,
@@ -573,6 +574,11 @@ export default function SettingsPage() {
               </Field>
               <Field label="Default COGS Account" hint="Records direct cost of sold stock.">
                 <SelectField value={localSettings.defaultCogsAccountId} onChange={v => update('defaultCogsAccountId', v)} options={filterAccounts(['Expense'])} disabled={!canEdit} />
+              </Field>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <Field label="Default Salaries Expense Account" hint="Tracks payroll salaries cost.">
+                <SelectField value={localSettings.defaultSalariesAccountId} onChange={v => update('defaultSalariesAccountId', v)} options={filterAccounts(['Expense'])} disabled={!canEdit} />
               </Field>
             </div>
 

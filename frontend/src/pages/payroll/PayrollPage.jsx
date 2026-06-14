@@ -1,9 +1,9 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
-import {
-  Users, DollarSign, Calendar, Landmark, CheckCircle,
+import { 
+  Users, DollarSign, Calendar, Landmark, CheckCircle, 
   ArrowRight, ShieldCheck, Download, Plus, Search, FileText,
-  AlertTriangle, RefreshCw, X, HelpCircle, Trash2
+  AlertTriangle, RefreshCw, X, HelpCircle, Trash2, Link, Link2Off
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -18,6 +18,14 @@ export default function PayrollPage() {
   const [loading, setLoading] = useState(false);
   const [actionMessage, setActionMessage] = useState(null); // { type: 'success' | 'error' | 'info', text: '' }
 
+  // Bank connection state
+  const [bankConnection, setBankConnection] = useState({
+    status: 'Disconnected', // 'Disconnected' | 'Connecting' | 'Connected'
+    bankName: ''
+  });
+  const [showBankModal, setShowBankModal] = useState(false);
+  const [selectedBank, setSelectedBank] = useState('Habib Bank');
+
   // Modal states
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newEmpName, setNewEmpName] = useState('');
@@ -25,6 +33,8 @@ export default function PayrollPage() {
   const [newEmpDept, setNewEmpDept] = useState('Engineering');
   const [newEmpSalary, setNewEmpSalary] = useState('');
   const [newEmpStatus, setNewEmpStatus] = useState('Processing');
+  const [newEmpBankName, setNewEmpBankName] = useState('Habib Bank');
+  const [newEmpBankAccount, setNewEmpBankAccount] = useState('');
 
   const requestConfig = useMemo(
     () => activeCompanyId ? { headers: { 'x-company-id': String(activeCompanyId) } } : undefined,
@@ -33,11 +43,11 @@ export default function PayrollPage() {
 
   // Default initial mock employees if none saved in settings
   const defaultEmployees = useMemo(() => [
-    { id: 1, name: 'Farhan Ali', role: 'Senior Software Engineer', department: 'Engineering', salary: 180000, status: 'Processing' },
-    { id: 2, name: 'Sana Khan', role: 'Product Manager', department: 'Product', salary: 150000, status: 'Processing' },
-    { id: 3, name: 'Zainab Ahmed', role: 'UI/UX Designer', department: 'Product', salary: 110000, status: 'Processing' },
-    { id: 4, name: 'Hamza Sheikh', role: 'DevOps Specialist', department: 'Engineering', salary: 165000, status: 'Processing' },
-    { id: 5, name: 'Ayesha Malik', role: 'HR Manager', department: 'People Operations', salary: 95000, status: 'On Hold' },
+    { id: 1, name: 'Farhan Ali', role: 'Senior Software Engineer', department: 'Engineering', salary: 180000, status: 'Processing', bankName: 'Habib Bank', bankAccount: 'PK12HABB0000123456789012' },
+    { id: 2, name: 'Sana Khan', role: 'Product Manager', department: 'Product', salary: 150000, status: 'Processing', bankName: 'MCB Bank', bankAccount: 'PK24MCBB0000987654321098' },
+    { id: 3, name: 'Zainab Ahmed', role: 'UI/UX Designer', department: 'Product', salary: 110000, status: 'Processing', bankName: 'Bank Alfalah', bankAccount: 'PK76ALFH0000345678901234' },
+    { id: 4, name: 'Hamza Sheikh', role: 'DevOps Specialist', department: 'Engineering', salary: 165000, status: 'Processing', bankName: 'Habib Bank', bankAccount: 'PK12HABB0000987654321012' },
+    { id: 5, name: 'Ayesha Malik', role: 'HR Manager', department: 'People Operations', salary: 95000, status: 'On Hold', bankName: 'National Bank', bankAccount: 'PK45NBPA0000765432109876' },
   ], []);
 
   // Sync state with settings
@@ -46,6 +56,10 @@ export default function PayrollPage() {
       setEmployees(settings.employees);
     } else {
       setEmployees(defaultEmployees);
+    }
+
+    if (settings && settings.bankConnection) {
+      setBankConnection(settings.bankConnection);
     }
   }, [settings, defaultEmployees]);
 
@@ -64,18 +78,20 @@ export default function PayrollPage() {
   }, [activeCompanyId, requestConfig]);
 
   // Save employees to settings helper
-  const saveEmployeesList = async (updatedList) => {
+  const saveEmployeesList = async (updatedList, updatedBankConnection = null) => {
     if (!activeCompanyId) return false;
     setLoading(true);
     try {
-      const updatedSettings = { ...settings, employees: updatedList };
+      const conn = updatedBankConnection || bankConnection;
+      const updatedSettings = { ...settings, employees: updatedList, bankConnection: conn };
       const res = await api.put(`/settings/${activeCompanyId}`, updatedSettings, requestConfig);
       setSettings(res.data);
       setEmployees(updatedList);
+      setBankConnection(conn);
       return true;
     } catch (err) {
       console.error(err);
-      setActionMessage({ type: 'error', text: 'Failed to save employees list in company settings.' });
+      setActionMessage({ type: 'error', text: 'Failed to save updated payroll preferences.' });
       return false;
     } finally {
       setLoading(false);
@@ -85,8 +101,8 @@ export default function PayrollPage() {
   // Add Employee submit handler
   const handleAddEmployeeSubmit = async (e) => {
     e.preventDefault();
-    if (!newEmpName || !newEmpRole || !newEmpSalary) {
-      setActionMessage({ type: 'error', text: 'Please fill in all required fields.' });
+    if (!newEmpName || !newEmpRole || !newEmpSalary || !newEmpBankAccount) {
+      setActionMessage({ type: 'error', text: 'Please fill in all required fields including bank details.' });
       return;
     }
 
@@ -96,18 +112,21 @@ export default function PayrollPage() {
       role: newEmpRole,
       department: newEmpDept,
       salary: parseFloat(newEmpSalary),
-      status: newEmpStatus
+      status: newEmpStatus,
+      bankName: newEmpBankName,
+      bankAccount: newEmpBankAccount
     };
 
     const updatedList = [...employees, newEmpObj];
     const success = await saveEmployeesList(updatedList);
     if (success) {
-      setActionMessage({ type: 'success', text: `Employee ${newEmpName} added successfully!` });
+      setActionMessage({ type: 'success', text: `Employee ${newEmpName} added successfully with bank account linked!` });
       setIsAddModalOpen(false);
       // Reset fields
       setNewEmpName('');
       setNewEmpRole('');
       setNewEmpSalary('');
+      setNewEmpBankAccount('');
       setNewEmpStatus('Processing');
     }
   };
@@ -124,11 +143,11 @@ export default function PayrollPage() {
 
   // Export Payroll to CSV
   const handleExportPayroll = () => {
-    let csv = 'Employee ID,Name,Role,Department,Monthly Salary,Status\n';
+    let csv = 'Employee ID,Name,Role,Department,Monthly Salary,Bank Name,Account/IBAN,Status\n';
     employees.forEach(emp => {
-      csv += `${emp.id},"${emp.name}","${emp.role}","${emp.department}",${emp.salary},"${emp.status}"\n`;
+      csv += `${emp.id},"${emp.name}","${emp.role}","${emp.department}",${emp.salary},"${emp.bankName || ''}","${emp.bankAccount || ''}","${emp.status}"\n`;
     });
-
+    
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
     const link = document.createElement('a');
@@ -142,8 +161,7 @@ export default function PayrollPage() {
   const handleDownloadBankTemplate = () => {
     let csv = 'Beneficiary Name,Beneficiary Bank Account,Bank Name,Salary Amount,Payment Reference,Disbursement Month\n';
     employees.forEach(emp => {
-      // Mock bank details for template output
-      csv += `"${emp.name}",0300123456789012,"Habib Bank Limited",${emp.salary},"Salary Settlement","June 2026"\n`;
+      csv += `"${emp.name}","${emp.bankAccount || ''}","${emp.bankName || ''}",${emp.salary},"Salary Settlement","June 2026"\n`;
     });
 
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
@@ -157,28 +175,29 @@ export default function PayrollPage() {
 
   // Verify salaries register
   const handleVerifyRegister = () => {
-    const salariesExpenseAcc = accounts.find(a =>
-      String(a.code) === '6010' ||
-      a.name.toLowerCase().includes('salary') ||
+    const salariesExpenseAcc = accounts.find(a => 
+      String(a.id) === String(settings.defaultSalariesAccountId) ||
+      String(a.code) === '6010' || 
+      a.name.toLowerCase().includes('salary') || 
       a.name.toLowerCase().includes('wage')
     );
-    const bankAssetAcc = accounts.find(a =>
-      String(a.id) === String(settings.defaultCashAccountId) ||
-      String(a.code) === '1030' ||
+    const bankAssetAcc = accounts.find(a => 
+      String(a.id) === String(settings.defaultCashAccountId) || 
+      String(a.code) === '1030' || 
       String(a.code) === '1010'
     );
 
     if (!salariesExpenseAcc) {
-      setActionMessage({
-        type: 'error',
-        text: 'Missing General Ledger account matching "Salaries and Wages" (Code 6010). Please create it first.'
+      setActionMessage({ 
+        type: 'error', 
+        text: 'Missing General Ledger account matching "Salaries and Wages Expense". Please map or create it under settings preferences first.' 
       });
       return;
     }
     if (!bankAssetAcc) {
-      setActionMessage({
-        type: 'error',
-        text: 'Missing mapped Cash/Bank Asset Account in settings. Define your Operating cash account under settings Accounting preferences tab.'
+      setActionMessage({ 
+        type: 'error', 
+        text: 'Missing mapped Cash/Bank Asset Account in settings. Define your Operating cash account under settings Accounting preferences tab.' 
       });
       return;
     }
@@ -189,11 +208,11 @@ export default function PayrollPage() {
 
     setActionMessage({
       type: 'success',
-      text: `✓ Verified: Salaries Expense mapped to "${salariesExpenseAcc.code} - ${salariesExpenseAcc.name}", settlement source mapped to "${bankAssetAcc.code} - ${bankAssetAcc.name}". Outstanding processing payroll is ${formatPKR(processingSum)}.`
+      text: `✓ Verified: Salaries Expense mapped to "${salariesExpenseAcc.code} - ${salariesExpenseAcc.name}", settlement source mapped to "${bankAssetAcc.code} - ${bankAssetAcc.name}". Total outstanding payroll is ${formatPKR(processingSum)}.`
     });
   };
 
-  // Process and Disburse payments (Create Ledger posting)
+  // Process and Disburse payments (Create Ledger posting & Direct Bank Transfer)
   const handleProcessPayments = async () => {
     const processingEmployees = employees.filter(e => e.status === 'Processing');
     if (processingEmployees.length === 0) {
@@ -201,21 +220,22 @@ export default function PayrollPage() {
       return;
     }
 
-    const salariesExpenseAcc = accounts.find(a =>
-      String(a.code) === '6010' ||
-      a.name.toLowerCase().includes('salary') ||
+    const salariesExpenseAcc = accounts.find(a => 
+      String(a.id) === String(settings.defaultSalariesAccountId) ||
+      String(a.code) === '6010' || 
+      a.name.toLowerCase().includes('salary') || 
       a.name.toLowerCase().includes('wage')
     );
-    const bankAssetAcc = accounts.find(a =>
-      String(a.id) === String(settings.defaultCashAccountId) ||
-      String(a.code) === '1030' ||
+    const bankAssetAcc = accounts.find(a => 
+      String(a.id) === String(settings.defaultCashAccountId) || 
+      String(a.code) === '1030' || 
       String(a.code) === '1010'
     );
 
     if (!salariesExpenseAcc || !bankAssetAcc) {
-      setActionMessage({
-        type: 'error',
-        text: 'Verification failed. Mapped Salaries Expense (6010) or Cash/Bank account missing in Chart of Accounts.'
+      setActionMessage({ 
+        type: 'error', 
+        text: 'Verification failed. Mapped Salaries Expense or Cash/Bank account missing in Chart of Accounts.' 
       });
       return;
     }
@@ -223,7 +243,7 @@ export default function PayrollPage() {
     const totalSalarySum = processingEmployees.reduce((sum, e) => sum + e.salary, 0);
 
     setLoading(true);
-    setActionMessage({ type: 'info', text: 'Connecting to General Ledger engine...' });
+    setActionMessage({ type: 'info', text: 'Connecting to General Ledger & Banking API...' });
     try {
       // 1. Post draft manual journal entry
       const journalRes = await api.post('/journal', {
@@ -258,9 +278,13 @@ export default function PayrollPage() {
           afterState: updatedList
         }, requestConfig);
 
+        const bankTransferMsg = bankConnection.status === 'Connected' 
+          ? ` & disbursed directly via ${bankConnection.bankName} API` 
+          : '';
+
         setActionMessage({
           type: 'success',
-          text: `✓ Payroll run successfully posted! Created journal entry #${journalRes.data.id} in General Ledger for ${formatPKR(totalSalarySum)}.`
+          text: `✓ Payroll run successful! Created journal entry #${journalRes.data.id} in GL for ${formatPKR(totalSalarySum)}${bankTransferMsg}.`
         });
       }
     } catch (err) {
@@ -271,9 +295,35 @@ export default function PayrollPage() {
     }
   };
 
+  // Mock bank link triggers
+  const handleLinkBankSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    
+    // Simulate API link handshakes
+    setTimeout(async () => {
+      const conn = { status: 'Connected', bankName: selectedBank };
+      const success = await saveEmployeesList(employees, conn);
+      if (success) {
+        setActionMessage({ type: 'success', text: `Successfully established secure connection with ${selectedBank} Business Portal!` });
+        setShowBankModal(false);
+      }
+      setLoading(false);
+    }, 1200);
+  };
+
+  const handleDisconnectBank = async () => {
+    if (!window.confirm('Disconnect your bank API connection? Payroll runs will fallback to manual settlement.')) return;
+    const conn = { status: 'Disconnected', bankName: '' };
+    const success = await saveEmployeesList(employees, conn);
+    if (success) {
+      setActionMessage({ type: 'success', text: 'Bank connection disconnected.' });
+    }
+  };
+
   const totalPayroll = employees.reduce((sum, emp) => sum + emp.salary, 0);
 
-  const filteredEmployees = employees.filter(emp =>
+  const filteredEmployees = employees.filter(emp => 
     emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     emp.department.toLowerCase().includes(searchTerm.toLowerCase())
   );
@@ -289,17 +339,17 @@ export default function PayrollPage() {
         <div>
           <h1 className="text-[26px] font-black text-slate-900 tracking-tight">Payroll & Human Resources</h1>
           <p className="text-[13px] text-slate-500 font-medium mt-1">
-            Manage employee salaries, compliance, and monthly payroll disbursements synced with your General Ledger.
+            Manage employee salaries, compliance, and monthly payroll disbursements synced with your General Ledger and Bank accounts.
           </p>
         </div>
         <div className="flex items-center gap-3">
-          <button
+          <button 
             onClick={handleExportPayroll}
             className="flex items-center gap-2 px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 text-[13px] font-bold rounded-lg transition-colors bg-white shadow-sm"
           >
             <Download size={15} /> Export Payroll
           </button>
-          <button
+          <button 
             onClick={() => setIsAddModalOpen(true)}
             className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-lg transition-colors shadow-sm"
           >
@@ -311,18 +361,19 @@ export default function PayrollPage() {
       {/* Action Alerts */}
       <AnimatePresence>
         {actionMessage && (
-          <Motion.div
+          <Motion.div 
             initial={{ opacity: 0, y: -10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0 }}
-            className={`p-4 rounded-xl border text-[13px] font-bold flex items-center justify-between gap-3 ${actionMessage.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
-                actionMessage.type === 'info' ? 'bg-blue-50 border-blue-200 text-blue-800' :
-                  'bg-red-50 border-red-200 text-red-800'
-              }`}
+            className={`p-4 rounded-xl border text-[13px] font-bold flex items-center justify-between gap-3 ${
+              actionMessage.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
+              actionMessage.type === 'info' ? 'bg-blue-50 border-blue-200 text-blue-800' :
+              'bg-red-50 border-red-200 text-red-800'
+            }`}
           >
             <span className="flex items-center gap-2">
-              {actionMessage.type === 'success' ? <CheckCircle size={16} /> :
-                actionMessage.type === 'info' ? <HelpCircle size={16} /> : <AlertTriangle size={16} />}
+              {actionMessage.type === 'success' ? <CheckCircle size={16} /> : 
+               actionMessage.type === 'info' ? <HelpCircle size={16} /> : <AlertTriangle size={16} />}
               {actionMessage.text}
             </span>
             <button onClick={() => setActionMessage(null)} className="text-current hover:opacity-75">
@@ -391,8 +442,8 @@ export default function PayrollPage() {
               <p className="text-[12px] text-slate-500">Overview of employees and salary disbursement details.</p>
             </div>
             <div className="relative">
-              <input
-                type="text"
+              <input 
+                type="text" 
                 placeholder="Search..."
                 value={searchTerm}
                 onChange={e => setSearchTerm(e.target.value)}
@@ -402,38 +453,44 @@ export default function PayrollPage() {
             </div>
           </div>
 
-          <div className="overflow-x-auto">
+          <div className="w-full overflow-hidden">
             {employees.length === 0 ? (
               <div className="p-10 text-center text-slate-400 font-medium">No employees found. Click Add Employee to begin.</div>
             ) : (
               <table className="w-full text-left border-collapse">
                 <thead>
                   <tr className="bg-slate-50 text-slate-400 text-[10px] font-extrabold uppercase tracking-wider border-b border-slate-100">
-                    <th className="px-6 py-3">Employee</th>
-                    <th className="px-6 py-3">Department</th>
-                    <th className="px-6 py-3">Role</th>
-                    <th className="px-6 py-3 text-right">Monthly Salary</th>
-                    <th className="px-6 py-3 text-center">Status</th>
-                    <th className="px-6 py-3 text-center">Actions</th>
+                    <th className="px-5 py-3">Employee</th>
+                    <th className="px-5 py-3">Department</th>
+                    <th className="px-5 py-3">Role</th>
+                    <th className="px-5 py-3">Bank Details</th>
+                    <th className="px-5 py-3 text-right">Monthly Salary</th>
+                    <th className="px-5 py-3 text-center">Status</th>
+                    <th className="px-5 py-3 text-center">Actions</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 text-[13px] text-slate-700">
                   {filteredEmployees.map(emp => (
                     <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-6 py-4 font-bold text-slate-900">{emp.name}</td>
-                      <td className="px-6 py-4">{emp.department}</td>
-                      <td className="px-6 py-4 text-slate-500">{emp.role}</td>
-                      <td className="px-6 py-4 text-right font-mono font-bold text-slate-800">{formatPKR(emp.salary)}</td>
-                      <td className="px-6 py-4 text-center">
-                        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${emp.status === 'Paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                            emp.status === 'Processing' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
-                              'bg-amber-50 text-amber-700 border border-amber-200'
-                          }`}>
+                      <td className="px-5 py-4 font-bold text-slate-900">{emp.name}</td>
+                      <td className="px-5 py-4">{emp.department}</td>
+                      <td className="px-5 py-4 text-slate-500">{emp.role}</td>
+                      <td className="px-5 py-4">
+                        <span className="block text-[12px] font-medium text-slate-700">{emp.bankName || '—'}</span>
+                        <span className="block text-[10px] font-mono text-slate-400">{emp.bankAccount || 'No account linked'}</span>
+                      </td>
+                      <td className="px-5 py-4 text-right font-mono font-bold text-slate-800">{formatPKR(emp.salary)}</td>
+                      <td className="px-5 py-4 text-center">
+                        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${
+                          emp.status === 'Paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
+                          emp.status === 'Processing' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
+                          'bg-amber-50 text-amber-700 border border-amber-200'
+                        }`}>
                           {emp.status}
                         </span>
                       </td>
-                      <td className="px-6 py-4 text-center">
-                        <button
+                      <td className="px-5 py-4 text-center whitespace-nowrap">
+                        <button 
                           onClick={() => handleDeleteEmployee(emp.id)}
                           className="p-1.5 text-slate-400 hover:text-red-600 rounded transition-colors border border-transparent hover:border-red-200"
                         >
@@ -450,6 +507,49 @@ export default function PayrollPage() {
 
         {/* Payroll Settings Summary & Quick Actions */}
         <div className="space-y-6">
+          {/* Bank Link Panel */}
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
+            <h3 className="font-bold text-[14px] text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+              <Landmark size={16} className="text-emerald-600" /> Bank API Linkage
+            </h3>
+            
+            {bankConnection.status === 'Connected' ? (
+              <div className="mt-3 space-y-3">
+                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between">
+                  <div className="min-w-0">
+                    <span className="text-[11px] font-bold text-emerald-800 block">✓ API Connected</span>
+                    <span className="text-[12px] text-emerald-700 font-medium block truncate">{bankConnection.bankName} Portal</span>
+                  </div>
+                  <button 
+                    onClick={handleDisconnectBank}
+                    className="text-[10px] text-red-600 hover:underline font-bold shrink-0"
+                  >
+                    Disconnect
+                  </button>
+                </div>
+                <p className="text-[11px] text-slate-500 leading-relaxed">
+                  Salary payments will be transferred directly via the connected bank gateway on clicking process.
+                </p>
+              </div>
+            ) : (
+              <div className="mt-3 space-y-3">
+                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between text-slate-600">
+                  <div>
+                    <span className="text-[11px] font-bold text-slate-700 block">Disconnected</span>
+                    <span className="text-[11px] text-slate-500 block">No banking portal linked</span>
+                  </div>
+                  <Landmark size={16} className="text-slate-300" />
+                </div>
+                <button
+                  onClick={() => setShowBankModal(true)}
+                  className="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white text-[12px] font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors"
+                >
+                  <Link size={13} /> Connect Bank Account
+                </button>
+              </div>
+            )}
+          </div>
+
           <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
             <h3 className="font-bold text-[14px] text-slate-900 border-b border-slate-100 pb-3">Run Monthly Payroll</h3>
             <p className="text-[12px] text-slate-500 mt-2 mb-4 leading-relaxed">
@@ -461,7 +561,7 @@ export default function PayrollPage() {
                   <FileText size={15} className="text-slate-400" />
                   <span>Salary Register (June)</span>
                 </div>
-                <button
+                <button 
                   onClick={handleVerifyRegister}
                   className="text-[11px] font-bold text-emerald-600 hover:underline"
                 >
@@ -473,7 +573,7 @@ export default function PayrollPage() {
                   <Landmark size={15} className="text-slate-400" />
                   <span>Bank Disbursement Template</span>
                 </div>
-                <button
+                <button 
                   onClick={handleDownloadBankTemplate}
                   className="text-[11px] font-bold text-emerald-600 hover:underline"
                 >
@@ -481,7 +581,7 @@ export default function PayrollPage() {
                 </button>
               </div>
             </div>
-            <button
+            <button 
               onClick={handleProcessPayments}
               disabled={loading}
               className="w-full mt-5 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 transition-colors text-white text-[13px] font-black rounded-lg flex items-center justify-center gap-2 shadow-sm"
@@ -508,7 +608,7 @@ export default function PayrollPage() {
       <AnimatePresence>
         {isAddModalOpen && (
           <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <Motion.div
+            <Motion.div 
               initial={{ scale: 0.95, opacity: 0 }}
               animate={{ scale: 1, opacity: 1 }}
               exit={{ scale: 0.95, opacity: 0 }}
@@ -516,7 +616,7 @@ export default function PayrollPage() {
             >
               <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
                 <h3 className="font-bold text-[14px] text-slate-900">Add Employee to Payroll</h3>
-                <button
+                <button 
                   onClick={() => setIsAddModalOpen(false)}
                   className="text-slate-400 hover:text-slate-600"
                 >
@@ -579,6 +679,35 @@ export default function PayrollPage() {
                   </div>
                 </div>
 
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Bank Name *</label>
+                    <select
+                      value={newEmpBankName}
+                      onChange={e => setNewEmpBankName(e.target.value)}
+                      className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                    >
+                      <option value="Habib Bank">Habib Bank (HBL)</option>
+                      <option value="MCB Bank">MCB Bank</option>
+                      <option value="Bank Alfalah">Bank Alfalah</option>
+                      <option value="National Bank">National Bank</option>
+                      <option value="Meezan Bank">Meezan Bank</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Account Number / IBAN *</label>
+                    <input
+                      type="text"
+                      required
+                      value={newEmpBankAccount}
+                      onChange={e => setNewEmpBankAccount(e.target.value)}
+                      placeholder="e.g. PK12HABB0000..."
+                      className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                    />
+                  </div>
+                </div>
+
                 <div>
                   <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Monthly Salary (PKR) *</label>
                   <input
@@ -605,6 +734,69 @@ export default function PayrollPage() {
                     className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold rounded-lg transition-colors shadow-sm"
                   >
                     Add Employee
+                  </button>
+                </div>
+              </form>
+            </Motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Link Bank Modal */}
+      <AnimatePresence>
+        {showBankModal && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <Motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-xl border border-slate-200 shadow-xl max-w-sm w-full overflow-hidden"
+            >
+              <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <h3 className="font-bold text-[14px] text-slate-900">Link Corporate Banking Portal</h3>
+                <button onClick={() => setShowBankModal(false)} className="text-slate-400 hover:text-slate-600">
+                  <X size={16} />
+                </button>
+              </div>
+
+              <form onSubmit={handleLinkBankSubmit} className="p-6 space-y-4">
+                <p className="text-[12px] text-slate-500 leading-relaxed">
+                  Establish a secure encrypted webhook link with local commercial banking portals to process direct payroll disbursements.
+                </p>
+
+                <div>
+                  <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Select Financial Institution</label>
+                  <select
+                    value={selectedBank}
+                    onChange={e => setSelectedBank(e.target.value)}
+                    className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
+                  >
+                    <option value="Habib Bank">Habib Bank Limited (HBL)</option>
+                    <option value="MCB Bank">MCB Bank Limited</option>
+                    <option value="Bank Alfalah">Bank Alfalah</option>
+                    <option value="Meezan Bank">Meezan Bank</option>
+                  </select>
+                </div>
+
+                <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-lg text-[11px] leading-relaxed">
+                  ⚠️ This establishes a sandbox connection. Disbursement triggers will send mock transfer payloads.
+                </div>
+
+                <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
+                  <button
+                    type="button"
+                    onClick={() => setShowBankModal(false)}
+                    className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-[12px] font-bold rounded-lg text-slate-600 transition-colors"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="submit"
+                    disabled={loading}
+                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold rounded-lg transition-colors shadow-sm flex items-center gap-1.5"
+                  >
+                    {loading && <RefreshCw size={12} className="animate-spin" />}
+                    Link Portal
                   </button>
                 </div>
               </form>
