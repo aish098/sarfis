@@ -453,7 +453,7 @@ export default function PayrollPage() {
             </div>
           </div>
 
-          <div className="w-full overflow-hidden">
+          <div className="w-full overflow-x-auto custom-scrollbar">
             {employees.length === 0 ? (
               <div className="p-10 text-center text-slate-400 font-medium">No employees found. Click Add Employee to begin.</div>
             ) : (

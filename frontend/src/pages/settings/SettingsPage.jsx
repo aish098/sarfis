@@ -488,7 +488,15 @@ export default function SettingsPage() {
 
   const renderContent = () => {
     if (loading) {
-      return <div className="p-10 text-center text-slate-500 font-medium">Loading settings...</div>;
+      return (
+        <div className="flex flex-col items-center justify-center p-12 min-h-[400px]">
+          <div className="relative w-12 h-12 mb-4">
+            <div className="absolute inset-0 rounded-full border-4 border-emerald-500/20 animate-pulse"></div>
+            <div className="absolute inset-0 rounded-full border-4 border-transparent border-t-emerald-600 border-r-emerald-600 animate-spin"></div>
+          </div>
+          <p className="text-[13px] font-bold text-slate-500 tracking-wide">Loading configurations...</p>
+        </div>
+      );
     }
 
     switch (activeTab) {
