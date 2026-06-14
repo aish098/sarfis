@@ -81,6 +81,36 @@ class NotificationService {
   static async createNotification({ companyId, userId, title, message, type = 'system', priority = 'MEDIUM', entityType = null, entityId = null }) {
     const db = require('../config/db');
     try {
+      // 1. Retrieve user notification preferences (company-specific first, then global default)
+      const pref = await db('user_notification_preferences')
+        .where({ user_id: userId })
+        .andWhere((builder) => {
+          builder.where('company_id', companyId).orWhereNull('company_id');
+        })
+        .orderBy('company_id', 'desc')
+        .first();
+
+      const emailEnabled = pref ? pref.email_enabled : true;
+      const inAppEnabled = pref ? pref.in_app_enabled : true;
+      const criticalOnly = pref ? pref.critical_only : false;
+
+      // 2. Filter priority if criticalOnly is enabled (only allow HIGH and CRITICAL)
+      if (criticalOnly && !['HIGH', 'CRITICAL'].includes(priority?.toUpperCase())) {
+        return null;
+      }
+
+      // 3. Simulate email dispatch if enabled
+      if (emailEnabled) {
+        const recipient = await db('users').where({ id: userId }).first();
+        const email = recipient ? recipient.email : 'unknown@domain.com';
+        console.log(`[EMAIL DISPATCH] Sending notification email to ${email} | Title: "${title}" | Message: "${message}"`);
+      }
+
+      // 4. Skip saving/streaming if in-app notifications are disabled
+      if (!inAppEnabled) {
+        return null;
+      }
+
       const [notif] = await db('notifications')
         .insert({
           company_id: companyId,

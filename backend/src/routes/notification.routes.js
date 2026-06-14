@@ -10,5 +10,8 @@ router.get('/notifications/:companyId', companyGuard, notifCtrl.getNotifications
 router.put('/notifications/:companyId/read-all', companyGuard, notifCtrl.markAllAsRead);
 router.put('/notifications/:companyId/:id/read', companyGuard, notifCtrl.markAsRead);
 router.put('/notifications/:companyId/:id/archive', companyGuard, notifCtrl.archiveNotification);
+router.put('/notifications/:companyId/:id/unarchive', companyGuard, notifCtrl.unarchiveNotification);
+router.get('/notifications/preferences/:companyId', companyGuard, notifCtrl.getPreferences);
+router.put('/notifications/preferences/:companyId', companyGuard, notifCtrl.updatePreferences);
 
 module.exports = router;

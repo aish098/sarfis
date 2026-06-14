@@ -910,6 +910,15 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
                 })
               )}
             </div>
+
+            <div className="p-2.5 border-t text-center bg-slate-50/50" style={{ borderColor: PBI.border }}>
+              <button
+                onClick={() => { navigate('/dashboard/notifications'); closeAll(); }}
+                className="w-full text-center text-[11px] font-bold text-emerald-600 hover:text-emerald-700 transition-colors"
+              >
+                See all notifications in Notification Center
+              </button>
+            </div>
           </HeaderDropdown>
         </div>
 
