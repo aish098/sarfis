@@ -65,4 +65,22 @@ api.interceptors.request.use(
   }
 );
 
+// Response interceptor to handle session expiration or database resets (401 Unauthorized)
+api.interceptors.response.use(
+  (response) => response,
+  (error) => {
+    if (error.response && error.response.status === 401) {
+      console.warn('[API] 401 Unauthorized received, clearing credentials and redirecting to login.');
+      localStorage.removeItem('token');
+      localStorage.removeItem('activeCompanyId');
+      
+      const isAuthPage = window.location.pathname.includes('/login') || window.location.pathname.includes('/register');
+      if (!isAuthPage) {
+        window.location.href = '/login';
+      }
+    }
+    return Promise.reject(error);
+  }
+);
+
 export default api;
