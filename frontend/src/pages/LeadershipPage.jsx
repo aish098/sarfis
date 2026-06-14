@@ -857,9 +857,9 @@ function TeamSection() {
           gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
           gap: "24px"
         }}>
-          {TEAM_MEMBERS.map((m) => (
+          {TEAM_MEMBERS.map((m, idx) => (
             <div
-              key={m.name}
+              key={m.name + '_' + idx}
               style={{
                 backgroundColor: C.card,
                 border: `1px solid ${C.border}`,

@@ -7,6 +7,7 @@ const useAuthStore = create((set) => ({
   activeCompany: null,
   permissions: [],
   companyRole: null,
+  settings: {},
   token: localStorage.getItem('token') || null,
   isAuthenticated: !!localStorage.getItem('token'),
   error: null,
@@ -29,6 +30,18 @@ const useAuthStore = create((set) => ({
     }
   },
 
+  fetchSettings: async (companyId) => {
+    if (!companyId) return;
+    try {
+      const response = await api.get(`/settings/${companyId}`);
+      set({ settings: response.data || {} });
+    } catch (err) {
+      console.error('Failed to fetch settings', err);
+    }
+  },
+
+  setSettings: (settings) => set({ settings }),
+
   setActiveCompany: (company) => {
     if (company) {
       localStorage.setItem('activeCompanyId', company.id);
@@ -37,9 +50,12 @@ const useAuthStore = create((set) => ({
     }
     set({ activeCompany: company });
     
-    // Fetch permissions for the newly active company
+    // Fetch permissions and settings for the newly active company
     if (company) {
-      setTimeout(() => useAuthStore.getState().fetchPermissions(), 0);
+      setTimeout(() => {
+        useAuthStore.getState().fetchPermissions();
+        useAuthStore.getState().fetchSettings(company.id);
+      }, 0);
     }
   },
 

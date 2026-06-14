@@ -34,15 +34,16 @@ const NAV_SECTIONS = [
   {
     label: 'Intelligence',
     items: [
-      { to: '/dashboard/analytics', icon: TrendingUp, label: 'Analytics & Planning', permission: 'analytics.view' },
+      { to: '/dashboard/analytics', icon: TrendingUp, label: 'Analytics & Planning', permission: 'analytics.view', moduleKey: 'budgetingEnabled' },
     ],
   },
   {
     label: 'Operations',
     items: [
-      { to: '/dashboard/inventory',    icon: Package,    label: 'Inventory', permission: 'inventory.view' },
-      { to: '/dashboard/warehouses',   icon: Building2,  label: 'Warehouses', permission: 'warehouse.manage' },
-      { to: '/dashboard/distribution', icon: Truck,      label: 'Distribution', permission: 'analytics.view' },
+      { to: '/dashboard/inventory',    icon: Package,    label: 'Inventory', permission: 'inventory.view', moduleKey: 'inventoryEnabled' },
+      { to: '/dashboard/warehouses',   icon: Building2,  label: 'Warehouses', permission: 'warehouse.manage', moduleKey: 'warehousingEnabled' },
+      { to: '/dashboard/distribution', icon: Truck,      label: 'Distribution', permission: 'analytics.view', moduleKey: 'inventoryEnabled' },
+      { to: '/dashboard/payroll',      icon: Activity,   label: 'Payroll & HR', permission: 'ledger.view', moduleKey: 'payrollEnabled' },
     ],
   },
 ];
@@ -54,7 +55,7 @@ const BOTTOM_ITEMS = [
 
 export default function Sidebar({ collapsed, isMobile, onToggle }) {
   const navigate = useNavigate();
-  const { logout, activeCompany, user, permissions } = useAuthStore();
+  const { logout, activeCompany, user, permissions, settings } = useAuthStore();
   
   const isSuperAdmin = user?.role === 'Super Admin';
   const hasPermission = (perm) => {
@@ -63,9 +64,19 @@ export default function Sidebar({ collapsed, isMobile, onToggle }) {
     return permissions?.includes(perm);
   };
 
+  const isModuleEnabled = (moduleKey) => {
+    if (!moduleKey) return true;
+    const val = settings[moduleKey];
+    if (val === undefined) {
+      if (moduleKey === 'payrollEnabled') return false;
+      return true; // default to true
+    }
+    return !!val;
+  };
+
   const filteredSections = NAV_SECTIONS.map(section => ({
     ...section,
-    items: section.items.filter(item => hasPermission(item.permission))
+    items: section.items.filter(item => hasPermission(item.permission) && isModuleEnabled(item.moduleKey))
   })).filter(section => section.items.length > 0);
 
   const navSections = hasPermission('user.manage')

@@ -35,6 +35,28 @@ import VouchersPage from './vouchers/VouchersPage.jsx';
 import VendorsPage from './vendors/VendorsPage.jsx';
 import SettingsPage from './settings/SettingsPage.jsx';
 import AdminPage from './admin/AdminPage.jsx';
+import PayrollPage from './payroll/PayrollPage.jsx';
+
+function ModuleProtectedRoute({ moduleKey, fallbackDefault = true, children }) {
+  const { settings } = useAuthStore();
+  const val = settings[moduleKey];
+  const isEnabled = val === undefined ? fallbackDefault : !!val;
+
+  if (!isEnabled) {
+    return (
+      <div className="flex flex-col items-center justify-center p-12 text-center min-h-[400px]">
+        <div className="w-16 h-16 rounded-full bg-slate-100 flex items-center justify-center text-slate-400 mb-4">
+          <Activity size={32} />
+        </div>
+        <h3 className="text-[18px] font-bold text-slate-800">Module Disabled</h3>
+        <p className="text-[13px] text-slate-500 max-w-sm mt-2">
+          This feature module is currently disabled in your organization settings. An administrator can enable it from the Settings page.
+        </p>
+      </div>
+    );
+  }
+  return children;
+}
 import { LowStockWidget, StockValueWidget, SectorRevenueWidget, TopClientsWidget } from '../components/erp/ERPDashboardWidgets.jsx';
 
 const pageVariants = {
@@ -311,10 +333,31 @@ export default function Dashboard() {
               <Route path="journal" element={<JournalEntryPage />} />
               <Route path="ledger" element={<LedgerPage globalSearch={globalSearch} />} />
               <Route path="reports" element={<ReportsPage />} />
-              <Route path="analytics" element={<AnalyticsDashboard />} />
-              <Route path="inventory" element={<InventoryPage globalSearch={globalSearch} />} />
-              <Route path="warehouses" element={<WarehousePage globalSearch={globalSearch} />} />
-              <Route path="distribution" element={<DistributionPage globalSearch={globalSearch} />} />
+              <Route path="analytics" element={
+                <ModuleProtectedRoute moduleKey="budgetingEnabled">
+                  <AnalyticsDashboard />
+                </ModuleProtectedRoute>
+              } />
+              <Route path="inventory" element={
+                <ModuleProtectedRoute moduleKey="inventoryEnabled">
+                  <InventoryPage globalSearch={globalSearch} />
+                </ModuleProtectedRoute>
+              } />
+              <Route path="warehouses" element={
+                <ModuleProtectedRoute moduleKey="warehousingEnabled">
+                  <WarehousePage globalSearch={globalSearch} />
+                </ModuleProtectedRoute>
+              } />
+              <Route path="distribution" element={
+                <ModuleProtectedRoute moduleKey="inventoryEnabled">
+                  <DistributionPage globalSearch={globalSearch} />
+                </ModuleProtectedRoute>
+              } />
+              <Route path="payroll" element={
+                <ModuleProtectedRoute moduleKey="payrollEnabled" fallbackDefault={false}>
+                  <PayrollPage />
+                </ModuleProtectedRoute>
+              } />
               <Route path="vouchers/*" element={<VouchersPage />} />
               <Route path="vendors" element={<VendorsPage />} />
               <Route path="settings" element={<SettingsPage />} />

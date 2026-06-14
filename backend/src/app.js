@@ -1,9 +1,11 @@
 const express = require('express');
 const cors = require('cors');
+const path = require('path');
 const app = express();
 
 app.use(cors());
 app.use(express.json());
+app.use('/uploads', express.static(path.join(__dirname, '../uploads')));
 
 // Request & Error Logger
 app.use((req, res, next) => {
@@ -28,12 +30,12 @@ app.use('/api/reports', require('./routes/report.routes'));
 app.use('/api/analytics', require('./routes/analytics.routes'));
 app.use('/api/admin', require('./routes/admin.routes'));
 app.use('/api/settings', require('./routes/settings.routes'));
+app.use('/api/audit', require('./routes/audit.routes'));
+app.use('/api/upload', require('./routes/upload.routes'));
 
 // ERP Modules (Now includes Analytics)
 app.use('/api', require('./routes/erp.routes'));
 app.use('/api', require('./routes/voucher.routes'));
-
-const path = require('path');
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
