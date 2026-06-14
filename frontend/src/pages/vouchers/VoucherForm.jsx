@@ -3,7 +3,7 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { motion as Motion } from 'framer-motion';
 import { 
   ArrowLeft, Save, Plus, Trash2, BookOpen, AlertTriangle, 
-  HelpCircle, Check, Info, Calendar, Warehouse, User, DollarSign, ListCollapse 
+  HelpCircle, Check, Info, Calendar, Warehouse, User, DollarSign, ListCollapse, FileText
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
