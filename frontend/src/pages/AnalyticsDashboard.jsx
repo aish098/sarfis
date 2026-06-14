@@ -216,12 +216,12 @@ function DataTable({ headers, rows, emptyMsg = "No data available." }) {
     <div style={{ overflowX:"auto" }}>
       <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
         <thead>
-          <tr style={{ background:"#f8fafc", borderBottom:`1.5px solid ${W.border}` }}>
+          <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
             {headers.map((h,i) => (
               <th key={i} style={{
                 padding:"10px 14px", textAlign: h.right?"right":"left",
-                fontWeight:700, fontSize:11, color:W.textSec,
-                letterSpacing:"0.08em", textTransform:"uppercase",
+                fontWeight: 900, fontSize: 10, color: '#2E4D3F',
+                letterSpacing: "0.1em", textTransform: "uppercase",
                 whiteSpace:"nowrap",
               }}>
                 {h.label}
@@ -1184,27 +1184,40 @@ export default function AnalyticsDashboard({ companyId }) {
   return (
     <div style={{
       minHeight: "100vh",
-      background: W.bg,
-      padding: "32px 28px 72px",
+      background: "linear-gradient(to bottom right, #F4FBF7, #FAF9F8, #F3FAF6)",
+      padding: "20px 28px 72px",
       fontFamily: "var(--font-sans, -apple-system, BlinkMacSystemFont, sans-serif)",
     }}>
-      {/* Header */}
-      <div style={{ marginBottom:28, display:"flex", alignItems:"flex-start", justifyContent:"space-between", flexWrap:"wrap", gap:16 }}>
-        <div>
-          <h1 style={{ fontSize:22, fontWeight:800, color:W.textPri, letterSpacing:"-.02em", margin:0 }}>
-            Analytics & Planning
-          </h1>
-          <p style={{ fontSize:13, color:W.textSec, marginTop:4 }}>
-            Overview of your financial performance
-          </p>
+      {/* Top Banner Toolbar */}
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase m-0">Financial Intelligence</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Analytics</span>
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5 mb-0">
+              Overview of your financial performance & operations
+            </p>
+          </div>
         </div>
       </div>
 
-      {/* Tabs */}
-      <div style={{ display:"flex", gap:6, marginBottom:24, overflowX:"auto", paddingBottom:4 }}>
+      {/* Analytics Navigation Tabs */}
+      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 hide-scrollbar w-full">
         {TABS.map(tab => (
-          <button key={tab.id} onClick={() => setActiveTab(tab.id)}
-            className={`aw-tab${activeTab === tab.id ? " active" : ""}`}>
+          <button 
+            key={tab.id} 
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex-shrink-0 px-4 py-2.5 text-[13px] font-extrabold rounded-xl border transition-all cursor-pointer ${
+              activeTab === tab.id 
+                ? 'bg-gradient-to-r from-[#10b981] to-[#06b6d4] text-white border-transparent shadow-md shadow-emerald-500/20' 
+                : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700'
+            }`}
+          >
             {tab.label}
           </button>
         ))}

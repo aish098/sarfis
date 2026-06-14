@@ -93,34 +93,37 @@ export default function AnalyticsPage() {
   };
 
   return (
-    <div className="pb-16">
-      {/* Header */}
-      <div className="px-6 lg:px-8 py-5 bg-white border-b border-slate-100">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-5">
-          <div className="flex items-center gap-4">
-            <div className="w-12 h-12 rounded-xl flex items-center justify-center"
-              style={{ background: 'var(--blue-900)' }}>
-              <BarChart2 size={22} className="text-emerald-400" />
-            </div>
-            <div>
-              <h1 className="font-display font-extrabold text-[20px] text-slate-900">Financial Intelligence</h1>
-              <p className="text-[12px] text-slate-500 mt-0.5">Advanced analytics, budgeting & AI predictive forecasting.</p>
-            </div>
+    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6] space-y-6">
+      {/* Top Banner Toolbar */}
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
+            <BarChart2 size={18} className="text-white fill-white/20" />
           </div>
-          <div className="sm:ml-auto">
-            <div className="tab-bar">
-              {TABS.map(t => (
-                <button key={t.id} onClick={() => setTab(t.id)}
-                  className={`tab-item ${tab === t.id ? 'active' : ''}`}>
-                  <t.icon size={14} /> {t.label}
-                </button>
-              ))}
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Financial Intelligence</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">AI Forecasting</span>
             </div>
+            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
+              Advanced analytics, budgeting & predictive forecasting.
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap sm:ml-auto">
+          <div className="tab-bar bg-white border border-slate-100 rounded-xl p-1 flex">
+            {TABS.map(t => (
+              <button key={t.id} onClick={() => setTab(t.id)}
+                className={`tab-item px-3 py-1.5 text-[12px] font-bold rounded-lg flex items-center gap-1.5 transition-all ${tab === t.id ? 'bg-emerald-50 text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+                <t.icon size={14} /> {t.label}
+              </button>
+            ))}
           </div>
         </div>
       </div>
 
-      <div className="p-6 lg:p-8">
+      <div>
         {error && (
           <div className="flex items-center gap-2.5 p-4 rounded-xl bg-amber-50 border border-amber-100 mb-5">
             <AlertCircle size={15} className="text-amber-500" />
@@ -250,17 +253,17 @@ function BudgetVariance({ budgets, setBudgets, budgetTarget, setBudgetTarget, sa
           </div>
         </div>
         <div className="overflow-x-auto">
-          <table className="data-table" style={{ minWidth: 680 }}>
+          <table className="w-full" style={{ minWidth: 680 }}>
             <thead>
-              <tr>
-                <th>Account Name</th>
-                <th className="text-right">Budget Limit</th>
-                <th className="text-right" style={{ background: '#f8fafc' }}>Actual Tracked</th>
-                <th className="text-right">Variance %</th>
-                <th style={{ width: 48 }} />
+              <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Account Name</th>
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-right">Budget Limit</th>
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-right" style={{ background: '#f8fafc' }}>Actual Tracked</th>
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-right">Variance %</th>
+                <th style={{ width: 48 }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-center" />
               </tr>
             </thead>
-            <tbody>
+            <tbody className="divide-y divide-[#E6EBE8]">
               {loading ? Array.from({ length: 8 }).map((_, i) => (
                 <tr key={i}><td colSpan={5}><div className="skeleton h-4 w-full my-1" /></td></tr>
               )) : rows.length === 0 ? (
@@ -268,13 +271,13 @@ function BudgetVariance({ budgets, setBudgets, budgetTarget, setBudgetTarget, sa
               ) : rows.map(r => (
                 <motion.tr key={r.account_id} initial={{ opacity: 0 }} animate={{ opacity: 1 }}
                   className="hover:bg-slate-50/60 transition-colors">
-                  <td>
+                  <td className="px-4 py-3">
                     <div className="flex items-center gap-2">
                       <span className="font-mono text-[10px] bg-slate-100 text-slate-500 px-1.5 py-0.5 rounded">{r.code}</span>
                       <span className="font-medium text-[13.5px]">{r.account_name}</span>
                     </div>
                   </td>
-                  <td className="text-right">
+                  <td className="text-right px-4 py-3">
                     {budgetTarget.accountId === r.account_id ? (
                       <input autoFocus type="number"
                         className="input-enterprise text-right text-[13px] font-mono py-1.5 w-32 ml-auto"
@@ -291,17 +294,17 @@ function BudgetVariance({ budgets, setBudgets, budgetTarget, setBudgetTarget, sa
                       </span>
                     )}
                   </td>
-                  <td className="text-right" style={{ background: 'rgba(248,250,252,0.5)' }}>
+                  <td className="text-right px-4 py-3" style={{ background: 'rgba(248,250,252,0.5)' }}>
                     <span className="font-mono font-semibold text-[13px] text-slate-900">
                       ${r.act.toLocaleString('en-US', { minimumFractionDigits: 2 })}
                     </span>
                   </td>
-                  <td className="text-right">
+                  <td className="text-right px-4 py-3">
                     <span className={`badge ${r.isGood ? 'var-good' : 'var-bad'} ${r.variance === 0 ? 'var-neutral' : ''}`}>
                       {r.variance > 0 ? '+' : ''}{r.variance.toFixed(1)}%
                     </span>
                   </td>
-                  <td className="text-center">
+                  <td className="text-center px-4 py-3">
                     {r.isGood
                       ? <CheckCircle2 size={15} className="text-emerald-500 mx-auto" />
                       : <AlertCircle size={15} className="text-red-500 mx-auto" />}
@@ -349,9 +352,9 @@ function AIForecast({ forecast, loading }) {
           <div className="overflow-auto max-h-44 rounded-xl border border-slate-100">
             <table className="w-full text-[13px]">
               <thead>
-                <tr style={{ background: '#f8fafc' }}>
-                  <th className="px-4 py-2.5 text-left font-bold uppercase text-[10px] tracking-widest text-slate-400 border-b border-slate-100">Month</th>
-                  <th className="px-4 py-2.5 text-right font-bold uppercase text-[10px] tracking-widest text-violet-500 border-b border-slate-100">Predicted Line</th>
+                <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
+                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Month</th>
+                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-right">Predicted Line</th>
                 </tr>
               </thead>
               <tbody>

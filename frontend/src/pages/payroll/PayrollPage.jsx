@@ -384,27 +384,30 @@ export default function PayrollPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 space-y-6 min-h-screen bg-[#faf9f8]">
-      {/* Header */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
-        <div>
-          <h1 className="text-[26px] font-black text-slate-900 tracking-tight">Payroll & Human Resources</h1>
-          <p className="text-[13px] text-slate-500 font-medium mt-1">
-            Manage employee salaries, compliance, and monthly payroll disbursements synced with your General Ledger and Bank accounts.
-          </p>
-        </div>
+    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6] space-y-6">
+      {/* Top Banner Toolbar */}
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
         <div className="flex items-center gap-3">
-          <button 
-            onClick={handleExportPayroll}
-            className="flex items-center gap-2 px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 text-[13px] font-bold rounded-lg transition-colors bg-white shadow-sm"
-          >
-            <Download size={15} /> Export Payroll
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
+            <Users size={18} className="text-white fill-white/20" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Payroll & Human Resources</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Operations</span>
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
+              Manage employee salaries, compliance, and monthly payroll disbursements.
+            </p>
+          </div>
+        </div>
+        
+        <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap">
+          <button onClick={handleExportPayroll} className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-4 py-2 text-[12.5px] font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer">
+            <Download size={14} /> Export Payroll
           </button>
-          <button 
-            onClick={() => setIsAddModalOpen(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[13px] font-bold rounded-lg transition-colors shadow-sm"
-          >
-            <Plus size={15} /> Add Employee
+          <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer">
+            <Plus size={14} /> Add Employee
           </button>
         </div>
       </div>
@@ -508,22 +511,22 @@ export default function PayrollPage() {
             {employees.length === 0 ? (
               <div className="p-10 text-center text-slate-400 font-medium">No employees found. Click Add Employee to begin.</div>
             ) : (
-              <table className="w-full text-left border-collapse">
+              <table className="w-full">
                 <thead>
-                  <tr className="bg-slate-50 text-slate-400 text-[10px] font-extrabold uppercase tracking-wider border-b border-slate-100">
-                    <th className="px-5 py-3">Employee</th>
-                    <th className="px-5 py-3">Department</th>
-                    <th className="px-5 py-3">Role</th>
-                    <th className="px-5 py-3">Bank Details</th>
-                    <th className="px-5 py-3 text-right">Monthly Salary</th>
-                    <th className="px-5 py-3 text-center">Status</th>
-                    <th className="px-5 py-3 text-center">Actions</th>
+                  <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
+                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Employee</th>
+                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Department</th>
+                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Role</th>
+                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Bank Details</th>
+                    <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Monthly Salary</th>
+                    <th className="text-center px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Status</th>
+                    <th className="text-center px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Actions</th>
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-slate-100 text-[13px] text-slate-700">
+                <tbody className="divide-y divide-[#E6EBE8] text-[13px] text-slate-700">
                   {filteredEmployees.map(emp => (
                     <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-5 py-4">
+                      <td className="px-4 py-3">
                         <span className="font-bold text-slate-900 block">{emp.name}</span>
                         {emp.userName && (
                           <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[9px] font-bold border border-blue-100">
@@ -531,14 +534,14 @@ export default function PayrollPage() {
                           </span>
                         )}
                       </td>
-                      <td className="px-5 py-4">{emp.department}</td>
-                      <td className="px-5 py-4 text-slate-500">{emp.role}</td>
-                      <td className="px-5 py-4">
+                      <td className="px-4 py-3">{emp.department}</td>
+                      <td className="px-4 py-3 text-slate-500">{emp.role}</td>
+                      <td className="px-4 py-3">
                         <span className="block text-[12px] font-medium text-slate-700">{emp.bankName || '—'}</span>
                         <span className="block text-[10px] font-mono text-slate-400">{emp.bankAccount || 'No account linked'}</span>
                       </td>
-                      <td className="px-5 py-4 text-right font-mono font-bold text-slate-800">{formatPKR(emp.salary)}</td>
-                      <td className="px-5 py-4 text-center">
+                      <td className="px-4 py-3 text-right font-mono font-bold text-slate-800">{formatPKR(emp.salary)}</td>
+                      <td className="px-4 py-3 text-center">
                         <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${
                           emp.status === 'Paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
                           emp.status === 'Processing' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
@@ -547,7 +550,7 @@ export default function PayrollPage() {
                           {emp.status}
                         </span>
                       </td>
-                      <td className="px-5 py-4 text-center whitespace-nowrap">
+                      <td className="px-4 py-3 text-center whitespace-nowrap">
                         <button 
                           onClick={() => handleDeleteEmployee(emp.id)}
                           className="p-1.5 text-slate-400 hover:text-red-600 rounded transition-colors border border-transparent hover:border-red-200"
@@ -642,7 +645,7 @@ export default function PayrollPage() {
             <button 
               onClick={handleProcessPayments}
               disabled={loading}
-              className="w-full mt-5 py-3 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 transition-colors text-white text-[13px] font-black rounded-lg flex items-center justify-center gap-2 shadow-sm"
+              className="w-full mt-5 py-3 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] disabled:opacity-50 transition-colors text-white text-[13px] font-black rounded-xl flex items-center justify-center gap-2 shadow-md shadow-emerald-500/10 active:scale-95 cursor-pointer"
             >
               {loading ? <RefreshCw size={15} className="animate-spin" /> : <ShieldCheck size={16} />}
               Process & Disburse Payments

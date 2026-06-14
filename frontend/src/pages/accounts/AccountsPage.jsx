@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Filter, Trash2, X, AlertCircle, Edit2, ChevronDown } from 'lucide-react';
+import { Plus, Search, Filter, Trash2, X, AlertCircle, Edit2, ChevronDown, Database } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 
@@ -89,20 +89,29 @@ export default function AccountsPage({ globalSearch = "" }) {
   };
 
   return (
-    <div className="p-6 lg:p-8 pb-16">
-      {/* Page header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7">
-        <div>
-          <h1 className="font-display font-extrabold text-[22px] text-slate-900 leading-tight">Chart of Accounts</h1>
-          <p className="text-[13px] text-slate-500 mt-1">
-            Manage and organize your financial structure for {activeCompany?.name}
-          </p>
+    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6] space-y-6">
+      {/* Top Banner Toolbar */}
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
+            <Database size={18} className="text-white fill-white/20" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Chart of Accounts</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Master Data</span>
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
+              Manage and organize your financial structure for {activeCompany?.name}
+            </p>
+          </div>
         </div>
-        <Motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-          onClick={() => setModalOpen(true)}
-          className="btn btn-primary">
-          <Plus size={16} /> Add Account
-        </Motion.button>
+        
+        <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap">
+          <button onClick={() => setModalOpen(true)} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer">
+            <Plus size={14} /> Add Account
+          </button>
+        </div>
       </div>
 
       {/* Table card */}
@@ -138,12 +147,12 @@ export default function AccountsPage({ globalSearch = "" }) {
         <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
-              <tr>
-                <th style={{ width: '15%' }} className="!pl-5">Code</th>
-                <th style={{ width: '40%' }}>Account Name</th>
-                <th style={{ width: '15%' }}>Category</th>
-                <th style={{ width: '15%' }}>Balance Type</th>
-                <th style={{ width: '15%' }} className="!text-left !pr-5">Actions</th>
+              <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
+                <th style={{ width: '15%' }} className="!pl-5 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Code</th>
+                <th style={{ width: '40%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Account Name</th>
+                <th style={{ width: '15%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Category</th>
+                <th style={{ width: '15%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Balance Type</th>
+                <th style={{ width: '15%' }} className="!text-left !pr-5 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Actions</th>
               </tr>
             </thead>
             <Motion.tbody variants={stagger} initial="initial" animate="animate">

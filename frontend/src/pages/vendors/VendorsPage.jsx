@@ -91,20 +91,29 @@ export default function VendorsPage() {
   };
 
   return (
-    <div className="p-6 lg:p-8 pb-16 space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display font-extrabold text-[22px] text-slate-900 leading-tight">Supplier Directory</h1>
-          <p className="text-[13px] text-slate-500 mt-1">
-            Manage your corporate accounts payable suppliers, terms and procurement settings.
-          </p>
+    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6] space-y-6">
+      {/* Top Banner Toolbar */}
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
+            <Building2 size={18} className="text-white fill-white/20" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Supplier Directory</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Accounts Payable</span>
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
+              Manage your corporate accounts payable suppliers, terms and procurement settings.
+            </p>
+          </div>
         </div>
-        <Motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-          onClick={() => setModalOpen(true)}
-          className="btn btn-primary">
-          <Plus size={16} /> Add Supplier
-        </Motion.button>
+        
+        <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap">
+          <button onClick={() => setModalOpen(true)} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer">
+            <Plus size={14} /> Add Supplier
+          </button>
+        </div>
       </div>
 
       {/* Stats row */}
@@ -285,10 +294,12 @@ export default function VendorsPage() {
                     <span className="text-[13px] font-semibold text-slate-700 group-hover:text-indigo-600 transition-colors">Is Active for Procurement?</span>
                   </label>
                 </div>
-                <div className="flex gap-3 pt-1">
-                  <button type="button" onClick={() => setModalOpen(false)} className="btn btn-secondary flex-1">Cancel</button>
+                <div className="flex gap-3 border-t border-slate-100 pt-5 mt-4">
+                  <button type="button" onClick={() => setModalOpen(false)} className="bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 flex-1 py-3 flex items-center justify-center gap-2 text-[12.5px] font-bold rounded-xl transition-all cursor-pointer">
+                    Cancel
+                  </button>
                   <Motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} type="submit"
-                    disabled={saving} className="btn btn-primary flex-[2]">
+                    disabled={saving} className="bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white flex-[2] py-3 flex items-center justify-center gap-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer disabled:opacity-50">
                     {saving ? 'Saving...' : 'Save Supplier'}
                   </Motion.button>
                 </div>

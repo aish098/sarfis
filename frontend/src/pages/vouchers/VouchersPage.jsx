@@ -98,17 +98,26 @@ function VoucherList() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-        <div>
-          <h1 className="font-display font-extrabold text-[22px] text-slate-900 leading-tight">ERP Voucher Register</h1>
-          <p className="text-[13px] text-slate-500 mt-1">
-            Create and post transaction-driven business records with automated double-entries.
-          </p>
+      {/* Top Banner Toolbar */}
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
+            <FileText size={18} className="text-white fill-white/20" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">ERP Voucher Register</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Double-Entry</span>
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
+              Create and post transaction-driven business records.
+            </p>
+          </div>
         </div>
-        <div className="flex gap-3">
-          <button onClick={() => navigate('new')} className="btn btn-primary">
-            <Plus size={16} /> New Transaction
+        
+        <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap">
+          <button onClick={() => navigate('new')} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer">
+            <Plus size={14} /> New Transaction
           </button>
         </div>
       </div>
@@ -131,7 +140,7 @@ function VoucherList() {
       </div>
 
       {/* Card Wrapper */}
-      <div className="card overflow-hidden">
+      <div className="card !rounded-2xl border border-slate-100 bg-white overflow-hidden">
         {/* Toolbar */}
         <div className="flex flex-col sm:flex-row gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/50 justify-between items-center">
           <div className="relative flex-1 max-w-sm w-full">
@@ -158,27 +167,27 @@ function VoucherList() {
 
         {/* Table */}
         <div className="overflow-x-auto">
-          <table className="data-table">
+          <table className="w-full">
             <thead>
-              <tr>
-                <th style={{ width: '12%' }} className="!pl-5">Document No</th>
-                <th style={{ width: '15%' }}>Voucher Type</th>
-                <th style={{ width: '12%' }}>Fiscal Date</th>
-                <th style={{ width: '15%' }}>Amount</th>
-                <th style={{ width: '15%' }}>Voucher Status</th>
-                <th style={{ width: '31%' }} className="!text-left !pr-5">Posting Operations</th>
+              <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
+                <th style={{ width: '12%' }} className="!pl-5 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Document No</th>
+                <th style={{ width: '15%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Voucher Type</th>
+                <th style={{ width: '12%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Fiscal Date</th>
+                <th style={{ width: '15%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Amount</th>
+                <th style={{ width: '15%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Voucher Status</th>
+                <th style={{ width: '31%' }} className="!text-left !pr-5 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Posting Operations</th>
               </tr>
             </thead>
-            <Motion.tbody variants={stagger} initial="initial" animate="animate">
+            <Motion.tbody variants={stagger} initial="initial" animate="animate" className="divide-y divide-[#E6EBE8]">
               {isLoading ? (
                 Array.from({ length: 8 }).map((_, i) => (
-                  <tr key={i}>
-                    <td><div className="skeleton h-3.5 w-16" /></td>
-                    <td><div className="skeleton h-3.5 w-24" /></td>
-                    <td><div className="skeleton h-3.5 w-16" /></td>
-                    <td><div className="skeleton h-3.5 w-20" /></td>
-                    <td><div className="skeleton h-5 w-20 rounded-full" /></td>
-                    <td><div className="skeleton h-6 w-36 rounded" /></td>
+                  <tr key={i} className="hover:bg-slate-50/50">
+                    <td className="px-4 py-3 !pl-5"><div className="skeleton h-3.5 w-16" /></td>
+                    <td className="px-4 py-3"><div className="skeleton h-3.5 w-24" /></td>
+                    <td className="px-4 py-3"><div className="skeleton h-3.5 w-16" /></td>
+                    <td className="px-4 py-3"><div className="skeleton h-3.5 w-20" /></td>
+                    <td className="px-4 py-3"><div className="skeleton h-5 w-20 rounded-full" /></td>
+                    <td className="px-4 py-3"><div className="skeleton h-6 w-36 rounded" /></td>
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
@@ -189,26 +198,28 @@ function VoucherList() {
                   </td>
                 </tr>
               ) : (
-                filtered.map(v => (
-                  <Motion.tr key={v.id} variants={rowAnim}>
-                    <td>
+                filtered.map((v, idx) => (
+                  <Motion.tr key={v.id} variants={rowAnim} className={`group transition-colors relative ${
+                    idx % 2 === 0 ? 'bg-[#FFFDFB] hover:bg-emerald-50/15' : 'bg-[#FAFAF9] hover:bg-emerald-50/15'
+                  }`}>
+                    <td className="px-4 py-3 !pl-5">
                       <span className="font-mono font-bold text-[13px] text-slate-700">{v.voucher_number}</span>
                     </td>
-                    <td>
+                    <td className="px-4 py-3">
                       <span className="font-semibold text-[13px] text-slate-800">{TYPE_LABELS[v.type]}</span>
                     </td>
-                    <td>
+                    <td className="px-4 py-3">
                       <div className="flex items-center gap-1.5 text-slate-500 font-medium text-[12.5px]">
                         <Calendar size={13} className="text-slate-400" />
                         <span>{new Date(v.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                       </div>
                     </td>
-                    <td>
+                    <td className="px-4 py-3">
                       <span className="font-mono font-extrabold text-[13.5px] text-slate-900">
                         ${Math.abs(parseFloat(v.total_amount)).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </span>
                     </td>
-                    <td>
+                    <td className="px-4 py-3">
                       <div className="flex flex-col gap-1.5">
                         <span className={`inline-flex items-center justify-center font-black uppercase text-[10px] tracking-widest px-2.5 py-0.5 rounded-full w-fit ${STATUS_BADGES[v.status]}`}>
                           {v.status.replace('_', ' ')}
@@ -220,7 +231,7 @@ function VoucherList() {
                         )}
                       </div>
                     </td>
-                    <td className="!text-left">
+                    <td className="!text-left px-4 py-3 !pr-5">
                       <div className="flex items-center gap-2">
                         {v.status === 'DRAFT' && (
                           <>
@@ -231,12 +242,12 @@ function VoucherList() {
                             <button
                               disabled={submittingId === v.id}
                               onClick={() => handlePost(v.id)}
-                              className="px-3 py-1.5 text-[11.5px] font-bold text-white bg-emerald-500 hover:bg-emerald-600 rounded-lg shadow-sm shadow-emerald-500/10 transition-all flex items-center gap-1"
+                              className="px-3 py-1.5 text-[11.5px] font-bold text-white bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] rounded-lg shadow-sm shadow-emerald-500/10 transition-all flex items-center gap-1 active:scale-95 cursor-pointer"
                             >
                               <CheckCircle size={12} /> {submittingId === v.id ? 'Posting...' : 'Post to Ledger'}
                             </button>
                             <button onClick={() => handleDelete(v.id)}
-                              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all">
+                              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all cursor-pointer">
                               <Trash2 size={13} />
                             </button>
                           </>
@@ -281,7 +292,7 @@ function VoucherList() {
 
 export default function VouchersPage() {
   return (
-    <div className="p-6 lg:p-8 pb-16">
+    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6]">
       <Routes>
         <Route index element={<VoucherList />} />
         <Route path="new" element={<VoucherForm />} />

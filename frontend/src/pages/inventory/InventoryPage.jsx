@@ -195,7 +195,7 @@ export default function InventoryPage({ globalSearch = "" }) {
   const liabilityAccounts = accounts.filter(a => getAccountTypeKey(a) === 'liability');
 
   return (
-    <div className="p-6 lg:p-8 pb-16">
+    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6] space-y-6">
       <AnimatePresence>
         {loadError && (
           <Motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
@@ -214,22 +214,33 @@ export default function InventoryPage({ globalSearch = "" }) {
         )}
       </AnimatePresence>
 
-      {/* Page header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7">
-        <div>
-          <h1 className="font-display font-extrabold text-[22px] text-slate-900">Inventory Management</h1>
-          <p className="text-[13px] text-slate-500 mt-1">Track products, stock levels, and movements</p>
+      {/* Top Banner Toolbar */}
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
+            <Package size={18} className="text-white fill-white/20" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Inventory Management</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Supply Chain</span>
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
+              Track products, stock levels, and movements.
+            </p>
+          </div>
         </div>
-        <div className="flex gap-2.5 flex-wrap">
-          <Motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-            onClick={() => { setFormError(''); setAdjustModal(true); }}
-            className="btn btn-secondary btn-sm"><SlidersHorizontal size={14} /> Adjust Stock</Motion.button>
-          <Motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-            onClick={() => { setFormError(''); setPurchaseModal(true); }}
-            className="btn btn-secondary btn-sm"><ArrowDownToLine size={14} /> Record Purchase</Motion.button>
-          <Motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-            onClick={() => { setFormError(''); setProductModal(true); }}
-            className="btn btn-primary"><Plus size={15} /> Add Product</Motion.button>
+        
+        <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap">
+          <button onClick={() => { setFormError(''); setAdjustModal(true); }} className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-4 py-2 text-[12.5px] font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer">
+            <SlidersHorizontal size={14} /> Adjust Stock
+          </button>
+          <button onClick={() => { setFormError(''); setPurchaseModal(true); }} className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-4 py-2 text-[12.5px] font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer">
+            <ArrowDownToLine size={14} /> Record Purchase
+          </button>
+          <button onClick={() => { setFormError(''); setProductModal(true); }} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer">
+            <Plus size={14} /> Add Product
+          </button>
         </div>
       </div>
 
@@ -277,13 +288,15 @@ export default function InventoryPage({ globalSearch = "" }) {
       )}
 
       {/* Tabs */}
-      <div className="tab-bar mb-5 w-fit">
+      <div className="tab-bar bg-white border border-slate-100 rounded-xl p-1 flex w-fit mb-5 shadow-sm">
         {[
           { id: 'products', label: 'Products' },
           { id: 'stock', label: 'Stock Levels' },
           { id: 'logs', label: 'Movement Log' },
         ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={`tab-item ${tab === t.id ? 'active' : ''}`}>{t.label}</button>
+          <button key={t.id} onClick={() => setTab(t.id)} className={`tab-item px-3 py-1.5 text-[12px] font-bold rounded-lg flex items-center gap-1.5 transition-all ${tab === t.id ? 'bg-emerald-50 text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+            {t.label}
+          </button>
         ))}
       </div>
 
@@ -300,18 +313,18 @@ export default function InventoryPage({ globalSearch = "" }) {
       {tab === 'products' && (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="data-table">
+            <table className="w-full">
               <thead>
-                <tr>
-                  <th style={{ width: 100 }}>SKU</th>
-                  <th>Product Name</th>
-                  <th style={{ width: 90 }}>Unit</th>
-                  <th className="text-right" style={{ width: 120 }}>Cost Price</th>
-                  <th className="text-right" style={{ width: 120 }}>Unit Price</th>
-                  <th className="text-right" style={{ width: 100 }}>Reorder At</th>
+                <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
+                  <th style={{ width: 100 }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">SKU</th>
+                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Product Name</th>
+                  <th style={{ width: 90 }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Unit</th>
+                  <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]" style={{ width: 120 }}>Cost Price</th>
+                  <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]" style={{ width: 120 }}>Unit Price</th>
+                  <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]" style={{ width: 100 }}>Reorder At</th>
                 </tr>
               </thead>
-              <Motion.tbody variants={stagger} initial="initial" animate="animate">
+              <Motion.tbody variants={stagger} initial="initial" animate="animate" className="divide-y divide-[#E6EBE8]">
                 {loading ? (
                   Array.from({ length: 8 }).map((_, i) => (
                     <tr key={i}>{Array.from({ length: 6 }).map((_, j) => <td key={j}><div className="skeleton h-4 w-full" /></td>)}</tr>
@@ -323,15 +336,15 @@ export default function InventoryPage({ globalSearch = "" }) {
                   </td></tr>
                 ) : filteredProducts.map((p) => (
                   <Motion.tr key={p.id} variants={fadeUp}>
-                    <td><span className="font-mono font-semibold text-[12px] text-slate-600 bg-slate-100 px-2 py-1 rounded">{p.sku}</span></td>
-                    <td>
+                    <td className="px-4 py-3"><span className="font-mono font-semibold text-[12px] text-slate-600 bg-slate-100 px-2 py-1 rounded">{p.sku}</span></td>
+                    <td className="px-4 py-3">
                       <p className="font-semibold text-[14px] text-slate-800">{p.name}</p>
                       {p.description && <p className="text-[11px] text-slate-400 mt-0.5 truncate max-w-xs">{p.description}</p>}
                     </td>
-                    <td><span className="text-[12px] text-slate-500">{p.unit_of_measure}</span></td>
-                    <td className="text-right font-mono text-[13px]">${parseFloat(p.cost_price).toFixed(2)}</td>
-                    <td className="text-right font-mono text-[13px] font-semibold text-emerald-700">${parseFloat(p.unit_price).toFixed(2)}</td>
-                    <td className="text-right font-mono text-[13px] text-slate-500">{p.reorder_level}</td>
+                    <td className="px-4 py-3"><span className="text-[12px] text-slate-500">{p.unit_of_measure}</span></td>
+                    <td className="text-right font-mono text-[13px] px-4 py-3">${parseFloat(p.cost_price).toFixed(2)}</td>
+                    <td className="text-right font-mono text-[13px] font-semibold text-emerald-700 px-4 py-3">${parseFloat(p.unit_price).toFixed(2)}</td>
+                    <td className="text-right font-mono text-[13px] text-slate-500 px-4 py-3">{p.reorder_level}</td>
                   </Motion.tr>
                 ))}
               </Motion.tbody>
@@ -344,18 +357,18 @@ export default function InventoryPage({ globalSearch = "" }) {
       {tab === 'stock' && (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="data-table">
+            <table className="w-full">
               <thead>
-                <tr>
-                  <th style={{ width: 100 }}>SKU</th>
-                  <th>Product</th>
-                  <th className="text-right" style={{ width: 120 }}>In Stock</th>
-                  <th className="text-right" style={{ width: 120 }}>Reorder At</th>
-                  <th className="text-right" style={{ width: 140 }}>Stock Value</th>
-                  <th style={{ width: 100 }}>Status</th>
+                <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
+                  <th style={{ width: 100 }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">SKU</th>
+                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Product</th>
+                  <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]" style={{ width: 120 }}>In Stock</th>
+                  <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]" style={{ width: 120 }}>Reorder At</th>
+                  <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]" style={{ width: 140 }}>Stock Value</th>
+                  <th style={{ width: 100 }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Status</th>
                 </tr>
               </thead>
-              <Motion.tbody variants={stagger} initial="initial" animate="animate">
+              <Motion.tbody variants={stagger} initial="initial" animate="animate" className="divide-y divide-[#E6EBE8]">
                 {loading ? (
                   Array.from({ length: 8 }).map((_, i) => (
                     <tr key={i}>{Array.from({ length: 6 }).map((_, j) => <td key={j}><div className="skeleton h-4" /></td>)}</tr>
@@ -365,23 +378,23 @@ export default function InventoryPage({ globalSearch = "" }) {
                     <Motion.tr variants={fadeUp}
                       onClick={() => toggleProductExpand(s.product_id)}
                       className={`cursor-pointer transition-colors ${s.low_stock ? 'bg-amber-50/30' : ''} ${expandedProduct === s.product_id ? 'bg-slate-50' : 'hover:bg-slate-50/50'}`}>
-                      <td><span className="font-mono text-[12px] text-slate-600 bg-slate-100 px-2 py-1 rounded">{s.sku}</span></td>
-                      <td>
+                      <td className="px-4 py-3"><span className="font-mono text-[12px] text-slate-600 bg-slate-100 px-2 py-1 rounded">{s.sku}</span></td>
+                      <td className="px-4 py-3">
                         <div className="flex items-center gap-2">
                           <ChevronDown size={14} className={`text-slate-400 transition-transform ${expandedProduct === s.product_id ? 'rotate-180' : ''}`} />
                           <span className="font-medium text-[14px]">{s.product_name}</span>
                         </div>
                       </td>
-                      <td className="text-right">
+                      <td className="text-right px-4 py-3">
                         <span className={`font-mono font-bold text-[14px] ${s.low_stock ? 'text-amber-600' : 'text-slate-900'}`}>
                           {parseFloat(s.total_qty).toFixed(0)}
                         </span>
                       </td>
-                      <td className="text-right font-mono text-[13px] text-slate-400">{s.reorder_level}</td>
-                      <td className="text-right font-mono text-[13px] font-semibold text-slate-700">
+                      <td className="text-right font-mono text-[13px] text-slate-400 px-4 py-3">{s.reorder_level}</td>
+                      <td className="text-right font-mono text-[13px] font-semibold text-slate-700 px-4 py-3">
                         ${(parseFloat(s.total_qty) * parseFloat(s.cost_price)).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
-                      <td>
+                      <td className="px-4 py-3">
                         {s.low_stock ? (
                           <span className="badge" style={{ background: '#fef3c7', color: '#92400e' }}>Low Stock</span>
                         ) : (
@@ -434,19 +447,19 @@ export default function InventoryPage({ globalSearch = "" }) {
       {tab === 'logs' && (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="data-table">
+            <table className="w-full">
               <thead>
-                <tr>
-                  <th>Date</th>
-                  <th>Product</th>
-                  <th>Warehouse</th>
-                  <th style={{ width: 120 }}>Type</th>
-                  <th className="text-right">Qty Change</th>
-                  <th className="text-right">Qty After</th>
-                  <th>Reference</th>
+                <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
+                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Date</th>
+                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Product</th>
+                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Warehouse</th>
+                  <th style={{ width: 120 }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Type</th>
+                  <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Qty Change</th>
+                  <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Qty After</th>
+                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Reference</th>
                 </tr>
               </thead>
-              <Motion.tbody variants={stagger} initial="initial" animate="animate">
+              <Motion.tbody variants={stagger} initial="initial" animate="animate" className="divide-y divide-[#E6EBE8]">
                 {loading ? (
                   Array.from({ length: 10 }).map((_, i) => (
                     <tr key={i}>{Array.from({ length: 7 }).map((_, j) => <td key={j}><div className="skeleton h-4" /></td>)}</tr>
@@ -459,19 +472,19 @@ export default function InventoryPage({ globalSearch = "" }) {
                     <Motion.tr key={log.id} variants={fadeUp}
                       onClick={() => setLogDetail(log)}
                       className="cursor-pointer hover:bg-slate-50 transition-colors">
-                      <td className="text-[13px] text-slate-600">{new Date(log.created_at).toLocaleDateString()}</td>
-                      <td>
+                      <td className="px-4 py-3 text-[13px] text-slate-600">{new Date(log.created_at).toLocaleDateString()}</td>
+                      <td className="px-4 py-3">
                         <p className="font-medium text-[13px]">{log.product_name}</p>
                         <p className="text-[11px] text-slate-400 font-mono">{log.sku}</p>
                       </td>
-                      <td className="text-[13px] text-slate-500">{log.warehouse_name}</td>
-                      <td><span className="badge" style={{ background: tc.bg, color: tc.text }}>{tc.label}</span></td>
-                      <td className="text-right font-mono font-bold text-[13px]"
+                      <td className="px-4 py-3 text-[13px] text-slate-500">{log.warehouse_name}</td>
+                      <td className="px-4 py-3"><span className="badge" style={{ background: tc.bg, color: tc.text }}>{tc.label}</span></td>
+                      <td className="px-4 py-3 text-right font-mono font-bold text-[13px]"
                         style={{ color: parseFloat(log.quantity_change) >= 0 ? '#059669' : '#dc2626' }}>
                         {parseFloat(log.quantity_change) >= 0 ? '+' : ''}{parseFloat(log.quantity_change).toFixed(2)}
                       </td>
-                      <td className="text-right font-mono text-[13px] text-slate-700">{parseFloat(log.quantity_after).toFixed(2)}</td>
-                      <td className="text-[12px] text-slate-400">
+                      <td className="px-4 py-3 text-right font-mono text-[13px] text-slate-700">{parseFloat(log.quantity_after).toFixed(2)}</td>
+                      <td className="px-4 py-3 text-[12px] text-slate-400">
                         <div className="flex items-center gap-1.5 opacity-60">
                           <Eye size={12} />
                           <span>View Detail</span>
@@ -708,10 +721,12 @@ function FormError({ error }) {
 
 function ModalButtons({ onCancel, saving, label }) {
   return (
-    <div className="flex gap-3 pt-2">
-      <button type="button" onClick={onCancel} className="btn btn-secondary flex-1">Cancel</button>
+    <div className="flex gap-3 pt-4 border-t border-slate-100">
+      <button type="button" onClick={onCancel} className="bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 flex-1 py-3 flex items-center justify-center gap-2 text-[12.5px] font-bold rounded-xl transition-all cursor-pointer">
+        Cancel
+      </button>
       <Motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} type="submit"
-        disabled={saving} className="btn btn-primary flex-[2]">
+        disabled={saving} className="bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white flex-[2] py-3 flex items-center justify-center gap-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer disabled:opacity-50">
         {saving ? <><RefreshCw size={14} className="animate-spin" /> Saving...</> : label}
       </Motion.button>
     </div>

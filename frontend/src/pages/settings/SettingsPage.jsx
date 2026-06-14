@@ -1106,29 +1106,30 @@ export default function SettingsPage() {
   };
 
   return (
-    <div className="min-h-screen bg-[#f4f6f8] p-6 lg:p-8">
-      {/* Header */}
-      <div className="max-w-6xl mx-auto flex flex-col md:flex-row md:items-center justify-between gap-4 mb-8">
-        <div>
-          <h1 className="text-[26px] font-black text-slate-900 tracking-tight">Settings & Preferences</h1>
-          <p className="text-[13px] text-slate-500 font-medium mt-1">Manage configuration for {activeCompany?.name || 'your workspace'}.</p>
-          <div className="flex flex-wrap items-center gap-2 mt-3">
-            <span className="inline-flex items-center px-2.5 py-1 rounded-md bg-slate-100 text-slate-600 text-[11px] font-bold">
-              Role: {effectiveRole}
-            </span>
-            <span className={`inline-flex items-center px-2.5 py-1 rounded-md text-[11px] font-bold ${canEdit ? 'bg-emerald-50 text-emerald-700' : 'bg-amber-50 text-amber-700'}`}>
-              {canEdit ? 'Settings editable' : 'Read-only access'}
-            </span>
+    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6] space-y-6">
+      {/* Top Banner Toolbar */}
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
+            <Settings size={18} className="text-white fill-white/20" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Settings & Preferences</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">System Wide</span>
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
+              Manage configuration for {activeCompany?.name || 'your workspace'}. Role: {effectiveRole} ({canEdit ? 'Editable' : 'Read-only'})
+            </p>
           </div>
         </div>
-        <button
-          onClick={saveSettings}
-          disabled={!canSave}
-          className="flex items-center gap-2 px-5 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-[13px] font-black rounded-lg transition-colors shadow-sm"
-        >
-          {saving ? <RefreshCw size={15} className="animate-spin" /> : <Save size={15} />}
-          Save Changes
-        </button>
+        
+        <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap">
+          <button onClick={saveSettings} disabled={!canSave} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] disabled:opacity-50 text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer">
+            {saving ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
+            {saving ? 'Saving...' : 'Save Changes'}
+          </button>
+        </div>
       </div>
 
       <div className="max-w-6xl mx-auto flex flex-col lg:flex-row gap-6">

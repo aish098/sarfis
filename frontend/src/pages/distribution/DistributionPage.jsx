@@ -177,28 +177,39 @@ export default function DistributionPage() {
   const filteredClients = clients.filter(c => c.name.toLowerCase().includes(search.toLowerCase()));
 
   return (
-    <div className="p-6 lg:p-8 pb-16">
-      {/* Header */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-7">
-        <div>
-          <h1 className="font-display font-extrabold text-[22px] text-slate-900">Distribution & Clients</h1>
-          <p className="text-[13px] text-slate-500 mt-1">Manage delivery orders, clients, and sector performance</p>
+    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6] space-y-6">
+      {/* Top Banner Toolbar */}
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
+            <Truck size={18} className="text-white fill-white/20" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Distribution & Clients</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Supply Chain</span>
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
+              Manage delivery orders, clients, and sector performance.
+            </p>
+          </div>
         </div>
-        <div className="flex gap-2.5 flex-wrap">
+        
+        <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap sm:ml-auto">
           {tab === 'deliveries' && (
-            <Motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              onClick={() => { setFormError(''); setDeliveryModal(true); }}
-              className="btn btn-primary"><Plus size={15} /> New Delivery Order</Motion.button>
+            <button onClick={() => { setFormError(''); setDeliveryModal(true); }} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer">
+              <Plus size={14} /> New Delivery Order
+            </button>
           )}
           {tab === 'clients' && (
-            <Motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              onClick={() => { setFormError(''); setClientModal(true); }}
-              className="btn btn-primary"><Plus size={15} /> Add Client</Motion.button>
+            <button onClick={() => { setFormError(''); setClientModal(true); }} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer">
+              <Plus size={14} /> Add Client
+            </button>
           )}
           {tab === 'sectors' && (
-            <Motion.button whileHover={{ scale: 1.03 }} whileTap={{ scale: 0.97 }}
-              onClick={() => { setFormError(''); setSectorModal(true); }}
-              className="btn btn-primary"><Plus size={15} /> Add Sector</Motion.button>
+            <button onClick={() => { setFormError(''); setSectorModal(true); }} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer">
+              <Plus size={14} /> Add Sector
+            </button>
           )}
         </div>
       </div>
@@ -227,13 +238,13 @@ export default function DistributionPage() {
       )}
 
       {/* Tabs */}
-      <div className="tab-bar mb-5 w-fit">
+      <div className="tab-bar bg-white border border-slate-100 rounded-xl p-1 flex w-fit mb-5 shadow-sm">
         {[
           { id: 'deliveries', label: 'Delivery Orders', icon: Truck },
           { id: 'clients', label: 'Clients', icon: Users },
           { id: 'sectors', label: 'Sectors', icon: Tag },
         ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={`tab-item ${tab === t.id ? 'active' : ''}`}>
+          <button key={t.id} onClick={() => setTab(t.id)} className={`tab-item px-3 py-1.5 text-[12px] font-bold rounded-lg flex items-center gap-1.5 transition-all ${tab === t.id ? 'bg-emerald-50 text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
             <t.icon size={13} /> {t.label}
           </button>
         ))}
@@ -257,19 +268,19 @@ export default function DistributionPage() {
       {tab === 'deliveries' && (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="data-table">
+            <table className="w-full">
               <thead>
-                <tr>
-                  <th style={{ width: 130 }}>Order No.</th>
-                  <th>Client</th>
-                  <th>Sector</th>
-                  <th style={{ width: 120 }}>Date</th>
-                  <th className="text-right" style={{ width: 130 }}>Amount</th>
-                  <th style={{ width: 130 }}>Status</th>
-                  <th style={{ width: 120 }}>Actions</th>
+                <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
+                  <th style={{ width: 130 }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Order No.</th>
+                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Client</th>
+                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Sector</th>
+                  <th style={{ width: 120 }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Date</th>
+                  <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]" style={{ width: 130 }}>Amount</th>
+                  <th style={{ width: 130 }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Status</th>
+                  <th style={{ width: 120 }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Actions</th>
                 </tr>
               </thead>
-              <Motion.tbody variants={stagger} initial="initial" animate="animate">
+              <Motion.tbody variants={stagger} initial="initial" animate="animate" className="divide-y divide-[#E6EBE8]">
                 {loading ? (
                   Array.from({ length: 8 }).map((_, i) => <tr key={i}>{Array.from({ length: 7 }).map((_, j) => <td key={j}><div className="skeleton h-4" /></td>)}</tr>)
                 ) : filteredDeliveries.length === 0 ? (
@@ -278,20 +289,20 @@ export default function DistributionPage() {
                   const sc = STATUS_CONFIG[d.status] || STATUS_CONFIG.PENDING;
                   return (
                     <Motion.tr key={d.id} variants={fadeUp}>
-                      <td><span className="font-mono font-semibold text-[12px] text-slate-700">{d.delivery_number}</span></td>
-                      <td>
+                      <td className="px-4 py-3"><span className="font-mono font-semibold text-[12px] text-slate-700">{d.delivery_number}</span></td>
+                      <td className="px-4 py-3">
                         <p className="font-semibold text-[13.5px]">{d.client_name}</p>
                         {d.warehouse_name && <p className="text-[11px] text-slate-400 mt-0.5">{d.warehouse_name}</p>}
                       </td>
-                      <td><span className="text-[13px] text-slate-500">{d.sector_name || '—'}</span></td>
-                      <td><span className="text-[13px] text-slate-600">{new Date(d.delivery_date).toLocaleDateString()}</span></td>
-                      <td className="text-right font-mono font-semibold text-[13px] text-slate-900">
+                      <td className="px-4 py-3"><span className="text-[13px] text-slate-500">{d.sector_name || '—'}</span></td>
+                      <td className="px-4 py-3"><span className="text-[13px] text-slate-600">{new Date(d.delivery_date).toLocaleDateString()}</span></td>
+                      <td className="text-right font-mono font-semibold text-[13px] text-slate-900 px-4 py-3">
                         ${parseFloat(d.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
-                      <td>
+                      <td className="px-4 py-3">
                         <span className="badge" style={{ background: sc.bg, color: sc.color }}>{sc.label}</span>
                       </td>
-                      <td>
+                      <td className="px-4 py-3">
                         <div className="flex gap-1">
                           {d.status === 'PENDING' && (
                             <button onClick={() => updateStatus(d.id, 'CONFIRMED')}
@@ -332,42 +343,42 @@ export default function DistributionPage() {
       {tab === 'clients' && (
         <div className="card overflow-hidden">
           <div className="overflow-x-auto">
-            <table className="data-table">
+            <table className="w-full">
               <thead>
-                <tr>
-                  <th>Client Name</th>
-                  <th>Sector</th>
-                  <th>Contact</th>
-                  <th className="text-right">Outstanding</th>
-                  <th className="text-right">Credit Limit</th>
-                  <th style={{ width: 100 }}>Status</th>
+                <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
+                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Client Name</th>
+                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Sector</th>
+                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Contact</th>
+                  <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Outstanding</th>
+                  <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Credit Limit</th>
+                  <th style={{ width: 100 }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Status</th>
                 </tr>
               </thead>
-              <Motion.tbody variants={stagger} initial="initial" animate="animate">
+              <Motion.tbody variants={stagger} initial="initial" animate="animate" className="divide-y divide-[#E6EBE8]">
                 {loading ? (
                   Array.from({ length: 6 }).map((_, i) => <tr key={i}>{Array.from({ length: 6 }).map((_, j) => <td key={j}><div className="skeleton h-4" /></td>)}</tr>)
                 ) : filteredClients.map(c => {
                   const blocked = c.credit_limit > 0 && parseFloat(c.current_balance) >= parseFloat(c.credit_limit);
                   return (
                     <Motion.tr key={c.id} variants={fadeUp} className={blocked ? 'bg-red-50/30' : ''}>
-                      <td>
+                      <td className="px-4 py-3">
                         <p className="font-semibold text-[14px]">{c.name}</p>
                         {c.address && <p className="text-[11px] text-slate-400 mt-0.5 truncate max-w-xs">{c.address}</p>}
                       </td>
-                      <td><span className="text-[13px] text-slate-500">{c.sector_name || '—'}</span></td>
-                      <td>
+                      <td className="px-4 py-3"><span className="text-[13px] text-slate-500">{c.sector_name || '—'}</span></td>
+                      <td className="px-4 py-3">
                         <p className="text-[13px] text-slate-600">{c.email || '—'}</p>
                         <p className="text-[11px] text-slate-400">{c.phone || ''}</p>
                       </td>
-                      <td className="text-right">
+                      <td className="text-right px-4 py-3">
                         <span className="font-mono font-semibold text-[13px]" style={{ color: parseFloat(c.current_balance) > 0 ? '#dc2626' : '#059669' }}>
                           ${parseFloat(c.current_balance).toFixed(2)}
                         </span>
                       </td>
-                      <td className="text-right font-mono text-[13px] text-slate-500">
+                      <td className="text-right font-mono text-[13px] text-slate-500 px-4 py-3">
                         {parseFloat(c.credit_limit) > 0 ? `$${parseFloat(c.credit_limit).toFixed(2)}` : 'Unlimited'}
                       </td>
-                      <td>
+                      <td className="px-4 py-3">
                         {blocked
                           ? <span className="badge" style={{ background: '#fee2e2', color: '#991b1b' }}>Blocked</span>
                           : <span className="badge" style={{ background: '#d1fae5', color: '#065f46' }}>Active</span>}
@@ -457,30 +468,30 @@ export default function DistributionPage() {
                 <span className="text-[10px] text-slate-400 uppercase tracking-widest font-bold font-sans">Tabular view</span>
               </div>
               <div className="overflow-x-auto">
-                <table className="data-table">
+                <table className="w-full">
                   <thead>
-                    <tr>
-                      <th>Sector</th>
-                      <th className="text-right">Orders</th>
-                      <th className="text-right">Revenue</th>
-                      <th className="text-right">GP %</th>
+                    <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
+                      <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Sector</th>
+                      <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Orders</th>
+                      <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Revenue</th>
+                      <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">GP %</th>
                     </tr>
                   </thead>
-                  <tbody>
+                  <tbody className="divide-y divide-[#E6EBE8]">
                     {loading ? Array.from({ length: 4 }).map((_, i) => <tr key={i}>{Array.from({ length: 4 }).map((_, j) => <td key={j}><div className="skeleton h-4" /></td>)}</tr>)
                       : sectorRevenue.map((s, i) => {
                         const gpPct = (parseFloat(s.gross_profit) / (parseFloat(s.total_revenue) || 1)) * 100;
                         return (
                           <tr key={s.sector_id}>
-                            <td>
+                            <td className="px-4 py-3">
                               <div className="flex items-center gap-2">
                                 <div className="w-2 h-2 rounded-full" style={{ background: CHART_COLORS[i % CHART_COLORS.length] }} />
                                 <span className="font-semibold text-[13.5px]">{s.sector_name}</span>
                               </div>
                             </td>
-                            <td className="text-right font-mono text-[12px]">{s.delivery_count}</td>
-                            <td className="text-right font-mono font-semibold text-[13px] text-slate-900">${parseFloat(s.total_revenue).toLocaleString()}</td>
-                            <td className="text-right">
+                            <td className="text-right font-mono text-[12px] px-4 py-3">{s.delivery_count}</td>
+                            <td className="text-right font-mono font-semibold text-[13px] text-slate-900 px-4 py-3">${parseFloat(s.total_revenue).toLocaleString()}</td>
+                            <td className="text-right px-4 py-3">
                               <span className={`text-[12px] font-bold ${gpPct >= 20 ? 'text-emerald-600' : 'text-amber-600'}`}>{gpPct.toFixed(1)}%</span>
                             </td>
                           </tr>
@@ -599,7 +610,7 @@ export default function DistributionPage() {
                       </button>
                     </div>
                     <div className="space-y-2 border border-slate-200 rounded-xl overflow-hidden">
-                      <div className="hidden sm:grid grid-cols-12 gap-2 px-3 py-2 bg-slate-50 text-[10px] font-bold uppercase tracking-wider text-slate-400">
+                      <div className="hidden sm:grid grid-cols-12 gap-2 px-3 py-3 bg-[#EBF2EE] border-b-[2px] border-[#D1E0D8] text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">
                         <div className="col-span-5">Product</div>
                         <div className="col-span-2">Qty</div>
                         <div className="col-span-2">Unit Price</div>

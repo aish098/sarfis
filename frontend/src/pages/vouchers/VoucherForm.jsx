@@ -450,18 +450,26 @@ export default function VoucherForm() {
 
   return (
     <div className="space-y-6">
-      {/* Header bar */}
-      <div className="flex items-center gap-4">
-        <Link to="/dashboard/vouchers" className="w-9 h-9 rounded-xl flex items-center justify-center border border-slate-200 bg-white hover:bg-slate-50 transition-all text-slate-500">
-          <ArrowLeft size={16} />
-        </Link>
-        <div>
-          <h1 className="font-display font-extrabold text-[22px] text-slate-900 leading-tight">
-            {id ? 'Edit Voucher' : 'New ERP Voucher'}
-          </h1>
-          <p className="text-[13px] text-slate-500 mt-1">
-            {id ? 'Modify transaction details prior to ledger posting.' : 'Create forms-driven vouchers with automatic posting simulation.'}
-          </p>
+      {/* Top Banner Toolbar */}
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <Link to="/dashboard/vouchers" className="w-10 h-10 rounded-xl flex items-center justify-center border border-emerald-200 bg-white hover:bg-emerald-50 transition-all text-emerald-600 shadow-sm cursor-pointer">
+            <ArrowLeft size={16} />
+          </Link>
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] items-center justify-center text-white shadow-md shadow-emerald-500/10 hidden sm:flex">
+            <FileText size={18} className="text-white fill-white/20" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">
+                {id ? 'Edit Voucher' : 'New ERP Voucher'}
+              </h1>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Draft Mode</span>
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
+              {id ? 'Modify transaction details prior to ledger posting.' : 'Create forms-driven vouchers with automatic posting simulation.'}
+            </p>
+          </div>
         </div>
       </div>
 
@@ -471,7 +479,7 @@ export default function VoucherForm() {
           <Motion.div 
             initial={{ opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
-            className="card p-6 lg:p-8 space-y-6"
+            className="card !rounded-2xl border border-slate-100 bg-white p-6 lg:p-8 space-y-6"
           >
             <form onSubmit={handleSubmit} className="space-y-6">
               {formError && (
@@ -635,7 +643,7 @@ export default function VoucherForm() {
 
                   <div className="border border-slate-200/80 rounded-2xl overflow-hidden shadow-sm">
                     {/* Header */}
-                    <div className="hidden md:grid grid-cols-12 gap-2.5 px-4 py-2 bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <div className="hidden md:grid grid-cols-12 gap-2.5 px-4 py-3 bg-[#EBF2EE] border-b-[2px] border-[#D1E0D8] text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">
                       <div className="col-span-5">Product/SKU</div>
                       <div className="col-span-2 text-right">Quantity</div>
                       <div className="col-span-3 text-right">{type === 'SALES' ? 'Unit Price ($)' : 'Unit Cost ($)'}</div>
@@ -822,7 +830,7 @@ export default function VoucherForm() {
 
                   <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
                     {/* Header */}
-                    <div className="hidden md:grid grid-cols-12 gap-2.5 px-4 py-2 bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-widest text-slate-400">
+                    <div className="hidden md:grid grid-cols-12 gap-2.5 px-4 py-3 bg-[#EBF2EE] border-b-[2px] border-[#D1E0D8] text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">
                       <div className="col-span-6">General Ledger Account</div>
                       <div className="col-span-3 text-right">Debit ($)</div>
                       <div className="col-span-3 text-right">Credit ($)</div>
@@ -928,13 +936,13 @@ export default function VoucherForm() {
 
               {/* Submission Buttons */}
               <div className="flex gap-3 border-t border-slate-100 pt-5">
-                <Link to="/dashboard/vouchers" className="btn btn-secondary flex-1 py-3 text-center">
+                <Link to="/dashboard/vouchers" className="bg-white border border-slate-200 text-slate-600 hover:bg-slate-50 flex-1 py-3 flex items-center justify-center gap-2 text-[12.5px] font-bold rounded-xl transition-all cursor-pointer">
                   Cancel
                 </Link>
                 <button 
                   type="submit" 
                   disabled={saving}
-                  className="btn btn-primary flex-[2] py-3 flex items-center justify-center gap-2"
+                  className="bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white flex-[2] py-3 flex items-center justify-center gap-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                 >
                   <Save size={15} />
                   {saving ? 'Saving document...' : 'Save Draft Voucher'}
