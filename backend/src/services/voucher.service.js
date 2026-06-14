@@ -145,12 +145,12 @@ class VoucherService {
    * Submits a draft voucher for review/approval
    */
   static async submitForApproval(id, companyId, userId) {
-    return await db.transaction(async (trx) => {
+    const updated = await db.transaction(async (trx) => {
       const voucher = await trx('vouchers').where({ id, company_id: companyId, deleted_at: null }).first();
       if (!voucher) throw new Error('Voucher not found.');
       if (voucher.status !== 'DRAFT') throw new Error('Only draft vouchers can be submitted for approval.');
 
-      const [updated] = await trx('vouchers')
+      const [up] = await trx('vouchers')
         .where({ id, company_id: companyId })
         .update({
           status: 'PENDING_APPROVAL',
@@ -166,8 +166,42 @@ class VoucherService {
         description: `Submitted voucher ${voucher.voucher_number} for manager approval.`
       });
 
-      return updated;
+      return up;
     });
+
+    try {
+      const NotificationService = require('./notification.service');
+      const submitter = await db('users').where({ id: userId }).first();
+      const submitterName = submitter ? submitter.name : 'A user';
+
+      // 1. Notify users with voucher.post permission
+      await NotificationService.notifyUsersWithPermission({
+        companyId,
+        permissionCode: 'voucher.post',
+        title: 'Voucher Pending Approval',
+        message: `Voucher ${updated.voucher_number} (${updated.type}) of PKR ${parseFloat(updated.total_amount).toLocaleString()} submitted by ${submitterName} requires approval.`,
+        type: 'approval',
+        priority: 'HIGH',
+        entityType: 'voucher',
+        entityId: id
+      });
+
+      // 2. Notify users with voucher.approve permission
+      await NotificationService.notifyUsersWithPermission({
+        companyId,
+        permissionCode: 'voucher.approve',
+        title: 'Voucher Submitted for Review',
+        message: `Voucher ${updated.voucher_number} (${updated.type}) submitted by ${submitterName} is awaiting review.`,
+        type: 'approval',
+        priority: 'MEDIUM',
+        entityType: 'voucher',
+        entityId: id
+      });
+    } catch (err) {
+      console.error('Failed to dispatch notifications for voucher submission:', err);
+    }
+
+    return updated;
   }
 
   /**

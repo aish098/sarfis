@@ -6,7 +6,10 @@ const db = require('../config/db');
  * Verifies JWT and handles multi-company context
  */
 const authMiddleware = async (req, res, next) => {
-  const token = req.header('Authorization');
+  let token = req.header('Authorization');
+  if (!token && req.query.token) {
+    token = `Bearer ${req.query.token}`;
+  }
 
   if (!token) {
     return res.status(401).json({ message: 'No token, authorization denied' });

@@ -6,7 +6,7 @@ import {
   HelpCircle, Calendar, LogOut, Settings, FilePlus, BookOpen,
   Truck, Users, ChevronRight, CheckSquare, Lock, Unlock,
   ShieldAlert, Clock, Database, FileText, KeyRound, History,
-  RefreshCw, CheckCircle2
+  RefreshCw, CheckCircle2, Archive
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -66,7 +66,7 @@ function HeaderDropdown({ open, onClose, align = 'right', children, className = 
 export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searchQuery, onSearchChange }) {
   const location = useLocation();
   const navigate = useNavigate();
-  const { user, companies, activeCompany, setActiveCompany, logout } = useAuthStore();
+  const { user, companies, activeCompany, setActiveCompany, logout, token } = useAuthStore();
   const { month, year, initForCompany, setPeriod } = usePeriodStore();
 
   const [menuState, setMenuState] = useState({ key: null, pathname: location.pathname });
@@ -97,6 +97,11 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
   const [approvalsLoading, setApprovalsLoading] = useState(false);
   const [actionSaving, setActionSaving] = useState(false);
   const [feedback, setFeedback] = useState(null);
+
+  // Notifications State & Logic
+  const [notifications, setNotifications] = useState([]);
+  const [notificationsLoading, setNotificationsLoading] = useState(false);
+  const [toasts, setToasts] = useState([]);
 
   const closeAll = useCallback(() => {
     setMenuState({ key: null, pathname: location.pathname });
@@ -259,6 +264,163 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
     }
   };
 
+  const fetchNotifications = useCallback(async () => {
+    if (!activeCompany?.id) return;
+    setNotificationsLoading(true);
+    try {
+      const res = await api.get(`/notifications/${activeCompany.id}`);
+      setNotifications(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err);
+    } finally {
+      setNotificationsLoading(false);
+    }
+  }, [activeCompany?.id]);
+
+  const handleMarkAsRead = async (id) => {
+    if (!activeCompany?.id) return;
+    try {
+      await api.put(`/notifications/${activeCompany.id}/${id}/read`);
+      setNotifications(prev =>
+        prev.map(n => n.id === id ? { ...n, is_read: true } : n)
+      );
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err);
+    }
+  };
+
+  const handleMarkAllAsRead = async () => {
+    if (!activeCompany?.id) return;
+    try {
+      await api.put(`/notifications/${activeCompany.id}/read-all`);
+      setNotifications(prev =>
+        prev.map(n => ({ ...n, is_read: true }))
+      );
+    } catch (err) {
+      console.error('Failed to mark all as read:', err);
+    }
+  };
+
+  const handleArchiveNotification = async (id) => {
+    if (!activeCompany?.id) return;
+    try {
+      await api.put(`/notifications/${activeCompany.id}/${id}/archive`);
+      setNotifications(prev =>
+        prev.filter(n => n.id !== id)
+      );
+    } catch (err) {
+      console.error('Failed to archive notification:', err);
+    }
+  };
+
+  const showToast = useCallback((notif) => {
+    const newToast = {
+      id: Date.now() + Math.random(),
+      ...notif
+    };
+    setToasts(prev => [...prev, newToast]);
+    setTimeout(() => {
+      setToasts(prev => prev.filter(t => t.id !== newToast.id));
+    }, 5000);
+  }, []);
+
+  const handleNotificationClick = async (notif) => {
+    if (!notif.is_read) {
+      await handleMarkAsRead(notif.id);
+    }
+    closeAll();
+    if (notif.entity_type === 'voucher') {
+      navigate('/dashboard/vouchers');
+    } else if (notif.entity_type === 'journal') {
+      navigate('/dashboard/ledger');
+    } else if (notif.entity_type === 'permission' || notif.entity_type === 'override') {
+      navigate('/dashboard/admin?tab=permissions');
+    } else if (notif.entity_type === 'period') {
+      navigate('/dashboard/admin?tab=periods');
+    }
+  };
+
+  const formatTime = (dateStr) => {
+    if (!dateStr) return '';
+    const date = new Date(dateStr);
+    const now = new Date();
+    const diffMs = now - date;
+    const diffSec = Math.floor(diffMs / 1000);
+    const diffMin = Math.floor(diffSec / 60);
+    const diffHr = Math.floor(diffMin / 60);
+    const diffDay = Math.floor(diffHr / 24);
+
+    if (diffSec < 60) return 'now';
+    if (diffMin < 60) return `${diffMin}m ago`;
+    if (diffHr < 24) return `${diffHr}h ago`;
+    return `${diffDay}d ago`;
+  };
+
+  const getPriorityStyles = (priority) => {
+    switch (priority?.toUpperCase()) {
+      case 'CRITICAL':
+        return { bg: 'bg-rose-50', text: 'text-rose-700', border: 'border-rose-100', dot: 'bg-rose-500' };
+      case 'HIGH':
+        return { bg: 'bg-orange-50', text: 'text-orange-700', border: 'border-orange-100', dot: 'bg-orange-500' };
+      case 'MEDIUM':
+        return { bg: 'bg-amber-50', text: 'text-amber-700', border: 'border-amber-100', dot: 'bg-amber-500' };
+      case 'LOW':
+      default:
+        return { bg: 'bg-blue-50', text: 'text-blue-700', border: 'border-blue-100', dot: 'bg-blue-500' };
+    }
+  };
+
+  const getNotificationIcon = (type) => {
+    switch (type) {
+      case 'approval':
+        return <CheckSquare size={14} className="text-amber-600" />;
+      case 'period':
+        return <Calendar size={14} className="text-rose-600" />;
+      case 'permission':
+        return <KeyRound size={14} className="text-emerald-600" />;
+      case 'system':
+      default:
+        return <Bell size={14} className="text-blue-600" />;
+    }
+  };
+
+  useEffect(() => {
+    if (activeCompany?.id) {
+      fetchNotifications();
+    }
+  }, [activeCompany?.id, fetchNotifications]);
+
+  useEffect(() => {
+    if (!activeCompany?.id || !token) return;
+
+    const sseBaseUrl = import.meta.env.PROD ? '/api' : 'http://localhost:5001/api';
+    const url = `${sseBaseUrl}/notifications/stream?token=${encodeURIComponent(token)}`;
+    const eventSource = new EventSource(url);
+
+    eventSource.onmessage = (event) => {
+      try {
+        const data = JSON.parse(event.data);
+        if (data && data.id) {
+          if (data.company_id === activeCompany.id) {
+            setNotifications(prev => [data, ...prev]);
+            showToast(data);
+          }
+        }
+      } catch (err) {
+        console.error('Failed to parse SSE notification:', err);
+      }
+    };
+
+    eventSource.onerror = (err) => {
+      console.error('SSE connection error, closing EventSource:', err);
+      eventSource.close();
+    };
+
+    return () => {
+      eventSource.close();
+    };
+  }, [activeCompany?.id, token, showToast]);
+
   const handleLogout = () => {
     closeAll();
     logout();
@@ -267,6 +429,7 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
 
   const years = Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - 3 + i);
   const totalPendingCount = (approvals.pendingJournals?.length || 0) + (approvals.pendingVouchers?.length || 0);
+  const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
     <header
@@ -639,14 +802,116 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
           </div>
         )}
 
-        {/* Notifications Button */}
-        <button
-          className="relative w-9 h-9 rounded-md flex items-center justify-center transition-colors hover:bg-emerald-50 border border-slate-100"
-          aria-label="Notifications"
-        >
-          <Bell size={16} style={{ color: PBI.muted }} />
-          <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border-2 border-white" style={{ background: '#10b981' }} />
-        </button>
+        {/* Notifications Dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => toggle('notifications')}
+            className={`relative w-9 h-9 rounded-md flex items-center justify-center transition-colors border border-slate-100 hover:bg-emerald-50 ${
+              openMenu === 'notifications' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : ''
+            }`}
+            aria-label="Notifications"
+          >
+            <Bell size={16} style={{ color: PBI.muted }} />
+            {unreadCount > 0 && (
+              <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 rounded-full bg-emerald-600 text-[9px] font-black text-white border-2 border-white">
+                {unreadCount}
+              </span>
+            )}
+          </button>
+
+          <HeaderDropdown open={openMenu === 'notifications'} onClose={closeAll} className="w-80">
+            <div className="px-4 py-3 border-b bg-slate-50/50 flex justify-between items-center" style={{ borderColor: PBI.border }}>
+              <div>
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600">Notifications</p>
+                <p className="text-[12px] font-black text-slate-800 mt-0.5">
+                  {unreadCount === 0 ? 'No unread alerts' : `You have ${unreadCount} unread alert${unreadCount > 1 ? 's' : ''}`}
+                </p>
+              </div>
+              {unreadCount > 0 && (
+                <button
+                  onClick={handleMarkAllAsRead}
+                  className="text-[10px] font-bold text-emerald-600 hover:text-emerald-700 bg-emerald-50 px-2 py-1 rounded border border-emerald-100 hover:bg-emerald-100/70 transition-colors"
+                >
+                  Mark all read
+                </button>
+              )}
+            </div>
+
+            <div className="max-h-[360px] overflow-y-auto divide-y divide-slate-100">
+              {notificationsLoading ? (
+                <div className="p-6 text-center text-[12px] text-slate-500 font-medium flex items-center justify-center gap-2">
+                  <RefreshCw size={14} className="animate-spin text-emerald-600" />
+                  Loading alerts...
+                </div>
+              ) : notifications.length === 0 ? (
+                <div className="p-6 text-center text-slate-500 font-medium">
+                  <CheckCircle2 size={32} className="text-emerald-500 mx-auto mb-2" />
+                  <p className="text-[12px]">All caught up!</p>
+                  <p className="text-[10px] text-slate-400 mt-1">No notifications yet.</p>
+                </div>
+              ) : (
+                notifications.map((notif) => {
+                  const styles = getPriorityStyles(notif.priority);
+                  return (
+                    <div
+                      key={notif.id}
+                      className={`p-3.5 text-[12px] hover:bg-slate-50/70 transition-colors relative ${
+                        !notif.is_read ? 'bg-emerald-50/5' : ''
+                      }`}
+                    >
+                      <div className="flex gap-2.5 items-start">
+                        {/* Icon Container */}
+                        <div className={`w-7 h-7 rounded-lg flex items-center justify-center flex-shrink-0 ${styles.bg}`}>
+                          {getNotificationIcon(notif.type)}
+                        </div>
+
+                        {/* Content */}
+                        <div className="flex-1 min-w-0">
+                          <div className="flex items-center gap-1.5 justify-between">
+                            <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${styles.bg} ${styles.text} ${styles.border}`}>
+                              {notif.priority}
+                            </span>
+                            <span className="text-[9px] text-slate-400 font-bold">
+                              {formatTime(notif.created_at)}
+                            </span>
+                          </div>
+                          <p className="font-bold text-slate-800 mt-1">{notif.title}</p>
+                          <p className="text-[11px] text-slate-500 font-medium mt-0.5 leading-relaxed">{notif.message}</p>
+
+                          {/* Quick Actions */}
+                          <div className="flex gap-2.5 mt-2 pt-2 border-t border-slate-100">
+                            {notif.entity_type && (
+                              <button
+                                onClick={() => handleNotificationClick(notif)}
+                                className="text-[10px] font-extrabold text-emerald-600 hover:text-emerald-700"
+                              >
+                                View Details
+                              </button>
+                            )}
+                            {!notif.is_read && (
+                              <button
+                                onClick={() => handleMarkAsRead(notif.id)}
+                                className="text-[10px] font-extrabold text-slate-600 hover:text-slate-700"
+                              >
+                                Mark Read
+                              </button>
+                            )}
+                            <button
+                              onClick={() => handleArchiveNotification(notif.id)}
+                              className="text-[10px] font-extrabold text-rose-600 hover:text-rose-700 ml-auto"
+                            >
+                              Archive
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })
+              )}
+            </div>
+          </HeaderDropdown>
+        </div>
 
         {/* 3. QuickBooks-style Admin Gear Menu dropdown */}
         <div className="relative">
@@ -802,6 +1067,42 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
             </button>
           </HeaderDropdown>
         </div>
+      </div>
+
+      {/* Floating Toast Notification Container */}
+      <div className="fixed bottom-4 right-4 z-[9999] flex flex-col gap-2.5 max-w-sm w-full pointer-events-none">
+        <AnimatePresence>
+          {toasts.map((toast) => {
+            const styles = getPriorityStyles(toast.priority);
+            return (
+              <Motion.div
+                key={toast.id}
+                initial={{ opacity: 0, y: 20, scale: 0.95 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.9, x: 20 }}
+                className="pointer-events-auto flex items-start gap-3 p-3.5 bg-white border rounded-xl shadow-[0_10px_25px_rgba(0,0,0,0.08)] cursor-pointer"
+                style={{ borderColor: PBI.border }}
+                onClick={() => {
+                  setToasts(prev => prev.filter(t => t.id !== toast.id));
+                  handleNotificationClick(toast);
+                }}
+              >
+                <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${styles.bg}`}>
+                  {getNotificationIcon(toast.type)}
+                </div>
+                <div className="flex-1 min-w-0">
+                  <div className="flex items-center gap-1.5 justify-between">
+                    <p className="text-[12px] font-bold text-slate-800 truncate pr-2">{toast.title}</p>
+                    <span className={`px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${styles.bg} ${styles.text} ${styles.border}`}>
+                      {toast.priority}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-500 font-medium mt-0.5 leading-relaxed">{toast.message}</p>
+                </div>
+              </Motion.div>
+            );
+          })}
+        </AnimatePresence>
       </div>
     </header>
   );

@@ -822,6 +822,27 @@ exports.approveUserPermissionOverride = async (req, res) => {
     // Invalidate sessions permissions cache for this user
     await db('user_sessions').where({ user_id: userId }).update({ permissions_cache: null });
 
+    try {
+      const NotificationService = require('../services/notification.service');
+      const permission = await db('permissions').where({ id: override.permission_id }).first();
+      const permCode = permission ? permission.code : 'custom settings';
+      const approver = await db('users').where({ id: req.user.id }).first();
+      const approverName = approver ? approver.name : 'An administrator';
+
+      await NotificationService.createNotification({
+        companyId,
+        userId: userId,
+        title: 'Permission Override Approved',
+        message: `Your override request for permission '${permCode}' has been approved by ${approverName}.`,
+        type: 'permission',
+        priority: 'HIGH',
+        entityType: 'admin',
+        entityId: override.id
+      });
+    } catch (notifErr) {
+      console.error('Failed to notify permission override approval:', notifErr);
+    }
+
     res.json({ success: true, message: 'Permission override approved successfully.' });
   } catch (err) {
     res.status(500).json({ message: err.message });

@@ -191,6 +191,25 @@ exports.updatePeriodStatus = async (req, res) => {
       .update({ status, updated_at: db.fn.now() })
       .returning('*');
 
+    try {
+      const NotificationService = require('../services/notification.service');
+      const modifier = await db('users').where({ id: req.user.id }).first();
+      const modifierName = modifier ? modifier.name : 'An administrator';
+
+      await NotificationService.notifyUsersWithPermission({
+        companyId: parseInt(companyId),
+        permissionCode: 'period.view',
+        title: `Fiscal Period ${status === 'CLOSED' ? 'Locked' : 'Unlocked'}`,
+        message: `Accounting period ${period.period_name} has been ${status === 'CLOSED' ? 'locked' : 'unlocked'} by ${modifierName}.`,
+        type: 'period',
+        priority: 'HIGH',
+        entityType: 'admin',
+        entityId: period.id
+      });
+    } catch (notifErr) {
+      console.error('Failed to notify period status change:', notifErr);
+    }
+
     res.json(period);
   } catch (err) {
     res.status(400).json({ error: err.message });
