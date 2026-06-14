@@ -67,6 +67,17 @@ const PERMISSION_ROWS = [
       { name: 'View Financial Reports', code: 'report.view', rights: { Admin: 'F', Accountant: 'F', 'Inventory Manager': 'N', 'Sales Manager': 'F', 'Finance Manager': 'F', Viewer: 'F' } },
       { name: 'View Analytics Dashboards', code: 'analytics.view', rights: { Admin: 'F', Accountant: 'N', 'Inventory Manager': 'N', 'Sales Manager': 'F', 'Finance Manager': 'F', Viewer: 'F' } }
     ]
+  },
+  {
+    group: 'Fiscal Periods & Audits',
+    items: [
+      { name: 'View Fiscal Periods', code: 'period.view', rights: { Admin: 'F', Accountant: 'F', 'Inventory Manager': 'N', 'Sales Manager': 'N', 'Finance Manager': 'F', Viewer: 'F' } },
+      { name: 'Manage & Lock Periods', code: 'period.manage', rights: { Admin: 'F', Accountant: 'F', 'Inventory Manager': 'N', 'Sales Manager': 'N', 'Finance Manager': 'N', Viewer: 'N' } },
+      { name: 'View Pending Approvals', code: 'approval.view', rights: { Admin: 'F', Accountant: 'F', 'Inventory Manager': 'N', 'Sales Manager': 'F', 'Finance Manager': 'F', Viewer: 'F' } },
+      { name: 'Approve Transactions', code: 'approval.manage', rights: { Admin: 'F', Accountant: 'F', 'Inventory Manager': 'N', 'Sales Manager': 'N', 'Finance Manager': 'N', Viewer: 'N' } },
+      { name: 'View Audit Logs', code: 'audit.view', rights: { Admin: 'F', Accountant: 'F', 'Inventory Manager': 'N', 'Sales Manager': 'N', 'Finance Manager': 'F', Viewer: 'F' } },
+      { name: 'Database Maintenance & Backups', code: 'audit.manage', rights: { Admin: 'F', Accountant: 'N', 'Inventory Manager': 'N', 'Sales Manager': 'N', 'Finance Manager': 'N', Viewer: 'N' } }
+    ]
   }
 ];
 
