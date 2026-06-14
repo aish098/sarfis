@@ -93,3 +93,21 @@ exports.postJournalEntry = async (req, res) => {
     res.status(err.message.includes('not found') || err.message.includes('already') ? 400 : 500).json({ error: err.message });
   }
 };
+
+exports.submitJournalForApproval = async (req, res) => {
+  const { id } = req.params;
+  const companyId = req.companyId;
+  const db = require('../config/db');
+
+  try {
+    const entry = await db('journal_entries').where({ id, company_id: companyId }).first();
+    if (!entry) return res.status(404).json({ error: 'Journal entry not found' });
+    if (entry.status !== 'DRAFT') return res.status(400).json({ error: 'Only draft journal entries can be submitted for approval.' });
+
+    await db('journal_entries').where({ id }).update({ status: 'PENDING_APPROVAL', updated_at: db.fn.now() });
+    res.json({ message: 'Journal entry submitted for approval' });
+  } catch (err) {
+    console.error('Submit Approval Error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};

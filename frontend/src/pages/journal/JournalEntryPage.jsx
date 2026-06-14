@@ -135,8 +135,10 @@ const genRow = () => ({ id: crypto.randomUUID(), accountId: '', description: '',
 
 export default function JournalEntryPage() {
   const navigate = useNavigate();
-  const { activeCompany } = useAuthStore();
+  const { activeCompany, user, permissions } = useAuthStore();
   const [accounts, setAccounts] = useState([]);
+  
+  const canPost = user?.role === 'Super Admin' || (permissions || []).includes('journal.post');
   
   // Form State
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -356,6 +358,9 @@ export default function JournalEntryPage() {
       if (nextAction === 'post') {
         await api.post(`/journal/${entryId}/post`);
         setToastMessage('Transaction posted to general ledger successfully.');
+      } else if (nextAction === 'submit') {
+        await api.post(`/journal/${entryId}/submit`);
+        setToastMessage('Transaction submitted for approval.');
       } else {
         setToastMessage('Transaction saved as draft.');
       }
@@ -426,6 +431,19 @@ export default function JournalEntryPage() {
       fetchRecent();
     } catch (err) {
       setError(err.response?.data?.message || "Failed to delete draft.");
+    }
+  };
+
+  const handleSubmitDraft = async (id) => {
+    try {
+      await api.post(`/journal/${id}/submit`);
+      setToastMessage("Draft entry submitted for approval.");
+      setToast(true); setTimeout(() => setToast(false), 3500);
+      setSelectedRecentEntry(null);
+      setDetailEntry(null);
+      fetchRecent();
+    } catch (err) {
+      setError(err.response?.data?.message || "Failed to submit draft.");
     }
   };
 
@@ -582,14 +600,14 @@ export default function JournalEntryPage() {
               
               <RequirePermission permission="journal.create">
                 <button
-                  onClick={() => validate(postingMode === 'REALTIME' ? 'post' : 'draft')}
+                  onClick={() => validate(postingMode === 'REALTIME' ? (canPost ? 'post' : 'submit') : 'draft')}
                   disabled={saving}
                   className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 disabled:opacity-50 cursor-pointer"
                 >
                   {saving ? (
                     <><RefreshCw size={14} className="animate-spin" /> Syncing...</>
                   ) : (
-                    <><Save size={14} /> {postingMode === 'REALTIME' ? 'Post to Ledger' : 'Save Draft'}</>
+                    <><Save size={14} /> {postingMode === 'REALTIME' ? (canPost ? 'Post to Ledger' : 'Submit for Approval') : 'Save Draft'}</>
                   )}
                 </button>
               </RequirePermission>
@@ -901,7 +919,7 @@ export default function JournalEntryPage() {
                   onClick={submit} 
                   className="flex-1 inline-flex items-center justify-center gap-2 px-5 rounded-xl font-bold text-[14px] bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white shadow-lg transition-all active:scale-95 cursor-pointer"
                 >
-                  <FileText size={14} /> {nextAction === 'post' ? 'Post to Ledger' : 'Save Draft'}
+                  <FileText size={14} /> {nextAction === 'post' ? 'Post to Ledger' : nextAction === 'submit' ? 'Submit for Approval' : 'Save Draft'}
                 </button>
               </div>
             </motion.div>
@@ -1144,14 +1162,42 @@ export default function JournalEntryPage() {
 
               <div className="flex gap-2.5 px-6 pb-6 pt-3 border-t border-slate-50 bg-slate-50/30 justify-end">
                 {detailEntry?.status === 'DRAFT' && (
-                  <button 
-                    onClick={() => handleDeleteDraft(detailEntry.id)}
-                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold text-rose-600 hover:bg-rose-50 transition-colors border border-rose-100 cursor-pointer"
-                  >
-                    <Trash2 size={13} /> Void Draft
-                  </button>
+                  <>
+                    <button 
+                      onClick={() => handleSubmitDraft(detailEntry.id)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold text-amber-700 hover:bg-amber-50 transition-colors border border-amber-100 cursor-pointer"
+                    >
+                      <CheckSquare size={13} /> Submit Approval
+                    </button>
+                    <button 
+                      onClick={() => handleDeleteDraft(detailEntry.id)}
+                      className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold text-rose-600 hover:bg-rose-50 transition-colors border border-rose-100 cursor-pointer"
+                    >
+                      <Trash2 size={13} /> Void Draft
+                    </button>
+                  </>
                 )}
                 
+                {detailEntry?.status === 'PENDING_APPROVAL' && canPost && (
+                  <button 
+                    onClick={async () => {
+                      try {
+                        await api.post(`/journal/${detailEntry.id}/post`);
+                        setToastMessage("Journal entry posted successfully.");
+                        setToast(true); setTimeout(() => setToast(false), 3500);
+                        setSelectedRecentEntry(null);
+                        setDetailEntry(null);
+                        fetchRecent();
+                      } catch (err) {
+                        setError(err.response?.data?.message || "Failed to post entry.");
+                      }
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold text-emerald-800 bg-[#EBFDF5] hover:bg-[#d5f7e6] transition-colors border border-[#C2F3DC] cursor-pointer"
+                  >
+                    <CheckSquare size={13} /> Post GL
+                  </button>
+                )}
+
                 <button 
                   onClick={() => handleLoadDraft(detailEntry)} 
                   className="inline-flex items-center gap-1.5 px-4.5 py-2 rounded-xl text-[12px] font-extrabold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition-all border border-emerald-200 active:scale-95 cursor-pointer"

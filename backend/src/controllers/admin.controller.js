@@ -827,3 +827,46 @@ exports.approveUserPermissionOverride = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.getPendingApprovals = async (req, res) => {
+  const companyId = parseInt(req.params.companyId || req.companyId, 10);
+  if (!companyId) return res.status(400).json({ message: 'companyId is required' });
+
+  try {
+    const userPerms = req.userPermissions || [];
+    const isSuperAdmin = req.user.role === 'Super Admin';
+    const canApproveJournals = isSuperAdmin || userPerms.includes('journal.post') || userPerms.includes('journal.approve');
+    const canApproveVouchers = isSuperAdmin || userPerms.includes('voucher.post') || userPerms.includes('voucher.approve');
+
+    let pendingVouchers = [];
+    if (canApproveVouchers) {
+      pendingVouchers = await db('vouchers as v')
+        .leftJoin('users as u', 'v.created_by', 'u.id')
+        .select('v.*', 'u.name as creator_name')
+        .where({ 'v.company_id': companyId, 'v.status': 'PENDING_APPROVAL', 'v.deleted_at': null })
+        .orderBy('v.date', 'desc')
+        .orderBy('v.created_at', 'desc');
+    }
+
+    let pendingJournals = [];
+    if (canApproveJournals) {
+      pendingJournals = await db('journal_entries as je')
+        .leftJoin('users as u', 'je.created_by', 'u.id')
+        .leftJoin('journal_lines as jl', 'je.id', 'jl.entry_id')
+        .select('je.*', 'u.name as creator_name', db.raw('COALESCE(SUM(jl.debit), 0) as total_amount'))
+        .where({ 'je.company_id': companyId, 'je.status': 'PENDING_APPROVAL' })
+        .groupBy('je.id', 'u.id', 'u.name')
+        .orderBy('je.entry_date', 'desc');
+    }
+
+    res.json({
+      pendingJournals,
+      pendingVouchers,
+      canApproveJournals,
+      canApproveVouchers
+    });
+  } catch (err) {
+    console.error('getPendingApprovals error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};

@@ -20,6 +20,9 @@ router.post('/companies/:companyId/purge', companyGuard, requirePermission('sett
 router.get('/companies/:companyId/sessions', companyGuard, requirePermission('settings.manage'), adminController.getActiveSessions);
 router.post('/companies/:companyId/sessions/:id/terminate', companyGuard, requirePermission('settings.manage'), adminController.terminateSession);
 
+// Pending Approvals Inbox (Journals & Vouchers)
+router.get('/companies/:companyId/approvals', companyGuard, adminController.getPendingApprovals);
+
 // Custom User Permission Overrides Matrix
 router.get('/companies/:companyId/members/:userId/permissions', companyGuard, requirePermission('settings.manage'), adminController.getUserPermissionDetails);
 router.post('/companies/:companyId/members/:userId/permissions', companyGuard, requirePermission('settings.manage'), adminController.saveUserPermissionOverrides);

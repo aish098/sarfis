@@ -4,8 +4,11 @@ import { motion as Motion, AnimatePresence } from 'framer-motion';
 import {
   Search, Bell, ChevronDown, Building2, Menu, User, Plus,
   HelpCircle, Calendar, LogOut, Settings, FilePlus, BookOpen,
-  Truck, Users, ChevronRight,
+  Truck, Users, ChevronRight, CheckSquare, Lock, Unlock,
+  ShieldAlert, Clock, Database, FileText, KeyRound, History,
+  RefreshCw, CheckCircle2
 } from 'lucide-react';
+import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import usePeriodStore, { MONTHS } from '../../store/periodStore';
 import { resolveBreadcrumb } from './headerRoutes';
@@ -69,24 +72,88 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
   const [menuState, setMenuState] = useState({ key: null, pathname: location.pathname });
   const searchRef = useRef(null);
 
+  // Core visual parameters
   const leftOffset = isMobile ? 0 : (sidebarCollapsed ? 68 : 248);
   const crumb = resolveBreadcrumb(location.pathname);
   const periodLabel = `${MONTHS[month - 1] || 'Period'} ${year}`;
   const openMenu = menuState.pathname === location.pathname ? menuState.key : null;
 
+  // Multi-entity and RBAC definitions
+  const userPerms = useAuthStore(state => state.permissions) || [];
+  const isSuperAdmin = user?.role === 'Super Admin';
+  const effectiveRole = activeCompany?.user_role || user?.role || 'Member';
+  const adminRoles = ['Company Admin', 'Super Admin', 'Admin', 'Owner', 'CEO'];
+  const canAdmin = adminRoles.includes(effectiveRole) || adminRoles.includes(user?.role);
+
+  // Approvals RBAC permissions check
+  const canApproveJournals = isSuperAdmin || userPerms.includes('journal.post') || userPerms.includes('journal.approve');
+  const canApproveVouchers = isSuperAdmin || userPerms.includes('voucher.post') || userPerms.includes('voucher.approve');
+  const hasApprovalAccess = canApproveJournals || canApproveVouchers;
+
+  // State hooks for accounting data
+  const [periods, setPeriods] = useState([]);
+  const [periodsLoading, setPeriodsLoading] = useState(false);
+  const [approvals, setApprovals] = useState({ pendingJournals: [], pendingVouchers: [] });
+  const [approvalsLoading, setApprovalsLoading] = useState(false);
+  const [actionSaving, setActionSaving] = useState(false);
+  const [feedback, setFeedback] = useState(null);
+
   const closeAll = useCallback(() => {
     setMenuState({ key: null, pathname: location.pathname });
   }, [location.pathname]);
+
   const toggle = (key) => {
     setMenuState((menu) => ({
       key: menu.pathname === location.pathname && menu.key === key ? null : key,
       pathname: location.pathname,
     }));
+    setFeedback(null);
   };
 
+  // 1. Fetch periods for status checks
+  const fetchPeriods = useCallback(async () => {
+    if (!activeCompany?.id) return;
+    setPeriodsLoading(true);
+    try {
+      const res = await api.get(`/periods/${activeCompany.id}`, {
+        headers: { 'x-company-id': String(activeCompany.id) }
+      });
+      setPeriods(res.data || []);
+    } catch (err) {
+      console.error('Failed to fetch periods in header:', err);
+    } finally {
+      setPeriodsLoading(false);
+    }
+  }, [activeCompany?.id]);
+
+  // 2. Fetch pending approvals (Journals and Vouchers)
+  const fetchApprovals = useCallback(async () => {
+    if (!activeCompany?.id || !hasApprovalAccess) return;
+    setApprovalsLoading(true);
+    try {
+      const res = await api.get(`/admin/companies/${activeCompany.id}/approvals`, {
+        headers: { 'x-company-id': String(activeCompany.id) }
+      });
+      setApprovals(res.data || { pendingJournals: [], pendingVouchers: [] });
+    } catch (err) {
+      console.error('Failed to fetch approvals in header:', err);
+    } finally {
+      setApprovalsLoading(false);
+    }
+  }, [activeCompany?.id, hasApprovalAccess]);
+
   useEffect(() => {
-    if (activeCompany?.id) initForCompany(activeCompany.id);
-  }, [activeCompany?.id, initForCompany]);
+    if (activeCompany?.id) {
+      initForCompany(activeCompany.id);
+      fetchPeriods();
+      fetchApprovals();
+    }
+  }, [activeCompany?.id, initForCompany, fetchPeriods, fetchApprovals]);
+
+  // Refetch approvals when location changes to keep badge synced with user creations
+  useEffect(() => {
+    fetchApprovals();
+  }, [location.pathname, fetchApprovals]);
 
   useEffect(() => {
     const onKey = (e) => {
@@ -100,6 +167,98 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
     return () => window.removeEventListener('keydown', onKey);
   }, [closeAll]);
 
+  // Derived accounting period information
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  const currentPeriodName = `${monthNames[month - 1]} ${year}`;
+  const currentPeriod = periods.find(p => p.period_name === currentPeriodName);
+  const isPeriodClosed = currentPeriod?.status === 'CLOSED';
+  const periodStatusText = currentPeriod ? currentPeriod.status : 'OPEN';
+
+  // Toggle accounting period lock status
+  const handleTogglePeriod = async () => {
+    if (!canAdmin || !activeCompany?.id || !currentPeriod) return;
+    setActionSaving(true);
+    setFeedback(null);
+    const nextStatus = currentPeriod.status === 'OPEN' ? 'CLOSED' : 'OPEN';
+    try {
+      await api.patch(`/periods/${activeCompany.id}/${currentPeriod.id}`, { status: nextStatus }, {
+        headers: { 'x-company-id': String(activeCompany.id) }
+      });
+      await fetchPeriods();
+      setFeedback({ type: 'success', text: `Period status successfully updated to ${nextStatus}.` });
+    } catch (err) {
+      setFeedback({ type: 'error', text: err.response?.data?.error || 'Failed to update period status.' });
+    } finally {
+      setActionSaving(false);
+    }
+  };
+
+  // Seed selected monthly period in database
+  const handleSeedPeriod = async () => {
+    if (!canAdmin || !activeCompany?.id) return;
+    setActionSaving(true);
+    setFeedback(null);
+    try {
+      const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
+      const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+      await api.post(`/periods/${activeCompany.id}`, {
+        periodName: currentPeriodName,
+        startDate,
+        endDate,
+        status: 'OPEN'
+      }, {
+        headers: { 'x-company-id': String(activeCompany.id) }
+      });
+      await fetchPeriods();
+      setFeedback({ type: 'success', text: 'Period successfully initialized.' });
+    } catch (err) {
+      setFeedback({ type: 'error', text: err.response?.data?.error || 'Failed to seed period.' });
+    } finally {
+      setActionSaving(false);
+    }
+  };
+
+  // Approve and post vouchers to General Ledger
+  const handleApproveVoucher = async (voucherId) => {
+    if (!activeCompany?.id) return;
+    setActionSaving(true);
+    setFeedback(null);
+    try {
+      await api.post(`/vouchers/${activeCompany.id}/${voucherId}/post`, {}, {
+        headers: { 'x-company-id': String(activeCompany.id) }
+      });
+      await fetchApprovals();
+      setFeedback({ type: 'success', text: 'Voucher posted successfully to General Ledger.' });
+      setTimeout(() => setFeedback(null), 3000);
+    } catch (err) {
+      setFeedback({ type: 'error', text: err.response?.data?.error || 'Failed to post voucher.' });
+    } finally {
+      setActionSaving(false);
+    }
+  };
+
+  // Approve and post manual journal entries
+  const handleApproveJournal = async (journalId) => {
+    if (!activeCompany?.id) return;
+    setActionSaving(true);
+    setFeedback(null);
+    try {
+      await api.post(`/journal/${journalId}/post`, {}, {
+        headers: { 'x-company-id': String(activeCompany.id) }
+      });
+      await fetchApprovals();
+      setFeedback({ type: 'success', text: 'Journal entry posted successfully to General Ledger.' });
+      setTimeout(() => setFeedback(null), 3000);
+    } catch (err) {
+      setFeedback({ type: 'error', text: err.response?.data?.error || 'Failed to post journal entry.' });
+    } finally {
+      setActionSaving(false);
+    }
+  };
+
   const handleLogout = () => {
     closeAll();
     logout();
@@ -107,6 +266,7 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
   };
 
   const years = Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - 3 + i);
+  const totalPendingCount = (approvals.pendingJournals?.length || 0) + (approvals.pendingVouchers?.length || 0);
 
   return (
     <header
@@ -176,56 +336,129 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
         </div>
       </div>
 
-      {/* Right: period, create, company, help, bell, user */}
+      {/* Right: period, create, company, approvals, help, bell, gear, user */}
       <div className="flex items-center gap-1.5 lg:gap-2 ml-auto flex-shrink-0">
-        {/* Accounting period */}
+        
+        {/* 1. Accounting period Selector with lock badge status (Sage 50 Style) */}
         <div className="relative">
           <button
             onClick={() => toggle('period')}
-            className="flex items-center gap-1.5 px-2.5 lg:px-3 py-1.5 rounded-md text-[12px] font-semibold transition-colors hover:bg-emerald-50"
-            style={{ color: PBI.text, border: `1px solid ${PBI.border}`, background: PBI.surface }}
+            className="flex items-center gap-1.5 px-2 lg:px-2.5 py-1.5 rounded-md text-[12px] font-semibold transition-colors hover:bg-emerald-50 border bg-slate-50/50"
+            style={{ color: PBI.text, borderColor: PBI.border }}
           >
             <Calendar size={13} style={{ color: PBI.blue }} />
             <span className="hidden sm:inline">{periodLabel}</span>
-            <ChevronDown size={12} style={{ color: PBI.dim }} />
+            <span className={`inline-flex px-1.5 py-0.5 rounded text-[9px] font-black tracking-wider uppercase border ${
+              isPeriodClosed 
+                ? 'bg-rose-50 text-rose-700 border-rose-100' 
+                : 'bg-emerald-50 text-emerald-700 border-emerald-100'
+            }`}>
+              {periodStatusText}
+            </span>
+            <ChevronDown size={11} style={{ color: PBI.dim }} />
           </button>
-          <HeaderDropdown open={openMenu === 'period'} onClose={closeAll} className="w-52">
-            <div className="px-3 py-2 border-b" style={{ borderColor: PBI.border }}>
-              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: PBI.blue }}>Accounting period</p>
-              <p className="text-[12px] font-semibold mt-0.5" style={{ color: PBI.text }}>{periodLabel}</p>
+          
+          <HeaderDropdown open={openMenu === 'period'} onClose={closeAll} className="w-60">
+            <div className="px-3 py-2 border-b bg-slate-50/50" style={{ borderColor: PBI.border }}>
+              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: PBI.blue }}>Fiscal Period Details</p>
+              <p className="text-[12px] font-black text-slate-800 mt-0.5">{periodLabel} Status</p>
             </div>
-            <div className="p-3 space-y-2">
-              <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: PBI.dim }}>Month</span>
-                <select
-                  value={month}
-                  onChange={(e) => setPeriod(+e.target.value, year, activeCompany?.id)}
-                  className="mt-1 w-full rounded-md px-2 py-1.5 text-[12px] outline-none"
-                  style={{ border: `1px solid ${PBI.border}`, color: PBI.text }}
-                >
-                  {MONTHS.map((m, i) => (
-                    <option key={m} value={i + 1}>{m}</option>
-                  ))}
-                </select>
-              </label>
-              <label className="block">
-                <span className="text-[10px] font-semibold uppercase tracking-wide" style={{ color: PBI.dim }}>Year</span>
-                <select
-                  value={year}
-                  onChange={(e) => setPeriod(month, +e.target.value, activeCompany?.id)}
-                  className="mt-1 w-full rounded-md px-2 py-1.5 text-[12px] outline-none"
-                  style={{ border: `1px solid ${PBI.border}`, color: PBI.text }}
-                >
-                  {years.map((y) => (
-                    <option key={y} value={y}>{y}</option>
-                  ))}
-                </select>
-              </label>
+            
+            <div className="p-3.5 space-y-3">
+              {/* Period Date boundaries */}
+              <div className="bg-slate-50 p-2 rounded-lg border border-slate-100 text-[11px] space-y-1 font-semibold text-slate-600">
+                <div className="flex justify-between">
+                  <span>Start Date:</span>
+                  <span className="font-mono text-slate-900">{currentPeriod ? new Date(currentPeriod.start_date).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'}) : 'N/A'}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span>End Date:</span>
+                  <span className="font-mono text-slate-900">{currentPeriod ? new Date(currentPeriod.end_date).toLocaleDateString(undefined, {month:'short', day:'numeric', year:'numeric'}) : 'N/A'}</span>
+                </div>
+                <div className="h-px bg-slate-200/50 my-1" />
+                <div className="flex justify-between text-[10px] font-extrabold uppercase text-slate-400 tracking-wider">
+                  <span>Fiscal Bounds:</span>
+                  <span>Jan 1 – Dec 31</span>
+                </div>
+              </div>
+
+              {feedback && (
+                <div className={`p-2 rounded text-[11px] font-semibold border ${feedback.type === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-100' : 'bg-rose-50 text-rose-800 border-rose-100'}`}>
+                  {feedback.text}
+                </div>
+              )}
+
+              {/* Month/Year selectors */}
+              <div className="grid grid-cols-2 gap-2">
+                <label className="block">
+                  <span className="text-[9px] font-extrabold uppercase tracking-wide text-slate-400">Month</span>
+                  <select
+                    value={month}
+                    onChange={(e) => setPeriod(+e.target.value, year, activeCompany?.id)}
+                    className="mt-1 w-full rounded-md px-1.5 py-1.5 text-[12px] outline-none bg-white font-semibold border"
+                    style={{ borderColor: PBI.border, color: PBI.text }}
+                  >
+                    {MONTHS.map((m, i) => (
+                      <option key={m} value={i + 1}>{m}</option>
+                    ))}
+                  </select>
+                </label>
+                <label className="block">
+                  <span className="text-[9px] font-extrabold uppercase tracking-wide text-slate-400">Year</span>
+                  <select
+                    value={year}
+                    onChange={(e) => setPeriod(month, +e.target.value, activeCompany?.id)}
+                    className="mt-1 w-full rounded-md px-1.5 py-1.5 text-[12px] outline-none bg-white font-semibold border"
+                    style={{ borderColor: PBI.border, color: PBI.text }}
+                  >
+                    {years.map((y) => (
+                      <option key={y} value={y}>{y}</option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+
+              {/* Lock controls - Admin only */}
+              {canAdmin && (
+                <div className="pt-2 border-t" style={{ borderColor: PBI.border }}>
+                  {currentPeriod ? (
+                    <button
+                      onClick={handleTogglePeriod}
+                      disabled={actionSaving}
+                      className={`w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-[11px] font-bold transition-all border ${
+                        isPeriodClosed
+                          ? 'bg-emerald-50 text-emerald-800 border-emerald-200 hover:bg-emerald-100'
+                          : 'bg-rose-50 text-rose-800 border-rose-200 hover:bg-rose-100'
+                      }`}
+                    >
+                      {actionSaving ? (
+                        <RefreshCw size={12} className="animate-spin" />
+                      ) : isPeriodClosed ? (
+                        <><Unlock size={12} /> Unlock Fiscal Period</>
+                      ) : (
+                        <><Lock size={12} /> Lock Fiscal Period</>
+                      )}
+                    </button>
+                  ) : (
+                    <button
+                      onClick={handleSeedPeriod}
+                      disabled={actionSaving}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-[11px] font-bold bg-[#EBFDF5] text-emerald-800 border border-[#C2F3DC] hover:bg-[#d5f7e6] transition-all"
+                    >
+                      {actionSaving ? (
+                        <RefreshCw size={12} className="animate-spin" />
+                      ) : (
+                        <><Plus size={12} /> Initialize Fiscal Period</>
+                      )}
+                    </button>
+                  )}
+                </div>
+              )}
             </div>
           </HeaderDropdown>
         </div>
 
-        {/* + Create */}
+        {/* + Create Action Dropdown */}
         <div className="relative">
           <button
             onClick={() => toggle('create')}
@@ -258,7 +491,7 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
           </HeaderDropdown>
         </div>
 
-        {/* Company switcher */}
+        {/* Company Switcher Dropdown */}
         <div className="relative hidden sm:block">
           <button
             onClick={() => toggle('company')}
@@ -290,38 +523,242 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
           </HeaderDropdown>
         </div>
 
-        {/* Help */}
-        <div className="relative hidden lg:block">
-          <button
-            onClick={() => toggle('help')}
-            className="w-9 h-9 rounded-md flex items-center justify-center transition-colors hover:bg-emerald-50"
-            aria-label="Help"
-          >
-            <HelpCircle size={17} style={{ color: PBI.muted }} />
-          </button>
-          <HeaderDropdown open={openMenu === 'help'} onClose={closeAll} className="w-48">
-            <button onClick={() => { navigate('/dashboard/reports'); closeAll(); }} className="w-full px-3 py-2.5 text-left text-[12px] hover:bg-emerald-50/50" style={{ color: PBI.text }}>
-              Financial reports
+        {/* 2. Approvals Inbox Dropdown (ERP 4-Eyes Control) */}
+        {hasApprovalAccess && (
+          <div className="relative">
+            <button
+              onClick={() => toggle('approvals')}
+              className="relative w-9 h-9 rounded-md flex items-center justify-center transition-colors hover:bg-emerald-50 border border-slate-100"
+              aria-label="Approvals queue"
+            >
+              <CheckSquare size={16} style={{ color: PBI.muted }} />
+              {totalPendingCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 px-1.5 py-0.5 rounded-full bg-amber-500 text-[9px] font-black text-white border-2 border-white">
+                  {totalPendingCount}
+                </span>
+              )}
             </button>
-            <button onClick={() => { navigate('/dashboard/analytics'); closeAll(); }} className="w-full px-3 py-2.5 text-left text-[12px] hover:bg-emerald-50/50" style={{ color: PBI.text }}>
-              Analytics & planning
-            </button>
-            <button onClick={() => { navigate('/dashboard/ledger'); closeAll(); }} className="w-full px-3 py-2.5 text-left text-[12px] hover:bg-emerald-50/50" style={{ color: PBI.text }}>
-              General ledger
-            </button>
-          </HeaderDropdown>
-        </div>
 
-        {/* Notifications */}
+            <HeaderDropdown open={openMenu === 'approvals'} onClose={closeAll} className="w-80">
+              <div className="px-4 py-3 border-b bg-slate-50/50" style={{ borderColor: PBI.border }}>
+                <p className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600">Pending Approvals</p>
+                <div className="grid grid-cols-3 gap-2 mt-2 text-center text-[11px] font-bold text-slate-500">
+                  <div className="bg-white p-1.5 rounded border">
+                    <span className="block text-[14px] font-black text-slate-800">{approvals.pendingJournals?.length || 0}</span>
+                    Journals
+                  </div>
+                  <div className="bg-white p-1.5 rounded border">
+                    <span className="block text-[14px] font-black text-slate-800">{approvals.pendingVouchers?.length || 0}</span>
+                    Vouchers
+                  </div>
+                  <div className="bg-amber-50 border border-amber-100 p-1.5 rounded text-amber-800">
+                    <span className="block text-[14px] font-black">{totalPendingCount}</span>
+                    Total
+                  </div>
+                </div>
+              </div>
+
+              {feedback && (
+                <div className={`m-3 p-2 rounded text-[11px] font-semibold border ${feedback.type === 'success' ? 'bg-emerald-50 text-emerald-800 border-emerald-100' : 'bg-rose-50 text-rose-800 border-rose-100'}`}>
+                  {feedback.text}
+                </div>
+              )}
+
+              <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100">
+                {/* Pending Vouchers */}
+                {canApproveVouchers && approvals.pendingVouchers?.map((v) => (
+                  <div key={v.id} className="p-3 text-[12px] hover:bg-slate-50/50 transition">
+                    <div className="flex justify-between items-start gap-1">
+                      <div>
+                        <p className="font-bold text-slate-800">{v.voucher_number}</p>
+                        <p className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wide mt-0.5">{v.type} Voucher</p>
+                        <p className="text-[10px] text-slate-500 font-medium mt-1">
+                          Amount: <span className="font-semibold text-slate-700">PKR {parseFloat(v.total_amount).toLocaleString()}</span>
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">By: {v.creator_name || 'System'}</p>
+                      </div>
+                      <div className="flex flex-col gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => handleApproveVoucher(v.id)}
+                          disabled={actionSaving}
+                          className="px-2 py-1 rounded bg-[#EBFDF5] text-emerald-800 border border-[#C2F3DC] text-[10px] font-bold hover:bg-[#d5f7e6]"
+                        >
+                          Approve
+                        </button>
+                        <button
+                          onClick={() => { navigate('/dashboard/vouchers'); closeAll(); }}
+                          className="px-2 py-1 rounded bg-white text-slate-600 border text-[10px] font-bold hover:bg-slate-50"
+                        >
+                          Review
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {/* Pending Journals */}
+                {canApproveJournals && approvals.pendingJournals?.map((j) => (
+                  <div key={j.id} className="p-3 text-[12px] hover:bg-slate-50/50 transition">
+                    <div className="flex justify-between items-start gap-1">
+                      <div className="min-w-0 flex-1 pr-1">
+                        <p className="font-bold text-slate-800 truncate">JE #{j.id} — {j.description}</p>
+                        <p className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wide mt-0.5">Manual Journal</p>
+                        <p className="text-[10px] text-slate-500 font-medium mt-1">
+                          Amount: <span className="font-semibold text-slate-700">PKR {parseFloat(j.total_amount).toLocaleString()}</span>
+                        </p>
+                        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">By: {j.creator_name || 'System'}</p>
+                      </div>
+                      <div className="flex flex-col gap-1 flex-shrink-0">
+                        <button
+                          onClick={() => handleApproveJournal(j.id)}
+                          disabled={actionSaving}
+                          className="px-2 py-1 rounded bg-[#EBFDF5] text-emerald-800 border border-[#C2F3DC] text-[10px] font-bold hover:bg-[#d5f7e6]"
+                        >
+                          Post GL
+                        </button>
+                        <button
+                          onClick={() => { navigate('/dashboard/ledger'); closeAll(); }}
+                          className="px-2 py-1 rounded bg-white text-slate-600 border text-[10px] font-bold hover:bg-slate-50"
+                        >
+                          Review
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+
+                {totalPendingCount === 0 && (
+                  <div className="p-6 text-center text-slate-500 font-medium">
+                    <CheckCircle2 size={32} className="text-emerald-500 mx-auto mb-2" />
+                    <p className="text-[12px]">All transactions posted</p>
+                    <p className="text-[10px] text-slate-400 mt-1">Workspace is fully locked and approved.</p>
+                  </div>
+                )}
+              </div>
+            </HeaderDropdown>
+          </div>
+        )}
+
+        {/* Notifications Button */}
         <button
-          className="relative w-9 h-9 rounded-md flex items-center justify-center transition-colors hover:bg-emerald-50"
+          className="relative w-9 h-9 rounded-md flex items-center justify-center transition-colors hover:bg-emerald-50 border border-slate-100"
           aria-label="Notifications"
         >
           <Bell size={16} style={{ color: PBI.muted }} />
           <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full border-2 border-white" style={{ background: '#10b981' }} />
         </button>
 
-        {/* User menu */}
+        {/* 3. QuickBooks-style Admin Gear Menu dropdown */}
+        <div className="relative">
+          <button
+            onClick={() => toggle('gear')}
+            className={`w-9 h-9 rounded-md flex items-center justify-center transition-colors border border-slate-100 hover:bg-emerald-50 ${
+              openMenu === 'gear' ? 'bg-emerald-50 border-emerald-100 text-emerald-600' : ''
+            }`}
+            aria-label="Admin Tools"
+          >
+            <Settings size={17} style={{ color: PBI.muted }} />
+          </button>
+          
+          <HeaderDropdown open={openMenu === 'gear'} onClose={closeAll} className="w-80">
+            <div className="px-4 py-3 border-b bg-slate-50/50" style={{ borderColor: PBI.border }}>
+              <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Settings & Admin Utilities</p>
+              <p className="text-[12px] font-black text-slate-800 mt-0.5">Quick Access Tools</p>
+            </div>
+            
+            <div className="p-2.5 grid grid-cols-2 gap-3 text-left">
+              {/* Category 1: Company & Access */}
+              <div className="col-span-2 px-1.5 pt-1 text-[10px] font-black uppercase tracking-wider text-[#064E3B] opacity-80">
+                Company & Access
+              </div>
+              <button
+                onClick={() => { navigate('/dashboard/settings'); closeAll(); }}
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-[12px] text-slate-700 font-semibold"
+              >
+                <div className="p-1.5 rounded bg-emerald-50 text-emerald-700">
+                  <Settings size={13} />
+                </div>
+                System Settings
+              </button>
+              
+              <button
+                onClick={() => { navigate('/dashboard/admin?tab=users'); closeAll(); }}
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-[12px] text-slate-700 font-semibold"
+              >
+                <div className="p-1.5 rounded bg-emerald-50 text-emerald-700">
+                  <Users size={13} />
+                </div>
+                Company Profile
+              </button>
+
+              <button
+                onClick={() => { navigate('/dashboard/admin?tab=permissions'); closeAll(); }}
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-[12px] text-slate-700 font-semibold"
+              >
+                <div className="p-1.5 rounded bg-emerald-50 text-emerald-700">
+                  <KeyRound size={13} />
+                </div>
+                User Permissions
+              </button>
+              
+              {/* Category 2: Data & Maintenance */}
+              <div className="col-span-2 px-1.5 pt-2 border-t text-[10px] font-black uppercase tracking-wider text-[#064E3B] opacity-80" style={{ borderColor: PBI.border }}>
+                Data & Maintenance
+              </div>
+              <button
+                onClick={() => { navigate('/dashboard/admin?tab=periods'); closeAll(); }}
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-[12px] text-slate-700 font-semibold"
+              >
+                <div className="p-1.5 rounded bg-cyan-50 text-cyan-700">
+                  <Calendar size={13} />
+                </div>
+                Fiscal Periods
+              </button>
+
+              <button
+                onClick={() => { navigate('/dashboard/admin?tab=sessions'); closeAll(); }}
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-[12px] text-slate-700 font-semibold"
+              >
+                <div className="p-1.5 rounded bg-cyan-50 text-cyan-700">
+                  <History size={13} />
+                </div>
+                Audit Logs
+              </button>
+              
+              <button
+                onClick={() => { navigate('/dashboard/admin?tab=data'); closeAll(); }}
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-[12px] text-slate-700 font-semibold"
+              >
+                <div className="p-1.5 rounded bg-cyan-50 text-cyan-700">
+                  <Database size={13} />
+                </div>
+                Backup & Restore
+              </button>
+
+              <button
+                onClick={() => { navigate('/dashboard/admin?tab=data'); closeAll(); }}
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-[12px] text-slate-700 font-semibold"
+              >
+                <div className="p-1.5 rounded bg-cyan-50 text-cyan-700">
+                  <Plus size={13} />
+                </div>
+                Import Data
+              </button>
+
+              <button
+                onClick={() => { navigate('/dashboard/admin?tab=data'); closeAll(); }}
+                className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-[12px] text-slate-700 font-semibold"
+              >
+                <div className="p-1.5 rounded bg-cyan-50 text-cyan-700">
+                  <FileText size={13} />
+                </div>
+                Export Data
+              </button>
+            </div>
+          </HeaderDropdown>
+        </div>
+
+        {/* User profile dropdown menu */}
         <div className="relative">
           <button
             onClick={() => toggle('user')}
@@ -338,6 +775,7 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
             </span>
             <ChevronDown size={12} className="hidden xl:block" style={{ color: PBI.dim }} />
           </button>
+          
           <HeaderDropdown open={openMenu === 'user'} onClose={closeAll} className="w-52">
             <div className="px-3 py-3 border-b" style={{ borderColor: PBI.border }}>
               <p className="text-[13px] font-semibold truncate" style={{ color: PBI.text }}>{user?.name || 'User'}</p>

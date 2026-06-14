@@ -23,7 +23,7 @@ router.put('/vendors/:companyId/:id',         companyGuard, requirePermission('v
 router.delete('/vendors/:companyId/:id',      companyGuard, requirePermission('vendor.manage'), voucherCtrl.deleteVendor);
 
 // --- PERIOD LOCKS ---
-router.get('/periods/:companyId',             companyGuard, requirePermission('settings.manage'), voucherCtrl.getPeriods);
+router.get('/periods/:companyId',             companyGuard, voucherCtrl.getPeriods);
 router.post('/periods/:companyId',            companyGuard, requirePermission('settings.manage'), voucherCtrl.createPeriod);
 router.patch('/periods/:companyId/:id',       companyGuard, requirePermission('settings.manage'), voucherCtrl.updatePeriodStatus);
 

@@ -11,6 +11,7 @@ router.get('/', requirePermission('journal.view'), journalController.getJournalE
 router.get('/:id', requirePermission('journal.view'), journalController.getEntryDetail);
 
 router.post('/', requirePermission('journal.create'), journalController.createJournalEntry);
+router.post('/:id/submit', requirePermission('journal.create'), journalController.submitJournalForApproval);
 router.post('/:id/post', requirePermission('journal.post'), journalController.postJournalEntry);
 router.delete('/:id', requirePermission('journal.create'), journalController.deleteJournalEntry); // Assuming creator can delete draft
 

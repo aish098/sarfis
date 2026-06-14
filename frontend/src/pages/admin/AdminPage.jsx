@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import { useSearchParams } from 'react-router-dom';
 
 const ROLE_NOTES = {
   Admin: 'Full control over users, settings, roles, and company data.',
@@ -125,7 +126,15 @@ export default function AdminPage() {
   const adminRoles = ['Company Admin', 'Super Admin', 'Admin', 'Owner', 'CEO'];
   const canAdmin = adminRoles.includes(effectiveRole) || adminRoles.includes(user?.role);
 
-  const [activeTab, setActiveTab] = useState('users'); // 'users', 'permissions', 'periods', 'data', 'sessions'
+  const [searchParams, setSearchParams] = useSearchParams();
+  const queryTab = searchParams.get('tab');
+  const [activeTab, setActiveTab] = useState(queryTab || 'users');
+
+  useEffect(() => {
+    if (queryTab && queryTab !== activeTab) {
+      setActiveTab(queryTab);
+    }
+  }, [queryTab]);
 
   const [members, setMembers] = useState([]);
   const [companies, setCompanies] = useState([]);
@@ -204,6 +213,7 @@ export default function AdminPage() {
   // Tab switching loads updated logs
   const handleTabChange = (tab) => {
     setActiveTab(tab);
+    setSearchParams({ tab });
     loadData();
   };
 
