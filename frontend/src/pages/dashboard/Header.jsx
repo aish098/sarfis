@@ -75,7 +75,6 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
   // Core visual parameters
   const leftOffset = isMobile ? 0 : (sidebarCollapsed ? 68 : 248);
   const crumb = resolveBreadcrumb(location.pathname);
-  const periodLabel = `${MONTHS[month - 1] || 'Period'} ${year}`;
   const openMenu = menuState.pathname === location.pathname ? menuState.key : null;
 
   // Multi-entity and RBAC definitions
@@ -97,11 +96,28 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
   const [approvalsLoading, setApprovalsLoading] = useState(false);
   const [actionSaving, setActionSaving] = useState(false);
   const [feedback, setFeedback] = useState(null);
+  const [duration, setDuration] = useState('1'); // '1' | '3' | '6'
 
   // Notifications State & Logic
   const [notifications, setNotifications] = useState([]);
   const [notificationsLoading, setNotificationsLoading] = useState(false);
   const [toasts, setToasts] = useState([]);
+
+  // Derived accounting period information
+  const monthNames = [
+    'January', 'February', 'March', 'April', 'May', 'June',
+    'July', 'August', 'September', 'October', 'November', 'December'
+  ];
+  const currentPeriod = periods.find(p => {
+    const start = new Date(p.start_date);
+    const end = new Date(p.end_date);
+    const mid = new Date(year, month - 1, 15);
+    return mid >= start && mid <= end;
+  });
+  const periodLabel = currentPeriod ? currentPeriod.period_name : `${MONTHS[month - 1] || 'Period'} ${year}`;
+  const currentPeriodName = currentPeriod ? currentPeriod.period_name : `${monthNames[month - 1]} ${year}`;
+  const isPeriodClosed = currentPeriod?.status === 'CLOSED';
+  const periodStatusText = currentPeriod ? currentPeriod.status : 'OPEN';
 
   const closeAll = useCallback(() => {
     setMenuState({ key: null, pathname: location.pathname });
@@ -172,15 +188,7 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
     return () => window.removeEventListener('keydown', onKey);
   }, [closeAll]);
 
-  // Derived accounting period information
-  const monthNames = [
-    'January', 'February', 'March', 'April', 'May', 'June',
-    'July', 'August', 'September', 'October', 'November', 'December'
-  ];
-  const currentPeriodName = `${monthNames[month - 1]} ${year}`;
-  const currentPeriod = periods.find(p => p.period_name === currentPeriodName);
-  const isPeriodClosed = currentPeriod?.status === 'CLOSED';
-  const periodStatusText = currentPeriod ? currentPeriod.status : 'OPEN';
+
 
   // Toggle accounting period lock status
   const handleTogglePeriod = async () => {
@@ -207,10 +215,25 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
     setActionSaving(true);
     setFeedback(null);
     try {
+      const durVal = parseInt(duration);
       const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-      const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+      const endDate = new Date(year, month + durVal - 1, 0).toISOString().split('T')[0];
+      
+      const endMonthIdx = (month - 1 + durVal - 1) % 12;
+      const endYear = year + Math.floor((month - 1 + durVal - 1) / 12);
+      const endMonthName = monthNames[endMonthIdx];
+      
+      let pName;
+      if (durVal === 1) {
+        pName = `${monthNames[month - 1]} ${year}`;
+      } else if (endYear !== year) {
+        pName = `${monthNames[month - 1]} ${year} – ${endMonthName} ${endYear}`;
+      } else {
+        pName = `${monthNames[month - 1]} – ${endMonthName} ${year}`;
+      }
+      
       await api.post(`/periods/${activeCompany.id}`, {
-        periodName: currentPeriodName,
+        periodName: pName,
         startDate,
         endDate,
         status: 'OPEN'
@@ -218,7 +241,7 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
         headers: { 'x-company-id': String(activeCompany.id) }
       });
       await fetchPeriods();
-      setFeedback({ type: 'success', text: 'Period successfully initialized.' });
+      setFeedback({ type: 'success', text: `Period '${pName}' successfully initialized.` });
     } catch (err) {
       setFeedback({ type: 'error', text: err.response?.data?.error || 'Failed to seed period.' });
     } finally {
@@ -580,6 +603,23 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
                   </select>
                 </label>
               </div>
+
+              {/* Period Length - only when seeding new periods */}
+              {!currentPeriod && (
+                <div>
+                  <span className="text-[9px] font-extrabold uppercase tracking-wide text-slate-400">Period Duration</span>
+                  <select
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
+                    className="mt-1 w-full rounded-md px-1.5 py-1.5 text-[12px] outline-none bg-white font-semibold border"
+                    style={{ borderColor: PBI.border, color: PBI.text }}
+                  >
+                    <option value="1">1 Month (Monthly)</option>
+                    <option value="3">3 Months (Quarterly)</option>
+                    <option value="6">6 Months (Half-Yearly)</option>
+                  </select>
+                </div>
+              )}
 
               {/* Lock controls - Admin only */}
               {canAdmin && (
