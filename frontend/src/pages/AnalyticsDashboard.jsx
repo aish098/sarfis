@@ -21,6 +21,7 @@ import {
 } from "recharts";
 import { analyticsApi } from "../services/analyticsApi";
 import useAuthStore from "../store/authStore";
+import api from "../services/api";
 import {
   PBI, fmtChart, computeChartLayout, buildWaterfall,
   AdaptiveChartFrame, ChartTooltip, DynamicPolarTick, DynamicXTick, DynamicYCategoryTick, normalizeChartRows,
@@ -855,6 +856,19 @@ function BudgetTab({ companyId }) {
   const [loading,setLoading] = useState(false);
   const [form,setForm] = useState({ budget_type:"account",account_id:"",sector_id:"",period_month:now.getMonth()+1,period_year:now.getFullYear(),budget_amount:"",notes:"" });
   const [saving,setSaving] = useState(false);
+  const [accounts, setAccounts] = useState([]);
+  const [sectors, setSectors] = useState([]);
+
+  useEffect(() => {
+    if (!companyId) return;
+    api.get(`/accounts/company/${companyId}`)
+      .then(r => setAccounts(r.data))
+      .catch(err => console.error("Failed to load accounts in BudgetTab:", err));
+
+    api.get(`/sectors/${companyId}`)
+      .then(r => setSectors(r.data))
+      .catch(err => console.error("Failed to load sectors in BudgetTab:", err));
+  }, [companyId]);
 
   const load = useCallback(() => {
     setLoading(true);
@@ -891,8 +905,21 @@ function BudgetTab({ companyId }) {
             </select>
           </F>
           {form.budget_type==="account"
-            ? <F label="Account ID"><input value={form.account_id} onChange={e=>setForm(f=>({...f,account_id:e.target.value}))} placeholder="e.g. 42" className="aw-inp" style={{ width:"100%" }} /></F>
-            : <F label="Sector"><input value={form.sector_id} onChange={e=>setForm(f=>({...f,sector_id:e.target.value}))} placeholder="e.g. Textile" className="aw-inp" style={{ width:"100%" }} /></F>
+            ? (
+              <F label="Account">
+                <select value={form.account_id} onChange={e=>setForm(f=>({...f,account_id:e.target.value}))} className="aw-inp" style={{ width:"100%" }}>
+                  <option value="">— Select Account —</option>
+                  {accounts.map(a => <option key={a.id} value={a.id}>{a.code} - {a.name}</option>)}
+                </select>
+              </F>
+            ) : (
+              <F label="Sector">
+                <select value={form.sector_id} onChange={e=>setForm(f=>({...f,sector_id:e.target.value}))} className="aw-inp" style={{ width:"100%" }}>
+                  <option value="">— Select Sector —</option>
+                  {sectors.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
+                </select>
+              </F>
+            )
           }
           <F label="Month">
             <select value={form.period_month} onChange={e=>setForm(f=>({...f,period_month:+e.target.value}))} className="aw-inp" style={{ width:"100%" }}>
