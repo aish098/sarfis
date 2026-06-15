@@ -119,6 +119,25 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
   const isPeriodClosed = currentPeriod?.status === 'CLOSED';
   const periodStatusText = currentPeriod ? currentPeriod.status : 'OPEN';
 
+  const getPeriodDurationValue = (p) => {
+    if (!p) return '1';
+    const start = new Date(p.start_date);
+    const end = new Date(p.end_date);
+    const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24));
+    if (diffDays > 150) return '6';
+    if (diffDays > 75) return '3';
+    return '1';
+  };
+  const hasDurationChanged = currentPeriod && duration !== getPeriodDurationValue(currentPeriod);
+
+  useEffect(() => {
+    if (currentPeriod) {
+      setDuration(getPeriodDurationValue(currentPeriod));
+    } else {
+      setDuration('1');
+    }
+  }, [currentPeriod]);
+
   const closeAll = useCallback(() => {
     setMenuState({ key: null, pathname: location.pathname });
   }, [location.pathname]);
@@ -204,6 +223,47 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
       setFeedback({ type: 'success', text: `Period status successfully updated to ${nextStatus}.` });
     } catch (err) {
       setFeedback({ type: 'error', text: err.response?.data?.error || 'Failed to update period status.' });
+    } finally {
+      setActionSaving(false);
+    }
+  };
+
+  // Update selected period duration in database
+  const handleUpdatePeriodDuration = async () => {
+    if (!canAdmin || !activeCompany?.id || !currentPeriod) return;
+    setActionSaving(true);
+    setFeedback(null);
+    try {
+      const durVal = parseInt(duration);
+      const start = new Date(currentPeriod.start_date);
+      const startMonth = start.getMonth() + 1;
+      const startYear = start.getFullYear();
+      
+      const endDate = new Date(startYear, startMonth + durVal - 1, 0).toISOString().split('T')[0];
+      
+      const endMonthIdx = (startMonth - 1 + durVal - 1) % 12;
+      const endYear = startYear + Math.floor((startMonth - 1 + durVal - 1) / 12);
+      const endMonthName = monthNames[endMonthIdx];
+      
+      let pName;
+      if (durVal === 1) {
+        pName = `${monthNames[startMonth - 1]} ${startYear}`;
+      } else if (endYear !== startYear) {
+        pName = `${monthNames[startMonth - 1]} ${startYear} – ${endMonthName} ${endYear}`;
+      } else {
+        pName = `${monthNames[startMonth - 1]} – ${endMonthName} ${startYear}`;
+      }
+
+      await api.patch(`/periods/${activeCompany.id}/${currentPeriod.id}`, {
+        periodName: pName,
+        endDate
+      }, {
+        headers: { 'x-company-id': String(activeCompany.id) }
+      });
+      await fetchPeriods();
+      setFeedback({ type: 'success', text: `Period duration updated to '${pName}' successfully.` });
+    } catch (err) {
+      setFeedback({ type: 'error', text: err.response?.data?.error || 'Failed to update period duration.' });
     } finally {
       setActionSaving(false);
     }
@@ -604,40 +664,37 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
                 </label>
               </div>
 
-              {/* Period Duration Display or Selector */}
-              {currentPeriod ? (
-                <div>
-                  <span className="text-[9px] font-extrabold uppercase tracking-wide text-slate-400 block">Period Duration</span>
-                  <span className="text-[12px] font-semibold text-slate-800">
-                    {(() => {
-                      const start = new Date(currentPeriod.start_date);
-                      const end = new Date(currentPeriod.end_date);
-                      const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24));
-                      if (diffDays > 150) return '6 Months (Half-Yearly)';
-                      if (diffDays > 75) return '3 Months (Quarterly)';
-                      return '1 Month (Monthly)';
-                    })()}
-                  </span>
-                </div>
-              ) : (
-                <div>
-                  <span className="text-[9px] font-extrabold uppercase tracking-wide text-slate-400">Period Duration</span>
-                  <select
-                    value={duration}
-                    onChange={(e) => setDuration(e.target.value)}
-                    className="mt-1 w-full rounded-md px-1.5 py-1.5 text-[12px] outline-none bg-white font-semibold border"
-                    style={{ borderColor: PBI.border, color: PBI.text }}
-                  >
-                    <option value="1">1 Month (Monthly)</option>
-                    <option value="3">3 Months (Quarterly)</option>
-                    <option value="6">6 Months (Half-Yearly)</option>
-                  </select>
-                </div>
-              )}
+              {/* Period Duration Selector */}
+              <div>
+                <span className="text-[9px] font-extrabold uppercase tracking-wide text-slate-400">Period Duration</span>
+                <select
+                  value={duration}
+                  onChange={(e) => setDuration(e.target.value)}
+                  className="mt-1 w-full rounded-md px-1.5 py-1.5 text-[12px] outline-none bg-white font-semibold border"
+                  style={{ borderColor: PBI.border, color: PBI.text }}
+                >
+                  <option value="1">1 Month (Monthly)</option>
+                  <option value="3">3 Months (Quarterly)</option>
+                  <option value="6">6 Months (Half-Yearly)</option>
+                </select>
+              </div>
 
               {/* Lock controls - Admin only */}
               {canAdmin && (
-                <div className="pt-2 border-t" style={{ borderColor: PBI.border }}>
+                <div className="pt-2 border-t space-y-2" style={{ borderColor: PBI.border }}>
+                  {hasDurationChanged && (
+                    <button
+                      onClick={handleUpdatePeriodDuration}
+                      disabled={actionSaving}
+                      className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-[11px] font-bold bg-emerald-600 text-white hover:bg-emerald-700 transition-all cursor-pointer border-none shadow-sm"
+                    >
+                      {actionSaving ? (
+                        <RefreshCw size={12} className="animate-spin" />
+                      ) : (
+                        <><Plus size={12} /> Save Period Duration</>
+                      )}
+                    </button>
+                  )}
                   {currentPeriod ? (
                     <button
                       onClick={handleTogglePeriod}

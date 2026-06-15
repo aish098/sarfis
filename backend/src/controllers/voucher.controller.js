@@ -183,31 +183,43 @@ exports.createPeriod = async (req, res) => {
 exports.updatePeriodStatus = async (req, res) => {
   try {
     const { companyId, id } = req.params;
-    const { status } = req.body;
-    if (!['OPEN', 'CLOSED'].includes(status)) throw new Error('Invalid status.');
+    const { status, periodName, startDate, endDate } = req.body;
+
+    const updates = {};
+    if (status) {
+      if (!['OPEN', 'CLOSED'].includes(status)) throw new Error('Invalid status.');
+      updates.status = status;
+    }
+    if (periodName) updates.period_name = periodName;
+    if (startDate) updates.start_date = startDate;
+    if (endDate) updates.end_date = endDate;
+
+    updates.updated_at = db.fn.now();
 
     const [period] = await db('accounting_periods')
       .where({ id, company_id: companyId })
-      .update({ status, updated_at: db.fn.now() })
+      .update(updates)
       .returning('*');
 
-    try {
-      const NotificationService = require('../services/notification.service');
-      const modifier = await db('users').where({ id: req.user.id }).first();
-      const modifierName = modifier ? modifier.name : 'An administrator';
+    if (status) {
+      try {
+        const NotificationService = require('../services/notification.service');
+        const modifier = await db('users').where({ id: req.user.id }).first();
+        const modifierName = modifier ? modifier.name : 'An administrator';
 
-      await NotificationService.notifyUsersWithPermission({
-        companyId: parseInt(companyId),
-        permissionCode: 'period.view',
-        title: `Fiscal Period ${status === 'CLOSED' ? 'Locked' : 'Unlocked'}`,
-        message: `Accounting period ${period.period_name} has been ${status === 'CLOSED' ? 'locked' : 'unlocked'} by ${modifierName}.`,
-        type: 'period',
-        priority: 'HIGH',
-        entityType: 'admin',
-        entityId: period.id
-      });
-    } catch (notifErr) {
-      console.error('Failed to notify period status change:', notifErr);
+        await NotificationService.notifyUsersWithPermission({
+          companyId: parseInt(companyId),
+          permissionCode: 'period.view',
+          title: `Fiscal Period ${status === 'CLOSED' ? 'Locked' : 'Unlocked'}`,
+          message: `Accounting period ${period.period_name} has been ${status === 'CLOSED' ? 'locked' : 'unlocked'} by ${modifierName}.`,
+          type: 'period',
+          priority: 'HIGH',
+          entityType: 'admin',
+          entityId: period.id
+        });
+      } catch (notifErr) {
+        console.error('Failed to notify period status change:', notifErr);
+      }
     }
 
     res.json(period);
