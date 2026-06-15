@@ -491,75 +491,295 @@ async function deleteBudget(companyId, budgetId) {
 // 6. BUDGET VS ACTUAL
 // ─────────────────────────────────────────────
 
-async function getBudgetVsActual(companyId, year, month = null) {
-  let budgets = [];
-  try {
-    budgets = await getBudgets(companyId, year, month);
-  } catch (e) {
-    console.warn("getBudgetVsActual fallback:", e.message);
-    return { items: [], summary: {} };
+async function getBudgetVsActual(companyId, selectedYear = null, selectedMonth = null, mode = "all") {
+  // Fetch all budgets for this company to determine available periods
+  const budgets = await db("budgets as b")
+    .leftJoin("accounts as a", "b.account_id", "a.id")
+    .where("b.company_id", companyId)
+    .select(
+      "b.*",
+      "a.name as account_name",
+      "a.code as account_code",
+      "a.category as account_type"
+    )
+    .orderBy(["b.period_year", "b.period_month", "a.name", "b.id"]);
+
+  if (!budgets.length) {
+    const curYear = selectedYear || new Date().getFullYear();
+    const curMonth = selectedMonth || new Date().getMonth() + 1;
+    return {
+      mode,
+      availablePeriods: [],
+      latestPeriod: { year: curYear, month: curMonth, label: monthLabel(curMonth, curYear) },
+      trend: [],
+      detailItems: [],
+      summary: {
+        total_budget: 0,
+        total_actual: 0,
+        total_variance: 0,
+        total_variance_pct: 0
+      }
+    };
   }
 
-  if (!budgets.length) return { budgets: [], summary: {} };
-
-  // Get actual data for same period(s)
-  const months = month ? [month] : [...new Set(budgets.map((b) => b.period_month))];
-
-  const actuals = {};
-  for (const m of months) {
-    const rows = await getMonthlyAccountTotals(companyId, year, m, year, m);
-    for (const r of rows) {
-      const key = `${r.account_id}-${m}`;
-      const net = parseFloat(r.total_credit || 0) - parseFloat(r.total_debit || 0);
-      actuals[key] = net;
+  // Generate a list of chronological months with budget entries
+  const availablePeriodsMap = {};
+  for (const b of budgets) {
+    const key = `${b.period_year}-${String(b.period_month).padStart(2, "0")}`;
+    if (!availablePeriodsMap[key]) {
+      availablePeriodsMap[key] = {
+        year: b.period_year,
+        month: b.period_month,
+        label: monthLabel(b.period_month, b.period_year)
+      };
     }
   }
+  const availablePeriods = Object.values(availablePeriodsMap).sort(
+    (a, b) => a.year - b.year || a.month - b.month
+  );
 
-  let totalBudget = 0;
-  let totalActual = 0;
-  let totalVariance = 0;
+  const latestPeriod = availablePeriods[availablePeriods.length - 1];
 
-  const result = budgets.map((b) => {
-    const key = `${b.account_id}-${b.period_month}`;
-    const actualRaw = actuals[key] || 0;
+  let activeYear = parseInt(selectedYear);
+  let activeMonth = parseInt(selectedMonth);
+
+  if (!activeYear || isNaN(activeYear)) {
+    activeYear = latestPeriod.year;
+  }
+  if (!activeMonth || isNaN(activeMonth)) {
+    activeMonth = latestPeriod.month;
+  }
+
+  // Calculate range of dates to pull actuals for (encompass available periods and activeYear)
+  let minYear = Math.min(activeYear, availablePeriods[0].year);
+  let minMonth = minYear === activeYear ? 1 : availablePeriods[0].month;
+  let maxYear = Math.max(activeYear, latestPeriod.year);
+  let maxMonth = maxYear === activeYear ? 12 : latestPeriod.month;
+
+  const actualRows = await getMonthlyAccountTotals(
+    companyId,
+    minYear,
+    minMonth,
+    maxYear,
+    maxMonth
+  );
+
+  const actualsMap = {}; // key: `${account_id}-${year}-${month}`
+  for (const r of actualRows) {
+    const key = `${r.account_id}-${r.period_year}-${r.period_month}`;
+    const net = parseFloat(r.total_credit || 0) - parseFloat(r.total_debit || 0);
+    actualsMap[key] = (actualsMap[key] || 0) + net;
+  }
+
+  // Fetch actual sector revenues
+  const startDate = `${minYear}-${String(minMonth).padStart(2, "0")}-01`;
+  const endDate = new Date(maxYear, maxMonth, 0);
+  const endDateStr = endDate.toISOString().split("T")[0];
+
+  let sectorActuals = [];
+  try {
+    sectorActuals = await db("deliveries as d")
+      .leftJoin("sectors as s", "d.sector_id", "s.id")
+      .where("d.company_id", companyId)
+      .where("d.status", "DELIVERED")
+      .whereBetween("d.delivery_date", [startDate, endDateStr])
+      .select(
+        "s.name as sector_name",
+        db.raw("EXTRACT(MONTH FROM d.delivery_date)::int as period_month"),
+        db.raw("EXTRACT(YEAR FROM d.delivery_date)::int as period_year"),
+        db.raw("SUM(d.total_amount) as total_revenue")
+      )
+      .groupBy("s.name", "period_month", "period_year");
+  } catch (e) {
+    console.warn("getBudgetVsActual sector actuals fetch failed:", e.message);
+  }
+
+  const sectorActualsMap = {}; // key: `${sector_name}-${year}-${month}`
+  for (const sa of sectorActuals) {
+    const key = `${sa.sector_name}-${sa.period_year}-${sa.period_month}`;
+    sectorActualsMap[key] = parseFloat(sa.total_revenue || 0);
+  }
+
+  // Map budgets to actuals
+  const mappedBudgets = budgets.map((b) => {
+    const actual = b.budget_type === "sector"
+      ? (sectorActualsMap[`${b.sector_id}-${b.period_year}-${b.period_month}`] || 0)
+      : (actualsMap[`${b.account_id}-${b.period_year}-${b.period_month}`] || 0);
     const budgetAmt = parseFloat(b.budget_amount || 0);
-
-    const type = (b.account_type || "").toLowerCase();
-    const isDebitNormal = type === "expense" || type === "cost" || type === "asset" || type === "drawings";
-
-    // For debit-normal accounts, a debit balance is positive
-    const actual = isDebitNormal ? -actualRaw : actualRaw;
-
-    // Variance:
-    // - For Credit-Normal (Revenue/Income/Liability/Equity): actual - budget (higher is favorable)
-    // - For Debit-Normal (Expense/Cost/Asset/Drawings): budget - actual (lower spending/value is favorable)
-    const variance = isDebitNormal
-      ? parseFloat((budgetAmt - actual).toFixed(2))
-      : parseFloat((actual - budgetAmt).toFixed(2));
-
+    const variance = parseFloat((actual - budgetAmt).toFixed(2));
     const variancePct = growthPercent(budgetAmt, actual);
-
-    totalBudget += budgetAmt;
-    totalActual += actual;
-    totalVariance += variance;
 
     return {
       ...b,
       actual_amount: parseFloat(actual.toFixed(2)),
+      budget_amount: budgetAmt,
       variance,
       variance_pct: variancePct,
-      status: variance >= 0 ? "favorable" : "unfavorable",
+      status: variance >= 0 ? "favorable" : "unfavorable"
     };
   });
 
+  // Calculate unique budgeted accounts/sectors for all_periods mode
+  const budgetedAccountIds = [...new Set(budgets.filter(b => b.budget_type === 'account' && b.account_id).map(b => b.account_id))];
+  const budgetedSectorIds = [...new Set(budgets.filter(b => b.budget_type === 'sector' && b.sector_id).map(b => b.sector_id))];
+
+  // Group trend depending on mode
+  let trend = [];
+
+  if (mode === "all" || mode === "month") {
+    // Only months with budget entries
+    const trendMap = {};
+    for (const p of availablePeriods) {
+      const key = `${p.year}-${p.month}`;
+      trendMap[key] = {
+        period: p.label,
+        year: p.year,
+        month: p.month,
+        budget_amount: 0,
+        actual_amount: 0,
+        variance: 0,
+        variance_pct: 0
+      };
+    }
+    for (const mb of mappedBudgets) {
+      const key = `${mb.period_year}-${mb.period_month}`;
+      if (trendMap[key]) {
+        trendMap[key].budget_amount += mb.budget_amount;
+        trendMap[key].actual_amount += mb.actual_amount;
+      }
+    }
+    trend = Object.values(trendMap).sort((a, b) => a.year - b.year || a.month - b.month);
+
+  } else if (mode === "all_periods") {
+    // Every month in the fiscal year (Jan-Dec) of activeYear, even if budget = 0
+    for (let m = 1; m <= 12; m++) {
+      const label = monthLabel(m, activeYear);
+      const budgetsForMonth = mappedBudgets.filter(
+        (mb) => mb.period_year === activeYear && mb.period_month === m
+      );
+      const budgetAmt = budgetsForMonth.reduce((sum, mb) => sum + mb.budget_amount, 0);
+
+      let actualAmt = 0;
+      for (const accId of budgetedAccountIds) {
+        actualAmt += actualsMap[`${accId}-${activeYear}-${m}`] || 0;
+      }
+      for (const secId of budgetedSectorIds) {
+        actualAmt += sectorActualsMap[`${secId}-${activeYear}-${m}`] || 0;
+      }
+
+      trend.push({
+        period: label,
+        year: activeYear,
+        month: m,
+        budget_amount: budgetAmt,
+        actual_amount: actualAmt,
+        variance: 0,
+        variance_pct: 0
+      });
+    }
+
+  } else if (mode === "quarter") {
+    // Grouped by quarter chronologically
+    const trendMap = {};
+    for (const p of availablePeriods) {
+      const quarter = Math.ceil(p.month / 3);
+      const key = `${p.year}-Q${quarter}`;
+      if (!trendMap[key]) {
+        trendMap[key] = {
+          period: `Q${quarter} ${p.year}`,
+          year: p.year,
+          quarter,
+          budget_amount: 0,
+          actual_amount: 0,
+          variance: 0,
+          variance_pct: 0
+        };
+      }
+    }
+    for (const mb of mappedBudgets) {
+      const quarter = Math.ceil(mb.period_month / 3);
+      const key = `${mb.period_year}-Q${quarter}`;
+      if (trendMap[key]) {
+        trendMap[key].budget_amount += mb.budget_amount;
+        trendMap[key].actual_amount += mb.actual_amount;
+      }
+    }
+    trend = Object.values(trendMap).sort((a, b) => a.year - b.year || a.quarter - b.quarter);
+
+  } else if (mode === "year") {
+    // Grouped by year chronologically
+    const trendMap = {};
+    for (const p of availablePeriods) {
+      const key = `${p.year}`;
+      if (!trendMap[key]) {
+        trendMap[key] = {
+          period: `${p.year}`,
+          year: p.year,
+          budget_amount: 0,
+          actual_amount: 0,
+          variance: 0,
+          variance_pct: 0
+        };
+      }
+    }
+    for (const mb of mappedBudgets) {
+      const key = `${mb.period_year}`;
+      if (trendMap[key]) {
+        trendMap[key].budget_amount += mb.budget_amount;
+        trendMap[key].actual_amount += mb.actual_amount;
+      }
+    }
+    trend = Object.values(trendMap).sort((a, b) => a.year - b.year);
+  }
+
+  // Calculate variance and variance % for trend items
+  for (const t of trend) {
+    t.variance = parseFloat((t.actual_amount - t.budget_amount).toFixed(2));
+    t.variance_pct = growthPercent(t.budget_amount, t.actual_amount);
+    t.budget_amount = parseFloat(t.budget_amount.toFixed(2));
+    t.actual_amount = parseFloat(t.actual_amount.toFixed(2));
+  }
+
+  // Account/sector level breakdown for the selected single month
+  const detailItems = mappedBudgets.filter(
+    (b) => b.period_year === activeYear && b.period_month === activeMonth
+  );
+
+  // Summary totals for current view
+  let totalBudget = 0;
+  let totalActual = 0;
+
+  if (mode === "month") {
+    for (const b of detailItems) {
+      totalBudget += b.budget_amount;
+      totalActual += b.actual_amount;
+    }
+  } else {
+    for (const t of trend) {
+      totalBudget += t.budget_amount;
+      totalActual += t.actual_amount;
+    }
+  }
+
+  const totalVariance = parseFloat((totalActual - totalBudget).toFixed(2));
+  const totalVariancePct = growthPercent(totalBudget, totalActual);
+
   return {
-    items: result,
+    mode,
+    availablePeriods,
+    latestPeriod: {
+      year: latestPeriod.year,
+      month: latestPeriod.month,
+      label: latestPeriod.label
+    },
+    trend,
+    detailItems,
     summary: {
       total_budget: parseFloat(totalBudget.toFixed(2)),
       total_actual: parseFloat(totalActual.toFixed(2)),
-      total_variance: parseFloat(totalVariance.toFixed(2)),
-      total_variance_pct: totalBudget > 0 ? parseFloat(((totalVariance / totalBudget) * 100).toFixed(2)) : 0,
-    },
+      total_variance: totalVariance,
+      total_variance_pct: totalVariancePct
+    }
   };
 }
 

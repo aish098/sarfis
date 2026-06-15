@@ -97,9 +97,15 @@ export const analyticsApi = {
       () => fallbackApi.delete(`/analytics/budgets/${companyId}/${budgetId}`, { headers: copySessionHeaders() }).then(() => true)
     ),
 
-  getBudgetVsActual: (companyId, year, month = null) =>
-    withPathFallback(
-      () => api.get(`/analytics/budget-vs-actual/${companyId}?year=${year}${month ? `&month=${month}` : ""}`).then(extractData),
-      () => fallbackApi.get(`/analytics/budget-vs-actual/${companyId}?year=${year}${month ? `&month=${month}` : ""}`, { headers: copySessionHeaders() }).then(extractData)
-    ),
+  getBudgetVsActual: (companyId, year = null, month = null, mode = "all") => {
+    const params = new URLSearchParams();
+    if (year) params.append("year", year);
+    if (month) params.append("month", month);
+    if (mode) params.append("mode", mode);
+    const qs = params.toString();
+    return withPathFallback(
+      () => api.get(`/analytics/budget-vs-actual/${companyId}?${qs}`).then(extractData),
+      () => fallbackApi.get(`/analytics/budget-vs-actual/${companyId}?${qs}`, { headers: copySessionHeaders() }).then(extractData)
+    );
+  },
 };

@@ -146,7 +146,8 @@ exports.deleteBudget = async (req, res) => {
 exports.getBudgetVsActual = async (req, res) => {
   try {
     const { companyId } = req.params;
-    let year = parseInt(req.query.year);
+    const mode = req.query.mode || "all";
+    let year = parseInt(req.query.year) || null;
     let month = req.query.month ? parseInt(req.query.month) : null;
 
     if (req.query.period && /^\d{4}-\d{2}$/.test(req.query.period)) {
@@ -155,11 +156,7 @@ exports.getBudgetVsActual = async (req, res) => {
       month = parseInt(m);
     }
 
-    if (!year || isNaN(year)) {
-      year = new Date().getFullYear();
-    }
-
-    const data = await analyticsService.getBudgetVsActual(companyId, year, month);
+    const data = await analyticsService.getBudgetVsActual(companyId, year, month, mode);
     res.json({ success: true, data });
   } catch (err) {
     console.error("getBudgetVsActual error:", err);

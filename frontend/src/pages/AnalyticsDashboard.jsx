@@ -978,27 +978,31 @@ function BudgetTab({ companyId }) {
 ═══════════════════════════════════════════════════════════════════════════ */
 function VarianceTab({ companyId }) {
   const now = new Date();
-  const [year, setYear] = useState(now.getFullYear());
-  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [mode, setMode] = useState("all");
+  const [selectedPeriod, setSelectedPeriod] = useState({ year: null, month: null });
   const [data, setData] = useState(null);
   const [loading, setLoading] = useState(true);
-
-  const load = useCallback(() => {
-    setLoading(true);
-    analyticsApi.getBudgetVsActual(companyId, year, month).then(setData).catch(console.error).finally(() => setLoading(false));
-  }, [companyId, year, month]);
 
   useEffect(() => {
     let ig = false;
     Promise.resolve().then(() => { if (!ig) setLoading(true); });
-    analyticsApi.getBudgetVsActual(companyId, year, month).then(r => { if (!ig) setData(r); }).catch(console.error).finally(() => { if (!ig) setLoading(false); });
+    analyticsApi.getBudgetVsActual(companyId, selectedPeriod.year, selectedPeriod.month, mode)
+      .then((r) => {
+        if (ig) return;
+        setData(r);
+        if (r?.latestPeriod && (selectedPeriod.year === null || selectedPeriod.month === null)) {
+          setSelectedPeriod({ year: r.latestPeriod.year, month: r.latestPeriod.month });
+        }
+      })
+      .catch(console.error)
+      .finally(() => { if (!ig) setLoading(false); });
     return () => { ig = true; };
-  }, [companyId, year, month]);
+  }, [companyId, selectedPeriod.year, selectedPeriod.month, mode]);
 
-  const items = useMemo(() => data?.items || [], [data?.items]);
+  const items = useMemo(() => data?.detailItems || [], [data?.detailItems]);
   const summary = data?.summary || {};
   const utilization = summary.total_budget > 0
-    ? Math.min(100, (summary.total_actual / summary.total_budget) * 100)
+    ? (summary.total_actual / summary.total_budget) * 100
     : 0;
 
   const rawVarianceRows = useMemo(() =>
@@ -1034,23 +1038,72 @@ function VarianceTab({ companyId }) {
 
   const maxBudget = Math.max(...rawVarianceRows.map((i) => Math.max(i.budget, i.actual)), 1);
 
+  const MODES = [
+    { id: "all", label: "🎯 Budget Months" },
+    { id: "all_periods", label: "📅 All Periods" },
+    { id: "quarter", label: "📊 Quarterly" },
+    { id: "year", label: "🗓️ Yearly" },
+    { id: "month", label: "🔍 Single Month" }
+  ];
+
   return (
     <div className="aw-fade" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <div className="pbi-card" style={{ padding: "20px 22px" }}>
-        <p className="pbi-chart-title">Variance Analysis Slicer</p>
-        <p className="pbi-chart-sub">{MONTHS[month - 1]} {year} — Budget vs Actual performance</p>
-        <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 6 }}>Month</p>
-            <select value={month} onChange={e => setMonth(+e.target.value)} className="aw-inp">
-              {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
-            </select>
-          </div>
-          <div>
-            <p style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 6 }}>Year</p>
-            <input type="number" value={year} onChange={e => setYear(+e.target.value)} className="aw-inp" style={{ width: 90 }} />
-          </div>
-          <button onClick={load} className="aw-btn-primary">Refresh</button>
+        <p className="pbi-chart-title">Variance Reporting Mode</p>
+        <p className="pbi-chart-sub">
+          {mode === "month" && selectedPeriod.year && selectedPeriod.month
+            ? `${MONTHS[selectedPeriod.month - 1]} ${selectedPeriod.year} — Budget vs Actual Performance`
+            : "Professional ERP Budget & Variance Trend Dashboard"}
+        </p>
+        <div style={{ display: "flex", gap: 10, flexWrap: "wrap", alignItems: "center" }}>
+          {MODES.map((m) => (
+            <button
+              key={m.id}
+              onClick={() => {
+                setMode(m.id);
+                // Reset year/month to latest available to ensure it queries cleanly
+                if (m.id !== "month" && m.id !== "all_periods") {
+                  setSelectedPeriod({ year: null, month: null });
+                }
+              }}
+              className={`aw-tab ${mode === m.id ? "active" : ""}`}
+            >
+              {m.label}
+            </button>
+          ))}
+          
+          {mode === "month" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em" }}>Select Month:</span>
+              <select
+                value={selectedPeriod.year && selectedPeriod.month ? `${selectedPeriod.year}-${selectedPeriod.month}` : ""}
+                onChange={(e) => {
+                  const [y, m] = e.target.value.split("-");
+                  setSelectedPeriod({ year: parseInt(y), month: parseInt(m) });
+                }}
+                className="aw-inp"
+              >
+                {data?.availablePeriods?.map((ap) => (
+                  <option key={`${ap.year}-${ap.month}`} value={`${ap.year}-${ap.month}`}>
+                    {ap.label}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
+
+          {mode === "all_periods" && (
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+              <span style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em" }}>Select Year:</span>
+              <input
+                type="number"
+                value={selectedPeriod.year || now.getFullYear()}
+                onChange={(e) => setSelectedPeriod(prev => ({ ...prev, year: parseInt(e.target.value) || now.getFullYear() }))}
+                className="aw-inp"
+                style={{ width: 80 }}
+              />
+            </div>
+          )}
         </div>
       </div>
 
@@ -1069,7 +1122,7 @@ function VarianceTab({ companyId }) {
               <p style={{ fontSize: 13, fontWeight: 600, color: W.textSec, margin: "0 0 12px" }}>Budget Utilization</p>
               <div style={{ position: "relative", height: 8, background: "#f3f2f1", borderRadius: 4, overflow: "hidden" }}>
                 <div style={{
-                  height: "100%", width: `${utilization}%`, borderRadius: 4,
+                  height: "100%", width: `${Math.min(100, Math.max(0, utilization))}%`, borderRadius: 4,
                   background: utilization > 100 ? PBI.negative : utilization > 85 ? "#E66C37" : PBI.positive,
                   transition: "width 0.6s ease",
                 }} />
@@ -1081,117 +1134,234 @@ function VarianceTab({ companyId }) {
             </div>
           </div>
 
-          {items.length > 0 && (
-            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-              <PBIChartCard title="Budget vs Actual" subtitle={`Clustered · ${varianceLayout.orientation} · ${chartItems.length} accounts`} height={varianceLayout.chartHeight + 20} style={{ gridColumn: chartItems.length > 6 ? "1 / -1" : undefined }}>
-                <AdaptiveChartFrame layout={varianceLayout}>
-                  <DynamicClusteredBarChart
-                    chartRows={chartItems}
-                    layout={varianceLayout}
-                    lookup={chartItems}
-                    series={[
-                      { dataKey: "budget", name: "Budget", fill: PBI.budget },
-                      { dataKey: "actual", name: "Actual", fill: PBI.actual },
-                    ]}
-                  />
-                </AdaptiveChartFrame>
-              </PBIChartCard>
-
-              <PBIChartCard title="Variance by Account" subtitle="Favorable vs unfavorable" height={varianceLayout.chartHeight + 20}>
-                <AdaptiveChartFrame layout={varianceLayout}>
-                  <DynamicVarianceBarChart chartRows={chartItems} layout={varianceLayout} lookup={chartItems} />
-                </AdaptiveChartFrame>
-              </PBIChartCard>
-            </div>
-          )}
-
-          {waterfall.length > 0 && (
-            <PBIChartCard title="Variance Waterfall Bridge" subtitle="Cumulative budget variance decomposition" height={wfLayout.chartHeight + 20}>
-              <AdaptiveChartFrame layout={wfLayout}>
-                <DynamicWaterfallChart waterfall={waterfall} layout={wfLayout} lookup={waterfall} />
-              </AdaptiveChartFrame>
-            </PBIChartCard>
-          )}
-
-          {items.length > 0 && (
+          {/* Render Trend Views */}
+          {mode !== "month" && data.trend && (
             <>
-              <PBIChartCard title="Multi-Axis Performance Radar" subtitle="Budget envelope vs actual spend" height={Math.max(360, radarItems.length * 28)}>
-                <AdaptiveChartFrame layout={{ chartHeight: Math.max(360, radarItems.length * 28) }}>
-                  <RadarChart cx="50%" cy="50%" outerRadius={radarItems.length > 8 ? "68%" : "75%"} data={radarItems}>
-                    <PolarGrid stroke="#edebe9" />
-                    <PolarAngleAxis dataKey="account_name" tick={(p) => <DynamicPolarTick {...p} maxChars={radarItems.length > 8 ? 9 : 12} />} />
-                    <PolarRadiusAxis angle={30} tick={{ fill: "#a19f9d", fontSize: 8 }} axisLine={false} tickLine={false} tickFormatter={fmt} />
-                    <Radar name="Budget" dataKey="budget" stroke={PBI.budget} strokeWidth={2} fill={PBI.budget} fillOpacity={0.25} />
-                    <Radar name="Actual" dataKey="actual" stroke={PBI.actual} strokeWidth={2.5} fill={PBI.actual} fillOpacity={0.2} />
-                    <Tooltip content={(p) => <ChartTooltip {...p} fullLabel={p.label} />} />
-                    <Legend iconType="circle" wrapperStyle={legendStyle} />
-                  </RadarChart>
-                </AdaptiveChartFrame>
-              </PBIChartCard>
+              {/* Trend charts side-by-side or stacked */}
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+                <div style={{ gridColumn: data.trend.length > 5 ? "1 / -1" : undefined }}>
+                  <PBIChartCard title="Budget vs. Actual Trend" subtitle="Chronological performance tracking">
+                    <ResponsiveContainer width="100%" height={320}>
+                      <AreaChart data={data.trend} margin={{ top: 12, right: 10, left: 10, bottom: 0 }}>
+                        <defs>
+                          <linearGradient id="colorActualTrend" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#118DFF" stopOpacity={0.22} />
+                            <stop offset="95%" stopColor="#118DFF" stopOpacity={0.01} />
+                          </linearGradient>
+                          <linearGradient id="colorBudgetTrend" x1="0" y1="0" x2="0" y2="1">
+                            <stop offset="5%" stopColor="#12239E" stopOpacity={0.1} />
+                            <stop offset="95%" stopColor="#12239E" stopOpacity={0.01} />
+                          </linearGradient>
+                        </defs>
+                        <CartesianGrid stroke="#edebe9" vertical={false} strokeDasharray="3 3" />
+                        <XAxis dataKey="period" tick={{ fill: "#605e5c", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                        <YAxis tick={{ fill: "#605e5c", fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} width={45} />
+                        <Tooltip content={<WhiteTooltip />} />
+                        <Legend iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: "bold" }} />
+                        <Area type="monotone" dataKey="actual_amount" name="Actual" stroke="#118DFF" strokeWidth={3.5} fillOpacity={1} fill="url(#colorActualTrend)" dot={{ r: 4, fill: "#118DFF" }} />
+                        <Area type="monotone" dataKey="budget_amount" name="Budget" stroke="#12239E" strokeWidth={2} strokeDasharray="5 5" fillOpacity={1} fill="url(#colorBudgetTrend)" dot={{ r: 3, fill: "#12239E" }} />
+                      </AreaChart>
+                    </ResponsiveContainer>
+                  </PBIChartCard>
+                </div>
 
-              <PBIChartCard title="Budget · Actual · Variance %" subtitle="Power BI combo visual" height={varianceLayout.chartHeight + 20}>
-                <AdaptiveChartFrame layout={varianceLayout}>
-                  <DynamicComboChart
-                    chartRows={chartItems}
-                    layout={varianceLayout}
-                    lookup={chartItems}
-                    barSeries={[
-                      { dataKey: "budget", name: "Budget", fill: PBI.budget },
-                      { dataKey: "actual", name: "Actual", fill: PBI.actual },
-                    ]}
-                    lineKey="variance_pct"
-                    lineName="Var %"
-                    lineFormatter={(v, name) => String(name).includes("%") ? `${v}%` : `PKR ${fmt(v)}`}
-                  />
-                </AdaptiveChartFrame>
-              </PBIChartCard>
+                <PBIChartCard title="Variance Trend" subtitle="Favorable (Green) vs Unfavorable (Red) delta">
+                  <ResponsiveContainer width="100%" height={280}>
+                    <BarChart data={data.trend} margin={{ top: 12, right: 10, left: 10, bottom: 0 }}>
+                      <CartesianGrid stroke="#edebe9" vertical={false} strokeDasharray="3 3" />
+                      <XAxis dataKey="period" tick={{ fill: "#605e5c", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: "#605e5c", fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} width={45} />
+                      <Tooltip content={<WhiteTooltip />} />
+                      <Bar dataKey="variance" name="Variance" radius={[4, 4, 0, 0]}>
+                        {data.trend.map((entry, idx) => (
+                          <Cell key={`cell-${idx}`} fill={entry.variance >= 0 ? "#10b981" : "#ef4444"} />
+                        ))}
+                      </Bar>
+                    </BarChart>
+                  </ResponsiveContainer>
+                </PBIChartCard>
+
+                <PBIChartCard title="Budget Utilization Trend" subtitle="Spent percentage by period">
+                  <ResponsiveContainer width="100%" height={280}>
+                    <LineChart data={data.trend} margin={{ top: 12, right: 10, left: 10, bottom: 0 }}>
+                      <CartesianGrid stroke="#edebe9" vertical={false} strokeDasharray="3 3" />
+                      <XAxis dataKey="period" tick={{ fill: "#605e5c", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
+                      <YAxis tick={{ fill: "#605e5c", fontSize: 11 }} tickFormatter={(v) => `${v.toFixed(0)}%`} axisLine={false} tickLine={false} width={35} />
+                      <Tooltip content={(p) => {
+                        if (!p.active || !p.payload?.length) return null;
+                        const val = p.payload[0].value;
+                        return (
+                          <div className="rounded-xl border border-slate-100/80 bg-white/95 backdrop-blur-md px-3 py-2 shadow-xl shadow-slate-900/5">
+                            <p className="text-[10px] font-extrabold text-slate-400 uppercase tracking-widest">{p.label}</p>
+                            <p className="text-[12px] font-extrabold text-slate-800 mt-1">Utilization: {val.toFixed(1)}%</p>
+                          </div>
+                        );
+                      }} />
+                      <ReferenceLine y={100} stroke="#dc2626" strokeDasharray="3 3" label={{ value: "100% Limit", fill: "#dc2626", fontSize: 8, position: "top" }} />
+                      <Line type="monotone" dataKey={(item) => item.budget_amount > 0 ? (item.actual_amount / item.budget_amount) * 100 : 0} name="Utilization %" stroke="#7c3aed" strokeWidth={3} dot={{ r: 4, fill: "#7c3aed" }} />
+                    </LineChart>
+                  </ResponsiveContainer>
+                </PBIChartCard>
+              </div>
+
+              {/* Trend Detail Table */}
+              <div className="pbi-card" style={{ padding: "18px 20px" }}>
+                <p className="pbi-chart-title">Trend Summary Matrix</p>
+                <p className="pbi-chart-sub">Aggregated performance indicators by period</p>
+                <DataTable
+                  headers={[
+                    { label: "Period" },
+                    { label: "Budget Limit", right: true },
+                    { label: "Actual Tracked", right: true },
+                    { label: "Variance", right: true },
+                    { label: "% Variance", right: true },
+                    { label: "Utilization", right: true }
+                  ]}
+                  rows={data.trend.map((t) => {
+                    const util = t.budget_amount > 0 ? (t.actual_amount / t.budget_amount) * 100 : 0;
+                    return [
+                      { node: <span style={{ fontWeight: 600, color: W.textPri, fontSize: 12 }}>{t.period}</span> },
+                      { node: <span style={{ fontFamily: "monospace", color: W.textSec, fontSize: 12 }}>PKR {fmt(t.budget_amount)}</span>, style: { textAlign: "right" } },
+                      { node: <span style={{ fontFamily: "monospace", fontSize: 12 }}>PKR {fmt(t.actual_amount)}</span>, style: { textAlign: "right" } },
+                      { node: <span style={{ fontFamily: "monospace", fontWeight: 700, color: t.variance >= 0 ? PBI.positive : PBI.negative, fontSize: 12 }}>PKR {fmt(t.variance)}</span>, style: { textAlign: "right" } },
+                      { node: <Badge val={t.variance_pct} />, style: { textAlign: "right" } },
+                      {
+                        node: (
+                          <span style={{
+                            padding: "3px 10px", borderRadius: 4, fontSize: 10, fontWeight: 700, fontFamily: "monospace",
+                            background: util > 100 ? "#fde7e9" : "#dff6dd",
+                            color: util > 100 ? PBI.negative : PBI.positive
+                          }}>
+                            {util.toFixed(1)}%
+                          </span>
+                        ),
+                        style: { textAlign: "right" }
+                      }
+                    ];
+                  })}
+                />
+              </div>
             </>
           )}
 
-          <div className="pbi-card" style={{ padding: "18px 20px" }}>
-            <p className="pbi-chart-title">Variance Detail Matrix</p>
-            <p className="pbi-chart-sub">Table with conditional variance bars</p>
-            <DataTable
-              headers={[
-                { label: "Account" },
-                { label: "Budget", right: true },
-                { label: "Actual", right: true },
-                { label: "Variance", right: true },
-                { label: "%", right: true },
-                { label: "Status", right: true },
-              ]}
-              rows={items.map(row => [
-                {
-                  node: (
-                    <div>
-                      <span style={{ fontWeight: 600, color: W.textPri, fontSize: 12 }}>{row.account_name || row.sector_id}</span>
-                      <DataBar value={row.actual_amount} max={maxBudget} color={row.status === "favorable" ? PBI.positive : PBI.negative} />
-                    </div>
-                  ),
-                },
-                { node: <span style={{ fontFamily: "monospace", color: W.textSec, fontSize: 12 }}>{fmt(row.budget_amount)}</span>, style: { textAlign: "right" } },
-                { node: <span style={{ fontFamily: "monospace", fontSize: 12 }}>{fmt(row.actual_amount)}</span>, style: { textAlign: "right" } },
-                { node: <span style={{ fontFamily: "monospace", fontWeight: 700, color: row.variance >= 0 ? PBI.positive : PBI.negative, fontSize: 12 }}>{fmt(row.variance)}</span>, style: { textAlign: "right" } },
-                { node: <Badge val={row.variance_pct} />, style: { textAlign: "right" } },
-                {
-                  node: (
-                    <span style={{
-                      padding: "3px 10px", borderRadius: 4, fontSize: 10, fontWeight: 700, textTransform: "uppercase",
-                      background: row.status === "favorable" ? "#dff6dd" : "#fde7e9",
-                      color: row.status === "favorable" ? PBI.positive : PBI.negative,
-                    }}>
-                      {row.status}
-                    </span>
-                  ),
-                  style: { textAlign: "right" },
-                },
-              ])}
-            />
-          </div>
+          {/* Render Single Month detailed view */}
+          {mode === "month" && items.length > 0 && (
+            <>
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+                <PBIChartCard title="Budget vs Actual" subtitle={`Clustered · ${varianceLayout.orientation} · ${chartItems.length} accounts`} height={varianceLayout.chartHeight + 20} style={{ gridColumn: chartItems.length > 6 ? "1 / -1" : undefined }}>
+                  <AdaptiveChartFrame layout={varianceLayout}>
+                    <DynamicClusteredBarChart
+                      chartRows={chartItems}
+                      layout={varianceLayout}
+                      lookup={chartItems}
+                      series={[
+                        { dataKey: "budget", name: "Budget", fill: PBI.budget },
+                        { dataKey: "actual", name: "Actual", fill: PBI.actual },
+                      ]}
+                    />
+                  </AdaptiveChartFrame>
+                </PBIChartCard>
+
+                <PBIChartCard title="Variance by Account" subtitle="Favorable vs unfavorable" height={varianceLayout.chartHeight + 20}>
+                  <AdaptiveChartFrame layout={varianceLayout}>
+                    <DynamicVarianceBarChart chartRows={chartItems} layout={varianceLayout} lookup={chartItems} />
+                  </AdaptiveChartFrame>
+                </PBIChartCard>
+              </div>
+
+              {waterfall.length > 0 && (
+                <PBIChartCard title="Variance Waterfall Bridge" subtitle="Cumulative budget variance decomposition" height={wfLayout.chartHeight + 20}>
+                  <AdaptiveChartFrame layout={wfLayout}>
+                    <DynamicWaterfallChart waterfall={waterfall} layout={wfLayout} lookup={waterfall} />
+                  </AdaptiveChartFrame>
+                </PBIChartCard>
+              )}
+
+              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
+                <PBIChartCard title="Multi-Axis Performance Radar" subtitle="Budget envelope vs actual spend" height={Math.max(360, radarItems.length * 28)}>
+                  <AdaptiveChartFrame layout={{ chartHeight: Math.max(360, radarItems.length * 28) }}>
+                    <RadarChart cx="50%" cy="50%" outerRadius={radarItems.length > 8 ? "68%" : "75%"} data={radarItems}>
+                      <PolarGrid stroke="#edebe9" />
+                      <PolarAngleAxis dataKey="account_name" tick={(p) => <DynamicPolarTick {...p} maxChars={radarItems.length > 8 ? 9 : 12} />} />
+                      <PolarRadiusAxis angle={30} tick={{ fill: "#a19f9d", fontSize: 8 }} axisLine={false} tickLine={false} tickFormatter={fmt} />
+                      <Radar name="Budget" dataKey="budget" stroke={PBI.budget} strokeWidth={2} fill={PBI.budget} fillOpacity={0.25} />
+                      <Radar name="Actual" dataKey="actual" stroke={PBI.actual} strokeWidth={2.5} fill={PBI.actual} fillOpacity={0.2} />
+                      <Tooltip content={(p) => <ChartTooltip {...p} fullLabel={p.label} />} />
+                      <Legend iconType="circle" wrapperStyle={legendStyle} />
+                    </RadarChart>
+                  </AdaptiveChartFrame>
+                </PBIChartCard>
+
+                <PBIChartCard title="Budget · Actual · Variance %" subtitle="Power BI combo visual" height={varianceLayout.chartHeight + 20}>
+                  <AdaptiveChartFrame layout={varianceLayout}>
+                    <DynamicComboChart
+                      chartRows={chartItems}
+                      layout={varianceLayout}
+                      lookup={chartItems}
+                      barSeries={[
+                        { dataKey: "budget", name: "Budget", fill: PBI.budget },
+                        { dataKey: "actual", name: "Actual", fill: PBI.actual },
+                      ]}
+                      lineKey="variance_pct"
+                      lineName="Var %"
+                      lineFormatter={(v, name) => String(name).includes("%") ? `${v}%` : `PKR ${fmt(v)}`}
+                    />
+                  </AdaptiveChartFrame>
+                </PBIChartCard>
+              </div>
+
+              <div className="pbi-card" style={{ padding: "18px 20px" }}>
+                <p className="pbi-chart-title">Variance Detail Matrix</p>
+                <p className="pbi-chart-sub">Table with conditional variance bars</p>
+                <DataTable
+                  headers={[
+                    { label: "Account" },
+                    { label: "Budget", right: true },
+                    { label: "Actual", right: true },
+                    { label: "Variance", right: true },
+                    { label: "%", right: true },
+                    { label: "Status", right: true },
+                  ]}
+                  rows={items.map(row => [
+                    {
+                      node: (
+                        <div>
+                          <span style={{ fontWeight: 600, color: W.textPri, fontSize: 12 }}>{row.account_name || row.sector_id}</span>
+                          <DataBar value={row.actual_amount} max={maxBudget} color={row.status === "favorable" ? PBI.positive : PBI.negative} />
+                        </div>
+                      ),
+                    },
+                    { node: <span style={{ fontFamily: "monospace", color: W.textSec, fontSize: 12 }}>PKR {fmt(row.budget_amount)}</span>, style: { textAlign: "right" } },
+                    { node: <span style={{ fontFamily: "monospace", fontSize: 12 }}>PKR {fmt(row.actual_amount)}</span>, style: { textAlign: "right" } },
+                    { node: <span style={{ fontFamily: "monospace", fontWeight: 700, color: row.variance >= 0 ? PBI.positive : PBI.negative, fontSize: 12 }}>PKR {fmt(row.variance)}</span>, style: { textAlign: "right" } },
+                    { node: <Badge val={row.variance_pct} />, style: { textAlign: "right" } },
+                    {
+                      node: (
+                        <span style={{
+                          padding: "3px 10px", borderRadius: 4, fontSize: 10, fontWeight: 700, textTransform: "uppercase",
+                          background: row.status === "favorable" ? "#dff6dd" : "#fde7e9",
+                          color: row.status === "favorable" ? PBI.positive : PBI.negative,
+                        }}>
+                          {row.status}
+                        </span>
+                      ),
+                      style: { textAlign: "right" },
+                    },
+                  ])}
+                />
+              </div>
+            </>
+          )}
+
+          {mode === "month" && !items.length && (
+            <Card title="No variance data">
+              <p style={{ color: W.textSec, fontSize: 13 }}>Create budgets for this month in the Budget tab to see variance analysis here.</p>
+            </Card>
+          )}
         </>
       )}
 
-      {!loading && data && !items.length && (
+      {!loading && data && mode !== "month" && !data.trend?.length && (
         <Card title="No variance data">
           <p style={{ color: W.textSec, fontSize: 13 }}>Create budgets in the Budget tab to see variance analysis here.</p>
         </Card>
