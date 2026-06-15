@@ -517,16 +517,31 @@ async function getBudgetVsActual(companyId, year, month = null) {
 
   let totalBudget = 0;
   let totalActual = 0;
+  let totalVariance = 0;
 
   const result = budgets.map((b) => {
     const key = `${b.account_id}-${b.period_month}`;
-    const actual = actuals[key] || 0;
+    const actualRaw = actuals[key] || 0;
     const budgetAmt = parseFloat(b.budget_amount || 0);
-    const variance = parseFloat((actual - budgetAmt).toFixed(2));
+
+    const type = (b.account_type || "").toLowerCase();
+    const isDebitNormal = type === "expense" || type === "cost" || type === "asset" || type === "drawings";
+
+    // For debit-normal accounts, a debit balance is positive
+    const actual = isDebitNormal ? -actualRaw : actualRaw;
+
+    // Variance:
+    // - For Credit-Normal (Revenue/Income/Liability/Equity): actual - budget (higher is favorable)
+    // - For Debit-Normal (Expense/Cost/Asset/Drawings): budget - actual (lower spending/value is favorable)
+    const variance = isDebitNormal
+      ? parseFloat((budgetAmt - actual).toFixed(2))
+      : parseFloat((actual - budgetAmt).toFixed(2));
+
     const variancePct = growthPercent(budgetAmt, actual);
 
     totalBudget += budgetAmt;
     totalActual += actual;
+    totalVariance += variance;
 
     return {
       ...b,
@@ -542,8 +557,8 @@ async function getBudgetVsActual(companyId, year, month = null) {
     summary: {
       total_budget: parseFloat(totalBudget.toFixed(2)),
       total_actual: parseFloat(totalActual.toFixed(2)),
-      total_variance: parseFloat((totalActual - totalBudget).toFixed(2)),
-      total_variance_pct: growthPercent(totalBudget, totalActual),
+      total_variance: parseFloat(totalVariance.toFixed(2)),
+      total_variance_pct: totalBudget > 0 ? parseFloat(((totalVariance / totalBudget) * 100).toFixed(2)) : 0,
     },
   };
 }
