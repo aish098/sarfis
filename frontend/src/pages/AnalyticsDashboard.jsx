@@ -1073,7 +1073,7 @@ function VarianceTab({ companyId }) {
           ))}
           
           {mode === "month" && (
-            <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto" }}>
+            <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto", flexWrap: "wrap" }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em" }}>Select Month:</span>
               <select
                 value={selectedPeriod.year && selectedPeriod.month ? `${selectedPeriod.year}-${selectedPeriod.month}` : ""}
@@ -1089,6 +1089,15 @@ function VarianceTab({ companyId }) {
                   </option>
                 ))}
               </select>
+              {data?.latestPeriod && (
+                <button
+                  onClick={() => setSelectedPeriod({ year: data.latestPeriod.year, month: data.latestPeriod.month })}
+                  className="aw-btn-ghost"
+                  style={{ padding: "6px 12px", fontSize: 11 }}
+                >
+                  ↩️ Jump to Latest ({data.latestPeriod.label})
+                </button>
+              )}
             </div>
           )}
 
@@ -1215,10 +1224,29 @@ function VarianceTab({ companyId }) {
                     { label: "Actual Tracked", right: true },
                     { label: "Variance", right: true },
                     { label: "% Variance", right: true },
-                    { label: "Utilization", right: true }
+                    { label: "Utilization", right: true },
+                    { label: "Status", right: true }
                   ]}
                   rows={data.trend.map((t) => {
                     const util = t.budget_amount > 0 ? (t.actual_amount / t.budget_amount) * 100 : 0;
+                    
+                    let statusColor = PBI.positive;
+                    let statusBg = "#dff6dd";
+                    let statusEmoji = "🟢";
+                    let statusText = "On Track";
+                    
+                    if (util > 100 || (t.budget_amount === 0 && t.actual_amount > 0)) {
+                      statusColor = PBI.negative;
+                      statusBg = "#fde7e9";
+                      statusEmoji = "🔴";
+                      statusText = "Over Budget";
+                    } else if (util >= 90) {
+                      statusColor = "#d97706";
+                      statusBg = "#fffbeb";
+                      statusEmoji = "🟡";
+                      statusText = "Near Limit";
+                    }
+
                     return [
                       { node: <span style={{ fontWeight: 600, color: W.textPri, fontSize: 12 }}>{t.period}</span> },
                       { node: <span style={{ fontFamily: "monospace", color: W.textSec, fontSize: 12 }}>PKR {fmt(t.budget_amount)}</span>, style: { textAlign: "right" } },
@@ -1233,6 +1261,18 @@ function VarianceTab({ companyId }) {
                             color: util > 100 ? PBI.negative : PBI.positive
                           }}>
                             {util.toFixed(1)}%
+                          </span>
+                        ),
+                        style: { textAlign: "right" }
+                      },
+                      {
+                        node: (
+                          <span style={{
+                            padding: "3px 10px", borderRadius: 4, fontSize: 10, fontWeight: 700,
+                            background: statusBg,
+                            color: statusColor
+                          }}>
+                            {statusEmoji} {statusText}
                           </span>
                         ),
                         style: { textAlign: "right" }
