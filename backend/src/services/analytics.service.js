@@ -365,7 +365,45 @@ async function getSectorGrowth(companyId, months = 6) {
 // ─────────────────────────────────────────────
 
 async function createOrUpdateBudget(companyId, budgetData) {
-  let { account_id, sector_id, budget_type, period_month, period_year, budget_amount, notes, currency } = budgetData;
+  let { account_id, sector_id, budget_type, period_month, period_year, budget_amount, notes, currency, period, amount } = budgetData;
+
+  // Fallbacks
+  if (period && /^\d{4}-\d{2}$/.test(period)) {
+    const [y, m] = period.split('-');
+    period_year = parseInt(y);
+    period_month = parseInt(m);
+  }
+  if (budget_amount === undefined || budget_amount === null || budget_amount === "") {
+    budget_amount = amount;
+  }
+
+  // Parse & Validate Year & Month
+  period_month = parseInt(period_month);
+  period_year = parseInt(period_year);
+  if (isNaN(period_month) || period_month < 1 || period_month > 12) {
+    throw new Error("Invalid budget period: month must be between 1 and 12.");
+  }
+  if (isNaN(period_year) || period_year < 1900 || period_year > 2100) {
+    throw new Error("Invalid budget period: year is required and must be a valid year.");
+  }
+
+  // Validate Amount
+  const parsedAmount = parseFloat(budget_amount);
+  if (isNaN(parsedAmount) || parsedAmount < 0) {
+    throw new Error("Invalid budget amount: amount must be a numeric value greater than or equal to zero.");
+  }
+  budget_amount = parsedAmount;
+
+  budget_type = budget_type || "account";
+  if (account_id === "") account_id = null;
+  if (sector_id === "") sector_id = null;
+
+  if (budget_type === "account" && !account_id) {
+    throw new Error("Account ID is required for account budgets.");
+  }
+  if (budget_type === "sector" && !sector_id) {
+    throw new Error("Sector name/ID is required for sector budgets.");
+  }
 
   // 1. SMART LOOKUP: If account_id is provided, check if it's a primary key or a code
   if (account_id && budget_type === "account") {
@@ -397,7 +435,7 @@ async function createOrUpdateBudget(companyId, budgetData) {
 
   if (existing) {
     await db("budgets").where("id", existing.id).update({
-      budget_amount: parseFloat(budget_amount) || 0,
+      budget_amount,
       notes,
       currency: currency || "PKR",
       updated_at: db.fn.now(),
@@ -409,10 +447,10 @@ async function createOrUpdateBudget(companyId, budgetData) {
     company_id: companyId,
     account_id: account_id || null,
     sector_id: sector_id || null,
-    budget_type: budget_type || "account",
+    budget_type,
     period_month,
     period_year,
-    budget_amount: parseFloat(budget_amount) || 0,
+    budget_amount,
     notes,
     currency: currency || "PKR",
   }).returning("*");
@@ -429,12 +467,14 @@ async function getBudgets(companyId, year, month = null) {
 
     if (month) q.where("b.period_month", month);
 
-    return q.select(
+    const result = await q.select(
       "b.*",
       "a.name as account_name",
       "a.code as account_code",
       "a.category as account_type"
     ).orderBy(["b.period_month", "a.name", "b.id"]);
+    
+    return result;
   } catch (e) {
     // Graceful fallback for environments where budget schema isn't ready yet
     // or where DB shape differs across local setups.

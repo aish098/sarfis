@@ -99,15 +99,31 @@ exports.createBudget = async (req, res) => {
     res.json({ success: true, data });
   } catch (err) {
     console.error("createBudget error:", err);
-    res.status(500).json({ success: false, message: err.message });
+    const isValidationError = err.message.includes("required") ||
+                              err.message.includes("Invalid budget period") ||
+                              err.message.includes("must be") ||
+                              err.message.includes("not found");
+    const status = isValidationError ? 400 : 500;
+    res.status(status).json({ success: false, message: err.message });
   }
 };
 
 exports.getBudgets = async (req, res) => {
   try {
     const { companyId } = req.params;
-    const year = parseInt(req.query.year) || new Date().getFullYear();
-    const month = req.query.month ? parseInt(req.query.month) : null;
+    let year = parseInt(req.query.year);
+    let month = req.query.month ? parseInt(req.query.month) : null;
+
+    if (req.query.period && /^\d{4}-\d{2}$/.test(req.query.period)) {
+      const [y, m] = req.query.period.split("-");
+      year = parseInt(y);
+      month = parseInt(m);
+    }
+
+    if (!year || isNaN(year)) {
+      year = new Date().getFullYear();
+    }
+
     const data = await analyticsService.getBudgets(companyId, year, month);
     res.json({ success: true, data });
   } catch (err) {
@@ -130,8 +146,19 @@ exports.deleteBudget = async (req, res) => {
 exports.getBudgetVsActual = async (req, res) => {
   try {
     const { companyId } = req.params;
-    const year = parseInt(req.query.year) || new Date().getFullYear();
-    const month = req.query.month ? parseInt(req.query.month) : null;
+    let year = parseInt(req.query.year);
+    let month = req.query.month ? parseInt(req.query.month) : null;
+
+    if (req.query.period && /^\d{4}-\d{2}$/.test(req.query.period)) {
+      const [y, m] = req.query.period.split("-");
+      year = parseInt(y);
+      month = parseInt(m);
+    }
+
+    if (!year || isNaN(year)) {
+      year = new Date().getFullYear();
+    }
+
     const data = await analyticsService.getBudgetVsActual(companyId, year, month);
     res.json({ success: true, data });
   } catch (err) {

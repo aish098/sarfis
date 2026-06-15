@@ -476,31 +476,50 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
   useEffect(() => {
     if (!activeCompany?.id || !token) return;
 
-    const sseBaseUrl = import.meta.env.PROD ? '/api' : 'http://localhost:5001/api';
-    const url = `${sseBaseUrl}/notifications/stream?token=${encodeURIComponent(token)}`;
-    const eventSource = new EventSource(url);
+    let eventSource;
+    let retryTimeout;
+    let isCancelled = false;
 
-    eventSource.onmessage = (event) => {
-      try {
-        const data = JSON.parse(event.data);
-        if (data && data.id) {
-          if (data.company_id === activeCompany.id) {
-            setNotifications(prev => [data, ...prev]);
-            showToast(data);
+    const connectSSE = () => {
+      if (isCancelled) return;
+
+      const sseBaseUrl = import.meta.env.PROD ? '/api' : 'http://localhost:5001/api';
+      const url = `${sseBaseUrl}/notifications/stream?token=${encodeURIComponent(token)}`;
+      eventSource = new EventSource(url);
+
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          if (data && data.id) {
+            if (data.company_id === activeCompany.id) {
+              setNotifications(prev => [data, ...prev]);
+              showToast(data);
+            }
           }
+        } catch (err) {
+          console.error('Failed to parse SSE notification:', err);
         }
-      } catch (err) {
-        console.error('Failed to parse SSE notification:', err);
-      }
+      };
+
+      eventSource.onerror = (err) => {
+        console.error('SSE connection error, closing EventSource and retrying in 3s:', err);
+        eventSource.close();
+        if (!isCancelled) {
+          retryTimeout = setTimeout(connectSSE, 3000);
+        }
+      };
     };
 
-    eventSource.onerror = (err) => {
-      console.error('SSE connection error, closing EventSource:', err);
-      eventSource.close();
-    };
+    connectSSE();
 
     return () => {
-      eventSource.close();
+      isCancelled = true;
+      if (eventSource) {
+        eventSource.close();
+      }
+      if (retryTimeout) {
+        clearTimeout(retryTimeout);
+      }
     };
   }, [activeCompany?.id, token, showToast]);
 

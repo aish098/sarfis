@@ -81,12 +81,37 @@ const processSale = async ({
     let totalRevenue = 0;
     let totalCOGS = 0;
     const jeLines = [];
+    let firstRevenueAccountId = null;
 
     for (const item of items) {
       const product = await inventoryModel.getProductById(item.product_id, companyId);
       if (!product) throw new Error(`Product ${item.product_id} not found`);
-      if (!product.inventory_account_id || !product.cogs_account_id || !product.revenue_account_id) {
-        throw new Error(`Product ${product.name} is missing COA account links`);
+
+      let inventoryAccountId = product.inventory_account_id;
+      let cogsAccountId = product.cogs_account_id;
+      let revenueAccountId = product.revenue_account_id;
+
+      if (!inventoryAccountId || !cogsAccountId || !revenueAccountId) {
+        const SettingsModel = require('../models/settings.model');
+        const settings = await SettingsModel.getSettings(companyId);
+
+        if (!inventoryAccountId && settings.default_inventory_account_id) {
+          inventoryAccountId = parseInt(settings.default_inventory_account_id);
+        }
+        if (!cogsAccountId && settings.default_cogs_account_id) {
+          cogsAccountId = parseInt(settings.default_cogs_account_id);
+        }
+        if (!revenueAccountId && settings.default_sales_account_id) {
+          revenueAccountId = parseInt(settings.default_sales_account_id);
+        }
+      }
+
+      if (!inventoryAccountId || !cogsAccountId || !revenueAccountId) {
+        throw new Error(`Cannot process sale: Inventory, COGS, or Revenue account is not configured for product "${product.name}" and no company default account exists.`);
+      }
+
+      if (!firstRevenueAccountId) {
+        firstRevenueAccountId = revenueAccountId;
       }
 
       const lineRevenue = parseFloat(item.quantity) * parseFloat(item.unit_price);
@@ -99,8 +124,8 @@ const processSale = async ({
 
       // Per-product lines: Dr COGS, Cr Inventory
       jeLines.push(
-        { account_id: product.cogs_account_id, debit: lineCOGS, credit: 0 },
-        { account_id: product.inventory_account_id, debit: 0, credit: lineCOGS },
+        { account_id: cogsAccountId, debit: lineCOGS, credit: 0 },
+        { account_id: inventoryAccountId, debit: 0, credit: lineCOGS },
       );
 
       await inventoryModel.insertStockLog(trx, {
@@ -125,10 +150,9 @@ const processSale = async ({
     }).returning('*');
 
     // Dr AR, Cr Revenue + Dr COGS, Cr Inventory
-    const defaultRevenueAccountId = items[0] ? (await inventoryModel.getProductById(items[0].product_id, companyId)).revenue_account_id : null;
     await trx('journal_lines').insert([
       { entry_id: je.id, account_id: arAccountId, debit: totalRevenue, credit: 0 },
-      { entry_id: je.id, account_id: defaultRevenueAccountId, debit: 0, credit: totalRevenue },
+      { entry_id: je.id, account_id: firstRevenueAccountId, debit: 0, credit: totalRevenue },
       ...jeLines.map(l => ({ ...l, entry_id: je.id })),
     ]);
 

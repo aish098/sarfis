@@ -79,8 +79,9 @@ exports.streamNotifications = (req, res) => {
 
   // Enforce SSE headers
   res.setHeader('Content-Type', 'text/event-stream');
-  res.setHeader('Cache-Control', 'no-cache');
+  res.setHeader('Cache-Control', 'no-cache, no-transform');
   res.setHeader('Connection', 'keep-alive');
+  res.setHeader('X-Accel-Buffering', 'no');
   res.flushHeaders(); // Establish stream immediately
 
   // Register client connection
@@ -89,14 +90,14 @@ exports.streamNotifications = (req, res) => {
   // Send initial ping to verify channel
   res.write("event: ping\ndata: {}\n\n");
 
-  // Keep-alive heartbeat every 30 seconds to prevent Railway/proxy drops
+  // Keep-alive heartbeat every 15 seconds to prevent Railway/proxy drops
   const pingInterval = setInterval(() => {
     if (res.writableEnded) {
       clearInterval(pingInterval);
       return;
     }
     res.write("event: ping\ndata: {}\n\n");
-  }, 30000);
+  }, 15000);
 
   req.on('close', () => {
     clearInterval(pingInterval);
