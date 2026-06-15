@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useRef, useState, useEffect } from 'react';
 // eslint-disable-next-line no-unused-vars
 import { motion, useScroll, useTransform } from 'framer-motion';
 import { Link } from 'react-router-dom';
@@ -51,7 +51,20 @@ const DASHBOARD_VIEWS = [
 
 export default function Hero() {
   const containerRef = useRef(null);
+  const videoRef = useRef(null);
   const [activeView, setActiveView] = useState(0);
+
+  useEffect(() => {
+    if (videoRef.current) {
+      const playPromise = videoRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          // Catch autoplay or interruption rejections safely
+          console.log("Background video playback handled:", error);
+        });
+      }
+    }
+  }, []);
 
   const { scrollYProgress } = useScroll({ target: containerRef, offset: ['start start', 'end start'] });
   const bgY = useTransform(scrollYProgress, [0, 1], ['0%', '30%']);
@@ -102,11 +115,10 @@ export default function Hero() {
       ref={containerRef}
       className="relative min-h-screen flex flex-col items-center justify-center overflow-hidden pt-24 pb-20 bg-black"
     >
-      {/* Cinematic Background Video */}
       <div className="absolute inset-0 z-0 overflow-hidden pointer-events-none">
         <video
+          ref={videoRef}
           src="https://d8j0ntlcm91z4.cloudfront.net/user_38xzZboKViGWJOttwIXH07lWA1P/hf_20260406_094145_4a271a6c-3869-4f1c-8aa7-aeb0cb227994.mp4"
-          autoPlay
           loop
           muted
           playsInline
