@@ -837,6 +837,13 @@ function OperationsTab({ companyId }) {
   );
 }
 
+const F = ({ label, children }) => (
+  <div>
+    <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>{label}</p>
+    {children}
+  </div>
+);
+
 /* ═══════════════════════════════════════════════════════════════════════════
    BUDGET TAB
 ═══════════════════════════════════════════════════════════════════════════ */
@@ -872,13 +879,6 @@ function BudgetTab({ companyId }) {
     if (!confirm("Delete this budget?")) return;
     await analyticsApi.deleteBudget(companyId,id); load();
   };
-
-  const F = ({ label, children }) => (
-    <div>
-      <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>{label}</p>
-      {children}
-    </div>
-  );
 
   return (
     <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
