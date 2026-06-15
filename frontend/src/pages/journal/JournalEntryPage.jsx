@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Plus, Trash2, Save, RefreshCw,
-  CheckCircle2, AlertCircle, X, Search, ChevronDown, Check, FileText,
+  CheckCircle2, AlertCircle, X, Search, ChevronDown, Check, FileText, CheckSquare,
   Scale, Keyboard, BookOpen, Sparkles, HelpCircle, Activity,
   ArrowRight, ToggleLeft, ToggleRight, Info, Eye, Zap, Layers
 } from 'lucide-react';
