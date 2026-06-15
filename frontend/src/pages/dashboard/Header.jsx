@@ -604,8 +604,22 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
                 </label>
               </div>
 
-              {/* Period Length - only when seeding new periods */}
-              {!currentPeriod && (
+              {/* Period Duration Display or Selector */}
+              {currentPeriod ? (
+                <div>
+                  <span className="text-[9px] font-extrabold uppercase tracking-wide text-slate-400 block">Period Duration</span>
+                  <span className="text-[12px] font-semibold text-slate-800">
+                    {(() => {
+                      const start = new Date(currentPeriod.start_date);
+                      const end = new Date(currentPeriod.end_date);
+                      const diffDays = Math.ceil(Math.abs(end - start) / (1000 * 60 * 60 * 24));
+                      if (diffDays > 150) return '6 Months (Half-Yearly)';
+                      if (diffDays > 75) return '3 Months (Quarterly)';
+                      return '1 Month (Monthly)';
+                    })()}
+                  </span>
+                </div>
+              ) : (
                 <div>
                   <span className="text-[9px] font-extrabold uppercase tracking-wide text-slate-400">Period Duration</span>
                   <select
