@@ -258,25 +258,20 @@ export default function VoucherDetails() {
     <div id="print-area" className="space-y-6 font-sans pb-20 max-w-6xl mx-auto relative">
       <style>{`
         @media print {
-          body * {
-            visibility: hidden;
-          }
-          #print-area, #print-area * {
-            visibility: visible;
+          aside, header, nav, #sidebar-container, .no-print, button, form, input, textarea {
+            display: none !important;
           }
           #print-area {
-            position: absolute;
-            left: 0;
-            top: 0;
-            width: 100%;
-            background: white;
-            padding: 20px !important;
+            position: absolute !important;
+            left: 0 !important;
+            top: 0 !important;
+            width: 100% !important;
+            max-width: 100% !important;
+            background: white !important;
+            padding: 0 !important;
             margin: 0 !important;
             border: none !important;
             box-shadow: none !important;
-          }
-          .no-print, button, form, input, textarea {
-            display: none !important;
           }
         }
       `}</style>
@@ -910,7 +905,10 @@ export default function VoucherDetails() {
                       <p className="text-[10px] text-slate-400 font-medium">{att.size}</p>
                     </div>
                   </div>
-                  <button className="text-[11.5px] font-extrabold text-indigo-600 hover:underline flex items-center gap-1">
+                  <button 
+                    onClick={() => alert(`Previewing Attachment Document:\nFilename: ${att.name}\nSize: ${att.size}\nType: ${att.type}`)}
+                    className="text-[11.5px] font-extrabold text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
                     <Eye size={12} /> View
                   </button>
                 </div>
