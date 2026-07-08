@@ -495,8 +495,10 @@ export default function RiskDashboard() {
                 </table>
               </div>
             )}
+          </div>
+        )}
 
-            {activeSubTab === 'settings' && (
+        {activeSubTab === 'settings' && (
               <div className="space-y-8">
                 
                 {/* 1. Incident Weight Customizer */}
@@ -697,9 +699,6 @@ export default function RiskDashboard() {
               </div>
             )}
           </div>
-        )}
-
-      </div>
 
       {/* Review Worksheet Modal Dialog */}
       {selectedRequest && (
