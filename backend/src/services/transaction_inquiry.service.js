@@ -175,24 +175,33 @@ class TransactionInquiryService {
 
     // 5. Fetch Governance Risk Score & Override logs
     let risk = {
-      status: null,
+      status: {
+        score: 0,
+        level: 'LOW',
+        status: 'ACTIVE',
+        cashOnly: false
+      },
       override: null
     };
 
-    const activeRiskRecord = await db('business_relationship_status')
-      .where({
-        company_id: companyId,
-        entity_id: clientId || vendorId,
-        entity_type: clientId ? 'CUSTOMER' : 'VENDOR'
-      })
-      .first();
+    if (clientId || vendorId) {
+      const activeRiskRecord = await db('business_relationship_status')
+        .where({
+          company_id: companyId,
+          entity_id: clientId || vendorId,
+          entity_type: clientId ? 'CUSTOMER' : 'VENDOR'
+        })
+        .first();
 
-    risk.status = {
-      score: activeRiskRecord ? activeRiskRecord.risk_score : 0,
-      level: activeRiskRecord ? activeRiskRecord.risk_level : 'LOW',
-      status: activeRiskRecord ? activeRiskRecord.status : 'ACTIVE',
-      cashOnly: activeRiskRecord ? !!activeRiskRecord.cash_only : false
-    };
+      if (activeRiskRecord) {
+        risk.status = {
+          score: activeRiskRecord.risk_score,
+          level: activeRiskRecord.risk_level,
+          status: activeRiskRecord.status,
+          cashOnly: !!activeRiskRecord.cash_only
+        };
+      }
+    }
 
     if (voucher.override_request_id) {
       const req = await db('risk_approval_requests as r')
