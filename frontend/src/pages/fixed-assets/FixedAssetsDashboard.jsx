@@ -205,7 +205,7 @@ export default function FixedAssetsDashboard() {
           <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider mb-4">Capitalization by Category</h3>
           <div className="h-60 w-full relative flex items-center justify-center">
             {categoryData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={240}>
                 <PieChart>
                   <Pie
                     data={categoryData}
@@ -245,7 +245,7 @@ export default function FixedAssetsDashboard() {
           <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider mb-4">Depreciation Expense Trend</h3>
           <div className="h-72 w-full">
             {trendData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
+              <ResponsiveContainer width="100%" height={280}>
                 <RechartsBarChart data={trendData}>
                   <XAxis dataKey="month" stroke="#94a3b8" fontSize={11} tickLine={false} />
                   <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} />
