@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate, useParams, Link } from 'react-router-dom';
+import { useNavigate, useParams, Link, useLocation } from 'react-router-dom';
 import { motion as Motion } from 'framer-motion';
 import { 
   ArrowLeft, Save, Plus, Trash2, BookOpen, AlertTriangle, 
@@ -21,6 +21,7 @@ export default function VoucherForm() {
   const { id } = useParams();
   const navigate = useNavigate();
   const { activeCompany } = useAuthStore();
+  const location = useLocation();
 
   const [type, setType] = useState('SALES');
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -215,11 +216,62 @@ export default function VoucherForm() {
       await fetchCatalogs();
       if (id) {
         await loadVoucher();
+      } else if (location.state?.cloneFrom) {
+        const v = location.state.cloneFrom;
+        setType(v.type);
+        setDate(new Date().toISOString().split('T')[0]);
+        setTotalAmount(parseFloat(v.totalAmount || 0));
+        setTaxAmount(parseFloat(v.taxAmount || 0));
+        setNotes(v.payload?.notes || '');
+
+        if (v.type === 'SALES') {
+          setClientId(v.payload?.clientId || '');
+          setWarehouseId(v.payload?.warehouseId || '');
+          setCustomArAccountId(v.payload?.ar_account_id || '');
+          if (v.payload?.items) {
+            setItems(v.payload.items.map(i => ({
+              productId: i.productId || '',
+              quantity: i.quantity || '',
+              unitPrice: i.unitPrice || '',
+              unitCost: i.unitCost || ''
+            })));
+          }
+        } else if (v.type === 'PURCHASE') {
+          setVendorId(v.payload?.vendorId || '');
+          setWarehouseId(v.payload?.warehouseId || '');
+          setCustomApAccountId(v.payload?.ap_account_id || '');
+          if (v.payload?.items) {
+            setItems(v.payload.items.map(i => ({
+              productId: i.productId || '',
+              quantity: i.quantity || '',
+              unitPrice: i.unitPrice || '',
+              unitCost: i.unitCost || ''
+            })));
+          }
+        } else if (v.type === 'RECEIPT') {
+          setClientId(v.payload?.clientId || '');
+          setCashAccountId(v.payload?.cashAccountId || '');
+          setCustomArAccountId(v.payload?.ar_account_id || '');
+          setAmount(v.payload?.amount || '');
+        } else if (v.type === 'PAYMENT') {
+          setVendorId(v.payload?.vendorId || '');
+          setCashAccountId(v.payload?.cashAccountId || '');
+          setCustomApAccountId(v.payload?.ap_account_id || '');
+          setAmount(v.payload?.amount || '');
+        } else if (v.type === 'JOURNAL') {
+          if (v.payload?.lines) {
+            setJournalLines(v.payload.lines.map(l => ({
+              accountId: l.accountId || '',
+              debit: l.debit || '',
+              credit: l.credit || ''
+            })));
+          }
+        }
       }
       setIsLoading(false);
     };
     init();
-  }, [id, fetchCatalogs, loadVoucher]);
+  }, [id, fetchCatalogs, loadVoucher, location.state]);
 
   // Recalculate totals for SALES / PURCHASE
   useEffect(() => {

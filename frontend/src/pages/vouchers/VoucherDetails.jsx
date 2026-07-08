@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import { jsPDF } from 'jspdf';
 
 export default function VoucherDetails() {
   const { id } = useParams();
@@ -73,11 +74,132 @@ export default function VoucherDetails() {
   };
 
   const handleClone = () => {
-    alert('Voucher cloned as a new DRAFT successfully.');
+    navigate('/vouchers/new', { 
+      state: { 
+        cloneFrom: {
+          type: document.type,
+          totalAmount: document.totalAmount,
+          taxAmount: document.taxAmount,
+          payload: document.payload
+        } 
+      } 
+    });
   };
 
   const handlePrint = () => {
     window.print();
+  };
+
+  const handlePDF = () => {
+    const doc = new jsPDF();
+    
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(22);
+    doc.setTextColor(30, 41, 59); // slate-800
+    doc.text("SARFIS ERP TRANSACTION VOUCHER", 14, 20);
+    
+    doc.setDrawColor(226, 232, 240);
+    doc.line(14, 25, 196, 25);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 116, 139); // slate-500
+    doc.text(`Voucher Number: ${document.voucherNumber}`, 14, 32);
+    doc.text(`Type: ${document.type}`, 14, 37);
+    doc.text(`Status: ${document.status}`, 14, 42);
+    doc.text(`Posting Date: ${new Date(document.date).toLocaleDateString()}`, 14, 47);
+    
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 41, 59);
+    doc.text("Header Information", 14, 57);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Warehouse: ${inventory.warehouse?.name || 'Main Warehouse'}`, 14, 63);
+    doc.text(`Created By: ${document.creatorName}`, 14, 69);
+    if (business.customer || business.vendor) {
+      doc.text(`Business Partner: ${business.customer?.name || business.vendor?.name}`, 14, 75);
+    }
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Financial Summary", 120, 57);
+    doc.setFont("helvetica", "normal");
+    doc.text(`Subtotal Amount: PKR ${document.totalAmount.toLocaleString()}`, 120, 63);
+    doc.text(`Tax Amount: PKR ${document.taxAmount.toLocaleString()}`, 120, 69);
+    doc.text(`Total Balanced: PKR ${document.totalAmount.toLocaleString()}`, 120, 75);
+    
+    // Draw table header
+    doc.setFillColor(248, 250, 252);
+    doc.rect(14, 85, 182, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.text("Item Details / Product", 16, 90);
+    doc.text("Qty", 100, 90);
+    doc.text("Unit Price/Cost", 130, 90);
+    doc.text("Total Value", 165, 90);
+    
+    doc.setFont("helvetica", "normal");
+    let y = 98;
+    const itemsList = document.payload?.items || [];
+    itemsList.forEach((item) => {
+      if (y > 270) {
+        doc.addPage();
+        y = 20;
+      }
+      const qty = parseFloat(item.quantity || 0);
+      const price = parseFloat(item.unitCost || item.unitPrice || 0);
+      const total = qty * price;
+      
+      doc.text(String(item.productName || item.productId), 16, y);
+      doc.text(String(qty), 100, y);
+      doc.text(`PKR ${price.toLocaleString()}`, 130, y);
+      doc.text(`PKR ${total.toLocaleString()}`, 165, y);
+      
+      doc.setDrawColor(241, 245, 249);
+      doc.line(14, y + 3, 196, y + 3);
+      y += 8;
+    });
+
+    if (financial.journalLines && financial.journalLines.length > 0) {
+      y += 10;
+      if (y > 240) {
+        doc.addPage();
+        y = 20;
+      }
+      doc.setFont("helvetica", "bold");
+      doc.text("Ledger Double-Entry Postings", 14, y);
+      y += 8;
+      
+      doc.setFillColor(248, 250, 252);
+      doc.rect(14, y - 5, 182, 8, "F");
+      doc.text("Account", 16, y);
+      doc.text("Debit", 110, y);
+      doc.text("Credit", 155, y);
+      y += 8;
+      
+      doc.setFont("helvetica", "normal");
+      financial.journalLines.forEach(line => {
+        doc.text(`${line.account_code} - ${line.account_name}`, 16, y);
+        doc.text(line.debit > 0 ? `PKR ${line.debit.toLocaleString()}` : "-", 110, y);
+        doc.text(line.credit > 0 ? `PKR ${line.credit.toLocaleString()}` : "-", 155, y);
+        y += 8;
+      });
+    }
+    
+    doc.save(`${document.voucherNumber}_Report.pdf`);
+  };
+
+  const handleEmail = () => {
+    const partnerName = business.customer?.name || business.vendor?.name || 'Cash Sale';
+    const subject = encodeURIComponent(`SARFIS Voucher Report: ${document.voucherNumber} (${document.type})`);
+    const body = encodeURIComponent(
+      `Dear Finance Team,\n\nPlease find the transaction summary below:\n\n` +
+      `Voucher Reference: ${document.voucherNumber}\n` +
+      `Type: ${document.type}\n` +
+      `Date: ${new Date(document.date).toLocaleDateString()}\n` +
+      `Partner: ${partnerName}\n` +
+      `Total Amount: PKR ${document.totalAmount.toLocaleString()}\n` +
+      `Status: ${document.status}\n\n` +
+      `Best regards,\n${useAuthStore.getState().user?.name || 'Admin'}`
+    );
+    window.location.href = `mailto:finance@company.com?subject=${subject}&body=${body}`;
   };
 
   if (loading) {
@@ -133,12 +255,36 @@ export default function VoucherDetails() {
   }
 
   return (
-    <div className="space-y-6 font-sans pb-20 max-w-6xl mx-auto">
+    <div id="print-area" className="space-y-6 font-sans pb-20 max-w-6xl mx-auto relative">
+      <style>{`
+        @media print {
+          body * {
+            visibility: hidden;
+          }
+          #print-area, #print-area * {
+            visibility: visible;
+          }
+          #print-area {
+            position: absolute;
+            left: 0;
+            top: 0;
+            width: 100%;
+            background: white;
+            padding: 20px !important;
+            margin: 0 !important;
+            border: none !important;
+            box-shadow: none !important;
+          }
+          .no-print, button, form, input, textarea {
+            display: none !important;
+          }
+        }
+      `}</style>
       
       {/* 1. Header Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/vouchers')} className="w-9 h-9 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 transition-all">
+          <button onClick={() => navigate('/vouchers')} className="no-print w-9 h-9 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 transition-all">
             <ChevronLeft size={16} />
           </button>
           <div>
@@ -166,14 +312,14 @@ export default function VoucherDetails() {
         </div>
 
         {/* Action Controls */}
-        <div className="flex flex-wrap items-center gap-2">
+        <div className="no-print flex flex-wrap items-center gap-2">
           <button onClick={handlePrint} className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm">
             <Printer size={13} /> Print
           </button>
-          <button onClick={() => alert('PDF export successful.')} className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm">
+          <button onClick={handlePDF} className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm">
             <Download size={13} /> PDF
           </button>
-          <button onClick={() => alert('Email shared successfully.')} className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm">
+          <button onClick={handleEmail} className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm">
             <Mail size={13} /> Email
           </button>
           <button onClick={handleClone} className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm">
@@ -274,7 +420,7 @@ export default function VoucherDetails() {
       </div>
 
       {/* 3. Document Timeline Bar */}
-      <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+      <div className="no-print bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
         <h3 className="text-[12px] font-black uppercase text-slate-800 tracking-wider">Document Workflow Timeline</h3>
         <div className="relative pt-2 pb-6">
           {/* Horizontal Line */}
@@ -556,7 +702,7 @@ export default function VoucherDetails() {
         <div className="space-y-6">
           
           {/* Related Documents Chain */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4">
+          <div className="no-print bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4">
             <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider flex items-center gap-1.5 border-b border-slate-50 pb-2">
               <TrendingUp size={14} className="text-indigo-500" /> Transaction Document Chain
             </h3>
@@ -682,7 +828,7 @@ export default function VoucherDetails() {
           </div>
 
           {/* Audit History Logs */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4">
+          <div className="no-print bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4">
             <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider flex items-center gap-1.5 border-b border-slate-50 pb-2">
               <FileText size={14} className="text-slate-500" /> Compliance Audit Trail
             </h3>
@@ -703,7 +849,7 @@ export default function VoucherDetails() {
           </div>
 
           {/* Manager Audit Comments Section */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4">
+          <div className="no-print bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4">
             <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider flex items-center gap-1.5 border-b border-slate-50 pb-2">
               <MessageSquare size={14} className="text-indigo-500" /> Transaction Audit Comments
             </h3>
@@ -748,7 +894,7 @@ export default function VoucherDetails() {
           </div>
 
           {/* Attachments Section */}
-          <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4">
+          <div className="no-print bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4">
             <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider flex items-center gap-1.5 border-b border-slate-50 pb-2">
               <Paperclip size={14} className="text-slate-500" /> Attached Reference Documents
             </h3>
