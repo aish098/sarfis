@@ -3,7 +3,7 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { 
   Plus, Search, Tag, Eye, Info, FileText, Calendar, DollarSign, MapPin, 
   User, Activity, ArrowRight, TrendingUp, X, PlusCircle, Trash2,
-  Wrench, Printer, RefreshCw, Filter, ShieldCheck, CheckSquare
+  Wrench, Printer, RefreshCw, Filter, ShieldCheck, CheckSquare, ArrowLeft
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
