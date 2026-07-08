@@ -330,6 +330,9 @@ export default function DistributionPage() {
                               Cancel
                             </button>
                           )}
+                          {['DELIVERED', 'CANCELLED'].includes(d.status) && (
+                            <span className="text-[12px] text-slate-400 font-medium pl-2">—</span>
+                          )}
                         </div>
                       </td>
                     </Motion.tr>
