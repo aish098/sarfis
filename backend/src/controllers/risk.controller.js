@@ -385,8 +385,16 @@ exports.getApprovalRequest = async (req, res) => {
   const { requestId } = req.params;
   const companyId = req.companyId;
 
+  const idVal = parseInt(requestId);
+  if (isNaN(idVal)) {
+    return res.status(400).json({ error: 'Invalid approval request ID.' });
+  }
+
   try {
-    const request = await RiskModel.getApprovalRequestById(parseInt(requestId), companyId);
+    const request = await RiskModel.getApprovalRequestById(idVal, companyId);
+    if (!request) {
+      return res.status(404).json({ error: 'Approval request not found.' });
+    }
     res.json(request);
   } catch (err) {
     res.status(500).json({ error: err.message });

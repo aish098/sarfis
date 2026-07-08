@@ -34,8 +34,8 @@ router.post('/verify-override', riskController.verifyOverride);
 
 // Generic Approval Requests
 router.post('/approval-requests', requirePermission('risk.manage'), riskController.submitApprovalRequest);
-router.get('/approval-requests/:requestId', riskController.getApprovalRequest);
 router.get('/approval-requests/pending', requirePermission('risk.approve'), riskController.getPendingApprovalRequests);
+router.get('/approval-requests/:requestId', riskController.getApprovalRequest);
 router.post('/approval-requests/review/:requestId', requirePermission('risk.approve'), riskController.reviewApprovalRequest);
 router.post('/scheduler/reviews', requirePermission('risk.manage'), riskController.triggerScheduledReviews);
 
