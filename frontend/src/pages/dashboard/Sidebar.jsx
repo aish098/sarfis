@@ -96,6 +96,22 @@ export default function Sidebar({ collapsed, isMobile, onToggle }) {
 
   return (
     <>
+      <style>{`
+        .custom-scrollbar::-webkit-scrollbar {
+          width: 5px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-track {
+          background: rgba(255, 255, 255, 0.02);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(255, 255, 255, 0.12);
+          border-radius: 10px;
+        }
+        .custom-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(255, 255, 255, 0.22);
+        }
+      `}</style>
       {/* Mobile overlay */}
       <AnimatePresence>
         {isMobile && !collapsed && (
@@ -168,7 +184,7 @@ export default function Sidebar({ collapsed, isMobile, onToggle }) {
         )}
 
         {/* Navigation */}
-        <div className="flex-1 overflow-y-auto overflow-x-hidden py-2" style={{ scrollbarWidth: 'none' }}>
+        <div className="flex-1 overflow-y-auto overflow-x-hidden py-2 custom-scrollbar">
           {navSections.map((section) => (
             <div key={section.label}>
               {!collapsed && (
