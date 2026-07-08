@@ -329,6 +329,29 @@ export default function RiskDashboard() {
     setCalculatingPreview(false);
   };
 
+  const modifiedRulesCount = editedRules.filter(er => {
+    const original = rules.find(r => r.id === er.id);
+    return original && (original.weight !== er.weight || original.enabled !== er.enabled);
+  }).length;
+
+  const modifiedLevelsCount = editedLevels.filter(el => {
+    const original = levels.find(l => l.id === el.id);
+    return original && (original.min_score !== el.min_score || original.max_score !== el.max_score);
+  }).length;
+
+  const hasUnsavedChanges = modifiedRulesCount > 0 || modifiedLevelsCount > 0;
+
+  useEffect(() => {
+    const handleBeforeUnload = (e) => {
+      if (hasUnsavedChanges) {
+        e.preventDefault();
+        e.returnValue = 'You have unsaved credit risk policy changes. Are you sure you want to discard them?';
+      }
+    };
+    window.addEventListener('beforeunload', handleBeforeUnload);
+    return () => window.removeEventListener('beforeunload', handleBeforeUnload);
+  }, [hasUnsavedChanges]);
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
@@ -1113,6 +1136,57 @@ export default function RiskDashboard() {
                             </tbody>
                           </table>
                         </div>
+
+                        {/* Pending Policy Delta Comparison */}
+                        {hasUnsavedChanges && (
+                          <div className="space-y-3 pt-6 border-t border-slate-100">
+                            <p className="text-[12.5px] font-bold text-slate-700 uppercase tracking-wide">Pending Policy Delta Comparison</p>
+                            <div className="border border-slate-100 rounded-xl overflow-hidden shadow-sm bg-white">
+                              <table className="w-full text-left border-collapse text-[12.5px]">
+                                <thead>
+                                  <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                    <th className="px-4 py-3">Rule / Threshold</th>
+                                    <th className="px-4 py-3">Original Policy Value</th>
+                                    <th className="px-4 py-3 font-semibold text-slate-800">Modified Value</th>
+                                    <th className="px-4 py-3 text-right">Adjustment State</th>
+                                  </tr>
+                                </thead>
+                                <tbody className="divide-y divide-slate-50 text-slate-600 font-mono text-[11.5px]">
+                                  {/* Rules Delta */}
+                                  {editedRules.filter(er => {
+                                    const original = rules.find(r => r.id === er.id);
+                                    return original && (original.weight !== er.weight || original.enabled !== er.enabled);
+                                  }).map(er => {
+                                    const original = rules.find(r => r.id === er.id);
+                                    return (
+                                      <tr key={er.id} className="hover:bg-slate-50/20 bg-white">
+                                        <td className="px-4 py-3 font-sans font-bold text-slate-700">{er.label} ({er.code})</td>
+                                        <td className="px-4 py-3 text-slate-400">Weight: {original.weight} | {original.enabled ? 'Enabled' : 'Disabled'}</td>
+                                        <td className="px-4 py-3 font-semibold text-slate-800">Weight: {er.weight} | {er.enabled ? 'Enabled' : 'Disabled'}</td>
+                                        <td className="px-4 py-3 text-right text-amber-600 font-sans font-bold">Modified Rule</td>
+                                      </tr>
+                                    );
+                                  })}
+                                  {/* Levels Delta */}
+                                  {editedLevels.filter(el => {
+                                    const original = levels.find(l => l.id === el.id);
+                                    return original && (original.min_score !== el.min_score || original.max_score !== el.max_score);
+                                  }).map(el => {
+                                    const original = levels.find(l => l.id === el.id);
+                                    return (
+                                      <tr key={el.id} className="hover:bg-slate-50/20 bg-white">
+                                        <td className="px-4 py-3 font-sans font-bold text-slate-700">{el.risk_level} Rating Threshold</td>
+                                        <td className="px-4 py-3 text-slate-400">{original.min_score} - {original.max_score} pts</td>
+                                        <td className="px-4 py-3 font-semibold text-slate-800">{el.min_score} - {el.max_score} pts</td>
+                                        <td className="px-4 py-3 text-right text-orange-600 font-sans font-bold">Modified Threshold</td>
+                                      </tr>
+                                    );
+                                  })}
+                                </tbody>
+                              </table>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     )}
                   </div>
@@ -1133,7 +1207,11 @@ export default function RiskDashboard() {
                   </button>
                 </div>
                 <div className="flex gap-2">
-                  <button type="button" onClick={loadData} disabled={saving}
+                  <button type="button" onClick={() => {
+                      if (!hasUnsavedChanges || window.confirm('Discard all unsaved policy modifications?')) {
+                        loadData();
+                      }
+                    }} disabled={saving}
                     className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 rounded-lg text-[12px] font-bold transition-all">
                     Cancel
                   </button>
@@ -1154,6 +1232,17 @@ export default function RiskDashboard() {
                 <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider flex items-center gap-1.5 border-b border-slate-50 pb-2">
                   Policy Summary
                 </h3>
+                {hasUnsavedChanges && (
+                  <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-xl p-3 space-y-1 animate-pulse">
+                    <p className="text-[11px] font-black uppercase tracking-wider flex items-center gap-1">
+                      <span className="w-2 h-2 rounded-full bg-amber-500" /> Unsaved Changes
+                    </p>
+                    <p className="text-[10.5px] font-bold text-slate-500">
+                      {modifiedRulesCount > 0 && `${modifiedRulesCount} rule(s) modified `}
+                      {modifiedLevelsCount > 0 && `${modifiedLevelsCount} threshold(s) modified`}
+                    </p>
+                  </div>
+                )}
                 <div className="space-y-3 text-[12.5px]">
                   <div className="flex justify-between">
                     <span className="text-slate-400 font-semibold">Customer Rules</span>
