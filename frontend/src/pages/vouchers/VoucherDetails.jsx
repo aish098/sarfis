@@ -9,6 +9,7 @@ import {
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import { jsPDF } from 'jspdf';
+import 'jspdf-autotable';
 
 export default function VoucherDetails() {
   const { id } = useParams();
@@ -126,80 +127,77 @@ export default function VoucherDetails() {
     doc.text(`Tax Amount: PKR ${document.taxAmount.toLocaleString()}`, 120, 69);
     doc.text(`Total Balanced: PKR ${document.totalAmount.toLocaleString()}`, 120, 75);
     
-    // Draw table header
-    doc.setFillColor(248, 250, 252);
-    doc.rect(14, 85, 182, 8, "F");
-    doc.setFont("helvetica", "bold");
-    doc.text("Item Details / Product", 16, 90);
-    doc.text("Qty", 100, 90);
-    doc.text("Unit Price/Cost", 130, 90);
-    doc.text("Total Value", 165, 90);
+    let currentY = 85;
     
-    doc.setFont("helvetica", "normal");
-    let y = 98;
     const itemsList = document.payload?.items || [];
-    itemsList.forEach((item) => {
-      if (y > 270) {
-        doc.addPage();
-        y = 20;
-      }
-      const qty = parseFloat(item.quantity || 0);
-      const price = parseFloat(item.unitCost || item.unitPrice || 0);
-      const total = qty * price;
+    if (itemsList.length > 0) {
+      doc.setFont("helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(30, 41, 59);
+      doc.text("Item Details / Specifications", 14, currentY);
+      currentY += 4;
       
-      doc.text(String(item.productName || item.productId), 16, y);
-      doc.text(String(qty), 100, y);
-      doc.text(`PKR ${price.toLocaleString()}`, 130, y);
-      doc.text(`PKR ${total.toLocaleString()}`, 165, y);
+      const bodyData = itemsList.map(item => {
+        const qty = parseFloat(item.quantity || 0);
+        const price = parseFloat(item.unitCost || item.unitPrice || 0);
+        const total = qty * price;
+        return [
+          item.productName || item.productId,
+          qty.toLocaleString(),
+          `PKR ${price.toLocaleString()}`,
+          `PKR ${total.toLocaleString()}`
+        ];
+      });
       
-      doc.setDrawColor(241, 245, 249);
-      doc.line(14, y + 3, 196, y + 3);
-      y += 8;
-    });
-
+      doc.autoTable({
+        startY: currentY,
+        head: [['Product / Item Name', 'Quantity', 'Unit Price/Cost', 'Total Value']],
+        body: bodyData,
+        theme: 'striped',
+        headStyles: { fillColor: [79, 70, 229] }, // Indigo-600
+        styles: { fontSize: 8.5, font: 'helvetica' },
+        columnStyles: {
+          1: { halign: 'center' },
+          2: { halign: 'right' },
+          3: { halign: 'right' }
+        }
+      });
+      
+      currentY = doc.previousAutoTable.finalY + 12;
+    }
+    
     if (financial.journalLines && financial.journalLines.length > 0) {
-      y += 10;
-      if (y > 240) {
+      if (currentY > 240) {
         doc.addPage();
-        y = 20;
+        currentY = 20;
       }
       doc.setFont("helvetica", "bold");
-      doc.text("Ledger Double-Entry Postings", 14, y);
-      y += 8;
+      doc.setFontSize(11);
+      doc.setTextColor(30, 41, 59);
+      doc.text("Ledger Double-Entry Postings (GL Impact)", 14, currentY);
+      currentY += 4;
       
-      doc.setFillColor(248, 250, 252);
-      doc.rect(14, y - 5, 182, 8, "F");
-      doc.text("Account", 16, y);
-      doc.text("Debit", 110, y);
-      doc.text("Credit", 155, y);
-      y += 8;
+      const ledgerData = financial.journalLines.map(line => [
+        `${line.account_code} - ${line.account_name}`,
+        line.debit > 0 ? `PKR ${line.debit.toLocaleString()}` : "-",
+        line.credit > 0 ? `PKR ${line.credit.toLocaleString()}` : "-"
+      ]);
       
-      doc.setFont("helvetica", "normal");
-      financial.journalLines.forEach(line => {
-        doc.text(`${line.account_code} - ${line.account_name}`, 16, y);
-        doc.text(line.debit > 0 ? `PKR ${line.debit.toLocaleString()}` : "-", 110, y);
-        doc.text(line.credit > 0 ? `PKR ${line.credit.toLocaleString()}` : "-", 155, y);
-        y += 8;
+      doc.autoTable({
+        startY: currentY,
+        head: [['General Ledger Account', 'Debit Postings', 'Credit Postings']],
+        body: ledgerData,
+        theme: 'grid',
+        headStyles: { fillColor: [15, 23, 42] }, // Slate-800
+        styles: { fontSize: 8.5, font: 'helvetica' },
+        columnStyles: {
+          1: { halign: 'right', fontStyle: 'bold', textColor: [5, 150, 105] }, // green debits
+          2: { halign: 'right', fontStyle: 'bold', textColor: [225, 29, 72] }  // red credits
+        }
       });
     }
     
     doc.save(`${document.voucherNumber}_Report.pdf`);
-  };
-
-  const handleEmail = () => {
-    const partnerName = business.customer?.name || business.vendor?.name || 'Cash Sale';
-    const subject = encodeURIComponent(`SARFIS Voucher Report: ${document.voucherNumber} (${document.type})`);
-    const body = encodeURIComponent(
-      `Dear Finance Team,\n\nPlease find the transaction summary below:\n\n` +
-      `Voucher Reference: ${document.voucherNumber}\n` +
-      `Type: ${document.type}\n` +
-      `Date: ${new Date(document.date).toLocaleDateString()}\n` +
-      `Partner: ${partnerName}\n` +
-      `Total Amount: PKR ${document.totalAmount.toLocaleString()}\n` +
-      `Status: ${document.status}\n\n` +
-      `Best regards,\n${useAuthStore.getState().user?.name || 'Admin'}`
-    );
-    window.location.href = `mailto:finance@company.com?subject=${subject}&body=${body}`;
   };
 
   const handleViewAttachment = (att) => {
@@ -245,90 +243,95 @@ export default function VoucherDetails() {
     }
     doc.text("Delivery Type: Standard Freight", 120, 67);
     
-    // Draw Item Details Table
-    doc.setFillColor(241, 245, 249);
-    doc.rect(14, 76, 182, 8, "F");
-    doc.setFont("helvetica", "bold");
-    doc.text("Product / Item Name", 16, 81);
-    doc.text("Qty Shipped", 90, 81);
-    if (isInvoice) {
-      doc.text("Unit Price", 130, 81);
-      doc.text("Line Total", 165, 81);
-    } else {
-      doc.text("Qty Received", 130, 81);
-      doc.text("Item Condition", 160, 81);
-    }
+    let currentY = 76;
     
-    doc.setFont("helvetica", "normal");
-    let y = 90;
     const itemsList = document.payload?.items || [];
-    
-    if (itemsList.length === 0) {
-      doc.text("No item specifications found.", 16, y);
-      y += 8;
-    } else {
-      itemsList.forEach((item) => {
-        if (y > 260) {
-          doc.addPage();
-          y = 20;
-        }
+    if (itemsList.length > 0) {
+      const headers = isInvoice 
+        ? [['Product / Item Name', 'Qty Shipped', 'Unit Price', 'Line Total']]
+        : [['Product / Item Name', 'Qty Shipped', 'Qty Received', 'Item Condition']];
+      
+      const body = itemsList.map(item => {
         const qty = parseFloat(item.quantity || 0);
         const price = parseFloat(item.unitPrice || item.unitCost || 0);
         const total = qty * price;
-        
-        doc.text(String(item.productName || item.productId), 16, y);
-        doc.text(String(qty), 90, y);
         if (isInvoice) {
-          doc.text(`PKR ${price.toLocaleString()}`, 130, y);
-          doc.text(`PKR ${total.toLocaleString()}`, 165, y);
+          return [
+            item.productName || item.productId,
+            qty.toLocaleString(),
+            `PKR ${price.toLocaleString()}`,
+            `PKR ${total.toLocaleString()}`
+          ];
         } else {
-          doc.text("[   ] _______", 130, y);
-          doc.text("Good / Sealed", 160, y);
+          return [
+            item.productName || item.productId,
+            qty.toLocaleString(),
+            "[   ] _______",
+            "Good / Sealed"
+          ];
         }
-        
-        doc.setDrawColor(241, 245, 249);
-        doc.line(14, y + 3, 196, y + 3);
-        y += 8;
       });
+      
+      doc.autoTable({
+        startY: currentY,
+        head: headers,
+        body: body,
+        theme: 'striped',
+        headStyles: { fillColor: isInvoice ? [79, 70, 229] : [14, 116, 144] }, // Indigo vs Cyan
+        styles: { fontSize: 8.5, font: 'helvetica' },
+        columnStyles: {
+          1: { halign: 'center' },
+          2: { halign: isInvoice ? 'right' : 'center' },
+          3: { halign: isInvoice ? 'right' : 'center' }
+        }
+      });
+      
+      currentY = doc.previousAutoTable.finalY + 10;
+    } else {
+      doc.setFont("helvetica", "italic");
+      doc.text("No physical items specified in transaction metadata.", 14, currentY + 5);
+      currentY += 12;
     }
     
     // Total Summary
+    if (currentY > 240) {
+      doc.addPage();
+      currentY = 20;
+    }
     if (isInvoice) {
-      y += 5;
       doc.setFont("helvetica", "bold");
-      doc.text("Total Certified Summary:", 120, y);
-      y += 6;
+      doc.text("Total Certified Summary:", 120, currentY);
+      currentY += 6;
       doc.setFont("helvetica", "normal");
-      doc.text(`Subtotal: PKR ${document.totalAmount.toLocaleString()}`, 120, y);
-      y += 6;
-      doc.text(`Tax Component: PKR ${document.taxAmount.toLocaleString()}`, 120, y);
-      y += 6;
+      doc.text(`Subtotal: PKR ${document.totalAmount.toLocaleString()}`, 120, currentY);
+      currentY += 6;
+      doc.text(`Tax Component: PKR ${document.taxAmount.toLocaleString()}`, 120, currentY);
+      currentY += 6;
       doc.setFont("helvetica", "bold");
-      doc.text(`Gross Total: PKR ${document.totalAmount.toLocaleString()}`, 120, y);
+      doc.text(`Gross Total: PKR ${document.totalAmount.toLocaleString()}`, 120, currentY);
     } else {
-      y += 5;
       doc.setFont("helvetica", "bold");
-      doc.text("Logistics & Dispatch Summary:", 14, y);
-      y += 6;
+      doc.text("Logistics & Dispatch Summary:", 14, currentY);
+      currentY += 6;
       doc.setFont("helvetica", "normal");
-      doc.text(`Total Package Load: 1 Standard Carton`, 14, y);
-      y += 6;
-      doc.text(`Courier Reference: Gate Pass GP-98288 Verified`, 14, y);
+      doc.text(`Total Package Load: 1 Standard Carton`, 14, currentY);
+      currentY += 6;
+      doc.text(`Courier Reference: Gate Pass GP-98288 Verified`, 14, currentY);
     }
     
     // Footer / Signatures
-    y += 20;
-    if (y > 260) {
+    currentY += 20;
+    if (currentY > 260) {
       doc.addPage();
-      y = 20;
+      currentY = 20;
     }
     doc.setFontSize(8.5);
     doc.setTextColor(150, 150, 150);
-    doc.text("Authorized Signature & Stamp:", 14, y);
-    doc.line(14, y + 8, 80, y + 8);
+    doc.text("Authorized Signature & Stamp:", 14, currentY);
+    doc.line(14, currentY + 8, 80, currentY + 8);
     
-    doc.text("Receiver Signature & Date:", 120, y);
-    doc.line(120, y + 8, 186, y + 8);
+    doc.text("Receiver Signature & Date:", 120, currentY);
+    doc.line(120, currentY + 8, 186, currentY + 8);
     
     doc.save(att.name);
   };
