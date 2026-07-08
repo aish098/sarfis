@@ -879,7 +879,7 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
                           Approve
                         </button>
                         <button
-                          onClick={() => { navigate('/dashboard/vouchers'); closeAll(); }}
+                          onClick={() => { navigate(`/dashboard/vouchers/details/${v.id}`); closeAll(); }}
                           className="px-2 py-1 rounded bg-white text-slate-600 border text-[10px] font-bold hover:bg-slate-50"
                         >
                           Review
