@@ -3,7 +3,8 @@ import { useNavigate, useParams, Link } from 'react-router-dom';
 import { motion as Motion } from 'framer-motion';
 import { 
   ArrowLeft, Save, Plus, Trash2, BookOpen, AlertTriangle, 
-  HelpCircle, Check, CheckCircle, Info, Calendar, Warehouse, User, DollarSign, ListCollapse, FileText
+  HelpCircle, Check, CheckCircle, Info, Calendar, Warehouse, User, DollarSign, ListCollapse, FileText,
+  X, ShieldAlert
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -60,6 +61,14 @@ export default function VoucherForm() {
   const [formError, setFormError] = useState('');
   const [warnings, setWarnings] = useState([]);
   const [submitAction, setSubmitAction] = useState('draft'); // draft | submit
+  const [partnerRiskStatus, setPartnerRiskStatus] = useState(null);
+  const [showOverridePrompt, setShowOverridePrompt] = useState(false);
+  const [overrideReason, setOverrideReason] = useState('');
+  const [activeOverrideRequest, setActiveOverrideRequest] = useState(null);
+  const [overrideApproved, setOverrideApproved] = useState(false);
+  const [overrideRequestId, setOverrideRequestId] = useState(null);
+  const [riskCheckLoading, setRiskCheckLoading] = useState(false);
+  const [overrideRequesting, setOverrideRequesting] = useState(false);
 
   // Fetch catalogs
   const fetchCatalogs = useCallback(async () => {
@@ -149,6 +158,52 @@ export default function VoucherForm() {
       setFormError('Failed to load voucher details.');
     }
   }, [id, activeCompany]);
+
+  const checkPartnerRisk = useCallback(async (entityType, entityId) => {
+    if (!entityId || !activeCompany) {
+      setPartnerRiskStatus(null);
+      setOverrideApproved(false);
+      setOverrideRequestId(null);
+      setActiveOverrideRequest(null);
+      return;
+    }
+    setRiskCheckLoading(true);
+    try {
+      const res = await api.get(`/risk/status/${entityType}/${entityId}`);
+      const risk = res.data;
+      setPartnerRiskStatus(risk);
+      setOverrideApproved(false);
+      setOverrideRequestId(null);
+      setActiveOverrideRequest(null);
+      
+      if (risk.cash_only && ['SALES', 'PURCHASE'].includes(type)) {
+        const cashAcc = accounts.find(a => a.id === parseInt(settings?.default_cash_account_id)) || accounts.find(a => a.code.startsWith('1010'));
+        if (cashAcc) setCashAccountId(String(cashAcc.id));
+      }
+    } catch (err) {
+      console.error('Failed to load partner risk status:', err);
+    } finally {
+      setRiskCheckLoading(false);
+    }
+  }, [activeCompany, settings, type, accounts]);
+
+  useEffect(() => {
+    if (['SALES', 'RECEIPT'].includes(type) && clientId) {
+      checkPartnerRisk('CUSTOMER', clientId);
+    } else {
+      setPartnerRiskStatus(null);
+      setOverrideApprovedBy(null);
+    }
+  }, [clientId, type, checkPartnerRisk]);
+
+  useEffect(() => {
+    if (['PURCHASE', 'PAYMENT'].includes(type) && vendorId) {
+      checkPartnerRisk('VENDOR', vendorId);
+    } else {
+      setPartnerRiskStatus(null);
+      setOverrideApprovedBy(null);
+    }
+  }, [vendorId, type, checkPartnerRisk]);
 
   useEffect(() => {
     const init = async () => {
@@ -257,11 +312,107 @@ export default function VoucherForm() {
     setJournalLines(newLines);
   };
 
+  const handleSubmitOverrideRequest = async (e) => {
+    e.preventDefault();
+    if (!overrideReason.trim()) return;
+    setOverrideRequesting(true);
+    try {
+      const isCreditLimitExceeded = partnerRiskStatus.credit_limit_override && type === 'SALES' && (() => {
+        const client = clients.find(c => String(c.id) === String(clientId));
+        const currentBal = parseFloat(client?.current_balance || 0);
+        const limit = parseFloat(partnerRiskStatus.credit_limit_override);
+        return (currentBal + totalAmount) > limit;
+      })();
+
+      const reqType = isCreditLimitExceeded ? 'CREDIT_POLICY_CHANGE' : 'TRANSACTION_OVERRIDE';
+      const entityName = ['SALES', 'RECEIPT'].includes(type) 
+        ? clients.find(c => String(c.id) === String(clientId))?.name
+        : vendors.find(v => String(v.id) === String(vendorId))?.name;
+
+      const res = await api.post('/risk/approval-requests', {
+        entityType: ['SALES', 'RECEIPT'].includes(type) ? 'CUSTOMER' : 'VENDOR',
+        entityId: ['SALES', 'RECEIPT'].includes(type) ? clientId : vendorId,
+        requestType: reqType,
+        voucherId: id || null,
+        reason: overrideReason,
+        entityName,
+        metadata: {
+          totalAmount,
+          creditLimit: partnerRiskStatus.credit_limit_override
+        }
+      });
+      
+      setActiveOverrideRequest(res.data);
+      setShowOverridePrompt(false);
+      setOverrideReason('');
+      setFormError('Transaction override request submitted. Pending manager approval review.');
+    } catch (err) {
+      setFormError(err.response?.data?.error || 'Failed to submit override request.');
+    } finally {
+      setOverrideRequesting(false);
+    }
+  };
+
+  const handleCheckOverrideStatus = async () => {
+    if (!activeOverrideRequest) return;
+    try {
+      const res = await api.get(`/risk/approval-requests/${activeOverrideRequest.id}`);
+      const req = res.data;
+      if (req.status === 'APPROVED') {
+        setOverrideApproved(true);
+        setOverrideRequestId(req.id);
+        setFormError('');
+        setActiveOverrideRequest(null);
+      } else if (req.status === 'REJECTED') {
+        setFormError(`Override request was rejected by supervisor: "${req.review_notes || 'No notes'}"`);
+        setActiveOverrideRequest(null);
+      } else {
+        alert('Override request is still PENDING manager approval review.');
+      }
+    } catch (err) {
+      console.error('Failed to check override request status:', err);
+    }
+  };
+
   // Submit Handler
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
     setSaving(true);
+
+    if (partnerRiskStatus) {
+      if (partnerRiskStatus.status === 'BLACKLISTED' && !overrideApproved) {
+        setShowOverridePrompt(true);
+        setFormError('Transaction Blocked: This partner is blacklisted. Manager override is required.');
+        setSaving(false);
+        return;
+      }
+
+      if (partnerRiskStatus.cash_only && !['RECEIPT', 'PAYMENT'].includes(type)) {
+        if (type === 'SALES' && !cashAccountId) {
+          setFormError('Transaction Blocked: Cash-only restriction is active. Credit terms are disabled.');
+          setSaving(false);
+          return;
+        }
+        if (type === 'PURCHASE' && !cashAccountId) {
+          setFormError('Transaction Blocked: Cash-only restriction is active. Credit terms are disabled.');
+          setSaving(false);
+          return;
+        }
+      }
+
+      if (partnerRiskStatus.credit_limit_override && type === 'SALES') {
+        const client = clients.find(c => String(c.id) === String(clientId));
+        const currentBal = parseFloat(client?.current_balance || 0);
+        const limit = parseFloat(partnerRiskStatus.credit_limit_override);
+        if ((currentBal + totalAmount) > limit && !overrideApproved) {
+          setShowOverridePrompt(true);
+          setFormError(`Transaction Blocked: Credit limit exceeded (Limit: PKR ${limit.toLocaleString()}). Manager override required.`);
+          setSaving(false);
+          return;
+        }
+      }
+    }
 
     try {
       // 1. Build Payload
@@ -350,6 +501,9 @@ export default function VoucherForm() {
       }
 
       payload.date = date;
+      if (overrideRequestId) {
+        payload.override_request_id = overrideRequestId;
+      }
 
       // 2. Send API Call
       let response;
@@ -582,6 +736,51 @@ export default function VoucherForm() {
                   </div>
                 )}
               </div>
+
+              {/* Partner Risk Warning Panel */}
+              {partnerRiskStatus && partnerRiskStatus.status !== 'ACTIVE' && (
+                <div className={`p-4 rounded-xl border flex flex-col md:flex-row md:items-center justify-between gap-4 ${
+                  partnerRiskStatus.status === 'BLACKLISTED' 
+                    ? 'bg-red-50 border-red-200 text-red-800' 
+                    : partnerRiskStatus.status === 'WATCHLIST' 
+                    ? 'bg-amber-50 border-amber-200 text-amber-800' 
+                    : 'bg-orange-50 border-orange-200 text-orange-800'
+                }`}>
+                  <div className="space-y-1">
+                    <p className="text-[13px] font-black uppercase tracking-wide flex items-center gap-1.5">
+                      <AlertTriangle size={15} /> 
+                      Risk Flag Detected: {partnerRiskStatus.status} (Score: {partnerRiskStatus.risk_score})
+                    </p>
+                    <p className="text-[12.5px] font-medium leading-relaxed mt-1">
+                      {partnerRiskStatus.status === 'BLACKLISTED' 
+                        ? `Transactions are BLOCKED. Reason: ${partnerRiskStatus.notes || 'Bad Debt / Payment issues.'}`
+                        : `Risk Level: ${partnerRiskStatus.risk_level}. Policy: ${partnerRiskStatus.cash_only ? 'Cash-only terms enforced.' : 'Standard.'} ${partnerRiskStatus.credit_limit_override ? `Credit cap override: PKR ${parseFloat(partnerRiskStatus.credit_limit_override).toLocaleString()}` : ''}`}
+                    </p>
+                    {overrideApproved && (
+                      <p className="text-[11px] font-extrabold uppercase text-emerald-600 tracking-wider">
+                        ✔️ Override Granted by Supervisor
+                      </p>
+                    )}
+                    {activeOverrideRequest && (
+                      <div className="flex items-center gap-2 mt-2">
+                        <span className="text-[11.5px] font-bold uppercase text-amber-700 bg-amber-50 px-2 py-0.5 rounded border border-amber-200 flex items-center gap-1">
+                          <Clock size={11} className="animate-pulse" /> Pending Override Review #{activeOverrideRequest.id}
+                        </span>
+                        <button type="button" onClick={handleCheckOverrideStatus}
+                          className="text-[11.5px] font-bold text-blue-600 hover:text-blue-800 underline transition-all">
+                          Check Approval Status
+                        </button>
+                      </div>
+                    )}
+                  </div>
+                  {!overrideApproved && !activeOverrideRequest && (
+                    <button type="button" onClick={() => setShowOverridePrompt(true)}
+                      className="px-4 py-2 text-[12px] font-bold rounded-lg bg-slate-900 text-white hover:bg-slate-800 transition-colors shrink-0">
+                      Request Override
+                    </button>
+                  )}
+                </div>
+              )}
 
               {/* Warehouse selector for Inventory actions */}
               {['SALES', 'PURCHASE'].includes(type) && (
@@ -1045,6 +1244,29 @@ export default function VoucherForm() {
           </div>
         </div>
       </div>
+
+      {showOverridePrompt && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-fade-in">
+          <form onSubmit={handleSubmitOverrideRequest} className="bg-white rounded-2xl border border-slate-200 shadow-2xl max-w-sm w-full p-6 space-y-4 font-sans">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <h4 className="text-[13px] font-extrabold uppercase text-slate-800 flex items-center gap-1.5"><ShieldAlert size={15} className="text-red-500" /> Request Manager Override</h4>
+              <button type="button" onClick={() => setShowOverridePrompt(false)} className="text-slate-400 hover:text-slate-600"><X size={15} /></button>
+            </div>
+
+            <div className="flex flex-col">
+              <label className="text-[11px] font-bold text-slate-500 mb-1">State Justification / Reason for Posting Override</label>
+              <textarea required rows="3" className="input-enterprise p-2.5 text-[12.5px] bg-slate-50 border-slate-200" placeholder="State reason, eg: Customer promised bank transfer within 24h." value={overrideReason} onChange={e => setOverrideReason(e.target.value)} />
+            </div>
+
+            <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+              <button type="button" onClick={() => setShowOverridePrompt(false)} className="px-3.5 py-2 rounded-xl border border-slate-200 text-slate-500 hover:bg-slate-50 text-[12px] font-bold flex-1">Cancel</button>
+              <button type="submit" disabled={overrideRequesting} className="px-4 py-2 rounded-xl bg-slate-900 text-white hover:bg-slate-800 text-[12px] font-bold flex-1">
+                {overrideRequesting ? 'Sending...' : 'Send Request'}
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
     </div>
   );
 }

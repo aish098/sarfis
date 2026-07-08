@@ -11,6 +11,7 @@ import useAuthStore from '../../store/authStore';
 import { PowerBIDonut } from '../../components/charts/PowerBIDonut';
 import { computeChartLayout, normalizeChartRows, AdaptiveChartFrame } from '../../components/charts/chartEngine';
 import { DynamicClusteredBarChart } from '../../components/charts/DynamicCharts';
+import RelationshipRiskModal from '../../components/risk/RelationshipRiskModal';
 
 const CHART_COLORS = ['#118DFF', '#12239E', '#E66C37', '#6B007B', '#10b981', '#ef4444'];
 
@@ -54,6 +55,7 @@ export default function DistributionPage() {
   const [deliveryModal, setDeliveryModal] = useState(false);
   const [clientModal, setClientModal] = useState(false);
   const [sectorModal, setSectorModal] = useState(false);
+  const [selectedRiskClient, setSelectedRiskClient] = useState(null);
 
   // Forms
   const [deliveryForm, setDeliveryForm] = useState({
@@ -352,6 +354,7 @@ export default function DistributionPage() {
                   <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Outstanding</th>
                   <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Credit Limit</th>
                   <th style={{ width: 100 }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Status</th>
+                  <th style={{ width: 120 }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Risk Mgmt</th>
                 </tr>
               </thead>
               <Motion.tbody variants={stagger} initial="initial" animate="animate" className="divide-y divide-[#E6EBE8]">
@@ -382,6 +385,12 @@ export default function DistributionPage() {
                         {blocked
                           ? <span className="badge" style={{ background: '#fee2e2', color: '#991b1b' }}>Blocked</span>
                           : <span className="badge" style={{ background: '#d1fae5', color: '#065f46' }}>Active</span>}
+                      </td>
+                      <td className="px-4 py-3">
+                        <button onClick={() => setSelectedRiskClient(c)}
+                          className="text-[11.5px] font-bold px-2.5 py-1 rounded-lg border border-slate-200 hover:border-emerald-500 hover:text-emerald-700 text-slate-500 transition-colors">
+                          Risk Details
+                        </button>
                       </td>
                     </Motion.tr>
                   );
@@ -732,6 +741,15 @@ export default function DistributionPage() {
           </Motion.div>
         )}
       </AnimatePresence>
+
+      <RelationshipRiskModal 
+        isOpen={!!selectedRiskClient} 
+        onClose={() => { setSelectedRiskClient(null); load(); }} 
+        entityType="CUSTOMER" 
+        entityId={selectedRiskClient?.id} 
+        entityName={selectedRiskClient?.name} 
+        outstandingBalance={parseFloat(selectedRiskClient?.current_balance || 0)} 
+      />
     </div>
   );
 }

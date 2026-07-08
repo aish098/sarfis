@@ -79,6 +79,7 @@ class VoucherService {
 
     return await db.transaction(async (trx) => {
       const voucherNumber = await this.generateVoucherNumber(companyId, type, trx);
+      const overrideRequestId = payload?.override_request_id ? parseInt(payload.override_request_id) : null;
 
       const [voucher] = await trx('vouchers')
         .insert({
@@ -90,6 +91,7 @@ class VoucherService {
           payload: payload || {},
           total_amount: parseFloat(totalAmount || 0),
           tax_amount: parseFloat(taxAmount || 0),
+          override_request_id: overrideRequestId,
           created_by: userId
         })
         .returning('*');
@@ -118,6 +120,10 @@ class VoucherService {
       if (!voucher) throw new Error('Voucher not found.');
       if (voucher.status === 'POSTED') throw new Error('Cannot edit a posted voucher.');
 
+      const overrideRequestId = payload?.override_request_id !== undefined 
+        ? (payload.override_request_id ? parseInt(payload.override_request_id) : null)
+        : voucher.override_request_id;
+
       const [updated] = await trx('vouchers')
         .where({ id, company_id: companyId })
         .update({
@@ -125,6 +131,7 @@ class VoucherService {
           payload: payload || voucher.payload,
           total_amount: totalAmount !== undefined ? parseFloat(totalAmount) : voucher.total_amount,
           tax_amount: taxAmount !== undefined ? parseFloat(taxAmount) : voucher.tax_amount,
+          override_request_id: overrideRequestId,
           updated_at: trx.fn.now()
         })
         .returning('*');
@@ -222,12 +229,22 @@ class VoucherService {
         voucherId: id
       }, trx);
 
+      const activeOverride = await trx('risk_approval_requests')
+        .where({
+          company_id: companyId,
+          status: 'APPROVED',
+          voucher_id: id
+        })
+        .where('expires_at', '>', new Date())
+        .first();
+
       const [updated] = await trx('vouchers')
         .where({ id, company_id: companyId })
         .update({
           status: 'POSTED',
           journal_entry_id: journalEntryId,
           total_amount: totalAmount,
+          override_request_id: activeOverride ? activeOverride.id : voucher.override_request_id,
           approved_by: userId,
           updated_at: trx.fn.now()
         })

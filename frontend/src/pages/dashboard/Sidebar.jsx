@@ -35,6 +35,7 @@ const NAV_SECTIONS = [
     label: 'Intelligence',
     items: [
       { to: '/dashboard/analytics', icon: TrendingUp, label: 'Analytics & Planning', permission: 'analytics.view', moduleKey: 'budgetingEnabled' },
+      { to: '/dashboard/risk', icon: Zap, label: 'Credit Risk & Governance', permission: 'risk.view' },
     ],
   },
   {

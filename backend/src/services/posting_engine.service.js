@@ -32,6 +32,7 @@ class PostingEngineService {
         default_inventory_account_id: findIdByCode('13') || findIdByCode('1300') || null, // Inventory Asset
         default_cogs_account_id: findIdByCode('5') || findIdByCode('5010') || null,   // COGS/Expense
         default_cash_account_id: findIdByCode('10') || findIdByCode('1010') || null,  // Cash
+        default_bad_debt_account_id: findIdByCode('5030') || findIdByCode('503') || null, // Bad Debt Expense
         tax_rate: 0.00
       };
 
@@ -97,6 +98,13 @@ class PostingEngineService {
 
       // Fetch company mappings
       const settings = await this.getAccountingSettings(companyId, trx);
+
+      // 1b. Validate entity relationship status and credit policy limits via RiskService
+      const RiskService = require('./risk.service');
+      const validationResult = await RiskService.validateTransaction(companyId, type, { ...payload, voucherId }, trx);
+      if (!validationResult.allowed) {
+        throw new Error(validationResult.message);
+      }
 
       let journalEntryId = null;
       let totalAmount = 0;
@@ -336,6 +344,36 @@ class PostingEngineService {
 
           // Reduce vendor outstanding AP balance
           await VendorModel.updateBalance(vendorId, companyId, -amt, trx);
+          break;
+        }
+
+        case 'BAD_DEBT_WRITE_OFF': {
+          const { clientId, amount, notes } = payload;
+          if (!clientId) throw new Error('Client is required for bad debt write-off.');
+          if (!amount || parseFloat(amount) <= 0) throw new Error('Write-off amount must be positive.');
+
+          const client = await distModel.getClientById(clientId, companyId);
+          if (!client) throw new Error('Customer not found.');
+
+          const arAccount = payload.ar_account_id || settings.default_ar_account_id;
+          const badDebtAccount = settings.default_bad_debt_account_id;
+
+          if (!arAccount || !badDebtAccount) {
+            throw new Error('Default Accounts Receivable or Bad Debt Expense mappings are missing for this company.');
+          }
+
+          const amt = parseFloat(amount);
+          description = `Bad Debt Write-Off: Customer ${client.name} - ${notes || ''}`;
+          totalAmount = amt;
+
+          // Double entry: Dr Bad Debt Expense, Cr AR
+          lines = [
+            { accountId: badDebtAccount, debit: amt, credit: 0 },
+            { accountId: arAccount, debit: 0, credit: amt }
+          ];
+
+          // Reduce customer outstanding balance via posting engine (single source of truth)
+          await distModel.updateClientBalance(trx, clientId, -amt);
           break;
         }
 

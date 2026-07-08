@@ -3,6 +3,7 @@ import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Trash2, X, AlertCircle, Edit2, Phone, Mail, MapPin, Building2 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import RelationshipRiskModal from '../../components/risk/RelationshipRiskModal';
 
 const stagger = { animate: { transition: { staggerChildren: 0.04 } } };
 const cardAnim = {
@@ -20,6 +21,7 @@ export default function VendorsPage() {
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
+  const [selectedRiskVendor, setSelectedRiskVendor] = useState(null);
 
   const load = useCallback(async () => {
     if (!activeCompany) return;
@@ -226,13 +228,18 @@ export default function VendorsPage() {
                 </div>
               </div>
 
-              {/* Balances */}
-              <div className="flex items-center justify-between pt-1">
+              {/* Balances & Risk Details */}
+              <div className="flex items-center justify-between pt-1 border-b border-slate-50 pb-3 mb-3">
                 <span className="text-[11px] font-extrabold uppercase tracking-widest text-slate-400">Total Owed (AP)</span>
                 <span className="font-mono font-extrabold text-[14px] text-slate-800">
                   ${parseFloat(vendor.current_balance || 0).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
                 </span>
               </div>
+              
+              <button onClick={() => setSelectedRiskVendor(vendor)}
+                className="w-full text-center py-2 text-[11.5px] font-bold border border-slate-100 hover:border-emerald-500 hover:text-emerald-700 bg-slate-50 hover:bg-emerald-50/20 text-slate-600 rounded-xl transition-all">
+                Risk Management & Ratings
+              </button>
             </Motion.div>
           ))
         )}
@@ -308,6 +315,15 @@ export default function VendorsPage() {
           </Motion.div>
         )}
       </AnimatePresence>
+
+      <RelationshipRiskModal 
+        isOpen={!!selectedRiskVendor} 
+        onClose={() => { setSelectedRiskVendor(null); load(); }} 
+        entityType="VENDOR" 
+        entityId={selectedRiskVendor?.id} 
+        entityName={selectedRiskVendor?.name} 
+        outstandingBalance={parseFloat(selectedRiskVendor?.current_balance || 0)} 
+      />
     </div>
   );
 }

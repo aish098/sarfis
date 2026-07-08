@@ -37,6 +37,7 @@ import SettingsPage from './settings/SettingsPage.jsx';
 import AdminPage from './admin/AdminPage.jsx';
 import PayrollPage from './payroll/PayrollPage.jsx';
 import NotificationCenterPage from './notifications/NotificationCenterPage.jsx';
+import RiskDashboard from './analytics/RiskDashboard.jsx';
 
 function ModuleProtectedRoute({ moduleKey, fallbackDefault = true, children }) {
   const { settings } = useAuthStore();
@@ -364,6 +365,7 @@ export default function Dashboard() {
               <Route path="settings" element={<SettingsPage />} />
               <Route path="admin" element={<AdminPage />} />
               <Route path="notifications" element={<NotificationCenterPage />} />
+              <Route path="risk" element={<RiskDashboard />} />
             </Routes>
           </Motion.div>
         </AnimatePresence>
