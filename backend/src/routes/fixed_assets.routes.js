@@ -15,6 +15,8 @@ router.post('/assets', FixedAssetsController.createAsset);
 router.get('/assets/:id/inquiry', FixedAssetsController.getAssetInquiry);
 router.post('/assets/dispose', FixedAssetsController.disposeAsset);
 router.post('/assets/usage', FixedAssetsController.logUsage);
+router.post('/assets/transfer', FixedAssetsController.transferAsset);
+router.post('/assets/maintenance', FixedAssetsController.logMaintenance);
 
 // Depreciation Calculator & Wizard
 router.get('/depreciation/preview', FixedAssetsController.getDepreciationPreview);

@@ -25,6 +25,7 @@ export default function AssetRegister() {
 
   const [categories, setCategories] = useState([]);
   const [warehouses, setWarehouses] = useState([]);
+  const [employees, setEmployees] = useState([]);
 
   // Selection states for bulk actions
   const [selectedIds, setSelectedIds] = useState([]);
@@ -39,6 +40,8 @@ export default function AssetRegister() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showDisposalForm, setShowDisposalForm] = useState(false);
   const [showUsageForm, setShowUsageForm] = useState(false);
+  const [showTransferForm, setShowTransferForm] = useState(false);
+  const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
 
   // Form fields
   const [disposalData, setDisposalData] = useState({
@@ -53,11 +56,26 @@ export default function AssetRegister() {
     source: 'MANUAL'
   });
 
+  const [transferData, setTransferData] = useState({
+    location_id: '',
+    custodian_employee_id: '',
+    transfer_date: new Date().toISOString().split('T')[0],
+    notes: ''
+  });
+
+  const [maintenanceData, setMaintenanceData] = useState({
+    description: '',
+    maintenance_cost: 0,
+    maintenance_date: new Date().toISOString().split('T')[0],
+    status: 'ACTIVE'
+  });
+
   useEffect(() => {
     fetchAssets();
     fetchCategories();
     if (activeCompany?.id) {
       fetchWarehouses();
+      fetchEmployees();
     }
   }, [activeCompany, filterStatus]);
 
@@ -104,6 +122,15 @@ export default function AssetRegister() {
     }
   };
 
+  const fetchEmployees = async () => {
+    try {
+      const { data } = await api.get(`/employees/${activeCompany.id}`);
+      setEmployees(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleOpenInquiry = async (assetId) => {
     setSelectedAssetId(assetId);
     setInquiryDetails(null);
@@ -136,6 +163,8 @@ export default function AssetRegister() {
       setShowDisposalForm(false);
       handleOpenInquiry(selectedAssetId);
       fetchAssets();
+      searchParams.delete('action');
+      setSearchParams(searchParams);
     } catch (err) {
       alert(err.response?.data?.error || 'Disposal posting failed.');
     }
@@ -154,6 +183,38 @@ export default function AssetRegister() {
       fetchAssets();
     } catch (err) {
       alert(err.response?.data?.error || 'Usage logging failed.');
+    }
+  };
+
+  const handleTransferSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/fixed-assets/assets/transfer', {
+        asset_id: selectedAssetId,
+        ...transferData
+      });
+      setShowTransferForm(false);
+      fetchAssets();
+      searchParams.delete('action');
+      setSearchParams(searchParams);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Transfer failed.');
+    }
+  };
+
+  const handleMaintenanceSubmit = async (e) => {
+    e.preventDefault();
+    try {
+      await api.post('/fixed-assets/assets/maintenance', {
+        asset_id: selectedAssetId,
+        ...maintenanceData
+      });
+      setShowMaintenanceForm(false);
+      fetchAssets();
+      searchParams.delete('action');
+      setSearchParams(searchParams);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Maintenance logging failed.');
     }
   };
 
@@ -199,13 +260,15 @@ export default function AssetRegister() {
 
   const getNextDepDate = () => {
     const d = new Date();
-    // Default to 1st of next month
     const nextMonth = new Date(d.getFullYear(), d.getMonth() + 1, 1);
     return nextMonth.toLocaleDateString();
   };
 
+  const actionParam = searchParams.get('action');
+
   return (
     <div className="space-y-6">
+      {/* Header */}
       <div className="flex justify-between items-center border-b border-slate-100 pb-4">
         <div className="flex items-center gap-3">
           <Link to="/dashboard/fixed-assets" className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-all">
@@ -281,6 +344,29 @@ export default function AssetRegister() {
           </select>
         </div>
       </div>
+
+      {/* Action Mode Helper Banner */}
+      {actionParam && (
+        <div className="p-4 bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-xl flex items-center justify-between text-xs font-bold animate-pulse">
+          <div className="flex items-center gap-2">
+            <Info size={16} className="text-indigo-600 shrink-0" />
+            <span>
+              {actionParam === 'transfer' && "Action Mode: Location/Custodian Transfer. Click the transfer icon (MapPin) on any asset row below to record a change in location or custodian."}
+              {actionParam === 'maintenance' && "Action Mode: Log Maintenance. Click the wrench icon on any asset row below to log repair logs, costs, and tasks."}
+              {actionParam === 'dispose' && "Action Mode: Retire/Dispose Asset. Click the trash icon on any active asset row below to calculate gain/loss and post disposal journal."}
+            </span>
+          </div>
+          <button 
+            onClick={() => {
+              searchParams.delete('action');
+              setSearchParams(searchParams);
+            }} 
+            className="p-1 hover:bg-indigo-100 rounded text-indigo-700 font-bold"
+          >
+            <X size={14} />
+          </button>
+        </div>
+      )}
 
       {/* Secondary Toolbar (Bulk Actions) */}
       {selectedIds.length > 0 && (
@@ -369,18 +455,22 @@ export default function AssetRegister() {
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-center">
-                      {/* Hover action menu overlay */}
                       <div className="flex items-center justify-center gap-1.5">
                         <button onClick={() => handleOpenInquiry(asset.id)} title="360° Inquiry" className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded transition-all">
                           <Eye size={14} />
                         </button>
                         {asset.status === 'ACTIVE' && (
-                          <button onClick={() => handleOpenInquiry(asset.id)} title="Log maintenance logs" className="p-1 text-slate-400 hover:text-amber-500 hover:bg-slate-100 rounded transition-all">
+                          <button onClick={() => { setSelectedAssetId(asset.id); setShowTransferForm(true); }} title="Transfer location/custodian" className="p-1 text-slate-400 hover:text-blue-500 hover:bg-slate-100 rounded transition-all">
+                            <MapPin size={14} />
+                          </button>
+                        )}
+                        {asset.status === 'ACTIVE' && (
+                          <button onClick={() => { setSelectedAssetId(asset.id); setShowMaintenanceForm(true); }} title="Log maintenance logs" className="p-1 text-slate-400 hover:text-amber-500 hover:bg-slate-100 rounded transition-all">
                             <Wrench size={14} />
                           </button>
                         )}
                         {asset.status === 'ACTIVE' && (
-                          <button onClick={() => { handleOpenInquiry(asset.id); setShowDisposalForm(true); }} title="Sell or dispose asset" className="p-1 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded transition-all">
+                          <button onClick={() => { setSelectedAssetId(asset.id); setShowDisposalForm(true); }} title="Sell or dispose asset" className="p-1 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded transition-all">
                             <Trash2 size={14} />
                           </button>
                         )}
@@ -412,6 +502,162 @@ export default function AssetRegister() {
           }} 
           categories={categories}
         />
+      )}
+
+      {/* Transfer Location/Custodian Modal */}
+      {showTransferForm && selectedAssetId && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <form onSubmit={handleTransferSubmit} className="bg-white rounded-xl border border-slate-100 shadow-2xl max-w-sm w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <h3 className="text-sm font-black text-indigo-700 flex items-center gap-1.5 uppercase">
+              <MapPin size={16} /> Asset Transfer Wizard
+            </h3>
+            <p className="text-[10px] text-slate-400 font-semibold font-mono">
+              Asset: {assets.find(a => a.id === selectedAssetId)?.asset_name} ({assets.find(a => a.id === selectedAssetId)?.asset_code})
+            </p>
+            <div className="space-y-3.5 text-xs font-semibold">
+              <div className="space-y-1">
+                <label className="text-slate-500">Target Physical Location (Warehouse)</label>
+                <select
+                  value={transferData.location_id}
+                  onChange={(e) => setTransferData({ ...transferData, location_id: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-bold"
+                >
+                  <option value="">No Location / Unassigned...</option>
+                  {warehouses.map(w => (
+                    <option key={w.id} value={w.id}>{w.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-slate-500">Authorized Custodian Employee</label>
+                <select
+                  value={transferData.custodian_employee_id}
+                  onChange={(e) => setTransferData({ ...transferData, custodian_employee_id: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-bold"
+                >
+                  <option value="">No Custodian / Unassigned...</option>
+                  {employees.map(emp => (
+                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-slate-500">Transfer Execution Date</label>
+                <input
+                  type="date"
+                  required
+                  value={transferData.transfer_date}
+                  onChange={(e) => setTransferData({ ...transferData, transfer_date: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-semibold font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-slate-500">Transfer Remarks / Reason</label>
+                <textarea
+                  placeholder="Explain why custody or location is changing..."
+                  rows={2}
+                  value={transferData.notes}
+                  onChange={(e) => setTransferData({ ...transferData, notes: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button 
+                type="button" 
+                onClick={() => setShowTransferForm(false)} 
+                className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-black transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all shadow-md"
+              >
+                Save Transfer
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Maintenance Logger Modal */}
+      {showMaintenanceForm && selectedAssetId && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <form onSubmit={handleMaintenanceSubmit} className="bg-white rounded-xl border border-slate-100 shadow-2xl max-w-sm w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <h3 className="text-sm font-black text-amber-700 flex items-center gap-1.5 uppercase">
+              <Wrench size={16} /> Record Maintenance Log
+            </h3>
+            <p className="text-[10px] text-slate-400 font-semibold font-mono">
+              Asset: {assets.find(a => a.id === selectedAssetId)?.asset_name} ({assets.find(a => a.id === selectedAssetId)?.asset_code})
+            </p>
+            <div className="space-y-3.5 text-xs font-semibold">
+              <div className="space-y-1">
+                <label className="text-slate-500">Service Task Description</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Engine tuning and oil replacement"
+                  value={maintenanceData.description}
+                  onChange={(e) => setMaintenanceData({ ...maintenanceData, description: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-bold"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-slate-500">Maintenance Cost (PKR)</label>
+                <input
+                  type="number"
+                  placeholder="0.00"
+                  value={maintenanceData.maintenance_cost}
+                  onChange={(e) => setMaintenanceData({ ...maintenanceData, maintenance_cost: parseFloat(e.target.value || 0) })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-semibold font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-slate-500">Service Date</label>
+                <input
+                  type="date"
+                  required
+                  value={maintenanceData.maintenance_date}
+                  onChange={(e) => setMaintenanceData({ ...maintenanceData, maintenance_date: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-semibold font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-slate-500">Transition Status</label>
+                <select
+                  value={maintenanceData.status}
+                  onChange={(e) => setMaintenanceData({ ...maintenanceData, status: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-bold"
+                >
+                  <option value="ACTIVE">Keep Active</option>
+                  <option value="UNDER_MAINTENANCE">Set to Under Maintenance</option>
+                </select>
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button 
+                type="button" 
+                onClick={() => setShowMaintenanceForm(false)} 
+                className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-black transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-black transition-all shadow-md"
+              >
+                Save Log
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
       {/* 360-Degree Inquiry Detail Panel / Modal */}
@@ -633,6 +879,8 @@ export default function AssetRegister() {
                                   <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
                                     log.event_type === 'ACQUISITION' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
                                     log.event_type === 'DEPRECIATION' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
+                                    log.event_type === 'TRANSFER' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
+                                    log.event_type === 'MAINTENANCE' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
                                     'bg-rose-50 text-rose-700 border border-rose-100'
                                   }`}>
                                     {log.event_type}

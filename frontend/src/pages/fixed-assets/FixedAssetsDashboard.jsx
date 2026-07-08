@@ -598,7 +598,7 @@ export default function FixedAssetsDashboard() {
               </div>
             </button>
 
-            <button onClick={() => navigate('/dashboard/fixed-assets/register')} className="p-3 bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 rounded-xl border border-slate-100 flex flex-col gap-2 transition-all">
+            <button onClick={() => navigate('/dashboard/fixed-assets/register?action=transfer')} className="p-3 bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 rounded-xl border border-slate-100 flex flex-col gap-2 transition-all">
               <MapPin size={16} className="text-blue-600" />
               <div className="text-left">
                 <p className="text-xs font-black">Transfer Asset</p>
@@ -606,7 +606,7 @@ export default function FixedAssetsDashboard() {
               </div>
             </button>
 
-            <button onClick={() => navigate('/dashboard/fixed-assets/register')} className="p-3 bg-slate-50 hover:bg-amber-50 hover:text-amber-700 text-slate-700 rounded-xl border border-slate-100 flex flex-col gap-2 transition-all">
+            <button onClick={() => navigate('/dashboard/fixed-assets/register?action=maintenance')} className="p-3 bg-slate-50 hover:bg-amber-50 hover:text-amber-700 text-slate-700 rounded-xl border border-slate-100 flex flex-col gap-2 transition-all">
               <Wrench size={16} className="text-amber-600" />
               <div className="text-left">
                 <p className="text-xs font-black">Maintenance</p>
@@ -614,8 +614,8 @@ export default function FixedAssetsDashboard() {
               </div>
             </button>
 
-            <button onClick={() => navigate('/dashboard/fixed-assets/register')} className="p-3 bg-slate-50 hover:bg-rose-50 hover:text-rose-700 text-slate-700 rounded-xl border border-slate-100 flex flex-col gap-2 transition-all col-span-2">
-              <div className="flex items-center justify-between w-full">
+            <button onClick={() => navigate('/dashboard/fixed-assets/register?action=dispose')} className="p-3 bg-slate-50 hover:bg-rose-50 hover:text-rose-700 text-slate-700 rounded-xl border border-slate-100 flex flex-col gap-2 transition-all col-span-2">
+              <div className="flex items-center justify-between w-full" onClick={() => navigate('/dashboard/fixed-assets/register?action=dispose')}>
                 <div className="flex flex-col gap-1">
                   <p className="text-xs font-black">Retire & Dispose Asset</p>
                   <p className="text-[9px] text-slate-400 font-semibold">Post sale or disposal with gain/loss computation.</p>

@@ -151,6 +151,28 @@ class FixedAssetsController {
       next(err);
     }
   }
+
+  static async transferAsset(req, res, next) {
+    try {
+      const companyId = req.headers['x-company-id'] || 1;
+      const userId = req.user?.id || 1;
+      await FixedAssetsService.transferAsset(companyId, userId, req.body);
+      res.json({ message: 'Asset transferred successfully.' });
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async logMaintenance(req, res, next) {
+    try {
+      const companyId = req.headers['x-company-id'] || 1;
+      const userId = req.user?.id || 1;
+      await FixedAssetsService.logMaintenance(companyId, userId, req.body);
+      res.json({ message: 'Asset maintenance logged successfully.' });
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = FixedAssetsController;

@@ -699,6 +699,73 @@ class FixedAssetsService {
       });
     });
   }
+
+  static async transferAsset(companyId, userId, data) {
+    return await db.transaction(async trx => {
+      const asset = await trx('assets').where({ id: data.asset_id, company_id: companyId }).first();
+      if (!asset) throw new Error('Asset not found.');
+
+      const updateData = {
+        updated_at: trx.fn.now()
+      };
+      if (data.location_id !== undefined) updateData.location_id = data.location_id ? parseInt(data.location_id) : null;
+      if (data.custodian_employee_id !== undefined) updateData.custodian_employee_id = data.custodian_employee_id ? parseInt(data.custodian_employee_id) : null;
+
+      await trx('assets')
+        .where({ id: data.asset_id })
+        .update(updateData);
+
+      let locName = 'Unassigned';
+      if (data.location_id) {
+        const wh = await trx('warehouses').where({ id: data.location_id }).first();
+        if (wh) locName = wh.name;
+      }
+      let empName = 'Unassigned';
+      if (data.custodian_employee_id) {
+        const emp = await trx('employees').where({ id: data.custodian_employee_id }).first();
+        if (emp) empName = emp.name;
+      }
+
+      await trx('asset_ledger').insert({
+        company_id: companyId,
+        asset_id: data.asset_id,
+        event_type: 'TRANSFER',
+        event_date: data.transfer_date || new Date().toISOString().split('T')[0],
+        description: `Asset Custody Transfer: Location set to '${locName}', Custodian set to '${empName}'. Details: ${data.notes || ''}`,
+        amount: 0.00,
+        created_by: userId
+      });
+
+      return { success: true };
+    });
+  }
+
+  static async logMaintenance(companyId, userId, data) {
+    return await db.transaction(async trx => {
+      const asset = await trx('assets').where({ id: data.asset_id, company_id: companyId }).first();
+      if (!asset) throw new Error('Asset not found.');
+
+      if (data.status) {
+        await trx('assets')
+          .where({ id: data.asset_id })
+          .update({ status: data.status, updated_at: trx.fn.now() });
+      }
+
+      const cost = parseFloat(data.maintenance_cost || 0);
+
+      await trx('asset_ledger').insert({
+        company_id: companyId,
+        asset_id: data.asset_id,
+        event_type: 'MAINTENANCE',
+        event_date: data.maintenance_date || new Date().toISOString().split('T')[0],
+        description: `Maintenance Logged: ${data.description}. Cost: PKR ${cost.toLocaleString()}`,
+        amount: cost,
+        created_by: userId
+      });
+
+      return { success: true };
+    });
+  }
 }
 
 module.exports = FixedAssetsService;
