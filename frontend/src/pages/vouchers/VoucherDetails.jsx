@@ -202,6 +202,111 @@ export default function VoucherDetails() {
     window.location.href = `mailto:finance@company.com?subject=${subject}&body=${body}`;
   };
 
+  const handleViewAttachment = (att) => {
+    const doc = new jsPDF();
+    
+    // Set Header
+    doc.setFont("helvetica", "bold");
+    doc.setFontSize(20);
+    doc.setTextColor(30, 41, 59); // slate-800
+    
+    if (att.name.toLowerCase().includes("invoice")) {
+      doc.text("SALES INVOICE COPY", 14, 20);
+    } else {
+      doc.text("DELIVERY NOTE (SIGNED)", 14, 20);
+    }
+    
+    doc.setDrawColor(226, 232, 240);
+    doc.line(14, 25, 196, 25);
+    
+    doc.setFontSize(10);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 116, 139); // slate-500
+    doc.text(`Reference No: ${document.voucherNumber}`, 14, 32);
+    doc.text(`Associated Partner: ${business.customer?.name || business.vendor?.name || 'Cash Customer'}`, 14, 38);
+    doc.text(`Transaction Date: ${new Date(document.date).toLocaleDateString()}`, 14, 44);
+    
+    // Info Columns
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(30, 41, 59);
+    doc.text("Ship To / Address", 14, 55);
+    doc.setFont("helvetica", "normal");
+    doc.text("SARFIS Main Terminal", 14, 61);
+    doc.text("Warehouse: Karachi Central Port", 14, 67);
+    
+    doc.setFont("helvetica", "bold");
+    doc.text("Terms of Agreement", 120, 55);
+    doc.setFont("helvetica", "normal");
+    doc.text("Payment: 30 Days Credit Net", 120, 61);
+    doc.text("Delivery Type: Standard Freight", 120, 67);
+    
+    // Draw Item Details Table
+    doc.setFillColor(241, 245, 249);
+    doc.rect(14, 76, 182, 8, "F");
+    doc.setFont("helvetica", "bold");
+    doc.text("Product / Item Name", 16, 81);
+    doc.text("Quantity", 95, 81);
+    doc.text("Unit Price", 130, 81);
+    doc.text("Line Total", 165, 81);
+    
+    doc.setFont("helvetica", "normal");
+    let y = 90;
+    const itemsList = document.payload?.items || [];
+    
+    if (itemsList.length === 0) {
+      doc.text("No item specifications found.", 16, y);
+      y += 8;
+    } else {
+      itemsList.forEach((item) => {
+        if (y > 260) {
+          doc.addPage();
+          y = 20;
+        }
+        const qty = parseFloat(item.quantity || 0);
+        const price = parseFloat(item.unitPrice || item.unitCost || 0);
+        const total = qty * price;
+        
+        doc.text(String(item.productName || item.productId), 16, y);
+        doc.text(String(qty), 95, y);
+        doc.text(`PKR ${price.toLocaleString()}`, 130, y);
+        doc.text(`PKR ${total.toLocaleString()}`, 165, y);
+        
+        doc.setDrawColor(241, 245, 249);
+        doc.line(14, y + 3, 196, y + 3);
+        y += 8;
+      });
+    }
+    
+    // Total Summary
+    y += 5;
+    doc.setFont("helvetica", "bold");
+    doc.text("Total Certified Summary:", 120, y);
+    y += 6;
+    doc.setFont("helvetica", "normal");
+    doc.text(`Subtotal: PKR ${document.totalAmount.toLocaleString()}`, 120, y);
+    y += 6;
+    doc.text(`Tax Component: PKR ${document.taxAmount.toLocaleString()}`, 120, y);
+    y += 6;
+    doc.setFont("helvetica", "bold");
+    doc.text(`Gross Total: PKR ${document.totalAmount.toLocaleString()}`, 120, y);
+    
+    // Footer / Signatures
+    y += 20;
+    if (y > 260) {
+      doc.addPage();
+      y = 20;
+    }
+    doc.setFontSize(8.5);
+    doc.setTextColor(150, 150, 150);
+    doc.text("Authorized Signature & Stamp:", 14, y);
+    doc.line(14, y + 8, 80, y + 8);
+    
+    doc.text("Receiver Signature & Date:", 120, y);
+    doc.line(120, y + 8, 186, y + 8);
+    
+    doc.save(att.name);
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[50vh] space-y-4">
@@ -308,9 +413,6 @@ export default function VoucherDetails() {
 
         {/* Action Controls */}
         <div className="no-print flex flex-wrap items-center gap-2">
-          <button onClick={handlePrint} className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm">
-            <Printer size={13} /> Print
-          </button>
           <button onClick={handlePDF} className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm">
             <Download size={13} /> PDF
           </button>
@@ -906,7 +1008,7 @@ export default function VoucherDetails() {
                     </div>
                   </div>
                   <button 
-                    onClick={() => alert(`Previewing Attachment Document:\nFilename: ${att.name}\nSize: ${att.size}\nType: ${att.type}`)}
+                    onClick={() => handleViewAttachment(att)}
                     className="text-[11.5px] font-extrabold text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer"
                   >
                     <Eye size={12} /> View
