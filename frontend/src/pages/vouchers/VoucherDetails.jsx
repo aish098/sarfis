@@ -9,7 +9,7 @@ import {
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import { jsPDF } from 'jspdf';
-import 'jspdf-autotable';
+import autoTable from 'jspdf-autotable';
 
 export default function VoucherDetails() {
   const { id } = useParams();
@@ -149,7 +149,7 @@ export default function VoucherDetails() {
         ];
       });
       
-      doc.autoTable({
+      autoTable(doc, {
         startY: currentY,
         head: [['Product / Item Name', 'Quantity', 'Unit Price/Cost', 'Total Value']],
         body: bodyData,
@@ -163,7 +163,7 @@ export default function VoucherDetails() {
         }
       });
       
-      currentY = doc.previousAutoTable.finalY + 12;
+      currentY = doc.lastAutoTable.finalY + 12;
     }
     
     if (financial.journalLines && financial.journalLines.length > 0) {
@@ -183,7 +183,7 @@ export default function VoucherDetails() {
         line.credit > 0 ? `PKR ${line.credit.toLocaleString()}` : "-"
       ]);
       
-      doc.autoTable({
+      autoTable(doc, {
         startY: currentY,
         head: [['General Ledger Account', 'Debit Postings', 'Credit Postings']],
         body: ledgerData,
@@ -288,7 +288,7 @@ export default function VoucherDetails() {
         }
       });
       
-      doc.autoTable({
+      autoTable(doc, {
         startY: currentY,
         head: headers,
         body: body,
@@ -302,7 +302,7 @@ export default function VoucherDetails() {
         }
       });
       
-      currentY = doc.previousAutoTable.finalY + 10;
+      currentY = doc.lastAutoTable.finalY + 10;
     } else {
       doc.setFont("helvetica", "italic");
       doc.text("No physical items specified in transaction metadata.", 14, currentY + 5);
