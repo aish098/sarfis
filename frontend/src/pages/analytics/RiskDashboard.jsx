@@ -804,7 +804,13 @@ export default function RiskDashboard() {
                                     {scopeBadge}
                                   </span>
                                 </td>
-                                <td className="px-4 py-3 font-semibold text-slate-500">Static</td>
+                                <td className="px-4 py-3">
+                                  <span className={`badge border text-[10px] font-extrabold px-2 py-0.5 rounded ${
+                                    rule.rule_type === 'FORMULA' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-slate-50 text-slate-600 border-slate-200'
+                                  }`}>
+                                    {rule.rule_type === 'FORMULA' ? 'Formula' : 'Static'}
+                                  </span>
+                                </td>
                                 <td className="px-4 py-3 text-center">
                                   <input type="number" min="0" max="999"
                                     className="border border-slate-200 rounded-lg w-16 p-1 text-center font-mono text-[12px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none hover:bg-slate-50"
