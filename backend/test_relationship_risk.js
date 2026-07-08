@@ -26,6 +26,18 @@ async function runRiskTests() {
     testWarehouse = await db('warehouses').where({ company_id: testCompany.id }).first();
     testProduct = await db('products').where({ company_id: testCompany.id }).first();
 
+    // Ensure we have stock for this product in this warehouse
+    const inv = await db('inventory').where({ product_id: testProduct.id, warehouse_id: testWarehouse.id }).first();
+    if (!inv) {
+      await db('inventory').insert({
+        product_id: testProduct.id,
+        warehouse_id: testWarehouse.id,
+        quantity: 10.0000
+      });
+    } else if (parseFloat(inv.quantity) < 2.0000) {
+      await db('inventory').where({ id: inv.id }).update({ quantity: 10.0000 });
+    }
+
     console.log(`[TESTS] Using Company: "${testCompany.name}" (ID: ${testCompany.id})`);
 
     // Ensure we have Accounts Receivable and Bad Debt Expense mapped
@@ -64,7 +76,7 @@ async function runRiskTests() {
     console.log(`[TESTS] Created Test Customer: "${testClient.name}" with outstanding bal: ${testClient.current_balance}`);
 
     // Verify initial risk status is ACTIVE (lazy-initialized)
-    let status = await RiskModel.getOrCreateStatus(testCompany.id, 'CUSTOMER', testClient.id, db);
+    let status = await RiskModel.getOrCreateStatus(testCompany.id, 'CUSTOMER', testClient.id);
     console.log(`[TESTS] Initial status: ${status.status}, Score: ${status.risk_score}, Level: ${status.risk_level}`);
     if (status.status !== 'ACTIVE' || status.risk_score !== 0) {
       throw new Error(`Expected ACTIVE status with 0 score, but got ${status.status} (${status.risk_score})`);
@@ -85,7 +97,7 @@ async function runRiskTests() {
     }, testUser.id);
 
     // Verify dynamic score and status level recalculates
-    status = await RiskModel.getOrCreateStatus(testCompany.id, 'CUSTOMER', testClient.id, db);
+    status = await RiskModel.getOrCreateStatus(testCompany.id, 'CUSTOMER', testClient.id);
     console.log(`[TESTS] Updated status: ${status.status}, Score: ${status.risk_score}, Level: ${status.risk_level}`);
     if (status.risk_score !== 60 || status.risk_level !== 'HIGH') {
       throw new Error(`Expected score of 60 and HIGH risk level, but got ${status.risk_score} (${status.risk_level})`);
@@ -99,7 +111,7 @@ async function runRiskTests() {
       notes: 'Blacklisted by system test script'
     }, testUser.id);
 
-    status = await RiskModel.getOrCreateStatus(testCompany.id, 'CUSTOMER', testClient.id, db);
+    status = await RiskModel.getOrCreateStatus(testCompany.id, 'CUSTOMER', testClient.id);
     console.log(`[TESTS] Status after blacklisting: ${status.status}`);
     if (status.status !== 'BLACKLISTED') {
       throw new Error(`Expected BLACKLISTED status, but got ${status.status}`);
@@ -204,7 +216,7 @@ async function runRiskTests() {
     console.log('✅ PASS: Subledger client balance correctly written off to 0.');
 
     // Verify customer relationship is reinstated and cash only policies applied
-    status = await RiskModel.getOrCreateStatus(testCompany.id, 'CUSTOMER', testClient.id, db);
+    status = await RiskModel.getOrCreateStatus(testCompany.id, 'CUSTOMER', testClient.id);
     console.log(`[TESTS] Final status after review approval: ${status.status}, Level: ${status.risk_level}, Cash-Only: ${status.cash_only}`);
     if (status.status !== 'REINSTATED' || !status.cash_only) {
       throw new Error(`Expected REINSTATED status with cash_only policy restriction, got ${status.status} (Cash Only: ${status.cash_only})`);
@@ -215,9 +227,9 @@ async function runRiskTests() {
     console.log('\n[TEST 6] Running Dynamic Policy scoring rules & thresholds tests...');
     
     // 6.1 Safe on-demand initialization check
-    await RiskService.ensureCompanyRulesInitialized(testCompany.id, db);
-    const initialRules = await RiskModel.getRiskRules(testCompany.id, db);
-    const initialLevels = await RiskModel.getRiskLevels(testCompany.id, db);
+    await RiskService.ensureCompanyRulesInitialized(testCompany.id);
+    const initialRules = await RiskModel.getRiskRules(testCompany.id);
+    const initialLevels = await RiskModel.getRiskLevels(testCompany.id);
     console.log(`[TESTS] Company initialized with ${initialRules.length} risk rules and ${initialLevels.length} thresholds.`);
     if (initialRules.length === 0 || initialLevels.length === 0) {
       throw new Error('Rules and thresholds must be automatically seeded.');
@@ -261,7 +273,7 @@ async function runRiskTests() {
       weight: 80,
       enabled: true,
       updatedBy: testUser.id
-    }, db);
+    });
 
     // Invalidate cache and log policy history
     RiskService.invalidateCache(testCompany.id);
@@ -292,7 +304,7 @@ async function runRiskTests() {
     }, testUser.id);
 
     // Assert that calculated score is now 80 (new rule weight) instead of 40 (old weight)
-    status = await RiskModel.getOrCreateStatus(testCompany.id, 'CUSTOMER', ruleTestClient.id, db);
+    status = await RiskModel.getOrCreateStatus(testCompany.id, 'CUSTOMER', ruleTestClient.id);
     console.log(`[TESTS] Status score with modified BOUNCED_CHEQUE rule weight: ${status.risk_score}`);
     if (status.risk_score !== 80) {
       throw new Error(`Expected score of 80 based on customized policy weight, got ${status.risk_score}`);

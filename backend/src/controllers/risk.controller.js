@@ -7,7 +7,7 @@ exports.getStatus = async (req, res) => {
   const companyId = req.companyId;
 
   try {
-    const status = await RiskModel.getOrCreateStatus(companyId, entityType, parseInt(entityId), db);
+    const status = await RiskModel.getOrCreateStatus(companyId, entityType, parseInt(entityId));
     res.json(status);
   } catch (err) {
     res.status(500).json({ error: err.message });
@@ -144,7 +144,7 @@ exports.payPaymentPlanInstallment = async (req, res) => {
   const { amount } = req.body;
 
   try {
-    await RiskModel.payInstallment(parseInt(installmentId), parseFloat(amount), db);
+    await RiskModel.payInstallment(parseInt(installmentId), parseFloat(amount));
     res.json({ message: 'Installment payment recorded.' });
   } catch (err) {
     res.status(400).json({ error: err.message });
