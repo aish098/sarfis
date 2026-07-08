@@ -129,7 +129,17 @@ export default function VoucherDetails() {
     
     let currentY = 85;
     
-    const itemsList = document.payload?.items || [];
+    let itemsList = document.payload?.items || [];
+    if (itemsList.length === 0) {
+      itemsList = [{
+        productName: document.type === 'PAYMENT' ? 'Vendor Payout Settlement' : 
+                     document.type === 'RECEIPT' ? 'Client Payout Settlement' : 
+                     'Accounting Ledger Adjustment',
+        quantity: 1,
+        unitPrice: document.totalAmount,
+        unitCost: document.totalAmount
+      }];
+    }
     if (itemsList.length > 0) {
       doc.setFont("helvetica", "bold");
       doc.setFontSize(11);
@@ -261,7 +271,15 @@ export default function VoucherDetails() {
     
     let currentY = 76;
     
-    const itemsList = document.payload?.items || [];
+    let itemsList = document.payload?.items || [];
+    if (itemsList.length === 0) {
+      itemsList = [{
+        productName: isInvoice ? 'Office Supplies / Vendor Services' : 'Sales Merchandise Delivery',
+        quantity: 1,
+        unitPrice: document.totalAmount,
+        unitCost: document.totalAmount
+      }];
+    }
     if (itemsList.length > 0) {
       const headers = isInvoice 
         ? [['Product / Item Name', 'Qty Shipped', 'Unit Price', 'Line Total']]
