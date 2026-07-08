@@ -98,18 +98,18 @@ export default function Sidebar({ collapsed, isMobile, onToggle }) {
     <>
       <style>{`
         .custom-scrollbar::-webkit-scrollbar {
-          width: 5px;
+          width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: rgba(255, 255, 255, 0.02);
+          background: #0f172a; /* Solid dark slate track */
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: rgba(255, 255, 255, 0.12);
+          background: #94a3b8; /* Solid visible soft-grey */
           border-radius: 10px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: rgba(255, 255, 255, 0.22);
+          background: #e2e8f0; /* Brighter grey hover */
         }
       `}</style>
       {/* Mobile overlay */}
