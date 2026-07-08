@@ -211,6 +211,98 @@ async function runRiskTests() {
     }
     console.log('✅ PASS: Customer reinstated and cash-only restrictions applied successfully.');
 
+    // [TEST 6] Dynamic Policy scoring rules & thresholds
+    console.log('\n[TEST 6] Running Dynamic Policy scoring rules & thresholds tests...');
+    
+    // 6.1 Safe on-demand initialization check
+    await RiskService.ensureCompanyRulesInitialized(testCompany.id, db);
+    const initialRules = await RiskModel.getRiskRules(testCompany.id, db);
+    const initialLevels = await RiskModel.getRiskLevels(testCompany.id, db);
+    console.log(`[TESTS] Company initialized with ${initialRules.length} risk rules and ${initialLevels.length} thresholds.`);
+    if (initialRules.length === 0 || initialLevels.length === 0) {
+      throw new Error('Rules and thresholds must be automatically seeded.');
+    }
+    console.log('✅ PASS: Safe on-demand seeding of policies verified.');
+
+    // 6.2 Overlap & Gap Validation
+    console.log('[TESTS] Verifying validation of gapped/overlapping thresholds...');
+    const badOverlappingLevels = [
+      { risk_level: 'LOW', min_score: 0, max_score: 10 },
+      { risk_level: 'MEDIUM', min_score: 5, max_score: 50 }, // Overlaps with LOW
+      { risk_level: 'HIGH', min_score: 51, max_score: 80 },
+      { risk_level: 'CRITICAL', min_score: 81, max_score: 999 }
+    ];
+    try {
+      RiskService.validateThresholds(badOverlappingLevels);
+      throw new Error('FAILED: Overlapping thresholds validation did not throw error.');
+    } catch (e) {
+      console.log('✅ PASS: Correctly threw error on overlapping thresholds:', e.message);
+    }
+
+    const badGappedLevels = [
+      { risk_level: 'LOW', min_score: 0, max_score: 20 },
+      { risk_level: 'MEDIUM', min_score: 25, max_score: 50 }, // Gap between 20 and 25
+      { risk_level: 'HIGH', min_score: 51, max_score: 80 },
+      { risk_level: 'CRITICAL', min_score: 81, max_score: 999 }
+    ];
+    try {
+      RiskService.validateThresholds(badGappedLevels);
+      throw new Error('FAILED: Gapped thresholds validation did not throw error.');
+    } catch (e) {
+      console.log('✅ PASS: Correctly threw error on gapped thresholds:', e.message);
+    }
+
+    // 6.3 Rule Customization weights change (Changing BOUNCED_CHEQUE weight from 40 to 80)
+    console.log('[TESTS] Customizing BOUNCED_CHEQUE rule weight to 80 points...');
+    const chequeRule = initialRules.find(r => r.code === 'BOUNCED_CHEQUE');
+    if (!chequeRule) throw new Error('BOUNCED_CHEQUE rule not seeded.');
+
+    await RiskModel.updateRiskRule(chequeRule.id, testCompany.id, {
+      weight: 80,
+      enabled: true,
+      updatedBy: testUser.id
+    }, db);
+
+    // Invalidate cache and log policy history
+    RiskService.invalidateCache(testCompany.id);
+    await RiskModel.addPolicyHistory(
+      testCompany.id,
+      'RULE_CHANGE',
+      chequeRule.id,
+      chequeRule.weight,
+      80,
+      testUser.id,
+      'Integration testing customizer weight'
+    );
+
+    // Create a new client and log Bounced Cheque incident
+    const ruleTestClient = await db('clients').insert({
+      company_id: testCompany.id,
+      name: `Rules Test Client - ${Date.now()}`,
+      credit_limit: 10000.00,
+      current_balance: 0
+    }).returning('*').then(rows => rows[0]);
+
+    await RiskService.logIncident(testCompany.id, 'CUSTOMER', ruleTestClient.id, {
+      category: 'BOUNCED_CHEQUE',
+      incidentDate: new Date(),
+      reason: 'Bounced cheque during cash settlement trial',
+      lossAmount: 1000.00,
+      resolved: false
+    }, testUser.id);
+
+    // Assert that calculated score is now 80 (new rule weight) instead of 40 (old weight)
+    status = await RiskModel.getOrCreateStatus(testCompany.id, 'CUSTOMER', ruleTestClient.id, db);
+    console.log(`[TESTS] Status score with modified BOUNCED_CHEQUE rule weight: ${status.risk_score}`);
+    if (status.risk_score !== 80) {
+      throw new Error(`Expected score of 80 based on customized policy weight, got ${status.risk_score}`);
+    }
+    console.log('✅ PASS: Customized policy rules weights evaluated correctly.');
+
+    // Clean up rule test client
+    await db('clients').where('id', ruleTestClient.id).delete();
+    await db('business_relationship_status').where({ entity_type: 'CUSTOMER', entity_id: ruleTestClient.id }).delete();
+
     // Clean up test client
     await db('clients').where('id', testClient.id).delete();
     await db('business_relationship_status').where({ entity_type: 'CUSTOMER', entity_id: testClient.id }).delete();

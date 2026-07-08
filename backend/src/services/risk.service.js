@@ -3,46 +3,84 @@ const RiskModel = require('../models/risk.model');
 const clientModel = require('../models/distribution.model');
 const vendorModel = require('../models/vendor.model');
 
+// In-Memory rules caching map (companyId -> { rules, levels, version })
+const rulesCache = {};
+
 class RiskService {
+  /**
+   * Clears rules cache for a company
+   */
+  static invalidateCache(companyId) {
+    delete rulesCache[companyId];
+  }
+
+  /**
+   * Fetches risk rules and levels with caching
+   */
+  static async getCachedRules(companyId, trx) {
+    if (rulesCache[companyId]) {
+      return rulesCache[companyId];
+    }
+
+    const conn = trx || db;
+    await this.ensureCompanyRulesInitialized(companyId, conn);
+
+    const [rules, levels] = await Promise.all([
+      RiskModel.getRiskRules(companyId, conn),
+      RiskModel.getRiskLevels(companyId, conn)
+    ]);
+
+    rulesCache[companyId] = { rules, levels, version: Date.now() };
+    return rulesCache[companyId];
+  }
+
+  /**
+   * Side-effect free on-demand initialization check
+   */
+  static async ensureCompanyRulesInitialized(companyId, trx) {
+    const conn = trx || db;
+    const existing = await conn('company_risk_rules').where({ company_id: companyId }).first();
+    if (!existing) {
+      await RiskModel.initializeCompanyRules(companyId, conn);
+      this.invalidateCache(companyId);
+    }
+  }
+
   /**
    * Recalculates risk score based on active incidents
    */
   static async calculateRiskScore(companyId, entityType, entityId, trx) {
     const execute = async (t) => {
+      const cached = await this.getCachedRules(companyId, t);
+      
+      const ruleLookup = {};
+      cached.rules.forEach(r => {
+        if (r.enabled) {
+          ruleLookup[String(r.code).toUpperCase()] = r.weight;
+        }
+      });
+
       const incidents = await RiskModel.getIncidents(companyId, entityType, entityId, t);
-      // Filter only unresolved incidents or sum all history? Overdue incidents usually drive current score.
-      // User says: "derive it from incidents or recalculate it whenever incidents change"
-      // Let's sum weights of all active (unresolved) incidents for the entity.
       const activeIncidents = incidents.filter(inc => !inc.resolved);
 
       let score = 0;
       for (const inc of activeIncidents) {
         const cat = String(inc.category).toUpperCase();
-        if (entityType === 'CUSTOMER') {
-          if (cat === 'LATE_PAYMENT') score += 15;
-          else if (cat === 'BOUNCED_CHEQUE') score += 40;
-          else if (cat === 'OVERDUE_INVOICE') score += 30;
-          else if (cat === 'BAD_DEBT') score += 60;
-          else if (cat === 'LEGAL_CASE') score += 100;
-          else score += 10;
-        } else { // VENDOR
-          if (cat === 'POOR_QUALITY') score += 20;
-          else if (cat === 'LATE_DELIVERY') score += 20;
-          else if (cat === 'PRICE_MANIPULATION') score += 80;
-          else if (cat === 'FRAUD') score += 80;
-          else if (cat === 'CONTRACT_VIOLATION') score += 50;
-          else score += 10;
-        }
+        const weight = ruleLookup[cat] !== undefined ? ruleLookup[cat] : 10;
+        score += weight;
       }
 
-      // Cap score at 100
-      score = Math.min(100, score);
+      // Cap score at 999
+      score = Math.min(999, score);
 
-      // Determine Risk Level
+      // Determine Risk Level dynamically using cached threshold levels
       let level = 'LOW';
-      if (score > 80) level = 'CRITICAL';
-      else if (score > 50) level = 'HIGH';
-      else if (score > 20) level = 'MEDIUM';
+      for (const lvl of cached.levels) {
+        if (score >= lvl.min_score && score <= lvl.max_score) {
+          level = lvl.risk_level;
+          break;
+        }
+      }
 
       // Load current relationship status record
       const current = await RiskModel.getOrCreateStatus(companyId, entityType, entityId, t);
@@ -52,8 +90,7 @@ class RiskService {
         risk_level: level
       };
 
-      // Auto Credit Policy rules (only override if status is not manually BLACKLISTED or Watchlist)
-      // When score reduces or increases, we auto-update credit/restrictions:
+      // Auto Credit Policy rules
       if (level === 'CRITICAL' || current.status === 'BLACKLISTED') {
         updateData.cash_only = true;
         updateData.manager_approval_required = true;
@@ -639,6 +676,64 @@ class RiskService {
         entityId: inst.entity_id
       });
     }
+  }
+
+  /**
+   * Threshold validation to prevent overlaps or gaps
+   */
+  static validateThresholds(levels) {
+    const sorted = [...levels].sort((a, b) => a.min_score - b.min_score);
+    const required = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+    const levelsPresent = sorted.map(s => s.risk_level);
+
+    for (const req of required) {
+      if (!levelsPresent.includes(req)) {
+        throw new Error(`Missing required risk level configuration for ${req}.`);
+      }
+    }
+
+    for (let i = 0; i < sorted.length; i++) {
+      const curr = sorted[i];
+      if (curr.min_score < 0 || curr.max_score < 0) {
+        throw new Error('Risk scores cannot be negative.');
+      }
+      if (curr.min_score > curr.max_score) {
+        throw new Error(`Min score cannot be greater than max score for ${curr.risk_level}.`);
+      }
+      if (i > 0) {
+        const prev = sorted[i - 1];
+        if (curr.min_score <= prev.max_score) {
+          throw new Error(`Overlapping score thresholds detected between ${prev.risk_level} and ${curr.risk_level}.`);
+        }
+        if (curr.min_score > prev.max_score + 1) {
+          throw new Error(`Gaps in score thresholds detected between ${prev.risk_level} and ${curr.risk_level}.`);
+        }
+      }
+    }
+    return true;
+  }
+
+  /**
+   * Asynchronous background bulk recalculation
+   */
+  static triggerBackgroundRecalculation(companyId) {
+    setImmediate(async () => {
+      try {
+        const partners = await db('business_relationship_status')
+          .where({ company_id: companyId })
+          .select('entity_type', 'entity_id');
+        
+        console.log(`[BACKGROUND WORKER] Bulk recalculating scores for ${partners.length} partners of company ${companyId}...`);
+        for (const p of partners) {
+          await db.transaction(async (trx) => {
+            await this.calculateRiskScore(companyId, p.entity_type, p.entity_id, trx);
+          });
+        }
+        console.log(`[BACKGROUND WORKER] Finished bulk recalculating scores for company ${companyId}.`);
+      } catch (err) {
+        console.error('[BACKGROUND WORKER ERROR] Failed bulk recalculating scores:', err);
+      }
+    });
   }
 }
 

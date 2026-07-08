@@ -39,5 +39,9 @@ router.get('/approval-requests/pending', requirePermission('risk.approve'), risk
 router.get('/approval-requests/:requestId', riskController.getApprovalRequest);
 router.post('/approval-requests/review/:requestId', requirePermission('risk.approve'), riskController.reviewApprovalRequest);
 router.post('/scheduler/reviews', requirePermission('risk.manage'), riskController.triggerScheduledReviews);
+// Policy scoring configurations
+router.get('/settings/rules', requirePermission('risk.view'), riskController.getRiskSettings);
+router.put('/settings/rules/:ruleId', requirePermission('risk.manage'), riskController.updateRiskRule);
+router.put('/settings/levels', requirePermission('risk.manage'), riskController.updateRiskLevels);
 
 module.exports = router;

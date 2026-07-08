@@ -412,3 +412,114 @@ exports.getReinstatementRequests = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.getRiskSettings = async (req, res) => {
+  const companyId = req.companyId;
+
+  try {
+    const cached = await RiskService.getCachedRules(companyId);
+    const history = await RiskModel.getPolicyHistory(companyId);
+    res.json({
+      rules: cached.rules,
+      levels: cached.levels,
+      history
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.updateRiskRule = async (req, res) => {
+  const { ruleId } = req.params;
+  const { weight, enabled, reason } = req.body;
+  const companyId = req.companyId;
+  const userId = req.user.id;
+
+  try {
+    const rules = await RiskModel.getRiskRules(companyId);
+    const rule = rules.find(r => r.id === parseInt(ruleId));
+    if (!rule) {
+      return res.status(404).json({ error: 'Risk rule not found.' });
+    }
+
+    const oldVal = `Weight: ${rule.weight}, Enabled: ${rule.enabled}`;
+    const newVal = `Weight: ${weight !== undefined ? weight : rule.weight}, Enabled: ${enabled !== undefined ? enabled : rule.enabled}`;
+
+    await db.transaction(async (trx) => {
+      await RiskModel.updateRiskRule(parseInt(ruleId), companyId, {
+        weight: weight !== undefined ? parseInt(weight) : rule.weight,
+        enabled: enabled !== undefined ? !!enabled : rule.enabled,
+        updatedBy: userId
+      }, trx);
+
+      await RiskModel.addPolicyHistory(
+        companyId,
+        'RULE_CHANGE',
+        parseInt(ruleId),
+        oldVal,
+        newVal,
+        userId,
+        reason || 'Policy configuration update',
+        trx
+      );
+    });
+
+    RiskService.invalidateCache(companyId);
+    RiskService.triggerBackgroundRecalculation(companyId);
+
+    res.json({ success: true, message: 'Risk rule updated successfully. Bulk recalculation started in the background.' });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.updateRiskLevels = async (req, res) => {
+  const { levels, reason } = req.body;
+  const companyId = req.companyId;
+  const userId = req.user.id;
+
+  try {
+    if (!Array.isArray(levels) || levels.length !== 4) {
+      throw new Error('Exactly 4 risk levels must be configured.');
+    }
+
+    RiskService.validateThresholds(levels);
+
+    const oldLevels = await RiskModel.getRiskLevels(companyId);
+
+    await db.transaction(async (trx) => {
+      for (const lvl of levels) {
+        const oldLvl = oldLevels.find(o => o.id === parseInt(lvl.id));
+        if (!oldLvl) throw new Error(`Risk level rules ID #${lvl.id} not found.`);
+
+        await RiskModel.updateRiskLevel(parseInt(lvl.id), companyId, {
+          min_score: parseInt(lvl.min_score),
+          max_score: parseInt(lvl.max_score)
+        }, trx);
+
+        const oldVal = `${oldLvl.min_score}-${oldLvl.max_score}`;
+        const newVal = `${lvl.min_score}-${lvl.max_score}`;
+
+        if (oldVal !== newVal) {
+          await RiskModel.addPolicyHistory(
+            companyId,
+            'THRESHOLD_CHANGE',
+            parseInt(lvl.id),
+            oldVal,
+            newVal,
+            userId,
+            reason || `Adjusted risk thresholds for ${lvl.risk_level}`,
+            trx
+          );
+        }
+      }
+    });
+
+    RiskService.invalidateCache(companyId);
+    RiskService.triggerBackgroundRecalculation(companyId);
+
+    res.json({ success: true, message: 'Risk thresholds updated successfully. Bulk recalculation started in the background.' });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};

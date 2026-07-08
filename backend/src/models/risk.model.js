@@ -2,6 +2,9 @@ const db = require('../config/db');
 
 class RiskModel {
   static async getOrCreateStatus(companyId, entityType, entityId, trx) {
+    const RiskService = require('../services/risk.service');
+    await RiskService.ensureCompanyRulesInitialized(companyId, trx);
+
     const query = db('business_relationship_status')
       .where({ company_id: companyId, entity_type: entityType, entity_id: entityId });
     if (trx) query.transacting(trx);
@@ -253,6 +256,95 @@ class RiskModel {
       .orderBy('r.created_at', 'desc');
     if (trx) query.transacting(trx);
     return query;
+  }
+
+  static async getRiskRules(companyId, trx) {
+    const query = db('company_risk_rules as cr')
+      .join('risk_categories as rc', 'cr.category_id', 'rc.id')
+      .where('cr.company_id', companyId)
+      .select('cr.*', 'rc.code', 'rc.label', 'rc.entity_scope', 'rc.severity', 'rc.rule_type', 'rc.description')
+      .orderBy('rc.label', 'asc');
+    if (trx) query.transacting(trx);
+    return query;
+  }
+
+  static async getRiskLevels(companyId, trx) {
+    const query = db('risk_level_rules')
+      .where('company_id', companyId)
+      .orderBy('min_score', 'asc');
+    if (trx) query.transacting(trx);
+    return query;
+  }
+
+  static async updateRiskRule(id, companyId, data, trx) {
+    const query = db('company_risk_rules').where({ id, company_id: companyId });
+    if (trx) query.transacting(trx);
+    const [updated] = await query.update({
+      weight: data.weight,
+      enabled: data.enabled !== undefined ? data.enabled : true,
+      updated_by: data.updatedBy,
+      updated_at: db.fn.now()
+    }).returning('*');
+    return updated;
+  }
+
+  static async updateRiskLevel(id, companyId, data, trx) {
+    const query = db('risk_level_rules').where({ id, company_id: companyId });
+    if (trx) query.transacting(trx);
+    const [updated] = await query.update({
+      min_score: data.min_score,
+      max_score: data.max_score
+    }).returning('*');
+    return updated;
+  }
+
+  static async addPolicyHistory(companyId, type, ruleId, oldVal, newVal, userId, reason, trx) {
+    const query = db('risk_policy_history');
+    if (trx) query.transacting(trx);
+    await query.insert({
+      company_id: companyId,
+      policy_type: type,
+      rule_id: ruleId,
+      old_value: String(oldVal),
+      new_value: String(newVal),
+      changed_by: userId,
+      reason
+    });
+  }
+
+  static async getPolicyHistory(companyId, trx) {
+    const query = db('risk_policy_history as h')
+      .leftJoin('users as u', 'h.changed_by', 'u.id')
+      .where('h.company_id', companyId)
+      .select('h.*', 'u.name as user_name')
+      .orderBy('h.created_at', 'desc');
+    if (trx) query.transacting(trx);
+    return query;
+  }
+
+  static async initializeCompanyRules(companyId, trx) {
+    const conn = trx || db;
+    const existingRules = await conn('company_risk_rules').where({ company_id: companyId }).first();
+    if (existingRules) return;
+
+    const categories = await conn('risk_categories').select('*');
+    const rulesToInsert = categories.map(cat => ({
+      company_id: companyId,
+      category_id: cat.id,
+      weight: cat.default_weight,
+      enabled: true
+    }));
+    if (rulesToInsert.length > 0) {
+      await conn('company_risk_rules').insert(rulesToInsert);
+    }
+
+    const thresholds = [
+      { company_id: companyId, risk_level: 'LOW', min_score: 0, max_score: 20 },
+      { company_id: companyId, risk_level: 'MEDIUM', min_score: 21, max_score: 50 },
+      { company_id: companyId, risk_level: 'HIGH', min_score: 51, max_score: 80 },
+      { company_id: companyId, risk_level: 'CRITICAL', min_score: 81, max_score: 999 }
+    ];
+    await conn('risk_level_rules').insert(thresholds);
   }
 }
 

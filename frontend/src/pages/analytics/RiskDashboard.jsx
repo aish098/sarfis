@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   AlertTriangle, ShieldAlert, CheckCircle, Clock, ShieldCheck, 
-  DollarSign, Activity, FileText, ChevronRight, UserCheck, Trash2, X
+  DollarSign, Activity, FileText, ChevronRight, UserCheck, Trash2, X, Sliders, History
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -28,8 +28,11 @@ export default function RiskDashboard() {
   const [incidents, setIncidents] = useState([]);
   const [reinstatements, setReinstatements] = useState([]);
   const [pendingOverrides, setPendingOverrides] = useState([]);
+  const [rules, setRules] = useState([]);
+  const [levels, setLevels] = useState([]);
+  const [policyHistory, setPolicyHistory] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [activeSubTab, setActiveSubTab] = useState('summary'); // summary | blacklists | incidents | reinstatements | overrides
+  const [activeSubTab, setActiveSubTab] = useState('summary'); // summary | blacklists | incidents | reinstatements | overrides | settings
   const [selectedRequest, setSelectedRequest] = useState(null);
   const [reviewForm, setReviewForm] = useState({
     status: 'APPROVED', reviewNotes: '', priorityAfterReinstate: 'MEDIUM', receivablesHandling: 'KEEP_AR',
@@ -43,18 +46,22 @@ export default function RiskDashboard() {
     if (!activeCompany) return;
     setLoading(true);
     try {
-      const [statsRes, blackRes, incRes, reinRes, overRes] = await Promise.all([
+      const [statsRes, blackRes, incRes, reinRes, overRes, settingsRes] = await Promise.all([
         api.get('/risk/dashboard-stats'),
         api.get('/risk/reports/blacklisted'),
         api.get('/risk/reports/bad-debts'),
         api.get('/risk/reports/reinstatements'),
-        api.get('/risk/approval-requests/pending')
+        api.get('/risk/approval-requests/pending'),
+        api.get('/risk/settings/rules')
       ]);
       setStats(statsRes.data);
       setBlacklisted(blackRes.data);
       setIncidents(incRes.data);
       setReinstatements(reinRes.data);
       setPendingOverrides(overRes.data);
+      setRules(settingsRes.data.rules);
+      setLevels(settingsRes.data.levels);
+      setPolicyHistory(settingsRes.data.history);
     } catch (err) {
       console.error('Failed to load risk dashboard data:', err);
     }
@@ -88,6 +95,62 @@ export default function RiskDashboard() {
       await loadData();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to record override review.');
+    }
+    setSaving(false);
+  };
+
+  const handleSaveRule = async (ruleId, weight, enabled) => {
+    setError('');
+    setSaving(true);
+    const reason = window.prompt('Enter audit reason for changing this scoring rule:', 'Risk policy weight adjustment');
+    if (reason === null) {
+      setSaving(false);
+      return;
+    }
+    try {
+      await api.put(`/risk/settings/rules/${ruleId}`, { weight, enabled, reason });
+      alert('Incident scoring weight updated successfully. Recalculation started in the background.');
+      await loadData();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to update rule.');
+    }
+    setSaving(false);
+  };
+
+  const handleSaveLevels = async (e) => {
+    e.preventDefault();
+    setError('');
+    
+    const sorted = [...levels].sort((a, b) => a.min_score - b.min_score);
+    for (let i = 0; i < sorted.length; i++) {
+      const curr = sorted[i];
+      if (curr.min_score > curr.max_score) {
+        setError(`Min score cannot be greater than max score for ${curr.risk_level}.`);
+        return;
+      }
+      if (i > 0) {
+        const prev = sorted[i - 1];
+        if (curr.min_score <= prev.max_score) {
+          setError(`Overlapping score thresholds detected between ${prev.risk_level} and ${curr.risk_level}.`);
+          return;
+        }
+        if (curr.min_score > prev.max_score + 1) {
+          setError(`Gaps in score thresholds detected between ${prev.risk_level} and ${curr.risk_level}.`);
+          return;
+        }
+      }
+    }
+
+    const reason = window.prompt('Enter audit reason for changing risk thresholds:', 'Risk thresholds mapping adjustment');
+    if (reason === null) return;
+
+    setSaving(true);
+    try {
+      await api.put('/risk/settings/levels', { levels, reason });
+      alert('Risk level thresholds updated successfully. Recalculation started in the background.');
+      await loadData();
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to update thresholds.');
     }
     setSaving(false);
   };
@@ -157,7 +220,8 @@ export default function RiskDashboard() {
           { id: 'blacklists', label: `Active Watch/Blocks (${blacklisted.length})` },
           { id: 'incidents', label: `Defaulter Logs (${incidents.length})` },
           { id: 'reinstatements', label: `Reinstatements Review (${reinstatements.filter(r => r.status === 'PENDING').length})` },
-          { id: 'overrides', label: `Override Requests (${pendingOverrides.length})` }
+          { id: 'overrides', label: `Override Requests (${pendingOverrides.length})` },
+          { id: 'settings', label: 'Scoring Policy Settings' }
         ].map(tab => (
           <button key={tab.id} onClick={() => setActiveSubTab(tab.id)}
             className={`px-4 py-1.5 text-[12px] font-bold rounded-lg transition-all ${activeSubTab === tab.id ? 'bg-amber-50 text-amber-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
@@ -429,6 +493,207 @@ export default function RiskDashboard() {
                     })}
                   </tbody>
                 </table>
+              </div>
+            )}
+
+            {activeSubTab === 'settings' && (
+              <div className="space-y-8">
+                
+                {/* 1. Incident Weight Customizer */}
+                <div className="space-y-4">
+                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                    <div>
+                      <h3 className="text-[14px] font-black text-slate-800 flex items-center gap-1.5 uppercase">
+                        <Sliders size={16} className="text-amber-500" /> Incident Scoring Weights
+                      </h3>
+                      <p className="text-[11px] text-slate-500 font-semibold mt-0.5">Customize the score penalty points applied for customer and vendor defaults.</p>
+                    </div>
+                  </div>
+
+                  {error && (
+                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-[12px] text-red-700 font-bold flex items-center gap-1">
+                      <AlertTriangle size={14} /> {error}
+                    </div>
+                  )}
+
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+                    {/* CUSTOMER RULES */}
+                    <div className="border border-slate-100 rounded-xl p-4 bg-slate-50/50 space-y-3">
+                      <h4 className="text-[12px] font-black text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded border border-indigo-100 uppercase">Customer Scope Incident Rules</h4>
+                      <div className="divide-y divide-slate-100">
+                        {rules.filter(r => r.entity_scope === 'CUSTOMER' || r.entity_scope === 'BOTH').map(rule => (
+                          <div key={rule.id} className="py-3 flex items-center justify-between gap-4 text-[13px]">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-slate-700">{rule.label} <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1 py-0.5 rounded uppercase">{rule.code}</span></p>
+                              <p className="text-[11px] text-slate-400 mt-0.5 truncate">{rule.description}</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <input type="number" min="0" max="999" className="border border-slate-200 rounded-lg w-16 p-1 text-center font-mono text-[12px]"
+                                value={rule.weight}
+                                onChange={e => {
+                                  const val = parseInt(e.target.value) || 0;
+                                  setRules(prev => prev.map(r => r.id === rule.id ? { ...r, weight: val } : r));
+                                }}
+                              />
+                              <label className="flex items-center gap-1 cursor-pointer">
+                                <input type="checkbox" className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                  checked={rule.enabled}
+                                  onChange={e => {
+                                    const val = e.target.checked;
+                                    setRules(prev => prev.map(r => r.id === rule.id ? { ...r, enabled: val } : r));
+                                  }}
+                                />
+                                <span className="text-[11.5px] font-bold text-slate-500">Enabled</span>
+                              </label>
+                              <button onClick={() => handleSaveRule(rule.id, rule.weight, rule.enabled)} disabled={saving}
+                                className="text-[11px] font-bold px-2.5 py-1 rounded bg-slate-200 hover:bg-emerald-600 hover:text-white transition-all text-slate-600">
+                                Save
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* VENDOR RULES */}
+                    <div className="border border-slate-100 rounded-xl p-4 bg-slate-50/50 space-y-3">
+                      <h4 className="text-[12px] font-black text-teal-700 bg-teal-50 px-2.5 py-1 rounded border border-teal-100 uppercase">Vendor Scope Incident Rules</h4>
+                      <div className="divide-y divide-slate-100">
+                        {rules.filter(r => r.entity_scope === 'VENDOR').map(rule => (
+                          <div key={rule.id} className="py-3 flex items-center justify-between gap-4 text-[13px]">
+                            <div className="flex-1 min-w-0">
+                              <p className="font-bold text-slate-700">{rule.label} <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1 py-0.5 rounded uppercase">{rule.code}</span></p>
+                              <p className="text-[11px] text-slate-400 mt-0.5 truncate">{rule.description}</p>
+                            </div>
+                            <div className="flex items-center gap-3">
+                              <input type="number" min="0" max="999" className="border border-slate-200 rounded-lg w-16 p-1 text-center font-mono text-[12px]"
+                                value={rule.weight}
+                                onChange={e => {
+                                  const val = parseInt(e.target.value) || 0;
+                                  setRules(prev => prev.map(r => r.id === rule.id ? { ...r, weight: val } : r));
+                                }}
+                              />
+                              <label className="flex items-center gap-1 cursor-pointer">
+                                <input type="checkbox" className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                  checked={rule.enabled}
+                                  onChange={e => {
+                                    const val = e.target.checked;
+                                    setRules(prev => prev.map(r => r.id === rule.id ? { ...r, enabled: val } : r));
+                                  }}
+                                />
+                                <span className="text-[11.5px] font-bold text-slate-500">Enabled</span>
+                              </label>
+                              <button onClick={() => handleSaveRule(rule.id, rule.weight, rule.enabled)} disabled={saving}
+                                className="text-[11px] font-bold px-2.5 py-1 rounded bg-slate-200 hover:bg-emerald-600 hover:text-white transition-all text-slate-600">
+                                Save
+                              </button>
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                {/* 2. Risk Level Thresholds */}
+                <div className="space-y-4">
+                  <div className="border-b border-slate-100 pb-2">
+                    <h3 className="text-[14px] font-black text-slate-800 flex items-center gap-1.5 uppercase">
+                      <Sliders size={16} className="text-orange-500" /> Score Mapping Thresholds
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-semibold mt-0.5">Define min/max score ranges for classifying risk levels. Ensure no overlaps or gaps exist between thresholds.</p>
+                  </div>
+
+                  <form onSubmit={handleSaveLevels} className="border border-slate-100 rounded-xl p-5 bg-slate-50/50 space-y-4 max-w-2xl">
+                    <div className="space-y-3">
+                      {levels.map((lvl, index) => (
+                        <div key={lvl.id} className="grid grid-cols-3 gap-4 items-center text-[13px]">
+                          <span className="font-bold text-slate-700 capitalize flex items-center gap-1.5">
+                            <span className={`w-2.5 h-2.5 rounded-full ${
+                              lvl.risk_level === 'LOW' ? 'bg-emerald-500' :
+                              lvl.risk_level === 'MEDIUM' ? 'bg-amber-500' :
+                              lvl.risk_level === 'HIGH' ? 'bg-orange-500' : 'bg-red-500'
+                            }`} />
+                            {lvl.risk_level} Threshold:
+                          </span>
+                          <div className="flex items-center gap-2">
+                            <label className="text-[11px] font-semibold text-slate-400 uppercase">Min</label>
+                            <input type="number" min="0" className="border border-slate-200 rounded-lg p-1 text-center font-mono text-[12px] w-24"
+                              value={lvl.min_score}
+                              onChange={e => {
+                                const val = parseInt(e.target.value) || 0;
+                                setLevels(prev => prev.map(l => l.id === lvl.id ? { ...l, min_score: val } : l));
+                              }}
+                            />
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <label className="text-[11px] font-semibold text-slate-400 uppercase">Max</label>
+                            <input type="number" min="0" className="border border-slate-200 rounded-lg p-1 text-center font-mono text-[12px] w-24"
+                              value={lvl.max_score}
+                              onChange={e => {
+                                const val = parseInt(e.target.value) || 0;
+                                setLevels(prev => prev.map(l => l.id === lvl.id ? { ...l, max_score: val } : l));
+                              }}
+                            />
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
+                      <button type="submit" disabled={saving}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[12px] font-bold shadow-sm flex items-center gap-1">
+                        {saving ? 'Saving...' : 'Save Thresholds Configuration'}
+                      </button>
+                    </div>
+                  </form>
+                </div>
+
+                {/* 3. Audit Trails Change History */}
+                <div className="space-y-4">
+                  <div className="border-b border-slate-100 pb-2">
+                    <h3 className="text-[14px] font-black text-slate-800 flex items-center gap-1.5 uppercase">
+                      <History size={16} className="text-slate-500" /> Policy Configuration Logs
+                    </h3>
+                    <p className="text-[11px] text-slate-500 font-semibold mt-0.5">Chronological trail of risk category weight updates and threshold modifications.</p>
+                  </div>
+
+                  <div className="border border-slate-100 rounded-xl overflow-hidden shadow-sm bg-white">
+                    <table className="w-full text-left">
+                      <thead>
+                        <tr className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                          <th className="px-4 py-3">Timestamp</th>
+                          <th className="px-4 py-3">Action Type</th>
+                          <th className="px-4 py-3">Old Value</th>
+                          <th className="px-4 py-3">New Value</th>
+                          <th className="px-4 py-3">Auditor</th>
+                          <th className="px-4 py-3">Reason</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50 text-[12.5px] text-slate-600">
+                        {policyHistory.length === 0 ? (
+                          <tr><td colSpan={6} className="text-center py-8 text-slate-400 italic bg-white">No configuration modifications recorded.</td></tr>
+                        ) : (
+                          policyHistory.map(hist => (
+                            <tr key={hist.id} className="hover:bg-slate-50/50 bg-white">
+                              <td className="px-4 py-3 font-mono text-[11px]">{new Date(hist.created_at).toLocaleString()}</td>
+                              <td className="px-4 py-3">
+                                <span className={`badge uppercase text-[10px] font-bold px-2 py-0.5 rounded ${
+                                  hist.policy_type === 'RULE_CHANGE' ? 'bg-indigo-50 text-indigo-700' : 'bg-teal-50 text-teal-700'
+                                }`}>{hist.policy_type}</span>
+                              </td>
+                              <td className="px-4 py-3 font-mono text-[11.5px] text-slate-500">{hist.old_value}</td>
+                              <td className="px-4 py-3 font-mono text-[11.5px] font-semibold text-slate-800">{hist.new_value}</td>
+                              <td className="px-4 py-3 font-medium text-slate-700">{hist.user_name || 'System Admin'}</td>
+                              <td className="px-4 py-3 italic text-slate-500">{hist.reason}</td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+
               </div>
             )}
           </div>
