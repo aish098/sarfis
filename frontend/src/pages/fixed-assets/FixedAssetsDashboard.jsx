@@ -3,7 +3,7 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   Briefcase, Settings, Play, Calendar, DollarSign, Layers, Activity,
   ArrowRight, ShieldAlert, CheckCircle2, AlertTriangle, Info, Clock, 
-  User, MapPin, Wrench, Shield, TrendingUp, TrendingDown
+  User, MapPin, Wrench, Shield, TrendingUp, TrendingDown, ArrowLeft
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, BarChart as RechartsBarChart, 
@@ -278,9 +278,14 @@ export default function FixedAssetsDashboard() {
     <div className="space-y-6 max-w-[1600px] mx-auto p-1">
       {/* Top Banner Control Center */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Asset Control Center</h1>
-          <p className="text-slate-500 text-sm font-semibold">Centralized command center for calculations, validations, alerts, and multi-book reporting.</p>
+        <div className="flex items-center gap-3">
+          <Link to="/dashboard" className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-all">
+            <ArrowLeft size={16} />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Asset Control Center</h1>
+            <p className="text-slate-500 text-sm font-semibold">Centralized command center for calculations, validations, alerts, and multi-book reporting.</p>
+          </div>
         </div>
         <div className="flex items-center gap-2 flex-wrap">
           <Link to="/dashboard/fixed-assets/register" className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm">

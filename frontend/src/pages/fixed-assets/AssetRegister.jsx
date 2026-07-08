@@ -206,11 +206,15 @@ export default function AssetRegister() {
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Asset Registry</h1>
-          <p className="text-slate-500 text-sm font-semibold">Verify asset details, print codes, transfer locations, or retire obsolete assets.</p>
+        <div className="flex items-center gap-3">
+          <Link to="/dashboard/fixed-assets" className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-all">
+            <ArrowLeft size={16} />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Asset Registry</h1>
+            <p className="text-slate-500 text-sm font-semibold">Verify asset details, print codes, transfer locations, or retire obsolete assets.</p>
+          </div>
         </div>
         <button onClick={() => setShowAddForm(true)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-md">
           <Plus size={14} /> Capitalize Asset

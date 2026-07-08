@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
+import { Link } from 'react-router-dom';
 import { 
-  Settings, Save, AlertCircle, PlusCircle, Edit, Info, Database, BarChart3, TrendingDown 
+  Settings, Save, AlertCircle, PlusCircle, Edit, Info, Database, BarChart3, TrendingDown, ArrowLeft
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -197,9 +198,14 @@ export default function AssetCategories() {
     <div className="space-y-6">
       {/* Header */}
       <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Category Settings</h1>
-          <p className="text-slate-500 text-sm font-semibold">Establish default rules and map asset accounts to General Ledger postings.</p>
+        <div className="flex items-center gap-3">
+          <Link to="/dashboard/fixed-assets" className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-all">
+            <ArrowLeft size={16} />
+          </Link>
+          <div>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Category Settings</h1>
+            <p className="text-slate-500 text-sm font-semibold">Establish default rules and map asset accounts to General Ledger postings.</p>
+          </div>
         </div>
         <button onClick={handleAddClick} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-md">
           <PlusCircle size={14} /> Create Category
