@@ -505,6 +505,8 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
         console.error('SSE connection error, closing EventSource and retrying in 3s:', err);
         eventSource.close();
         if (!isCancelled) {
+          // Verify session validity via Axios client to trigger automatic logouts if token is rejected with 401
+          api.get('/auth/me').catch(() => {});
           retryTimeout = setTimeout(connectSSE, 3000);
         }
       };
