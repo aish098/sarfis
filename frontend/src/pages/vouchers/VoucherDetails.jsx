@@ -204,13 +204,14 @@ export default function VoucherDetails() {
 
   const handleViewAttachment = (att) => {
     const doc = new jsPDF();
+    const isInvoice = att.name.toLowerCase().includes("invoice");
     
     // Set Header
     doc.setFont("helvetica", "bold");
     doc.setFontSize(20);
     doc.setTextColor(30, 41, 59); // slate-800
     
-    if (att.name.toLowerCase().includes("invoice")) {
+    if (isInvoice) {
       doc.text("SALES INVOICE COPY", 14, 20);
     } else {
       doc.text("DELIVERY NOTE (SIGNED)", 14, 20);
@@ -237,7 +238,11 @@ export default function VoucherDetails() {
     doc.setFont("helvetica", "bold");
     doc.text("Terms of Agreement", 120, 55);
     doc.setFont("helvetica", "normal");
-    doc.text("Payment: 30 Days Credit Net", 120, 61);
+    if (isInvoice) {
+      doc.text("Payment: 30 Days Credit Net", 120, 61);
+    } else {
+      doc.text("Gate Pass: GP-98288", 120, 61);
+    }
     doc.text("Delivery Type: Standard Freight", 120, 67);
     
     // Draw Item Details Table
@@ -245,9 +250,14 @@ export default function VoucherDetails() {
     doc.rect(14, 76, 182, 8, "F");
     doc.setFont("helvetica", "bold");
     doc.text("Product / Item Name", 16, 81);
-    doc.text("Quantity", 95, 81);
-    doc.text("Unit Price", 130, 81);
-    doc.text("Line Total", 165, 81);
+    doc.text("Qty Shipped", 90, 81);
+    if (isInvoice) {
+      doc.text("Unit Price", 130, 81);
+      doc.text("Line Total", 165, 81);
+    } else {
+      doc.text("Qty Received", 130, 81);
+      doc.text("Item Condition", 160, 81);
+    }
     
     doc.setFont("helvetica", "normal");
     let y = 90;
@@ -267,9 +277,14 @@ export default function VoucherDetails() {
         const total = qty * price;
         
         doc.text(String(item.productName || item.productId), 16, y);
-        doc.text(String(qty), 95, y);
-        doc.text(`PKR ${price.toLocaleString()}`, 130, y);
-        doc.text(`PKR ${total.toLocaleString()}`, 165, y);
+        doc.text(String(qty), 90, y);
+        if (isInvoice) {
+          doc.text(`PKR ${price.toLocaleString()}`, 130, y);
+          doc.text(`PKR ${total.toLocaleString()}`, 165, y);
+        } else {
+          doc.text("[   ] _______", 130, y);
+          doc.text("Good / Sealed", 160, y);
+        }
         
         doc.setDrawColor(241, 245, 249);
         doc.line(14, y + 3, 196, y + 3);
@@ -278,17 +293,28 @@ export default function VoucherDetails() {
     }
     
     // Total Summary
-    y += 5;
-    doc.setFont("helvetica", "bold");
-    doc.text("Total Certified Summary:", 120, y);
-    y += 6;
-    doc.setFont("helvetica", "normal");
-    doc.text(`Subtotal: PKR ${document.totalAmount.toLocaleString()}`, 120, y);
-    y += 6;
-    doc.text(`Tax Component: PKR ${document.taxAmount.toLocaleString()}`, 120, y);
-    y += 6;
-    doc.setFont("helvetica", "bold");
-    doc.text(`Gross Total: PKR ${document.totalAmount.toLocaleString()}`, 120, y);
+    if (isInvoice) {
+      y += 5;
+      doc.setFont("helvetica", "bold");
+      doc.text("Total Certified Summary:", 120, y);
+      y += 6;
+      doc.setFont("helvetica", "normal");
+      doc.text(`Subtotal: PKR ${document.totalAmount.toLocaleString()}`, 120, y);
+      y += 6;
+      doc.text(`Tax Component: PKR ${document.taxAmount.toLocaleString()}`, 120, y);
+      y += 6;
+      doc.setFont("helvetica", "bold");
+      doc.text(`Gross Total: PKR ${document.totalAmount.toLocaleString()}`, 120, y);
+    } else {
+      y += 5;
+      doc.setFont("helvetica", "bold");
+      doc.text("Logistics & Dispatch Summary:", 14, y);
+      y += 6;
+      doc.setFont("helvetica", "normal");
+      doc.text(`Total Package Load: 1 Standard Carton`, 14, y);
+      y += 6;
+      doc.text(`Courier Reference: Gate Pass GP-98288 Verified`, 14, y);
+    }
     
     // Footer / Signatures
     y += 20;
