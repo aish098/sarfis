@@ -400,3 +400,15 @@ exports.getApprovalRequest = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.getReinstatementRequests = async (req, res) => {
+  const { entityType, entityId } = req.params;
+  const companyId = req.companyId;
+
+  try {
+    const list = await RiskModel.getReinstatementRequests(companyId, entityType, parseInt(entityId));
+    res.json(list);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

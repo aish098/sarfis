@@ -47,6 +47,7 @@ export default function RelationshipRiskModal({ isOpen, onClose, entityType, ent
   const [incidents, setIncidents] = useState([]);
   const [history, setHistory] = useState([]);
   const [plans, setPlans] = useState([]);
+  const [reinstatementRequests, setReinstatementRequests] = useState([]);
   const [loading, setLoading] = useState(true);
 
   // Form states
@@ -76,16 +77,18 @@ export default function RelationshipRiskModal({ isOpen, onClose, entityType, ent
     if (!entityId) return;
     setLoading(true);
     try {
-      const [statusRes, incRes, histRes, planRes] = await Promise.all([
+      const [statusRes, incRes, histRes, planRes, reinstatementRes] = await Promise.all([
         api.get(`/risk/status/${entityType}/${entityId}`),
         api.get(`/risk/incidents/${entityType}/${entityId}`),
         api.get(`/risk/history/${entityType}/${entityId}`),
-        api.get(`/risk/payment-plans/${entityType}/${entityId}`)
+        api.get(`/risk/payment-plans/${entityType}/${entityId}`),
+        api.get(`/risk/reinstatement/requests/${entityType}/${entityId}`).catch(() => ({ data: [] }))
       ]);
       setStatus(statusRes.data);
       setIncidents(incRes.data);
       setHistory(histRes.data);
       setPlans(planRes.data);
+      setReinstatementRequests(reinstatementRes.data);
     } catch (err) {
       console.error('Failed to load risk profile data:', err);
     }
@@ -453,28 +456,13 @@ export default function RelationshipRiskModal({ isOpen, onClose, entityType, ent
                   {/* Reinstatement requests review workflow */}
                   <div className="space-y-2 border-t border-slate-100 pt-4">
                     <p className="text-[12.5px] font-bold text-slate-800 flex items-center gap-1"><ShieldCheck size={14} className="text-blue-500" /> Pending Reinstatements Review</p>
-                    {(() => {
-                      const pendingList = history.filter(h => h.action === 'REINSTATEMENT_REQUESTED');
-                      // Load pending requests directly from DB
-                      const [reqList, setReqList] = useState([]);
-                      useEffect(() => {
-                        api.get(`/risk/status/${entityType}/${entityId}`).then(() => {
-                          api.get(`/risk/history/${entityType}/${entityId}`).then(res => {
-                            // Fetch from database
-                            db('reinstatement_requests').where({ company_id: status.company_id, entity_type: entityType, entity_id: entityId, status: 'PENDING' })
-                              .then(resData => setReqList(resData));
-                          });
-                        });
-                      }, []);
-
-                      if (reqList.length === 0) {
-                        return <p className="text-[12px] text-slate-400 italic">No pending requests for reinstatement review.</p>;
-                      }
-
-                      return reqList.map((req) => (
+                    {reinstatementRequests.filter(r => r.status === 'PENDING').length === 0 ? (
+                      <p className="text-[12px] text-slate-400 italic">No pending requests for reinstatement review.</p>
+                    ) : (
+                      reinstatementRequests.filter(r => r.status === 'PENDING').map((req) => (
                         <div key={req.id} className="border border-slate-100 rounded-xl p-4 bg-slate-50 flex flex-col justify-between md:flex-row md:items-center">
                           <div className="space-y-1">
-                            <p className="text-[12.5px] font-bold text-slate-700">Requested on {new Date(req.request_date).toLocaleDateString()}</p>
+                            <p className="text-[12.5px] font-bold text-slate-700">Requested on {new Date(req.created_at || req.request_date).toLocaleDateString()}</p>
                             <p className="text-[12px] text-slate-500 font-medium italic">"{req.reason}"</p>
                           </div>
                           
@@ -483,8 +471,8 @@ export default function RelationshipRiskModal({ isOpen, onClose, entityType, ent
                             Review Request <ArrowRight size={13} />
                           </button>
                         </div>
-                      ));
-                    })()}
+                      ))
+                    )}
                   </div>
 
                   {/* Reinstatement Review Worksheet Modal overlay */}

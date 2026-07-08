@@ -20,6 +20,7 @@ router.post('/warn', requirePermission('risk.manage'), riskController.warnEntity
 // Reinstatement Requests
 router.post('/reinstatement/request', requirePermission('risk.manage'), riskController.requestReinstatement);
 router.post('/reinstatement/review/:requestId', requirePermission('risk.approve'), riskController.reviewReinstatement);
+router.get('/reinstatement/requests/:entityType/:entityId', requirePermission('risk.view'), riskController.getReinstatementRequests);
 
 // Payment plans
 router.get('/payment-plans/:entityType/:entityId', riskController.getPaymentPlans);
