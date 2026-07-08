@@ -430,6 +430,12 @@ class PostingEngineService {
         description: `Posted ${type.toUpperCase()} transaction of $${totalAmount.toFixed(2)}. Journal Entry #${entryId} created.`
       });
 
+      // 5b. Trigger auto-capitalization pipeline if Purchase Voucher contains asset items
+      if (type.toUpperCase() === 'PURCHASE' && voucherId) {
+        const FixedAssetsService = require('./fixed_assets.service');
+        await FixedAssetsService.processVoucherCapitalization(voucherId, companyId, userId, trx);
+      }
+
       return { journalEntryId, totalAmount };
     };
 

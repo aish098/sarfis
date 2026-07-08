@@ -39,6 +39,7 @@ app.use('/api/risk', require('./routes/risk.routes'));
 // ERP Modules (Now includes Analytics)
 app.use('/api', require('./routes/erp.routes'));
 app.use('/api', require('./routes/voucher.routes'));
+app.use('/api/fixed-assets', require('./routes/fixed_assets.routes'));
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {

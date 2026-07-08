@@ -38,6 +38,10 @@ import AdminPage from './admin/AdminPage.jsx';
 import PayrollPage from './payroll/PayrollPage.jsx';
 import NotificationCenterPage from './notifications/NotificationCenterPage.jsx';
 import RiskDashboard from './analytics/RiskDashboard.jsx';
+import FixedAssetsDashboard from './fixed-assets/FixedAssetsDashboard.jsx';
+import AssetRegister from './fixed-assets/AssetRegister.jsx';
+import AssetCategories from './fixed-assets/AssetCategories.jsx';
+import DepreciationWizard from './fixed-assets/DepreciationWizard.jsx';
 
 function ModuleProtectedRoute({ moduleKey, fallbackDefault = true, children }) {
   const { settings } = useAuthStore();
@@ -366,6 +370,11 @@ export default function Dashboard() {
               <Route path="admin" element={<AdminPage />} />
               <Route path="notifications" element={<NotificationCenterPage />} />
               <Route path="risk" element={<RiskDashboard />} />
+              
+              <Route path="fixed-assets" element={<FixedAssetsDashboard />} />
+              <Route path="fixed-assets/register" element={<AssetRegister />} />
+              <Route path="fixed-assets/categories" element={<AssetCategories />} />
+              <Route path="fixed-assets/wizard" element={<DepreciationWizard />} />
             </Routes>
           </Motion.div>
         </AnimatePresence>
