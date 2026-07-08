@@ -192,7 +192,9 @@ export default function VoucherForm() {
       checkPartnerRisk('CUSTOMER', clientId);
     } else {
       setPartnerRiskStatus(null);
-      setOverrideApprovedBy(null);
+      setOverrideApproved(false);
+      setOverrideRequestId(null);
+      setActiveOverrideRequest(null);
     }
   }, [clientId, type, checkPartnerRisk]);
 
@@ -201,7 +203,9 @@ export default function VoucherForm() {
       checkPartnerRisk('VENDOR', vendorId);
     } else {
       setPartnerRiskStatus(null);
-      setOverrideApprovedBy(null);
+      setOverrideApproved(false);
+      setOverrideRequestId(null);
+      setActiveOverrideRequest(null);
     }
   }, [vendorId, type, checkPartnerRisk]);
 
