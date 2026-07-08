@@ -200,6 +200,22 @@ export default function VoucherDetails() {
     doc.save(`${document.voucherNumber}_Report.pdf`);
   };
 
+  const handleEmail = () => {
+    const partnerName = business.customer?.name || business.vendor?.name || 'Cash Sale';
+    const subject = encodeURIComponent(`SARFIS Voucher Report: ${document.voucherNumber} (${document.type})`);
+    const body = encodeURIComponent(
+      `Dear Finance Team,\n\nPlease find the transaction summary below:\n\n` +
+      `Voucher Reference: ${document.voucherNumber}\n` +
+      `Type: ${document.type}\n` +
+      `Date: ${new Date(document.date).toLocaleDateString()}\n` +
+      `Partner: ${partnerName}\n` +
+      `Total Amount: PKR ${document.totalAmount.toLocaleString()}\n` +
+      `Status: ${document.status}\n\n` +
+      `Best regards,\n${useAuthStore.getState().user?.name || 'Admin'}`
+    );
+    window.location.href = `mailto:finance@company.com?subject=${subject}&body=${body}`;
+  };
+
   const handleViewAttachment = (att) => {
     const doc = new jsPDF();
     const isInvoice = att.name.toLowerCase().includes("invoice");
