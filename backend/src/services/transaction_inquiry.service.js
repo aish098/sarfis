@@ -23,6 +23,26 @@ class TransactionInquiryService {
       if (approver) approverName = approver.name;
     }
 
+    const payload = voucher.payload || {};
+    if (payload.items && Array.isArray(payload.items)) {
+      const resolvedItems = await Promise.all(
+        payload.items.map(async (item) => {
+          if (item.productId) {
+            const product = await db('products').where({ id: item.productId }).first();
+            if (product) {
+              return {
+                ...item,
+                productName: product.name,
+                productSku: product.sku
+              };
+            }
+          }
+          return item;
+        })
+      );
+      payload.items = resolvedItems;
+    }
+
     const document = {
       id: voucher.id,
       type: voucher.type,
@@ -38,7 +58,7 @@ class TransactionInquiryService {
       approverName,
       createdAt: voucher.created_at,
       updatedAt: voucher.updated_at,
-      payload: voucher.payload || {}
+      payload
     };
 
     // 2. Fetch Financial Impact (Journal Entries & Ledger Lines)
