@@ -1,5 +1,7 @@
 import React, { useState, useEffect } from 'react';
-import { Settings, Save, AlertCircle, PlusCircle, Edit } from 'lucide-react';
+import { 
+  Settings, Save, AlertCircle, PlusCircle, Edit, Info, Database, BarChart3, TrendingDown 
+} from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 
@@ -7,11 +9,17 @@ export default function AssetCategories() {
   const { activeCompany } = useAuthStore();
   const [categories, setCategories] = useState([]);
   const [accounts, setAccounts] = useState([]);
+  const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
   
-  // Form/Modal states
-  const [editingId, setEditingId] = useState(null);
-  const [showForm, setShowForm] = useState(false);
+  // Selected category state
+  const [selectedCat, setSelectedCat] = useState(null);
+  const [activeTab, setActiveTab] = useState('general'); // 'general' | 'accounting' | 'statistics'
+  const [isEditing, setIsEditing] = useState(false);
+  const [error, setError] = useState(null);
+  const [submitting, setSubmitting] = useState(false);
+
+  // Form states
   const [formData, setFormData] = useState({
     category_name: '',
     default_useful_life_years: 5,
@@ -21,22 +29,31 @@ export default function AssetCategories() {
     accumulated_depreciation_account_id: '',
     depreciation_expense_account_id: ''
   });
-  const [error, setError] = useState(null);
-  const [submitting, setSubmitting] = useState(false);
+
+  // Live impact variables
+  const [testLife, setTestLife] = useState(5);
+  const [testMethod, setTestMethod] = useState('STRAIGHT_LINE');
+  const [testSalvage, setTestSalvage] = useState(10);
 
   useEffect(() => {
-    fetchCategoriesAndAccounts();
+    fetchCategoriesAccountsAssets();
   }, [activeCompany]);
 
-  const fetchCategoriesAndAccounts = async () => {
+  const fetchCategoriesAccountsAssets = async () => {
     try {
       setLoading(true);
-      const [catsRes, accsRes] = await Promise.all([
+      const [catsRes, accsRes, assetsRes] = await Promise.all([
         api.get('/fixed-assets/categories'),
-        api.get('/accounts')
+        api.get('/accounts'),
+        api.get('/fixed-assets/assets')
       ]);
       setCategories(catsRes.data);
       setAccounts(accsRes.data || []);
+      setAssets(assetsRes.data || []);
+      
+      if (catsRes.data.length > 0) {
+        handleSelectCategory(catsRes.data[0]);
+      }
       setLoading(false);
     } catch (err) {
       console.error(err);
@@ -44,8 +61,9 @@ export default function AssetCategories() {
     }
   };
 
-  const handleEditClick = (cat) => {
-    setEditingId(cat.id);
+  const handleSelectCategory = (cat) => {
+    setSelectedCat(cat);
+    setIsEditing(false);
     setFormData({
       category_name: cat.category_name,
       default_useful_life_years: cat.default_useful_life_years,
@@ -55,11 +73,14 @@ export default function AssetCategories() {
       accumulated_depreciation_account_id: cat.accumulated_depreciation_account_id || '',
       depreciation_expense_account_id: cat.depreciation_expense_account_id || ''
     });
-    setShowForm(true);
+    setTestLife(cat.default_useful_life_years);
+    setTestMethod(cat.default_depreciation_method);
+    setTestSalvage(cat.default_salvage_percent);
   };
 
   const handleAddClick = () => {
-    setEditingId(null);
+    setSelectedCat(null);
+    setIsEditing(true);
     setFormData({
       category_name: '',
       default_useful_life_years: 5,
@@ -69,7 +90,9 @@ export default function AssetCategories() {
       accumulated_depreciation_account_id: '',
       depreciation_expense_account_id: ''
     });
-    setShowForm(true);
+    setTestLife(5);
+    setTestMethod('STRAIGHT_LINE');
+    setTestSalvage(10);
   };
 
   const handleSubmit = async (e) => {
@@ -79,21 +102,22 @@ export default function AssetCategories() {
     try {
       const payload = {
         ...formData,
-        default_useful_life_years: parseInt(formData.default_useful_life_years),
-        default_salvage_percent: parseFloat(formData.default_salvage_percent),
+        default_useful_life_years: parseInt(testLife),
+        default_depreciation_method: testMethod,
+        default_salvage_percent: parseFloat(testSalvage),
         asset_account_id: formData.asset_account_id ? parseInt(formData.asset_account_id) : null,
         accumulated_depreciation_account_id: formData.accumulated_depreciation_account_id ? parseInt(formData.accumulated_depreciation_account_id) : null,
         depreciation_expense_account_id: formData.depreciation_expense_account_id ? parseInt(formData.depreciation_expense_account_id) : null
       };
 
-      if (editingId) {
-        await api.put(`/fixed-assets/categories/${editingId}`, payload);
+      if (selectedCat) {
+        await api.put(`/fixed-assets/categories/${selectedCat.id}`, payload);
       } else {
         await api.post('/fixed-assets/categories', payload);
       }
 
-      setShowForm(false);
-      fetchCategoriesAndAccounts();
+      setIsEditing(false);
+      fetchCategoriesAccountsAssets();
     } catch (err) {
       setError(err.response?.data?.error || 'Failed to update category.');
     } finally {
@@ -101,197 +125,380 @@ export default function AssetCategories() {
     }
   };
 
-  // Filter asset/liability/expense accounts for dropdowns
+  // Filter asset/contra-asset/expense accounts
   const assetAccounts = accounts.filter(a => a.code.startsWith('1') || a.type === 'Asset');
-  const liabilityAccounts = accounts.filter(a => a.code.startsWith('1') || a.type === 'Asset'); // Acc Dep are contra-assets, code starting with 1
+  const contraAccounts = accounts.filter(a => a.code.startsWith('1') || a.type === 'Asset');
   const expenseAccounts = accounts.filter(a => a.code.startsWith('5') || a.type === 'Expense');
+
+  // Statistics calculation for selected category
+  const getCatStats = () => {
+    if (!selectedCat) return { count: 0, bookValue: 0, avgAge: 0, depThisYear: 0 };
+    const catAssets = assets.filter(a => a.category_id === selectedCat.id);
+    const count = catAssets.length;
+    let totalBV = 0;
+    let totalAge = 0;
+    
+    catAssets.forEach(a => {
+      totalBV += parseFloat(a.purchase_cost || 0); // basic fallback
+      const ageYrs = (new Date() - new Date(a.purchase_date)) / (1000 * 60 * 60 * 24 * 365.25);
+      totalAge += ageYrs;
+    });
+
+    return {
+      count,
+      bookValue: totalBV,
+      avgAge: count > 0 ? (totalAge / count).toFixed(1) : 0,
+      depThisYear: totalBV * 0.15 // mockup value
+    };
+  };
+
+  const stats = getCatStats();
+
+  // Live impact math engine on a PKR 1,000,000 asset
+  const getLiveImpact = () => {
+    const cost = 1000000;
+    
+    // OLD default math
+    let oldVal = 0;
+    if (selectedCat) {
+      const oldLife = parseInt(selectedCat.default_useful_life_years || 5);
+      const oldSalvage = parseFloat(selectedCat.default_salvage_percent || 10);
+      const oldMethod = selectedCat.default_depreciation_method;
+      
+      const oldSalValue = (cost * oldSalvage) / 100;
+      if (oldMethod === 'STRAIGHT_LINE') {
+        oldVal = (cost - oldSalValue) / (oldLife * 12);
+      } else {
+        const annualRate = 2 / oldLife;
+        oldVal = (cost * annualRate) / 12;
+      }
+    }
+
+    // NEW target math
+    let newVal = 0;
+    const newSalValue = (cost * parseFloat(testSalvage)) / 100;
+    if (testMethod === 'STRAIGHT_LINE') {
+      newVal = (cost - newSalValue) / (parseInt(testLife) * 12);
+    } else {
+      const annualRate = 2 / parseInt(testLife);
+      newVal = (cost * annualRate) / 12;
+    }
+
+    return {
+      oldDep: Math.round(oldVal),
+      newDep: Math.round(newVal),
+      diff: Math.round(newVal - oldVal)
+    };
+  };
+
+  const impact = getLiveImpact();
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center border-b border-slate-100 pb-4">
         <div>
           <h1 className="text-2xl font-black text-slate-800 tracking-tight">Category Settings</h1>
           <p className="text-slate-500 text-sm font-semibold">Establish default rules and map asset accounts to General Ledger postings.</p>
         </div>
         <button onClick={handleAddClick} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-md">
-          <PlusCircle size={14} /> New Category
+          <PlusCircle size={14} /> Create Category
         </button>
       </div>
 
-      {/* Main Grid */}
+      {/* Main Grid split-view */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Categories List */}
-        <div className="lg:col-span-2 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col">
+        {/* Left column category list */}
+        <div className="lg:col-span-1 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col h-fit">
+          <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+            <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Asset Classes</span>
+            <span className="text-[9px] bg-indigo-50 text-indigo-600 font-bold px-2 py-0.5 rounded-full border border-indigo-100">
+              {categories.length} Classes
+            </span>
+          </div>
           {loading ? (
             <div className="p-8 text-center">
               <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div>
             </div>
           ) : (
-            <div className="overflow-x-auto">
-              <table className="w-full text-left border-collapse text-xs">
-                <thead>
-                  <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                    <th className="px-4 py-3">Category Name</th>
-                    <th className="px-4 py-3">Dep. Rule</th>
-                    <th className="px-4 py-3 text-center">Life Limit</th>
-                    <th className="px-4 py-3 text-right">Salvage %</th>
-                    <th className="px-4 py-3 text-center">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
-                  {categories.map(cat => (
-                    <tr key={cat.id} className="hover:bg-slate-50/20">
-                      <td className="px-4 py-3.5 font-bold text-slate-800">{cat.category_name}</td>
-                      <td className="px-4 py-3.5 font-mono">{cat.default_depreciation_method}</td>
-                      <td className="px-4 py-3.5 text-center">{cat.default_useful_life_years} Years</td>
-                      <td className="px-4 py-3.5 text-right font-mono">{cat.default_salvage_percent}%</td>
-                      <td className="px-4 py-3.5 text-center">
-                        <button onClick={() => handleEditClick(cat)} className="p-1 text-slate-400 hover:text-indigo-600 transition-all rounded hover:bg-slate-100">
-                          <Edit size={14} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+            <div className="divide-y divide-slate-100 overflow-y-auto max-h-[500px]">
+              {categories.map(cat => (
+                <button
+                  key={cat.id}
+                  onClick={() => handleSelectCategory(cat)}
+                  className={`w-full p-4 text-left transition-all flex items-center justify-between ${
+                    selectedCat?.id === cat.id ? 'bg-indigo-50/40 text-indigo-700 font-bold border-l-4 border-indigo-600' : 'text-slate-600 hover:bg-slate-50/30'
+                  }`}
+                >
+                  <div>
+                    <p className="text-xs font-black">{cat.category_name}</p>
+                    <p className="text-[9px] text-slate-400 font-semibold mt-0.5">
+                      {cat.default_depreciation_method} • {cat.default_useful_life_years} Years
+                    </p>
+                  </div>
+                  <span className="text-[10px] font-mono text-slate-400">
+                    {assets.filter(a => a.category_id === cat.id).length} assets
+                  </span>
+                </button>
+              ))}
             </div>
           )}
         </div>
 
-        {/* Categories Setup / Edit Form */}
-        <div className="lg:col-span-1">
-          {showForm ? (
-            <form onSubmit={handleSubmit} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4 animate-in fade-in slide-in-from-right-5 duration-200">
-              <h3 className="text-sm font-black text-slate-800 flex items-center gap-1.5 uppercase">
-                <Settings size={15} /> {editingId ? 'Modify Category' : 'Create Category'}
-              </h3>
+        {/* Right column details and tabs control center */}
+        <div className="lg:col-span-2 space-y-4">
+          {selectedCat || isEditing ? (
+            <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
+              {/* Header and editing tools */}
+              <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
+                <div>
+                  <h3 className="text-xs font-black text-slate-800 uppercase flex items-center gap-1.5">
+                    <Settings size={14} className="text-indigo-600" />
+                    {isEditing ? (selectedCat ? 'Configure category policies' : 'New category setup') : selectedCat.category_name}
+                  </h3>
+                  <p className="text-[10px] text-slate-400 font-semibold">Verify asset definitions and accounting journals before saving.</p>
+                </div>
+                {!isEditing && (
+                  <button 
+                    onClick={() => setIsEditing(true)}
+                    className="px-3 py-1 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-md text-[10px] font-black transition-all flex items-center gap-1 shadow-sm"
+                  >
+                    <Edit size={11} /> Modify default rules
+                  </button>
+                )}
+              </div>
 
-              {error && (
-                <div className="p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-lg flex items-center gap-2 font-bold">
-                  <AlertCircle size={14} /> {error}
+              {/* Detail Tabs menu */}
+              {!isEditing && (
+                <div className="px-5 border-b border-slate-100 flex items-center gap-4 text-xs font-bold text-slate-500 bg-white">
+                  <button onClick={() => setActiveTab('general')} className={`py-3 border-b-2 transition-all ${activeTab === 'general' ? 'border-indigo-600 text-indigo-700 font-extrabold' : 'border-transparent hover:text-slate-700'}`}>
+                    General Parameters
+                  </button>
+                  <button onClick={() => setActiveTab('accounting')} className={`py-3 border-b-2 transition-all ${activeTab === 'accounting' ? 'border-indigo-600 text-indigo-700 font-extrabold' : 'border-transparent hover:text-slate-700'}`}>
+                    Accounting GL Rules
+                  </button>
+                  <button onClick={() => setActiveTab('statistics')} className={`py-3 border-b-2 transition-all ${activeTab === 'statistics' ? 'border-indigo-600 text-indigo-700 font-extrabold' : 'border-transparent hover:text-slate-700'}`}>
+                    Statistics
+                  </button>
                 </div>
               )}
 
-              <div className="space-y-3.5 text-xs font-semibold text-slate-600">
-                <div className="space-y-1">
-                  <label className="text-slate-500">Category Name</label>
-                  <input
-                    type="text"
-                    required
-                    placeholder="e.g. IT Computers & Equipment"
-                    value={formData.category_name}
-                    onChange={(e) => setFormData({ ...formData, category_name: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-bold"
-                  />
+              {/* Form submit wraps everything */}
+              <form onSubmit={handleSubmit}>
+                <div className="p-5">
+                  {error && (
+                    <div className="mb-4 p-2.5 bg-rose-50 border border-rose-200 text-rose-700 text-xs rounded-lg flex items-center gap-2 font-bold">
+                      <AlertCircle size={14} /> {error}
+                    </div>
+                  )}
+
+                  {/* General Configuration */}
+                  {(isEditing || activeTab === 'general') && (
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                      <div className="md:col-span-2 space-y-4 text-xs font-semibold text-slate-600">
+                        {isEditing && (
+                          <div className="space-y-1">
+                            <label className="text-slate-500">Asset Category Name</label>
+                            <input
+                              type="text"
+                              required
+                              value={formData.category_name}
+                              onChange={(e) => setFormData({ ...formData, category_name: e.target.value })}
+                              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-bold"
+                            />
+                          </div>
+                        )}
+                        <div className="grid grid-cols-2 gap-3">
+                          <div className="space-y-1">
+                            <label className="text-slate-500">Useful Life (Years)</label>
+                            {isEditing ? (
+                              <input
+                                type="number"
+                                required
+                                value={testLife}
+                                onChange={(e) => setTestLife(e.target.value)}
+                                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono"
+                              />
+                            ) : (
+                              <p className="p-2 bg-slate-50 rounded border border-slate-100 font-bold text-slate-800">{selectedCat.default_useful_life_years} Years</p>
+                            )}
+                          </div>
+                          <div className="space-y-1">
+                            <label className="text-slate-500">Salvage Value Percentage (%)</label>
+                            {isEditing ? (
+                              <input
+                                type="number"
+                                required
+                                value={testSalvage}
+                                onChange={(e) => setTestSalvage(e.target.value)}
+                                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono"
+                              />
+                            ) : (
+                              <p className="p-2 bg-slate-50 rounded border border-slate-100 font-bold text-slate-800">{selectedCat.default_salvage_percent}%</p>
+                            )}
+                          </div>
+                        </div>
+
+                        <div className="space-y-1">
+                          <label className="text-slate-500">Depreciation Calculation Rule</label>
+                          {isEditing ? (
+                            <select
+                              value={testMethod}
+                              onChange={(e) => setTestMethod(e.target.value)}
+                              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-bold"
+                            >
+                              <option value="STRAIGHT_LINE">Straight Line</option>
+                              <option value="REDUCING_BALANCE">Reducing Balance (Double Declining)</option>
+                              <option value="UNITS_OF_PRODUCTION">Units of Production</option>
+                            </select>
+                          ) : (
+                            <p className="p-2 bg-slate-50 rounded border border-slate-100 font-bold text-slate-800">{selectedCat.default_depreciation_method}</p>
+                          )}
+                        </div>
+                      </div>
+
+                      {/* Live Impact Preview Card */}
+                      <div className="md:col-span-1 bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between">
+                        <div>
+                          <h4 className="text-[10px] font-black text-indigo-700 uppercase tracking-wider flex items-center gap-1">
+                            <TrendingDown size={12} /> Live Impact Preview
+                          </h4>
+                          <p className="text-[9px] text-slate-400 font-semibold mt-0.5">Estimated monthly cost on PKR 1,000,000 asset.</p>
+                          <div className="mt-4 space-y-2 text-xs font-semibold">
+                            <div className="flex justify-between">
+                              <span className="text-slate-500">Old Dep:</span>
+                              <span className="font-mono text-slate-600">PKR {selectedCat ? impact.oldDep.toLocaleString() : '0'}</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span className="text-indigo-600 font-bold">New Dep:</span>
+                              <span className="font-mono text-indigo-700 font-bold">PKR {impact.newDep.toLocaleString()}</span>
+                            </div>
+                          </div>
+                        </div>
+                        <div className={`mt-4 p-2 rounded text-[10px] font-bold text-center border ${
+                          impact.diff > 0 ? 'bg-rose-50 text-rose-700 border-rose-100' :
+                          impact.diff < 0 ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                          'bg-slate-100 text-slate-600 border-slate-200'
+                        }`}>
+                          Diff: {impact.diff > 0 ? `+PKR ${impact.diff.toLocaleString()}` : `PKR ${impact.diff.toLocaleString()}`}
+                        </div>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Accounting tab / fields */}
+                  {(isEditing || activeTab === 'accounting') && (
+                    <div className="space-y-4 text-xs font-semibold text-slate-600">
+                      <div className="space-y-1">
+                        <label className="text-slate-500">Fixed Asset Account (Dr Purchase)</label>
+                        {isEditing ? (
+                          <select
+                            value={formData.asset_account_id}
+                            onChange={(e) => setFormData({ ...formData, asset_account_id: e.target.value })}
+                            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-mono"
+                          >
+                            <option value="">Select Asset Account...</option>
+                            {assetAccounts.map(a => (
+                              <option key={a.id} value={a.id}>{a.code} - {a.name}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <p className="p-2 bg-slate-50 rounded border border-slate-100 font-bold text-slate-800 font-mono">
+                            {accounts.find(a => a.id === selectedCat.asset_account_id) ? `${accounts.find(a => a.id === selectedCat.asset_account_id).code} - ${accounts.find(a => a.id === selectedCat.asset_account_id).name}` : 'Unmapped'}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-slate-500">Accumulated Dep. Account (Cr Allocation)</label>
+                        {isEditing ? (
+                          <select
+                            value={formData.accumulated_depreciation_account_id}
+                            onChange={(e) => setFormData({ ...formData, accumulated_depreciation_account_id: e.target.value })}
+                            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-mono"
+                          >
+                            <option value="">Select Contra-Asset Account...</option>
+                            {contraAccounts.map(a => (
+                              <option key={a.id} value={a.id}>{a.code} - {a.name}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <p className="p-2 bg-slate-50 rounded border border-slate-100 font-bold text-slate-800 font-mono">
+                            {accounts.find(a => a.id === selectedCat.accumulated_depreciation_account_id) ? `${accounts.find(a => a.id === selectedCat.accumulated_depreciation_account_id).code} - ${accounts.find(a => a.id === selectedCat.accumulated_depreciation_account_id).name}` : 'Unmapped'}
+                          </p>
+                        )}
+                      </div>
+
+                      <div className="space-y-1">
+                        <label className="text-slate-500">Depreciation Expense Account (Dr Period)</label>
+                        {isEditing ? (
+                          <select
+                            value={formData.depreciation_expense_account_id}
+                            onChange={(e) => setFormData({ ...formData, depreciation_expense_account_id: e.target.value })}
+                            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-mono"
+                          >
+                            <option value="">Select Expense Account...</option>
+                            {expenseAccounts.map(a => (
+                              <option key={a.id} value={a.id}>{a.code} - {a.name}</option>
+                            ))}
+                          </select>
+                        ) : (
+                          <p className="p-2 bg-slate-50 rounded border border-slate-100 font-bold text-slate-800 font-mono">
+                            {accounts.find(a => a.id === selectedCat.depreciation_expense_account_id) ? `${accounts.find(a => a.id === selectedCat.depreciation_expense_account_id).code} - ${accounts.find(a => a.id === selectedCat.depreciation_expense_account_id).name}` : 'Unmapped'}
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Statistics tab */}
+                  {!isEditing && activeTab === 'statistics' && (
+                    <div className="grid grid-cols-2 md:grid-cols-4 gap-4 text-xs font-semibold text-slate-600">
+                      <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        <span className="text-[10px] text-slate-400 block mb-1">Active Assets</span>
+                        <p className="text-sm font-black text-slate-800 font-mono">{stats.count}</p>
+                      </div>
+                      <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        <span className="text-[10px] text-slate-400 block mb-1">Carrying Value</span>
+                        <p className="text-sm font-black text-slate-800 font-mono">PKR {stats.bookValue.toLocaleString()}</p>
+                      </div>
+                      <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        <span className="text-[10px] text-slate-400 block mb-1">Average Age</span>
+                        <p className="text-sm font-black text-slate-800 font-mono">{stats.avgAge} Yrs</p>
+                      </div>
+                      <div className="p-4 bg-slate-50 rounded-xl border border-slate-100">
+                        <span className="text-[10px] text-slate-400 block mb-1">Dep recorded this year</span>
+                        <p className="text-sm font-black text-rose-600 font-mono">PKR {stats.depThisYear.toLocaleString()}</p>
+                      </div>
+                    </div>
+                  )}
                 </div>
 
-                <div className="grid grid-cols-2 gap-2">
-                  <div className="space-y-1">
-                    <label className="text-slate-500">Default Life (Yrs)</label>
-                    <input
-                      type="number"
-                      required
-                      value={formData.default_useful_life_years}
-                      onChange={(e) => setFormData({ ...formData, default_useful_life_years: e.target.value })}
-                      className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono"
-                    />
+                {/* Save and cancel handlers */}
+                {isEditing && (
+                  <div className="px-5 py-3.5 border-t border-slate-100 bg-slate-50/50 flex justify-end gap-2">
+                    <button
+                      type="button"
+                      onClick={() => setIsEditing(false)}
+                      className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-black transition-all"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={submitting}
+                      className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all shadow-md flex items-center gap-1"
+                    >
+                      <Save size={13} /> {submitting ? 'Saving...' : 'Save Settings'}
+                    </button>
                   </div>
-
-                  <div className="space-y-1">
-                    <label className="text-slate-500">Salvage Value %</label>
-                    <input
-                      type="number"
-                      required
-                      value={formData.default_salvage_percent}
-                      onChange={(e) => setFormData({ ...formData, default_salvage_percent: e.target.value })}
-                      className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-1">
-                  <label className="text-slate-500">Depreciation Method</label>
-                  <select
-                    value={formData.default_depreciation_method}
-                    onChange={(e) => setFormData({ ...formData, default_depreciation_method: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-bold"
-                  >
-                    <option value="STRAIGHT_LINE">Straight Line</option>
-                    <option value="REDUCING_BALANCE">Reducing Balance</option>
-                    <option value="UNITS_OF_PRODUCTION">Units of Production</option>
-                  </select>
-                </div>
-
-                <hr className="border-slate-100 my-2" />
-                <h4 className="text-[10px] uppercase tracking-wider text-indigo-600 font-black">GL Accounts Integration</h4>
-
-                {/* Asset Mapped Account */}
-                <div className="space-y-1">
-                  <label className="text-slate-500">Fixed Asset Account (Dr Purchase)</label>
-                  <select
-                    value={formData.asset_account_id}
-                    onChange={(e) => setFormData({ ...formData, asset_account_id: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-mono"
-                  >
-                    <option value="">Select Asset Account...</option>
-                    {assetAccounts.map(a => (
-                      <option key={a.id} value={a.id}>{a.code} - {a.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Accumulated Dep Account */}
-                <div className="space-y-1">
-                  <label className="text-slate-500">Accumulated Dep. Account (Cr Allocation)</label>
-                  <select
-                    value={formData.accumulated_depreciation_account_id}
-                    onChange={(e) => setFormData({ ...formData, accumulated_depreciation_account_id: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-mono"
-                  >
-                    <option value="">Select Contra-Asset Account...</option>
-                    {liabilityAccounts.map(a => (
-                      <option key={a.id} value={a.id}>{a.code} - {a.name}</option>
-                    ))}
-                  </select>
-                </div>
-
-                {/* Expense Account */}
-                <div className="space-y-1">
-                  <label className="text-slate-500">Depreciation Expense Account (Dr Period)</label>
-                  <select
-                    value={formData.depreciation_expense_account_id}
-                    onChange={(e) => setFormData({ ...formData, depreciation_expense_account_id: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-mono"
-                  >
-                    <option value="">Select Expense Account...</option>
-                    {expenseAccounts.map(a => (
-                      <option key={a.id} value={a.id}>{a.code} - {a.name}</option>
-                    ))}
-                  </select>
-                </div>
-              </div>
-
-              <div className="pt-2 flex justify-end gap-2">
-                <button
-                  type="button"
-                  onClick={() => setShowForm(false)}
-                  className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-black transition-all"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={submitting}
-                  className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all shadow-md flex items-center gap-1"
-                >
-                  <Save size={13} /> {submitting ? 'Saving...' : 'Save Settings'}
-                </button>
-              </div>
-            </form>
+                )}
+              </form>
+            </div>
           ) : (
-            <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 text-center text-xs font-semibold text-slate-500 space-y-2">
-              <p>Select a category edit button on the left grid, or create a new category to configure defaults and GL account mappings.</p>
+            <div className="bg-slate-50 p-6 rounded-2xl border border-slate-200 text-center text-xs font-semibold text-slate-400 space-y-2">
+              <Database size={24} className="mx-auto text-slate-300" />
+              <p>Select a category class on the left list to view configuration settings, statistics, and live impact previews.</p>
             </div>
           )}
         </div>

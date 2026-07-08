@@ -1,35 +1,33 @@
 import React, { useState, useEffect } from 'react';
-import { useSearchParams, Link } from 'react-router-dom';
+import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { 
-  Plus, 
-  Search, 
-  Tag, 
-  Eye, 
-  Info, 
-  FileText, 
-  Calendar, 
-  DollarSign, 
-  MapPin, 
-  User, 
-  Activity, 
-  ArrowRight,
-  TrendingUp,
-  X,
-  PlusCircle,
-  Trash2
+  Plus, Search, Tag, Eye, Info, FileText, Calendar, DollarSign, MapPin, 
+  User, Activity, ArrowRight, TrendingUp, X, PlusCircle, Trash2,
+  Wrench, Printer, RefreshCw, Filter, ShieldCheck, CheckSquare
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import AssetForm from './AssetForm';
 
 export default function AssetRegister() {
+  const navigate = useNavigate();
   const { activeCompany } = useAuthStore();
   const [searchParams, setSearchParams] = useSearchParams();
   const [assets, setAssets] = useState([]);
   const [loading, setLoading] = useState(true);
-  const [filterStatus, setFilterStatus] = useState('');
+  
+  // Filter states
   const [searchTerm, setSearchTerm] = useState('');
+  const [filterStatus, setFilterStatus] = useState('');
+  const [filterCategory, setFilterCategory] = useState('');
+  const [filterLocation, setFilterLocation] = useState('');
+  const [activeBookFilter, setActiveBookFilter] = useState('Accounting'); // Accounting | Tax | Management
+
   const [categories, setCategories] = useState([]);
+  const [warehouses, setWarehouses] = useState([]);
+
+  // Selection states for bulk actions
+  const [selectedIds, setSelectedIds] = useState([]);
 
   // Detail Modal / Inquiry state
   const [selectedAssetId, setSelectedAssetId] = useState(null);
@@ -58,6 +56,9 @@ export default function AssetRegister() {
   useEffect(() => {
     fetchAssets();
     fetchCategories();
+    if (activeCompany?.id) {
+      fetchWarehouses();
+    }
   }, [activeCompany, filterStatus]);
 
   useEffect(() => {
@@ -94,6 +95,15 @@ export default function AssetRegister() {
     }
   };
 
+  const fetchWarehouses = async () => {
+    try {
+      const { data } = await api.get(`/warehouses/${activeCompany.id}`);
+      setWarehouses(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleOpenInquiry = async (assetId) => {
     setSelectedAssetId(assetId);
     setInquiryDetails(null);
@@ -124,7 +134,6 @@ export default function AssetRegister() {
         ...disposalData
       });
       setShowDisposalForm(false);
-      // Reload details
       handleOpenInquiry(selectedAssetId);
       fetchAssets();
     } catch (err) {
@@ -141,7 +150,6 @@ export default function AssetRegister() {
       });
       setShowUsageForm(false);
       setUsageData({ usage_date: new Date().toISOString().split('T')[0], units_used: '', source: 'MANUAL' });
-      // Reload details
       handleOpenInquiry(selectedAssetId);
       fetchAssets();
     } catch (err) {
@@ -149,40 +157,103 @@ export default function AssetRegister() {
     }
   };
 
+  // Bulk Actions
+  const handleBulkDepreciation = () => {
+    if (selectedIds.length === 0) return;
+    navigate('/dashboard/fixed-assets/wizard');
+  };
+
+  const handleBulkPrint = () => {
+    alert(`Generating print labels for ${selectedIds.length} assets...`);
+  };
+
+  const toggleSelectAll = () => {
+    if (selectedIds.length === filteredAssets.length) {
+      setSelectedIds([]);
+    } else {
+      setSelectedIds(filteredAssets.map(a => a.id));
+    }
+  };
+
+  const toggleSelect = (id) => {
+    if (selectedIds.includes(id)) {
+      setSelectedIds(selectedIds.filter(x => x !== id));
+    } else {
+      setSelectedIds([...selectedIds, id]);
+    }
+  };
+
+  // Filter application
   const filteredAssets = assets.filter(a => {
     const code = a.asset_code?.toLowerCase() || '';
     const name = a.asset_name?.toLowerCase() || '';
-    const category = a.category_name?.toLowerCase() || '';
+    const cat = a.category_name?.toLowerCase() || '';
     const term = searchTerm.toLowerCase();
-    return code.includes(term) || name.includes(term) || category.includes(term);
+    
+    const matchesSearch = code.includes(term) || name.includes(term) || cat.includes(term);
+    const matchesCategory = filterCategory ? a.category_id === parseInt(filterCategory) : true;
+    const matchesLocation = filterLocation ? a.location_id === parseInt(filterLocation) : true;
+    
+    return matchesSearch && matchesCategory && matchesLocation;
   });
+
+  const getNextDepDate = () => {
+    const d = new Date();
+    // Default to 1st of next month
+    const nextMonth = new Date(d.getFullYear(), d.getMonth() + 1, 1);
+    return nextMonth.toLocaleDateString();
+  };
 
   return (
     <div className="space-y-6">
       {/* Header */}
-      <div className="flex justify-between items-center">
+      <div className="flex justify-between items-center border-b border-slate-100 pb-4">
         <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Asset Register</h1>
-          <p className="text-slate-500 text-sm font-semibold">Capitalize, track, and inquiry assets inside sub-ledgers.</p>
+          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Asset Registry</h1>
+          <p className="text-slate-500 text-sm font-semibold">Verify asset details, print codes, transfer locations, or retire obsolete assets.</p>
         </div>
         <button onClick={() => setShowAddForm(true)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-md">
           <Plus size={14} /> Capitalize Asset
         </button>
       </div>
 
-      {/* Filters & Search */}
-      <div className="flex flex-col sm:flex-row justify-between items-center gap-3 bg-white p-3.5 rounded-xl border border-slate-100 shadow-sm">
-        <div className="relative w-full sm:max-w-xs">
-          <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
-          <input
-            type="text"
-            placeholder="Search code, name, class..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="pl-9 pr-4 py-1.5 w-full bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all font-semibold"
-          />
-        </div>
-        <div className="flex items-center gap-2 w-full sm:w-auto">
+      {/* Primary Toolbar (Filters) */}
+      <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-3.5">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
+          {/* Search */}
+          <div className="relative">
+            <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
+            <input
+              type="text"
+              placeholder="Search code, asset name..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-9 pr-4 py-1.5 w-full bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all font-semibold"
+            />
+          </div>
+          {/* Category */}
+          <select
+            value={filterCategory}
+            onChange={(e) => setFilterCategory(e.target.value)}
+            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500 transition-all font-semibold text-slate-600"
+          >
+            <option value="">All Categories</option>
+            {categories.map(c => (
+              <option key={c.id} value={c.id}>{c.category_name}</option>
+            ))}
+          </select>
+          {/* Location / Warehouse */}
+          <select
+            value={filterLocation}
+            onChange={(e) => setFilterLocation(e.target.value)}
+            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500 transition-all font-semibold text-slate-600"
+          >
+            <option value="">All Locations</option>
+            {warehouses.map(w => (
+              <option key={w.id} value={w.id}>{w.name}</option>
+            ))}
+          </select>
+          {/* Status */}
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -190,37 +261,84 @@ export default function AssetRegister() {
           >
             <option value="">All Statuses</option>
             <option value="ACTIVE">Active</option>
-            <option value="DISPOSED">Disposed</option>
             <option value="UNDER_MAINTENANCE">Maintenance</option>
             <option value="SOLD">Sold</option>
+            <option value="DISPOSED">Disposed</option>
+          </select>
+          {/* Active Book */}
+          <select
+            value={activeBookFilter}
+            onChange={(e) => setActiveBookFilter(e.target.value)}
+            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500 transition-all font-semibold text-slate-600"
+          >
+            <option value="Accounting">Accounting Book</option>
+            <option value="Tax">Tax Book</option>
+            <option value="Management">Management Book</option>
           </select>
         </div>
       </div>
+
+      {/* Secondary Toolbar (Bulk Actions) */}
+      {selectedIds.length > 0 && (
+        <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 flex items-center justify-between text-xs font-bold animate-fade-in">
+          <div className="flex items-center gap-2 text-indigo-700">
+            <CheckSquare size={16} /> Selected {selectedIds.length} Assets
+          </div>
+          <div className="flex items-center gap-2">
+            <button onClick={handleBulkDepreciation} className="px-3 py-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded text-[11px] font-black transition-all flex items-center gap-1 shadow-sm">
+              <Activity size={12} className="text-purple-600" /> Run Depreciation
+            </button>
+            <button onClick={handleBulkPrint} className="px-3 py-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded text-[11px] font-black transition-all flex items-center gap-1 shadow-sm">
+              <Printer size={12} className="text-slate-400" /> Print QR Labels
+            </button>
+          </div>
+        </div>
+      )}
 
       {/* Assets Grid/Table */}
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div>
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto font-mono"></div>
           </div>
         ) : filteredAssets.length > 0 ? (
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
                 <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  <th className="px-4 py-3 w-10 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selectedIds.length === filteredAssets.length}
+                      onChange={toggleSelectAll}
+                      className="w-4 h-4 rounded text-indigo-600"
+                    />
+                  </th>
                   <th className="px-4 py-3">Asset Code</th>
                   <th className="px-4 py-3">Asset Description</th>
                   <th className="px-4 py-3">Category Class</th>
-                  <th className="px-4 py-3 text-right">Purchase Cost</th>
-                  <th className="px-4 py-3 text-center">Acquired Date</th>
+                  <th className="px-4 py-3 text-right">Acquisition Cost</th>
+                  <th className="px-4 py-3 text-center">Next Dep.</th>
                   <th className="px-4 py-3 text-center">Status</th>
                   <th className="px-4 py-3 text-center">Actions</th>
                 </tr>
               </thead>
               <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
                 {filteredAssets.map(asset => (
-                  <tr key={asset.id} className="hover:bg-slate-50/30">
-                    <td className="px-4 py-3.5 font-mono text-indigo-600 font-bold">{asset.asset_code}</td>
+                  <tr key={asset.id} className="hover:bg-slate-50/30 group">
+                    <td className="px-4 py-3.5 text-center">
+                      <input
+                        type="checkbox"
+                        checked={selectedIds.includes(asset.id)}
+                        onChange={() => toggleSelect(asset.id)}
+                        className="w-4 h-4 rounded text-indigo-600"
+                      />
+                    </td>
+                    <td className="px-4 py-3.5 font-mono text-indigo-600 font-black">
+                      <button onClick={() => handleOpenInquiry(asset.id)} className="hover:underline text-left">
+                        {asset.asset_code}
+                      </button>
+                    </td>
                     <td className="px-4 py-3.5">
                       <p className="font-bold text-slate-800">{asset.asset_name}</p>
                       <p className="text-[10px] text-slate-400 font-mono">{asset.serial_number || 'No S/N'}</p>
@@ -233,8 +351,8 @@ export default function AssetRegister() {
                     <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-800">
                       PKR {parseFloat(asset.purchase_cost).toLocaleString()}
                     </td>
-                    <td className="px-4 py-3.5 text-center text-slate-500 font-mono">
-                      {new Date(asset.purchase_date).toLocaleDateString()}
+                    <td className="px-4 py-3.5 text-center font-mono text-slate-500">
+                      {asset.status === 'ACTIVE' ? getNextDepDate() : '—'}
                     </td>
                     <td className="px-4 py-3.5 text-center">
                       <span className={`px-2 py-0.5 rounded text-[9.5px] font-black tracking-wider uppercase ${
@@ -247,9 +365,22 @@ export default function AssetRegister() {
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-center">
-                      <button onClick={() => handleOpenInquiry(asset.id)} className="p-1 text-slate-400 hover:text-indigo-600 transition-all rounded hover:bg-slate-100">
-                        <Eye size={14} />
-                      </button>
+                      {/* Hover action menu overlay */}
+                      <div className="flex items-center justify-center gap-1.5">
+                        <button onClick={() => handleOpenInquiry(asset.id)} title="360° Inquiry" className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded transition-all">
+                          <Eye size={14} />
+                        </button>
+                        {asset.status === 'ACTIVE' && (
+                          <button onClick={() => handleOpenInquiry(asset.id)} title="Log maintenance logs" className="p-1 text-slate-400 hover:text-amber-500 hover:bg-slate-100 rounded transition-all">
+                            <Wrench size={14} />
+                          </button>
+                        )}
+                        {asset.status === 'ACTIVE' && (
+                          <button onClick={() => { handleOpenInquiry(asset.id); setShowDisposalForm(true); }} title="Sell or dispose asset" className="p-1 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded transition-all">
+                            <Trash2 size={14} />
+                          </button>
+                        )}
+                      </div>
                     </td>
                   </tr>
                 ))}
@@ -258,7 +389,7 @@ export default function AssetRegister() {
           </div>
         ) : (
           <div className="p-8 text-center text-slate-400 font-semibold">
-            No assets registered.
+            No assets found matching filters.
           </div>
         )}
       </div>
