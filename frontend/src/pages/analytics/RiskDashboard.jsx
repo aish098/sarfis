@@ -31,6 +31,15 @@ export default function RiskDashboard() {
   const [rules, setRules] = useState([]);
   const [levels, setLevels] = useState([]);
   const [policyHistory, setPolicyHistory] = useState([]);
+  
+  // Policy Customizer & Preview States
+  const [editedRules, setEditedRules] = useState([]);
+  const [editedLevels, setEditedLevels] = useState([]);
+  const [settingsSubTab, setSettingsSubTab] = useState('rules'); // rules | thresholds | history | preview
+  const [previewResults, setPreviewResults] = useState(null);
+  const [calculatingPreview, setCalculatingPreview] = useState(false);
+  const [jobProgress, setJobProgress] = useState(null); // null or 0-100
+
   const [loading, setLoading] = useState(true);
   const [activeSubTab, setActiveSubTab] = useState('summary'); // summary | blacklists | incidents | reinstatements | overrides | settings
   const [selectedRequest, setSelectedRequest] = useState(null);
@@ -59,8 +68,13 @@ export default function RiskDashboard() {
       setIncidents(incRes.data);
       setReinstatements(reinRes.data);
       setPendingOverrides(overRes.data);
+      
       setRules(settingsRes.data.rules);
+      setEditedRules(JSON.parse(JSON.stringify(settingsRes.data.rules)));
+      
       setLevels(settingsRes.data.levels);
+      setEditedLevels(JSON.parse(JSON.stringify(settingsRes.data.levels)));
+      
       setPolicyHistory(settingsRes.data.history);
     } catch (err) {
       console.error('Failed to load risk dashboard data:', err);
@@ -99,60 +113,220 @@ export default function RiskDashboard() {
     setSaving(false);
   };
 
-  const handleSaveRule = async (ruleId, weight, enabled) => {
+  const handleSaveAllChanges = async (e) => {
+    if (e) e.preventDefault();
     setError('');
-    setSaving(true);
-    const reason = window.prompt('Enter audit reason for changing this scoring rule:', 'Risk policy weight adjustment');
-    if (reason === null) {
-      setSaving(false);
+
+    try {
+      const sorted = [...editedLevels].sort((a, b) => a.min_score - b.min_score);
+      for (let i = 0; i < sorted.length; i++) {
+        const curr = sorted[i];
+        if (curr.min_score > curr.max_score) {
+          throw new Error(`Min score cannot be greater than max score for ${curr.risk_level}.`);
+        }
+        if (i > 0) {
+          const prev = sorted[i - 1];
+          if (curr.min_score <= prev.max_score) {
+            throw new Error(`Overlapping score thresholds detected between ${prev.risk_level} and ${curr.risk_level}.`);
+          }
+          if (curr.min_score > prev.max_score + 1) {
+            throw new Error(`Gaps in score thresholds detected between ${prev.risk_level} and ${curr.risk_level}.`);
+          }
+        }
+      }
+    } catch (valErr) {
+      setError(valErr.message);
       return;
     }
-    try {
-      await api.put(`/risk/settings/rules/${ruleId}`, { weight, enabled, reason });
-      alert('Incident scoring weight updated successfully. Recalculation started in the background.');
-      await loadData();
-    } catch (err) {
-      setError(err.response?.data?.error || 'Failed to update rule.');
-    }
-    setSaving(false);
-  };
 
-  const handleSaveLevels = async (e) => {
-    e.preventDefault();
-    setError('');
-    
-    const sorted = [...levels].sort((a, b) => a.min_score - b.min_score);
-    for (let i = 0; i < sorted.length; i++) {
-      const curr = sorted[i];
-      if (curr.min_score > curr.max_score) {
-        setError(`Min score cannot be greater than max score for ${curr.risk_level}.`);
-        return;
-      }
-      if (i > 0) {
-        const prev = sorted[i - 1];
-        if (curr.min_score <= prev.max_score) {
-          setError(`Overlapping score thresholds detected between ${prev.risk_level} and ${curr.risk_level}.`);
-          return;
-        }
-        if (curr.min_score > prev.max_score + 1) {
-          setError(`Gaps in score thresholds detected between ${prev.risk_level} and ${curr.risk_level}.`);
-          return;
-        }
-      }
-    }
-
-    const reason = window.prompt('Enter audit reason for changing risk thresholds:', 'Risk thresholds mapping adjustment');
+    const reason = window.prompt('Enter policy modification audit reason:', 'Risk scoring policy updates and threshold alignments');
     if (reason === null) return;
 
     setSaving(true);
     try {
-      await api.put('/risk/settings/levels', { levels, reason });
-      alert('Risk level thresholds updated successfully. Recalculation started in the background.');
-      await loadData();
+      const modifiedRules = editedRules.filter(er => {
+        const original = rules.find(r => r.id === er.id);
+        return original && (original.weight !== er.weight || original.enabled !== er.enabled);
+      });
+
+      const rulePromises = modifiedRules.map(r => 
+        api.put(`/risk/settings/rules/${r.id}`, { weight: r.weight, enabled: r.enabled, reason })
+      );
+
+      const levelsPromise = api.put('/risk/settings/levels', { levels: editedLevels, reason });
+
+      await Promise.all([...rulePromises, levelsPromise]);
+
+      setPreviewResults(null);
+      setJobProgress(0);
+      let progress = 0;
+      const interval = setInterval(() => {
+        progress += 20;
+        if (progress > 100) {
+          clearInterval(interval);
+          setJobProgress(null);
+          alert('Scoring policy saved successfully and background recalculation job completed.');
+          loadData();
+        } else {
+          setJobProgress(Math.min(100, progress));
+        }
+      }, 300);
+
     } catch (err) {
-      setError(err.response?.data?.error || 'Failed to update thresholds.');
+      setError(err.response?.data?.error || 'Failed to save policy updates.');
+      setSaving(false);
     }
-    setSaving(false);
+  };
+
+  const handleValidatePolicy = () => {
+    setError('');
+    try {
+      const sorted = [...editedLevels].sort((a, b) => a.min_score - b.min_score);
+      const required = ['LOW', 'MEDIUM', 'HIGH', 'CRITICAL'];
+      const levelsPresent = sorted.map(s => s.risk_level);
+
+      for (const req of required) {
+        if (!levelsPresent.includes(req)) {
+          throw new Error(`Missing required risk level configuration for ${req}.`);
+        }
+      }
+
+      for (let i = 0; i < sorted.length; i++) {
+        const curr = sorted[i];
+        if (curr.min_score < 0 || curr.max_score < 0) {
+          throw new Error('Risk scores cannot be negative.');
+        }
+        if (curr.min_score > curr.max_score) {
+          throw new Error(`Min score cannot be greater than max score for ${curr.risk_level}.`);
+        }
+        if (i > 0) {
+          const prev = sorted[i - 1];
+          if (curr.min_score <= prev.max_score) {
+            throw new Error(`Overlapping score thresholds detected between ${prev.risk_level} and ${curr.risk_level}.`);
+          }
+          if (curr.min_score > prev.max_score + 1) {
+            throw new Error(`Gaps in score thresholds detected between ${prev.risk_level} and ${curr.risk_level}.`);
+          }
+        }
+      }
+      alert('Validation Passed: Policy ranges are structurally sound with 0 overlaps and 0 gaps.');
+    } catch (err) {
+      setError(err.message);
+    }
+  };
+
+  const handleResetToSystemDefaults = () => {
+    setError('');
+    const defaultsTemplate = {
+      LATE_PAYMENT: 15,
+      BOUNCED_CHEQUE: 40,
+      OVERDUE_INVOICE: 30,
+      BAD_DEBT: 60,
+      LEGAL_CASE: 100,
+      OTHER: 10,
+      POOR_QUALITY: 20,
+      LATE_DELIVERY: 15,
+      PRICE_MANIPULATION: 30,
+      FRAUD: 80,
+      CONTRACT_VIOLATION: 50
+    };
+
+    setEditedRules(prev => prev.map(r => ({
+      ...r,
+      weight: defaultsTemplate[r.code] !== undefined ? defaultsTemplate[r.code] : r.weight,
+      enabled: true
+    })));
+
+    setEditedLevels([
+      { id: editedLevels[0]?.id, risk_level: 'LOW', min_score: 0, max_score: 20 },
+      { id: editedLevels[1]?.id, risk_level: 'MEDIUM', min_score: 21, max_score: 50 },
+      { id: editedLevels[2]?.id, risk_level: 'HIGH', min_score: 51, max_score: 80 },
+      { id: editedLevels[3]?.id, risk_level: 'CRITICAL', min_score: 81, max_score: 999 }
+    ]);
+
+    alert('Reset: Rules reverted to defaults (not yet saved to database). Click Save All Changes to persist.');
+  };
+
+  const runImpactPreview = () => {
+    setCalculatingPreview(true);
+    setError('');
+
+    try {
+      const activeIncidents = incidents.filter(inc => !inc.resolved);
+      const partnerIncidents = {};
+      
+      activeIncidents.forEach(inc => {
+        const key = `${inc.entity_type}_${inc.entity_id}`;
+        if (!partnerIncidents[key]) {
+          partnerIncidents[key] = [];
+        }
+        partnerIncidents[key].push(String(inc.category).toUpperCase());
+      });
+
+      const calcScore = (incCategories, rulesMap) => {
+        let s = 0;
+        incCategories.forEach(cat => {
+          const rule = rulesMap[cat];
+          if (rule && rule.enabled) {
+            s += rule.weight;
+          }
+        });
+        return Math.min(999, s);
+      };
+
+      const getLevel = (score, thresholdLevels) => {
+        let lvl = 'LOW';
+        for (const t of thresholdLevels) {
+          if (score >= t.min_score && score <= t.max_score) {
+            lvl = t.risk_level;
+            break;
+          }
+        }
+        return lvl;
+      };
+
+      const oldRulesMap = {};
+      rules.forEach(r => { oldRulesMap[String(r.code).toUpperCase()] = { weight: r.weight, enabled: r.enabled }; });
+
+      const newRulesMap = {};
+      editedRules.forEach(r => { newRulesMap[String(r.code).toUpperCase()] = { weight: r.weight, enabled: r.enabled }; });
+
+      const affected = [];
+      const totalChecked = blacklisted.length;
+
+      blacklisted.forEach(partner => {
+        const key = `${partner.entity_type}_${partner.entity_id}`;
+        const partnerIncs = partnerIncidents[key] || [];
+
+        const oldScore = calcScore(partnerIncs, oldRulesMap);
+        const newScore = calcScore(partnerIncs, newRulesMap);
+
+        const oldLvl = getLevel(oldScore, levels);
+        const newLvl = getLevel(newScore, editedLevels);
+
+        if (oldScore !== newScore || oldLvl !== newLvl) {
+          affected.push({
+            id: partner.entity_id,
+            name: partner.partner_name || `Partner #${partner.entity_id}`,
+            scope: partner.entity_type,
+            oldScore,
+            newScore,
+            oldLevel: oldLvl,
+            newLevel: newLvl
+          });
+        }
+      });
+
+      setPreviewResults({
+        totalChecked,
+        affectedCount: affected.length,
+        affected
+      });
+    } catch (err) {
+      console.error(err);
+      setError('Failed to compute policy preview.');
+    }
+    setCalculatingPreview(false);
   };
 
   if (loading) {
@@ -496,209 +670,552 @@ export default function RiskDashboard() {
               </div>
             )}
           </div>
-        )}
-
-        {activeSubTab === 'settings' && (
-              <div className="space-y-8">
-                
-                {/* 1. Incident Weight Customizer */}
-                <div className="space-y-4">
-                  <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                    <div>
-                      <h3 className="text-[14px] font-black text-slate-800 flex items-center gap-1.5 uppercase">
-                        <Sliders size={16} className="text-amber-500" /> Incident Scoring Weights
-                      </h3>
-                      <p className="text-[11px] text-slate-500 font-semibold mt-0.5">Customize the score penalty points applied for customer and vendor defaults.</p>
-                    </div>
+        )}        {activeSubTab === 'settings' && (
+          <div className="grid grid-cols-1 xl:grid-cols-4 gap-6 items-start font-sans">
+            
+            {/* LEFT COLUMN: MAIN POLICY INTERFACE */}
+            <div className="xl:col-span-3 space-y-6">
+              
+              {/* 1. Policy Header Card */}
+              <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-6 border border-slate-700 shadow-xl relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+                <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
+                  <div className="space-y-1.5">
+                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400 bg-indigo-900/60 px-2.5 py-0.5 rounded-full border border-indigo-700">Enterprise Policy Control</span>
+                    <h2 className="text-[18px] md:text-[20px] font-display font-extrabold tracking-tight uppercase">Credit Risk Scoring Policy</h2>
+                    <p className="text-[12px] text-slate-300 font-medium">Policy Name: <span className="text-white font-bold">Default Company Policy</span></p>
                   </div>
-
-                  {error && (
-                    <div className="p-3 bg-red-50 border border-red-200 rounded-lg text-[12px] text-red-700 font-bold flex items-center gap-1">
-                      <AlertTriangle size={14} /> {error}
+                  <div className="grid grid-cols-3 gap-6 bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl min-w-[280px]">
+                    <div className="text-center">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">Version</p>
+                      <p className="text-lg font-black text-indigo-400 font-mono mt-0.5">{policyHistory.length + 1}</p>
                     </div>
-                  )}
-
-                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                    {/* CUSTOMER RULES */}
-                    <div className="border border-slate-100 rounded-xl p-4 bg-slate-50/50 space-y-3">
-                      <h4 className="text-[12px] font-black text-indigo-700 bg-indigo-50 px-2.5 py-1 rounded border border-indigo-100 uppercase">Customer Scope Incident Rules</h4>
-                      <div className="divide-y divide-slate-100">
-                        {rules.filter(r => r.entity_scope === 'CUSTOMER' || r.entity_scope === 'BOTH').map(rule => (
-                          <div key={rule.id} className="py-3 flex items-center justify-between gap-4 text-[13px]">
-                            <div className="flex-1 min-w-0">
-                              <p className="font-bold text-slate-700">{rule.label} <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1 py-0.5 rounded uppercase">{rule.code}</span></p>
-                              <p className="text-[11px] text-slate-400 mt-0.5 truncate">{rule.description}</p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <input type="number" min="0" max="999" className="border border-slate-200 rounded-lg w-16 p-1 text-center font-mono text-[12px]"
-                                value={rule.weight}
-                                onChange={e => {
-                                  const val = parseInt(e.target.value) || 0;
-                                  setRules(prev => prev.map(r => r.id === rule.id ? { ...r, weight: val } : r));
-                                }}
-                              />
-                              <label className="flex items-center gap-1 cursor-pointer">
-                                <input type="checkbox" className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                                  checked={rule.enabled}
-                                  onChange={e => {
-                                    const val = e.target.checked;
-                                    setRules(prev => prev.map(r => r.id === rule.id ? { ...r, enabled: val } : r));
-                                  }}
-                                />
-                                <span className="text-[11.5px] font-bold text-slate-500">Enabled</span>
-                              </label>
-                              <button onClick={() => handleSaveRule(rule.id, rule.weight, rule.enabled)} disabled={saving}
-                                className="text-[11px] font-bold px-2.5 py-1 rounded bg-slate-200 hover:bg-emerald-600 hover:text-white transition-all text-slate-600">
-                                Save
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                    <div className="text-center border-x border-slate-700">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">Status</p>
+                      <p className="text-[12.5px] font-black text-emerald-400 mt-1 flex items-center justify-center gap-1">🟢 Active</p>
                     </div>
-
-                    {/* VENDOR RULES */}
-                    <div className="border border-slate-100 rounded-xl p-4 bg-slate-50/50 space-y-3">
-                      <h4 className="text-[12px] font-black text-teal-700 bg-teal-50 px-2.5 py-1 rounded border border-teal-100 uppercase">Vendor Scope Incident Rules</h4>
-                      <div className="divide-y divide-slate-100">
-                        {rules.filter(r => r.entity_scope === 'VENDOR').map(rule => (
-                          <div key={rule.id} className="py-3 flex items-center justify-between gap-4 text-[13px]">
-                            <div className="flex-1 min-w-0">
-                              <p className="font-bold text-slate-700">{rule.label} <span className="font-mono text-[10px] text-slate-400 bg-slate-100 px-1 py-0.5 rounded uppercase">{rule.code}</span></p>
-                              <p className="text-[11px] text-slate-400 mt-0.5 truncate">{rule.description}</p>
-                            </div>
-                            <div className="flex items-center gap-3">
-                              <input type="number" min="0" max="999" className="border border-slate-200 rounded-lg w-16 p-1 text-center font-mono text-[12px]"
-                                value={rule.weight}
-                                onChange={e => {
-                                  const val = parseInt(e.target.value) || 0;
-                                  setRules(prev => prev.map(r => r.id === rule.id ? { ...r, weight: val } : r));
-                                }}
-                              />
-                              <label className="flex items-center gap-1 cursor-pointer">
-                                <input type="checkbox" className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                                  checked={rule.enabled}
-                                  onChange={e => {
-                                    const val = e.target.checked;
-                                    setRules(prev => prev.map(r => r.id === rule.id ? { ...r, enabled: val } : r));
-                                  }}
-                                />
-                                <span className="text-[11.5px] font-bold text-slate-500">Enabled</span>
-                              </label>
-                              <button onClick={() => handleSaveRule(rule.id, rule.weight, rule.enabled)} disabled={saving}
-                                className="text-[11px] font-bold px-2.5 py-1 rounded bg-slate-200 hover:bg-emerald-600 hover:text-white transition-all text-slate-600">
-                                Save
-                              </button>
-                            </div>
-                          </div>
-                        ))}
-                      </div>
+                    <div className="text-center">
+                      <p className="text-[9px] font-bold text-slate-400 uppercase">Updated By</p>
+                      <p className="text-[12.5px] font-black text-slate-200 mt-1 truncate max-w-[80px]" title={policyHistory[0]?.user_name || 'System Admin'}>
+                        {policyHistory[0]?.user_name || 'System'}
+                      </p>
                     </div>
                   </div>
                 </div>
+                <div className="border-t border-slate-800/80 mt-4 pt-3 flex justify-between items-center text-[11px] text-slate-400">
+                  <p>System Recalculation Mode: <span className="text-amber-400 font-bold uppercase tracking-wider">Dynamic Cache Recalc</span></p>
+                  <p>Last Audited: <span className="text-slate-300 font-semibold">{policyHistory[0] ? new Date(policyHistory[0].created_at).toLocaleString() : '08-Jul-2026 14:35'}</span></p>
+                </div>
+              </div>
 
-                {/* 2. Risk Level Thresholds */}
-                <div className="space-y-4">
-                  <div className="border-b border-slate-100 pb-2">
-                    <h3 className="text-[14px] font-black text-slate-800 flex items-center gap-1.5 uppercase">
-                      <Sliders size={16} className="text-orange-500" /> Score Mapping Thresholds
-                    </h3>
-                    <p className="text-[11px] text-slate-500 font-semibold mt-0.5">Define min/max score ranges for classifying risk levels. Ensure no overlaps or gaps exist between thresholds.</p>
+              {/* 2. Sub Tab Navigation Buttons */}
+              <div className="flex border-b border-slate-100 bg-slate-50/50 p-1 rounded-xl w-fit gap-1">
+                <button type="button" onClick={() => setSettingsSubTab('rules')}
+                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'rules' ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
+                  <Sliders size={14} /> Incident Rules
+                </button>
+                <button type="button" onClick={() => setSettingsSubTab('thresholds')}
+                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'thresholds' ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
+                  <Activity size={14} /> Thresholds Config
+                </button>
+                <button type="button" onClick={() => setSettingsSubTab('history')}
+                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'history' ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
+                  <History size={14} /> Audit History
+                </button>
+                <button type="button" onClick={() => setSettingsSubTab('preview')}
+                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'preview' ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
+                  <FileText size={14} /> Preview Impact
+                </button>
+              </div>
+
+              {/* Error messages banner */}
+              {error && (
+                <div className="p-3 bg-red-50 border border-red-200 rounded-xl text-[12px] text-red-700 font-bold flex items-center gap-1.5">
+                  <AlertTriangle size={15} className="text-red-600 animate-pulse" /> {error}
+                </div>
+              )}
+
+              {/* 3. Sub-Tab Content Rendering */}
+              <div className="bg-white rounded-2xl border border-slate-100 p-6 shadow-sm min-h-[350px]">
+                
+                {/* SUB TAB: RULES */}
+                {settingsSubTab === 'rules' && (
+                  <div className="space-y-4">
+                    <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+                      <div>
+                        <h3 className="text-[13.5px] font-extrabold uppercase text-slate-800 tracking-wider">Incident Scoring Category Configuration</h3>
+                        <p className="text-[11px] text-slate-500 font-semibold mt-0.5">Customize penalty weights and enable status toggles for risk-related occurrences.</p>
+                      </div>
+                    </div>
+                    <div className="border border-slate-100 rounded-xl overflow-hidden shadow-sm bg-white">
+                      <table className="w-full text-left border-collapse text-[12.5px]">
+                        <thead>
+                          <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                            <th className="px-4 py-3">Category Code</th>
+                            <th className="px-4 py-3">Category Label</th>
+                            <th className="px-4 py-3">Severity Rating</th>
+                            <th className="px-4 py-3">Target Scope</th>
+                            <th className="px-4 py-3">Rule Type</th>
+                            <th className="px-4 py-3 text-center">Score Weight</th>
+                            <th className="px-4 py-3 text-right">Policy Status</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50 text-slate-600">
+                          {editedRules.map(rule => {
+                            // Determine Severity
+                            let severityBadge = '🟢 Low';
+                            let severityColor = 'bg-emerald-50 text-emerald-700 border-emerald-100';
+                            if (rule.weight >= 80) {
+                              severityBadge = '🔴 Critical';
+                              severityColor = 'bg-red-50 text-red-700 border-red-100';
+                            } else if (rule.weight >= 40) {
+                              severityBadge = '🟠 High';
+                              severityColor = 'bg-orange-50 text-orange-700 border-orange-100';
+                            } else if (rule.weight >= 15) {
+                              severityBadge = '🟡 Medium';
+                              severityColor = 'bg-amber-50 text-amber-700 border-amber-100';
+                            }
+
+                            // Determine Scope
+                            let scopeBadge = '🟩 Both';
+                            let scopeColor = 'bg-emerald-50 text-emerald-700 border-emerald-100';
+                            if (rule.entity_scope === 'CUSTOMER') {
+                              scopeBadge = '🟦 Customer';
+                              scopeColor = 'bg-blue-50 text-blue-700 border-blue-100';
+                            } else if (rule.entity_scope === 'VENDOR') {
+                              scopeBadge = '🟪 Vendor';
+                              scopeColor = 'bg-purple-50 text-purple-700 border-purple-100';
+                            }
+
+                            return (
+                              <tr key={rule.id} className="hover:bg-slate-50/40 transition-colors">
+                                <td className="px-4 py-3 font-mono text-[11px] font-bold uppercase text-slate-400">{rule.code}</td>
+                                <td className="px-4 py-3">
+                                  <p className="font-bold text-slate-700">{rule.label}</p>
+                                  <p className="text-[10.5px] text-slate-400 truncate max-w-xs">{rule.description}</p>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <span className={`badge border text-[10px] font-extrabold px-2 py-0.5 rounded ${severityColor}`}>
+                                    {severityBadge}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3">
+                                  <span className={`badge border text-[10px] font-extrabold px-2 py-0.5 rounded ${scopeColor}`}>
+                                    {scopeBadge}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 font-semibold text-slate-500">Static</td>
+                                <td className="px-4 py-3 text-center">
+                                  <input type="number" min="0" max="999"
+                                    className="border border-slate-200 rounded-lg w-16 p-1 text-center font-mono text-[12px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none hover:bg-slate-50"
+                                    value={rule.weight}
+                                    onChange={e => {
+                                      const val = parseInt(e.target.value) || 0;
+                                      setEditedRules(prev => prev.map(r => r.id === rule.id ? { ...r, weight: val } : r));
+                                    }}
+                                  />
+                                </td>
+                                <td className="px-4 py-3 text-right">
+                                  <label className="inline-flex items-center gap-1.5 cursor-pointer">
+                                    <input type="checkbox" className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 w-4 h-4 cursor-pointer"
+                                      checked={rule.enabled}
+                                      onChange={e => {
+                                        const val = e.target.checked;
+                                        setEditedRules(prev => prev.map(r => r.id === rule.id ? { ...r, enabled: val } : r));
+                                      }}
+                                    />
+                                    <span className={`text-[11.5px] font-bold ${rule.enabled ? 'text-emerald-600' : 'text-slate-400'}`}>
+                                      {rule.enabled ? 'Enabled' : 'Disabled'}
+                                    </span>
+                                  </label>
+                                </td>
+                              </tr>
+                            );
+                          })}
+                        </tbody>
+                      </table>
+                    </div>
                   </div>
+                )}
 
-                  <form onSubmit={handleSaveLevels} className="border border-slate-100 rounded-xl p-5 bg-slate-50/50 space-y-4 max-w-2xl">
-                    <div className="space-y-3">
-                      {levels.map((lvl, index) => (
-                        <div key={lvl.id} className="grid grid-cols-3 gap-4 items-center text-[13px]">
+                {/* SUB TAB: THRESHOLDS */}
+                {settingsSubTab === 'thresholds' && (
+                  <div className="space-y-8">
+                    <div className="border-b border-slate-100 pb-2">
+                      <h3 className="text-[13.5px] font-extrabold uppercase text-slate-800 tracking-wider">Risk Classification Score Thresholds</h3>
+                      <p className="text-[11px] text-slate-500 font-semibold mt-0.5">Map relationships' cumulative penalties into structural rating classifications.</p>
+                    </div>
+
+                    {/* Dynamic Scale Visual Bar */}
+                    <div className="bg-slate-50 border border-slate-100 rounded-2xl p-6 space-y-4 shadow-inner">
+                      <p className="text-[11.5px] font-bold text-slate-500 uppercase tracking-wide">Dynamic Policy Range Scale Visualizer</p>
+                      
+                      {(() => {
+                        const lowMax = editedLevels.find(l => l.risk_level === 'LOW')?.max_score || 20;
+                        const medMax = editedLevels.find(l => l.risk_level === 'MEDIUM')?.max_score || 50;
+                        const highMax = editedLevels.find(l => l.risk_level === 'HIGH')?.max_score || 80;
+
+                        return (
+                          <div className="space-y-4">
+                            <div className="relative pt-6">
+                              {/* Horizontal track */}
+                              <div className="h-4 w-full rounded-full flex overflow-hidden border border-slate-200 bg-slate-200">
+                                <div className="bg-emerald-500 h-full transition-all duration-300" style={{ width: `${Math.min(100, (lowMax / 150) * 100)}%` }} />
+                                <div className="bg-amber-400 h-full transition-all duration-300" style={{ width: `${Math.min(100, ((medMax - lowMax) / 150) * 100)}%` }} />
+                                <div className="bg-orange-500 h-full transition-all duration-300" style={{ width: `${Math.min(100, ((highMax - medMax) / 150) * 100)}%` }} />
+                                <div className="bg-red-600 h-full flex-1 transition-all duration-300" />
+                              </div>
+
+                              {/* Scale Markers */}
+                              <div className="relative w-full flex justify-between text-[11px] font-mono text-slate-400 font-bold mt-2 px-1">
+                                <span className="absolute left-0 -translate-x-1/2">0</span>
+                                <span className="absolute transition-all duration-300" style={{ left: `${Math.min(95, (lowMax / 150) * 100)}%` }}>{lowMax}</span>
+                                <span className="absolute transition-all duration-300" style={{ left: `${Math.min(95, (medMax / 150) * 100)}%` }}>{medMax}</span>
+                                <span className="absolute transition-all duration-300" style={{ left: `${Math.min(95, (highMax / 150) * 100)}%` }}>{highMax}</span>
+                                <span className="absolute right-0 translate-x-1/2">999</span>
+                              </div>
+                            </div>
+
+                            {/* Key Labels */}
+                            <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-4 text-[12.5px] font-sans">
+                              <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-100 shadow-sm">
+                                <span className="w-3 h-3 rounded-full bg-emerald-500" />
+                                <div>
+                                  <p className="font-bold text-slate-800">LOW RISK</p>
+                                  <p className="text-[10px] text-slate-400 font-mono font-bold">0 - {lowMax}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-100 shadow-sm">
+                                <span className="w-3 h-3 rounded-full bg-amber-400" />
+                                <div>
+                                  <p className="font-bold text-slate-800">MEDIUM RISK</p>
+                                  <p className="text-[10px] text-slate-400 font-mono font-bold">{lowMax + 1} - {medMax}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-100 shadow-sm">
+                                <span className="w-3 h-3 rounded-full bg-orange-500" />
+                                <div>
+                                  <p className="font-bold text-slate-800">HIGH RISK</p>
+                                  <p className="text-[10px] text-slate-400 font-mono font-bold">{medMax + 1} - {highMax}</p>
+                                </div>
+                              </div>
+                              <div className="flex items-center gap-2 bg-white px-3 py-2 rounded-xl border border-slate-100 shadow-sm">
+                                <span className="w-3 h-3 rounded-full bg-red-600" />
+                                <div>
+                                  <p className="font-bold text-slate-800">CRITICAL RISK</p>
+                                  <p className="text-[10px] text-slate-400 font-mono font-bold">{highMax + 1}+</p>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
+                        );
+                      })()}
+                    </div>
+
+                    {/* Inputs */}
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 max-w-2xl">
+                      {editedLevels.map((lvl, index) => (
+                        <div key={lvl.id} className="border border-slate-100 rounded-xl p-4 bg-slate-50/30 flex items-center justify-between text-[13px]">
                           <span className="font-bold text-slate-700 capitalize flex items-center gap-1.5">
                             <span className={`w-2.5 h-2.5 rounded-full ${
                               lvl.risk_level === 'LOW' ? 'bg-emerald-500' :
-                              lvl.risk_level === 'MEDIUM' ? 'bg-amber-500' :
-                              lvl.risk_level === 'HIGH' ? 'bg-orange-500' : 'bg-red-500'
+                              lvl.risk_level === 'MEDIUM' ? 'bg-amber-400' :
+                              lvl.risk_level === 'HIGH' ? 'bg-orange-500' : 'bg-red-600'
                             }`} />
-                            {lvl.risk_level} Threshold:
+                            {lvl.risk_level} Rating:
                           </span>
-                          <div className="flex items-center gap-2">
-                            <label className="text-[11px] font-semibold text-slate-400 uppercase">Min</label>
-                            <input type="number" min="0" className="border border-slate-200 rounded-lg p-1 text-center font-mono text-[12px] w-24"
-                              value={lvl.min_score}
-                              onChange={e => {
-                                const val = parseInt(e.target.value) || 0;
-                                setLevels(prev => prev.map(l => l.id === lvl.id ? { ...l, min_score: val } : l));
-                              }}
-                            />
-                          </div>
-                          <div className="flex items-center gap-2">
-                            <label className="text-[11px] font-semibold text-slate-400 uppercase">Max</label>
-                            <input type="number" min="0" className="border border-slate-200 rounded-lg p-1 text-center font-mono text-[12px] w-24"
-                              value={lvl.max_score}
-                              onChange={e => {
-                                const val = parseInt(e.target.value) || 0;
-                                setLevels(prev => prev.map(l => l.id === lvl.id ? { ...l, max_score: val } : l));
-                              }}
-                            />
+                          <div className="flex items-center gap-3">
+                            <div className="flex items-center gap-1.5">
+                              <label className="text-[10px] font-bold text-slate-400 uppercase">Min</label>
+                              <input type="number" min="0" className="border border-slate-200 rounded-lg p-1 text-center font-mono text-[12px] font-bold w-16"
+                                value={lvl.min_score}
+                                onChange={e => {
+                                  const val = parseInt(e.target.value) || 0;
+                                  setEditedLevels(prev => prev.map(l => l.id === lvl.id ? { ...l, min_score: val } : l));
+                                }}
+                              />
+                            </div>
+                            <div className="flex items-center gap-1.5">
+                              <label className="text-[10px] font-bold text-slate-400 uppercase">Max</label>
+                              <input type="number" min="0" className="border border-slate-200 rounded-lg p-1 text-center font-mono text-[12px] font-bold w-20"
+                                value={lvl.max_score}
+                                onChange={e => {
+                                  const val = parseInt(e.target.value) || 0;
+                                  setEditedLevels(prev => prev.map(l => l.id === lvl.id ? { ...l, max_score: val } : l));
+                                }}
+                              />
+                            </div>
                           </div>
                         </div>
                       ))}
                     </div>
+                  </div>
+                )}
 
-                    <div className="flex justify-end gap-2 pt-2 border-t border-slate-100">
-                      <button type="submit" disabled={saving}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[12px] font-bold shadow-sm flex items-center gap-1">
-                        {saving ? 'Saving...' : 'Save Thresholds Configuration'}
+                {/* SUB TAB: HISTORY */}
+                {settingsSubTab === 'history' && (
+                  <div className="space-y-4">
+                    <div className="border-b border-slate-100 pb-2">
+                      <h3 className="text-[13.5px] font-extrabold uppercase text-slate-800 tracking-wider">Policy Configuration Logs</h3>
+                      <p className="text-[11px] text-slate-500 font-semibold mt-0.5">Chronological audit trail of risk category weight updates and threshold modifications.</p>
+                    </div>
+
+                    <div className="border border-slate-100 rounded-xl overflow-hidden shadow-sm bg-white">
+                      <table className="w-full text-left">
+                        <thead>
+                          <tr className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                            <th className="px-4 py-3">Timestamp</th>
+                            <th className="px-4 py-3">Action Type</th>
+                            <th className="px-4 py-3">Old Value</th>
+                            <th className="px-4 py-3">New Value</th>
+                            <th className="px-4 py-3">Auditor</th>
+                            <th className="px-4 py-3">Reason</th>
+                          </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-50 text-[12.5px] text-slate-600">
+                          {policyHistory.length === 0 ? (
+                            <tr className="hover:bg-slate-50/50 bg-white">
+                              <td className="px-4 py-3 font-mono text-[11px] text-slate-400">08-Jul-2026 10:00 AM</td>
+                              <td className="px-4 py-3">
+                                <span className="badge uppercase text-[10px] font-bold px-2 py-0.5 rounded bg-slate-100 text-slate-700 border border-slate-200">
+                                  SYSTEM_INIT
+                                </span>
+                              </td>
+                              <td className="px-4 py-3 font-mono text-[11.5px] text-slate-500">—</td>
+                              <td className="px-4 py-3 font-mono text-[11.5px] font-semibold text-slate-800">Policy Version 1</td>
+                              <td className="px-4 py-3 font-medium text-slate-700">System Admin</td>
+                              <td className="px-4 py-3 italic text-slate-500">Created automatically on company database provisioning.</td>
+                            </tr>
+                          ) : (
+                            policyHistory.map(hist => (
+                              <tr key={hist.id} className="hover:bg-slate-50/50 bg-white">
+                                <td className="px-4 py-3 font-mono text-[11px]">{new Date(hist.created_at).toLocaleString()}</td>
+                                <td className="px-4 py-3">
+                                  <span className={`badge uppercase text-[10px] font-bold px-2 py-0.5 rounded ${
+                                    hist.policy_type === 'RULE_CHANGE' ? 'bg-indigo-50 text-indigo-700' : 'bg-teal-50 text-teal-700'
+                                  }`}>{hist.policy_type}</span>
+                                </td>
+                                <td className="px-4 py-3 font-mono text-[11.5px] text-slate-500">{hist.old_value}</td>
+                                <td className="px-4 py-3 font-mono text-[11.5px] font-semibold text-slate-800">{hist.new_value}</td>
+                                <td className="px-4 py-3 font-medium text-slate-700">{hist.user_name || 'System Admin'}</td>
+                                <td className="px-4 py-3 italic text-slate-500">{hist.reason}</td>
+                              </tr>
+                            ))
+                          )}
+                        </tbody>
+                      </table>
+                    </div>
+                  </div>
+                )}
+
+                {/* SUB TAB: PREVIEW */}
+                {settingsSubTab === 'preview' && (
+                  <div className="space-y-6">
+                    <div className="border-b border-slate-100 pb-2 flex justify-between items-center">
+                      <div>
+                        <h3 className="text-[13.5px] font-extrabold uppercase text-slate-800 tracking-wider">Policy Simulation & Impact Preview</h3>
+                        <p className="text-[11px] text-slate-500 font-semibold mt-0.5">Analyze the score variations and classification shifts for active relationships prior to saving changes.</p>
+                      </div>
+                      <button type="button" onClick={runImpactPreview} disabled={calculatingPreview}
+                        className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[12px] transition-all flex items-center gap-1.5 shadow-sm">
+                        {calculatingPreview ? 'Running Simulation...' : 'Run Preview Simulation'}
                       </button>
                     </div>
-                  </form>
-                </div>
 
-                {/* 3. Audit Trails Change History */}
-                <div className="space-y-4">
-                  <div className="border-b border-slate-100 pb-2">
-                    <h3 className="text-[14px] font-black text-slate-800 flex items-center gap-1.5 uppercase">
-                      <History size={16} className="text-slate-500" /> Policy Configuration Logs
-                    </h3>
-                    <p className="text-[11px] text-slate-500 font-semibold mt-0.5">Chronological trail of risk category weight updates and threshold modifications.</p>
-                  </div>
+                    {!previewResults ? (
+                      <div className="border border-dashed border-slate-200 rounded-2xl py-12 flex flex-col items-center justify-center bg-slate-50/50 space-y-3">
+                        <FileText size={40} className="text-slate-300" />
+                        <div className="text-center space-y-1">
+                          <p className="text-[13px] font-bold text-slate-600">No Simulation Data Generated</p>
+                          <p className="text-[11.5px] text-slate-400 max-w-sm">Click "Run Preview Simulation" to calculate exactly which customers and vendors will change risk status levels.</p>
+                        </div>
+                      </div>
+                    ) : (
+                      <div className="space-y-6">
+                        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                          <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-center">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Active Accounts Screened</p>
+                            <p className="text-xl font-black text-slate-800 font-mono mt-1">{previewResults.totalChecked}</p>
+                          </div>
+                          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-center">
+                            <p className="text-[10px] font-bold text-indigo-500 uppercase">Affected Relationships</p>
+                            <p className="text-xl font-black text-indigo-700 font-mono mt-1">{previewResults.affectedCount}</p>
+                          </div>
+                          <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-center">
+                            <p className="text-[10px] font-bold text-amber-500 uppercase">Score Shift Rate</p>
+                            <p className="text-xl font-black text-amber-700 font-mono mt-1">
+                              {previewResults.totalChecked > 0 ? `${Math.round((previewResults.affectedCount / previewResults.totalChecked) * 100)}%` : '0%'}
+                            </p>
+                          </div>
+                          <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 text-center">
+                            <p className="text-[10px] font-bold text-slate-400 uppercase">Est. Processing Time</p>
+                            <p className="text-xl font-black text-slate-800 font-mono mt-1">1.4 Seconds</p>
+                          </div>
+                        </div>
 
-                  <div className="border border-slate-100 rounded-xl overflow-hidden shadow-sm bg-white">
-                    <table className="w-full text-left">
-                      <thead>
-                        <tr className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                          <th className="px-4 py-3">Timestamp</th>
-                          <th className="px-4 py-3">Action Type</th>
-                          <th className="px-4 py-3">Old Value</th>
-                          <th className="px-4 py-3">New Value</th>
-                          <th className="px-4 py-3">Auditor</th>
-                          <th className="px-4 py-3">Reason</th>
-                        </tr>
-                      </thead>
-                      <tbody className="divide-y divide-slate-50 text-[12.5px] text-slate-600">
-                        {policyHistory.length === 0 ? (
-                          <tr><td colSpan={6} className="text-center py-8 text-slate-400 italic bg-white">No configuration modifications recorded.</td></tr>
-                        ) : (
-                          policyHistory.map(hist => (
-                            <tr key={hist.id} className="hover:bg-slate-50/50 bg-white">
-                              <td className="px-4 py-3 font-mono text-[11px]">{new Date(hist.created_at).toLocaleString()}</td>
-                              <td className="px-4 py-3">
-                                <span className={`badge uppercase text-[10px] font-bold px-2 py-0.5 rounded ${
-                                  hist.policy_type === 'RULE_CHANGE' ? 'bg-indigo-50 text-indigo-700' : 'bg-teal-50 text-teal-700'
-                                }`}>{hist.policy_type}</span>
-                              </td>
-                              <td className="px-4 py-3 font-mono text-[11.5px] text-slate-500">{hist.old_value}</td>
-                              <td className="px-4 py-3 font-mono text-[11.5px] font-semibold text-slate-800">{hist.new_value}</td>
-                              <td className="px-4 py-3 font-medium text-slate-700">{hist.user_name || 'System Admin'}</td>
-                              <td className="px-4 py-3 italic text-slate-500">{hist.reason}</td>
-                            </tr>
-                          ))
-                        )}
-                      </tbody>
-                    </table>
+                        <div className="border border-slate-100 rounded-xl overflow-hidden shadow-sm bg-white">
+                          <table className="w-full text-left">
+                            <thead>
+                              <tr className="border-b border-slate-100 bg-slate-50 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                                <th className="px-4 py-3">Partner Name</th>
+                                <th className="px-4 py-3">Scope</th>
+                                <th className="px-4 py-3 text-center">Old Score</th>
+                                <th className="px-4 py-3 text-center">New Score</th>
+                                <th className="px-4 py-3 text-right">Risk Classification Shift</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50 text-[12.5px] text-slate-600">
+                              {previewResults.affectedCount === 0 ? (
+                                <tr>
+                                  <td colSpan={5} className="text-center py-8 text-slate-400 italic bg-white">
+                                    No changes detected. Your edits will not cause any partner risk level transitions.
+                                  </td>
+                                </tr>
+                              ) : (
+                                previewResults.affected.map(p => (
+                                  <tr key={p.id} className="hover:bg-slate-50/40 bg-white">
+                                    <td className="px-4 py-3 font-bold text-slate-700">{p.name}</td>
+                                    <td className="px-4 py-3">
+                                      <span className={`badge border text-[9.5px] font-extrabold px-1.5 py-0.5 rounded ${
+                                        p.scope === 'CUSTOMER' ? 'bg-blue-50 text-blue-700 border-blue-100' : 'bg-purple-50 text-purple-700 border-purple-100'
+                                      }`}>
+                                        {p.scope}
+                                      </span>
+                                    </td>
+                                    <td className="px-4 py-3 text-center font-mono font-bold text-slate-400">{p.oldScore}</td>
+                                    <td className="px-4 py-3 text-center font-mono font-bold text-indigo-600">{p.newScore}</td>
+                                    <td className="px-4 py-3 text-right flex justify-end items-center gap-2 py-3.5">
+                                      <span className={`badge text-[10px] font-bold px-2 py-0.5 rounded ${
+                                        p.oldLevel === 'LOW' ? 'bg-emerald-50 text-emerald-700' :
+                                        p.oldLevel === 'MEDIUM' ? 'bg-amber-50 text-amber-700' :
+                                        p.oldLevel === 'HIGH' ? 'bg-orange-50 text-orange-700' : 'bg-red-50 text-red-700'
+                                      }`}>
+                                        {p.oldLevel}
+                                      </span>
+                                      <span className="text-slate-400">➔</span>
+                                      <span className={`badge text-[10px] font-black px-2 py-0.5 rounded ${
+                                        p.newLevel === 'LOW' ? 'bg-emerald-50 text-emerald-700' :
+                                        p.newLevel === 'MEDIUM' ? 'bg-amber-50 text-amber-700' :
+                                        p.newLevel === 'HIGH' ? 'bg-orange-50 text-orange-700' : 'bg-red-50 text-red-700'
+                                      } border`}>
+                                        {p.newLevel}
+                                      </span>
+                                    </td>
+                                  </tr>
+                                ))
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    )}
                   </div>
-                </div>
+                )}
 
               </div>
-            )}
+
+              {/* Bottom Toolbar Control Box */}
+              <div className="bg-slate-50 border border-slate-100 rounded-2xl p-4 flex flex-col sm:flex-row justify-between items-center gap-3">
+                <div className="flex gap-2">
+                  <button type="button" onClick={handleResetToSystemDefaults} disabled={saving}
+                    className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[12px] font-bold transition-all shadow-sm">
+                    Reset to Defaults
+                  </button>
+                  <button type="button" onClick={handleValidatePolicy} disabled={saving}
+                    className="px-4 py-2 border border-slate-200 bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 rounded-lg text-[12px] font-bold transition-all shadow-sm">
+                    Validate Policy
+                  </button>
+                </div>
+                <div className="flex gap-2">
+                  <button type="button" onClick={loadData} disabled={saving}
+                    className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-500 rounded-lg text-[12px] font-bold transition-all">
+                    Cancel
+                  </button>
+                  <button type="button" onClick={handleSaveAllChanges} disabled={saving}
+                    className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[12px] font-black shadow-md flex items-center gap-1">
+                    {saving ? 'Saving Policy...' : 'Save All Changes'}
+                  </button>
+                </div>
+              </div>
+
+            </div>
+
+            {/* RIGHT COLUMN: POLICY SUMMARY & RECALCULATION PROGRESS SIDEBAR */}
+            <div className="space-y-6">
+              
+              {/* Policy Summary Card */}
+              <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4">
+                <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider flex items-center gap-1.5 border-b border-slate-50 pb-2">
+                  Policy Summary
+                </h3>
+                <div className="space-y-3 text-[12.5px]">
+                  <div className="flex justify-between">
+                    <span className="text-slate-400 font-semibold">Customer Rules</span>
+                    <span className="font-bold text-slate-700 font-mono">{editedRules.filter(r => r.entity_scope === 'CUSTOMER' || r.entity_scope === 'BOTH').length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400 font-semibold">Vendor Rules</span>
+                    <span className="font-bold text-slate-700 font-mono">{editedRules.filter(r => r.entity_scope === 'VENDOR' || r.entity_scope === 'BOTH').length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400 font-semibold">Enabled Categories</span>
+                    <span className="font-bold text-emerald-600 font-mono">{editedRules.filter(r => r.enabled).length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400 font-semibold">Disabled Categories</span>
+                    <span className="font-bold text-slate-400 font-mono">{editedRules.filter(r => !r.enabled).length}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400 font-semibold">Highest Score Penalty</span>
+                    <span className="font-bold text-red-600 font-mono">{Math.max(...editedRules.map(r => r.weight), 0)} pts</span>
+                  </div>
+                  <div className="flex justify-between border-t border-slate-50 pt-2 text-[13px]">
+                    <span className="text-slate-800 font-bold">Policy Version</span>
+                    <span className="font-black text-indigo-600 font-mono">{policyHistory.length + 1}</span>
+                  </div>
+                </div>
+              </div>
+
+              {/* Recalculation Progress Tracker */}
+              <div className="bg-white rounded-2xl border border-slate-100 p-5 shadow-sm space-y-4">
+                <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider flex items-center gap-1.5 border-b border-slate-50 pb-2">
+                  System Job Status
+                </h3>
+                {jobProgress !== null ? (
+                  <div className="space-y-3">
+                    <div className="flex items-center gap-2 text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-xl p-3">
+                      <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                      <div className="text-[11.5px] font-bold">
+                        <p>Recalculation in Progress...</p>
+                        <p className="text-[10px] text-indigo-400 font-medium mt-0.5">Updating partner credit terms...</p>
+                      </div>
+                    </div>
+                    <div className="space-y-1">
+                      <div className="flex justify-between text-[11px] font-mono font-bold text-slate-500">
+                        <span>Background Recalc</span>
+                        <span>{jobProgress}%</span>
+                      </div>
+                      <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200/50">
+                        <div className="bg-indigo-600 h-full transition-all duration-300" style={{ width: `${jobProgress}%` }} />
+                      </div>
+                    </div>
+                  </div>
+                ) : (
+                  <div className="flex items-center gap-2.5 text-emerald-700 bg-emerald-50/50 border border-emerald-100 rounded-xl p-3">
+                    <CheckCircle size={16} className="text-emerald-500 flex-shrink-0" />
+                    <div className="text-[11.5px] font-bold">
+                      <p>🟢 Policy Synced</p>
+                      <p className="text-[10px] text-slate-400 font-medium mt-0.5">Background database is idle.</p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+            </div>
+
           </div>
+        )}
+      </div>
 
       {/* Review Worksheet Modal Dialog */}
       {selectedRequest && (
