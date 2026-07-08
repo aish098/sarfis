@@ -1,8 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { X, Save, AlertCircle } from 'lucide-react';
 import api from '../../services/api';
+import useAuthStore from '../../store/authStore';
 
 export default function AssetForm({ onClose, onSuccess, categories }) {
+  const { activeCompany } = useAuthStore();
   const [formData, setFormData] = useState({
     asset_code: '',
     asset_name: '',
@@ -25,13 +27,15 @@ export default function AssetForm({ onClose, onSuccess, categories }) {
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    fetchWarehouses();
-    fetchEmployees();
-  }, []);
+    if (activeCompany?.id) {
+      fetchWarehouses();
+      fetchEmployees();
+    }
+  }, [activeCompany]);
 
   const fetchWarehouses = async () => {
     try {
-      const { data } = await api.get('/warehouses');
+      const { data } = await api.get(`/warehouses/${activeCompany.id}`);
       setWarehouses(data || []);
     } catch (err) {
       console.error(err);
@@ -40,7 +44,7 @@ export default function AssetForm({ onClose, onSuccess, categories }) {
 
   const fetchEmployees = async () => {
     try {
-      const { data } = await api.get('/employees');
+      const { data } = await api.get(`/employees/${activeCompany.id}`);
       setEmployees(data || []);
     } catch (err) {
       console.error(err);
