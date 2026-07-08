@@ -74,7 +74,7 @@ export default function VoucherDetails() {
   };
 
   const handleClone = () => {
-    navigate('/vouchers/new', { 
+    navigate('/dashboard/vouchers/new', { 
       state: { 
         cloneFrom: {
           type: document.type,
@@ -284,7 +284,7 @@ export default function VoucherDetails() {
       {/* 1. Header Toolbar */}
       <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
         <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/vouchers')} className="no-print w-9 h-9 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 transition-all">
+          <button onClick={() => navigate('/dashboard/vouchers')} className="no-print w-9 h-9 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 transition-all">
             <ChevronLeft size={16} />
           </button>
           <div>
@@ -741,7 +741,7 @@ export default function VoucherDetails() {
                     {business.customer ? 'Client Name' : 'Supplier Name'}
                   </span>
                   <span className="text-indigo-600 font-extrabold hover:underline">
-                    <Link to={business.customer ? `/clients` : `/vendors`}>
+                    <Link to={business.customer ? '/dashboard/distribution' : '/dashboard/vendors'}>
                       {business.customer?.name || business.vendor?.name}
                     </Link>
                   </span>
