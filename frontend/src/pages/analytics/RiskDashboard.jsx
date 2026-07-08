@@ -747,8 +747,8 @@ export default function RiskDashboard() {
                         <p className="text-[11px] text-slate-500 font-semibold mt-0.5">Customize penalty weights and enable status toggles for risk-related occurrences.</p>
                       </div>
                     </div>
-                    <div className="border border-slate-100 rounded-xl overflow-hidden shadow-sm bg-white">
-                      <table className="w-full text-left border-collapse text-[12.5px]">
+                    <div className="border border-slate-100 rounded-xl overflow-x-auto shadow-sm bg-white">
+                      <table className="w-full text-left border-collapse text-[12.5px] min-w-[700px]">
                         <thead>
                           <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-400">
                             <th className="px-4 py-3">Category Code</th>
