@@ -2,6 +2,7 @@ const VoucherService = require('../services/voucher.service');
 const VendorModel = require('../models/vendor.model');
 const PostingEngineService = require('../services/posting_engine.service');
 const db = require('../config/db');
+const TransactionInquiryService = require('../services/transaction_inquiry.service');
 
 exports.getVouchers = async (req, res) => {
   try {
@@ -255,6 +256,39 @@ exports.updateSettings = async (req, res) => {
       })
       .returning('*');
     res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.getTransactionInquiry = async (req, res) => {
+  try {
+    const { companyId, id } = req.params;
+    const details = await TransactionInquiryService.getTransactionInquiryDetails(id, companyId);
+    res.json(details);
+  } catch (err) {
+    if (err.message === 'Voucher not found') {
+      res.status(404).json({ error: err.message });
+    } else {
+      res.status(500).json({ error: err.message });
+    }
+  }
+};
+
+exports.addVoucherComment = async (req, res) => {
+  try {
+    const { companyId, id } = req.params;
+    const { text } = req.body;
+    if (!text) throw new Error('Comment text is required.');
+
+    await db('transaction_audit_logs').insert({
+      company_id: companyId,
+      voucher_id: id,
+      action: 'COMMENT',
+      user_id: req.user?.id,
+      description: `Comment: ${text}`
+    });
+    res.status(201).json({ message: 'Comment added successfully' });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }

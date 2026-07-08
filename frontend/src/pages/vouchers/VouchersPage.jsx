@@ -5,6 +5,7 @@ import { Plus, Search, FileText, CheckCircle, RefreshCw, Trash2, Calendar, Shiel
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import VoucherForm from './VoucherForm';
+import VoucherDetails from './VoucherDetails';
 
 const STATUS_BADGES = {
   DRAFT: 'bg-amber-55 bg-amber-50 text-amber-600 border border-amber-100',
@@ -215,7 +216,9 @@ function VoucherList() {
                     idx % 2 === 0 ? 'bg-[#FFFDFB] hover:bg-emerald-50/15' : 'bg-[#FAFAF9] hover:bg-emerald-50/15'
                   }`}>
                     <td className="px-4 py-3 !pl-5">
-                      <span className="font-mono font-bold text-[13px] text-slate-700">{v.voucher_number}</span>
+                      <Link to={`details/${v.id}`} className="font-mono font-bold text-[13px] text-indigo-600 hover:text-indigo-800 hover:underline">
+                        {v.voucher_number}
+                      </Link>
                     </td>
                     <td className="px-4 py-3">
                       <span className="font-semibold text-[13px] text-slate-800">{TYPE_LABELS[v.type]}</span>
@@ -316,6 +319,7 @@ export default function VouchersPage() {
         <Route index element={<VoucherList />} />
         <Route path="new" element={<VoucherForm />} />
         <Route path="edit/:id" element={<VoucherForm />} />
+        <Route path="details/:id" element={<VoucherDetails />} />
       </Routes>
     </div>
   );

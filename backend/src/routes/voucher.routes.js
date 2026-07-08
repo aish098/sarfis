@@ -7,6 +7,7 @@ router.use(authMiddleware);
 // --- VOUCHERS ---
 router.get('/vouchers/:companyId',            companyGuard, requirePermission('voucher.view'), voucherCtrl.getVouchers);
 router.get('/vouchers/:companyId/:id',        companyGuard, requirePermission('voucher.view'), voucherCtrl.getVoucherById);
+router.get('/vouchers/:companyId/:id/details',companyGuard, requirePermission('voucher.view'), voucherCtrl.getTransactionInquiry);
 router.post('/vouchers/:companyId',           companyGuard, requirePermission('voucher.create'), voucherCtrl.createVoucher);
 router.put('/vouchers/:companyId/:id',        companyGuard, requirePermission('voucher.edit'), voucherCtrl.updateVoucher);
 router.delete('/vouchers/:companyId/:id',     companyGuard, requirePermission('voucher.delete'), voucherCtrl.deleteVoucher);
@@ -15,6 +16,7 @@ router.delete('/vouchers/:companyId/:id',     companyGuard, requirePermission('v
 router.post('/vouchers/:companyId/:id/submit',  companyGuard, requirePermission('voucher.edit'), voucherCtrl.submitForApproval);
 router.post('/vouchers/:companyId/:id/post',    companyGuard, requirePermission('voucher.post'), voucherCtrl.postVoucher);
 router.post('/vouchers/:companyId/:id/reverse', companyGuard, requirePermission('voucher.post'), voucherCtrl.reverseVoucher);
+router.post('/vouchers/:companyId/:id/comment', companyGuard, requirePermission('voucher.edit'), voucherCtrl.addVoucherComment);
 
 // --- VENDORS (SUPPLIERS) ---
 router.get('/vendors/:companyId',             companyGuard, requirePermission('vendor.manage'), voucherCtrl.getVendors);
