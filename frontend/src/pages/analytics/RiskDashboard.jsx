@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useCallback } from 'react';
 import { 
   AlertTriangle, ShieldAlert, CheckCircle, Clock, ShieldCheck, 
-  DollarSign, Activity, FileText, ChevronRight, UserCheck, Trash2
+  DollarSign, Activity, FileText, ChevronRight, UserCheck, Trash2, X
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
