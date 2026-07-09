@@ -1393,7 +1393,7 @@ export default function AssetRegister() {
       )}
 
       {/* 360-Degree Inquiry Detail Panel / Modal */}
-      {selectedAssetId && !showDisposalForm && (
+      {selectedAssetId && !showDisposalForm && !showTransferForm && !showMaintenanceForm && !showLendingForm && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
