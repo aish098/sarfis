@@ -273,7 +273,7 @@ class WarehouseStatisticsService {
     });
 
     // 13. Resolve alerts
-    const pendingTransfers = await db('asset_transfers')
+    const pendingTransfers = await db('asset_transfer_requests')
       .where(q => q.where('from_location_id', warehouseId).orWhere('to_location_id', warehouseId))
       .where('status', 'PENDING')
       .count('* as count')
