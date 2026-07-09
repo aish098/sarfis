@@ -76,9 +76,32 @@ class AssetInquiryService {
       log.units_used = parseFloat(log.units_used || 0);
     });
 
-    // 5. Build future-ready structures for maintenance, transfers, and revaluations
-    const maintenance = []; // Reserved for future Asset Maintenance module
-    const transfers = [];   // Reserved for future Asset Transfer module
+    // 5. Fetch completed transfers and work orders
+    const transfers = await db('asset_transfers as t')
+      .leftJoin('warehouses as wfrom', 't.from_location_id', 'wfrom.id')
+      .leftJoin('warehouses as wto', 't.to_location_id', 'wto.id')
+      .leftJoin('employees as efrom', 't.from_custodian_employee_id', 'efrom.id')
+      .leftJoin('employees as eto', 't.to_custodian_employee_id', 'eto.id')
+      .leftJoin('users as u', 't.created_by', 'u.id')
+      .where({ 't.asset_id': assetId, 't.company_id': companyId })
+      .select(
+        't.*',
+        'wfrom.name as from_location_name',
+        'wto.name as to_location_name',
+        'efrom.name as from_custodian_name',
+        'eto.name as to_custodian_name',
+        'u.name as created_by_name'
+      )
+      .orderBy('t.transfer_date', 'asc')
+      .orderBy('t.created_at', 'asc');
+
+    const maintenance = await db('asset_work_orders as wo')
+      .leftJoin('users as u', 'wo.created_by', 'u.id')
+      .where({ 'wo.asset_id': assetId, 'wo.company_id': companyId })
+      .select('wo.*', 'u.name as created_by_name')
+      .orderBy('wo.maintenance_date', 'desc')
+      .orderBy('wo.created_at', 'desc');
+
     const revaluation = []; // Reserved for future Revaluation runs
 
     // 6. Fetch Disposal Details if the asset status is DISPOSED or SOLD

@@ -15,8 +15,15 @@ router.post('/assets', FixedAssetsController.createAsset);
 router.get('/assets/:id/inquiry', FixedAssetsController.getAssetInquiry);
 router.post('/assets/dispose', FixedAssetsController.disposeAsset);
 router.post('/assets/usage', FixedAssetsController.logUsage);
-router.post('/assets/transfer', FixedAssetsController.transferAsset);
-router.post('/assets/maintenance', FixedAssetsController.logMaintenance);
+router.post('/assets/transfer/request', FixedAssetsController.requestTransfer);
+router.get('/assets/transfer/requests', FixedAssetsController.getTransferRequests);
+router.post('/assets/transfer/approve', FixedAssetsController.approveTransfer);
+router.post('/assets/transfer/reject', FixedAssetsController.rejectTransfer);
+
+// Work Orders (Maintenance)
+router.post('/assets/work-orders', FixedAssetsController.createWorkOrder);
+router.get('/assets/work-orders', FixedAssetsController.getWorkOrders);
+router.put('/assets/work-orders/:id', FixedAssetsController.updateWorkOrder);
 
 // Depreciation Calculator & Wizard
 router.get('/depreciation/preview', FixedAssetsController.getDepreciationPreview);

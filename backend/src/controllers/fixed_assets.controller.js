@@ -1,5 +1,6 @@
 const FixedAssetsService = require('../services/fixed_assets.service');
 const AssetInquiryService = require('../services/asset_inquiry.service');
+const AssetMovementService = require('../services/asset_movement.service');
 
 class FixedAssetsController {
   // Category Endpoints
@@ -105,24 +106,8 @@ class FixedAssetsController {
     try {
       const companyId = req.headers['x-company-id'] || 1;
       const userId = req.user?.id || 1;
-      const { asset_id, disposal_date, disposal_reason, proceeds_amount } = req.body;
-
-      if (!asset_id || !disposal_date || !disposal_reason) {
-        return res.status(400).json({ error: 'asset_id, disposal_date, and disposal_reason are required.' });
-      }
-
-      const result = await FixedAssetsService.disposeAsset(companyId, userId, {
-        asset_id,
-        disposal_date,
-        disposal_reason,
-        proceeds_amount: parseFloat(proceeds_amount || 0)
-      });
-
-      res.json({
-        message: 'Asset retired successfully and posted to ledger.',
-        voucherNumber: result.voucherNumber,
-        gainLoss: result.gainLoss
-      });
+      const result = await AssetMovementService.disposeAsset(companyId, userId, req.body);
+      res.json(result);
     } catch (err) {
       next(err);
     }
@@ -152,23 +137,82 @@ class FixedAssetsController {
     }
   }
 
-  static async transferAsset(req, res, next) {
+  // Transfers
+  static async requestTransfer(req, res, next) {
     try {
       const companyId = req.headers['x-company-id'] || 1;
       const userId = req.user?.id || 1;
-      await FixedAssetsService.transferAsset(companyId, userId, req.body);
-      res.json({ message: 'Asset transferred successfully.' });
+      const result = await AssetMovementService.requestTransfer(companyId, userId, req.body);
+      res.json(result);
     } catch (err) {
       next(err);
     }
   }
 
-  static async logMaintenance(req, res, next) {
+  static async getTransferRequests(req, res, next) {
+    try {
+      const companyId = req.headers['x-company-id'] || 1;
+      const { status } = req.query;
+      const requests = await AssetMovementService.getTransferRequests(companyId, status);
+      res.json(requests);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async approveTransfer(req, res, next) {
     try {
       const companyId = req.headers['x-company-id'] || 1;
       const userId = req.user?.id || 1;
-      await FixedAssetsService.logMaintenance(companyId, userId, req.body);
-      res.json({ message: 'Asset maintenance logged successfully.' });
+      const { requestId } = req.body;
+      const result = await AssetMovementService.approveTransfer(companyId, userId, requestId);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async rejectTransfer(req, res, next) {
+    try {
+      const companyId = req.headers['x-company-id'] || 1;
+      const userId = req.user?.id || 1;
+      const { requestId } = req.body;
+      const result = await AssetMovementService.rejectTransfer(companyId, userId, requestId);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // Work orders (Maintenance)
+  static async createWorkOrder(req, res, next) {
+    try {
+      const companyId = req.headers['x-company-id'] || 1;
+      const userId = req.user?.id || 1;
+      const result = await AssetMovementService.createWorkOrder(companyId, userId, req.body);
+      res.status(201).json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async getWorkOrders(req, res, next) {
+    try {
+      const companyId = req.headers['x-company-id'] || 1;
+      const { status } = req.query;
+      const wos = await AssetMovementService.getWorkOrders(companyId, status);
+      res.json(wos);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async updateWorkOrder(req, res, next) {
+    try {
+      const companyId = req.headers['x-company-id'] || 1;
+      const userId = req.user?.id || 1;
+      const result = await AssetMovementService.updateWorkOrder(companyId, userId, req.params.id, req.body);
+      res.json(result);
     } catch (err) {
       next(err);
     }

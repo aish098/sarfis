@@ -3,7 +3,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { 
   Briefcase, Settings, Play, Calendar, DollarSign, Layers, Activity,
   ArrowRight, ShieldAlert, CheckCircle2, AlertTriangle, Info, Clock, 
-  User, MapPin, Wrench, Shield, TrendingUp, TrendingDown, ArrowLeft
+  User, MapPin, Wrench, Shield, TrendingUp, TrendingDown, ArrowLeft,
+  ThumbsUp, ThumbsDown, CheckSquare, ClipboardList, ShieldCheck
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, BarChart as RechartsBarChart, 
@@ -28,6 +29,17 @@ export default function FixedAssetsDashboard() {
     dueDepCount: 0
   });
 
+  const [operationsQueue, setOperationsQueue] = useState({
+    pendingTransfers: 0,
+    pendingDisposals: 0,
+    scheduledMaintenance: 0,
+    overdueMaintenance: 0,
+    pendingCapitalization: 0,
+    pendingRevaluation: 0
+  });
+
+  const [assetHealthList, setAssetHealthList] = useState([]);
+
   const [distMode, setDistMode] = useState('category'); // 'category' | 'location' | 'status' | 'custodian'
   const [distData, setDistData] = useState([]);
   const [trendData, setTrendData] = useState([]);
@@ -35,7 +47,6 @@ export default function FixedAssetsDashboard() {
   const [alerts, setAlerts] = useState({ critical: [], warning: [], info: [] });
   const [upcomingRuns, setUpcomingRuns] = useState([]);
   const [endOfLifeAssets, setEndOfLifeAssets] = useState([]);
-  const [healthScore, setHealthScore] = useState({ healthy: 0, attention: 0, critical: 0 });
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -45,8 +56,17 @@ export default function FixedAssetsDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const { data: rawAssets } = await api.get('/fixed-assets/assets');
-      setAssets(rawAssets || []);
+      const [assetsRes, transfersRes, workOrdersRes] = await Promise.all([
+        api.get('/fixed-assets/assets'),
+        api.get('/fixed-assets/assets/transfer/requests'),
+        api.get('/fixed-assets/assets/work-orders')
+      ]);
+
+      const rawAssets = assetsRes.data || [];
+      const rawTransfers = transfersRes.data || [];
+      const rawWorkOrders = workOrdersRes.data || [];
+
+      setAssets(rawAssets);
 
       // Fetch assets detail with books for accurate values
       const assetsWithDetail = await Promise.all(
@@ -77,7 +97,7 @@ export default function FixedAssetsDashboard() {
 
       const tempAlerts = { critical: [], warning: [], info: [] };
       const tempEndOfLife = [];
-      let healthy = 0, attention = 0, critical = 0;
+      const healthList = [];
 
       validDetails.forEach(item => {
         const a = item.asset;
@@ -107,9 +127,50 @@ export default function FixedAssetsDashboard() {
         const elapsedMonths = Math.floor(ageYears * 12);
         const remainingMonths = Math.max(0, usefulLifeMonths - elapsedMonths);
 
+        // Compute rich Health Score (factors: useful life, maintenance history, downtime status)
+        let healthScore = 100;
+        const lifeRatio = usefulLifeMonths > 0 ? (remainingMonths / usefulLifeMonths) : 1;
+        healthScore = Math.round(lifeRatio * 60 + 40); // Baseline based on life remaining
+
+        // Deduct for status
+        if (a.status === 'UNDER_MAINTENANCE') {
+          healthScore -= 15;
+        }
+
+        // Deduct based on maintenance log count
+        const woCount = rawWorkOrders.filter(wo => wo.asset_id === a.id).length;
+        healthScore -= Math.min(20, woCount * 4); // Max 20% penalty for multiple breakdowns
+
+        // Safety clamp
+        healthScore = Math.max(10, Math.min(100, healthScore));
+
+        let healthLabel = 'Excellent';
+        let healthColor = 'text-emerald-500';
+        let healthBadge = 'bg-emerald-50 border-emerald-100';
+        if (healthScore < 50) {
+          healthLabel = 'Poor';
+          healthColor = 'text-rose-500';
+          healthBadge = 'bg-rose-50 border-rose-100';
+        } else if (healthScore < 80) {
+          healthLabel = 'Fair';
+          healthColor = 'text-amber-500';
+          healthBadge = 'bg-amber-50 border-amber-100';
+        }
+
+        healthList.push({
+          id: a.id,
+          name: a.asset_name,
+          code: a.asset_code,
+          score: healthScore,
+          label: healthLabel,
+          color: healthColor,
+          badge: healthBadge,
+          remainingLife: Math.round(lifeRatio * 100),
+          workOrders: woCount
+        });
+
         if (a.status === 'ACTIVE') {
           if (currentBV <= parseFloat(a.salvage_value || 0)) {
-            critical++;
             tempAlerts.critical.push({
               id: `zero-${a.id}`,
               type: 'CRITICAL',
@@ -118,7 +179,6 @@ export default function FixedAssetsDashboard() {
               actionPath: `/dashboard/fixed-assets/register?assetId=${a.id}`
             });
           } else if (remainingMonths <= 6) {
-            critical++;
             tempEndOfLife.push({
               id: a.id,
               name: a.asset_name,
@@ -127,11 +187,7 @@ export default function FixedAssetsDashboard() {
               bookValue: currentBV,
               replacementEstimate: cost * 1.3
             });
-          } else {
-            healthy++;
           }
-        } else if (a.status === 'UNDER_MAINTENANCE') {
-          attention++;
         }
 
         // Check if depreciated this month
@@ -143,6 +199,8 @@ export default function FixedAssetsDashboard() {
           dueDepCount++;
         }
       });
+
+      setAssetHealthList(healthList.sort((a, b) => a.score - b.score).slice(0, 3)); // show lowest health first
 
       // Populate Alerts
       if (dueDepCount > 0) {
@@ -163,13 +221,30 @@ export default function FixedAssetsDashboard() {
           actionPath: '/dashboard/fixed-assets/register'
         });
       }
-      // Demo alerts for compliance
       tempAlerts.info.push({
         id: 'compliance-audit',
         type: 'INFO',
         text: 'All depreciation books matched and validated to general ledger.',
         actionText: 'Check Ledger',
         actionPath: '/dashboard/ledger'
+      });
+
+      // Calculate live queue numbers
+      const pendingTrans = rawTransfers.filter(r => r.status === 'PENDING').length;
+      const schedMaint = rawWorkOrders.filter(wo => wo.status === 'OPEN' || wo.status === 'IN_PROGRESS').length;
+      const overdueMaint = rawWorkOrders.filter(wo => {
+        const isPast = new Date(wo.maintenance_date) < now;
+        return (wo.status === 'OPEN' || wo.status === 'IN_PROGRESS') && isPast;
+      }).length;
+      const pendingCap = rawAssets.filter(a => a.status === 'DRAFT').length;
+
+      setOperationsQueue({
+        pendingTransfers: pendingTrans,
+        pendingDisposals: rawAssets.filter(a => a.status === 'DRAFT_DISPOSAL').length || 0,
+        scheduledMaintenance: schedMaint,
+        overdueMaintenance: overdueMaint,
+        pendingCapitalization: pendingCap,
+        pendingRevaluation: 0
       });
 
       setMetrics({
@@ -184,10 +259,9 @@ export default function FixedAssetsDashboard() {
       });
 
       setEndOfLifeAssets(tempEndOfLife.slice(0, 3));
-      setHealthScore({ healthy, attention, critical });
       setAlerts(tempAlerts);
 
-      // 3. Distribution calculations (Category / Location / Status / Custodian)
+      // Distribution calculations
       computeDistribution(rawAssets, distMode);
 
       // Collect all ledger history
@@ -249,7 +323,6 @@ export default function FixedAssetsDashboard() {
     setDistData(chartData);
   };
 
-  // Re-compute distribution when mode changes
   useEffect(() => {
     if (assets.length > 0) {
       computeDistribution(assets, distMode);
@@ -303,249 +376,227 @@ export default function FixedAssetsDashboard() {
       {/* Executive KPIs Row (8 Cards) */}
       <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
         <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Total Cost</span>
-          <p className="text-sm font-black text-slate-800 font-mono">PKR {(metrics.totalCost / 1000000).toFixed(1)}M</p>
-          <span className="text-[10px] text-emerald-600 font-semibold flex items-center gap-0.5 mt-2">
-            <TrendingUp size={10} /> +2.4% vs prev.
-          </span>
+          <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Acquisition Cost</span>
+          <p className="text-sm font-black text-slate-800 font-mono mt-1">PKR {metrics.totalCost.toLocaleString()}</p>
         </div>
-
         <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Book Value</span>
-          <p className="text-sm font-black text-slate-800 font-mono">PKR {(metrics.netBookValue / 1000000).toFixed(1)}M</p>
-          <button onClick={() => navigate('/dashboard/fixed-assets/register')} className="text-[9px] text-indigo-600 hover:underline font-bold mt-2 text-left">
-            [View Assets]
-          </button>
+          <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Accumulated Dep.</span>
+          <p className="text-sm font-black text-rose-600 font-mono mt-1">PKR {metrics.accumulatedDep.toLocaleString()}</p>
         </div>
-
         <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Dep allocated</span>
-          <p className="text-sm font-black text-slate-800 font-mono text-rose-600">PKR {metrics.accumulatedDep.toLocaleString()}</p>
-          <span className="text-[9px] text-slate-400 font-semibold block mt-2">Accounting Book</span>
+          <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Net Book Value</span>
+          <p className="text-sm font-black text-emerald-600 font-mono mt-1">PKR {metrics.netBookValue.toLocaleString()}</p>
         </div>
-
         <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Assets Due</span>
-          <p className="text-sm font-black text-slate-800 font-mono text-amber-600">{metrics.dueDepCount}</p>
-          <button onClick={() => navigate('/dashboard/fixed-assets/wizard')} className="text-[9px] text-amber-600 hover:underline font-bold mt-2 text-left">
-            [Run Wizard]
-          </button>
+          <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Active Assets</span>
+          <p className="text-sm font-black text-slate-800 font-mono mt-1">{metrics.activeCount}</p>
         </div>
-
         <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Active Cards</span>
-          <p className="text-sm font-black text-slate-800 font-mono">{metrics.activeCount}</p>
-          <span className="text-[9px] text-emerald-500 font-bold block mt-2">🟢 Operating</span>
+          <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Maintenance</span>
+          <p className="text-sm font-black text-amber-600 font-mono mt-1">{metrics.maintCount}</p>
         </div>
-
         <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">In Maintenance</span>
-          <p className="text-sm font-black text-slate-800 font-mono text-amber-500">{metrics.maintCount}</p>
-          <span className="text-[9px] text-amber-500 font-bold block mt-2">🟠 Pending Work</span>
+          <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Disposed / Sold</span>
+          <p className="text-sm font-black text-slate-500 font-mono mt-1">{metrics.disposedCount}</p>
         </div>
-
         <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Disposed</span>
-          <p className="text-sm font-black text-slate-800 font-mono text-rose-500">{metrics.disposedCount}</p>
-          <span className="text-[9px] text-rose-500 font-bold block mt-2">🔴 Retired Log</span>
+          <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Avg. Asset Age</span>
+          <p className="text-sm font-black text-slate-800 font-mono mt-1">{metrics.avgAge} Yrs</p>
         </div>
-
         <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400 block mb-1">Avg Age</span>
-          <p className="text-sm font-black text-slate-800 font-mono">{metrics.avgAge} Yrs</p>
-          <span className="text-[9px] text-slate-400 font-semibold block mt-2">Fleet Profile</span>
+          <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Due Depreciation</span>
+          <p className={`text-sm font-black font-mono mt-1 ${metrics.dueDepCount > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{metrics.dueDepCount}</p>
         </div>
       </div>
 
-      {/* Row 2: Alerts & Action Hub | Upcoming Depreciation Calendar */}
+      {/* Row 2: Alerts Center | Operations Queue */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Actionable Alerts */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2 flex flex-col justify-between space-y-4">
-          <div>
-            <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider flex items-center gap-2 border-b border-slate-50 pb-2">
-              <ShieldAlert size={16} className="text-indigo-600" /> Actionable Alerts & Control Hub
-            </h3>
-            <div className="divide-y divide-slate-100 mt-2">
-              {alerts.critical.map((a, i) => (
-                <div key={i} className="py-2.5 flex items-center justify-between text-xs gap-3">
-                  <div className="flex items-center gap-2 text-rose-600 font-bold animate-pulse">
-                    <span className="w-2 h-2 rounded-full bg-rose-500 flex-shrink-0"></span>
-                    <span className="text-[10px] uppercase bg-rose-50 px-1.5 py-0.5 rounded border border-rose-100 flex-shrink-0">Critical</span>
-                    <span className="text-slate-700 font-semibold">{a.text}</span>
-                  </div>
-                  <button onClick={() => navigate(a.actionPath)} className="text-[10px] font-black text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded transition-all flex-shrink-0">
-                    {a.actionText}
-                  </button>
-                </div>
-              ))}
-              {alerts.warning.map((a, i) => (
-                <div key={i} className="py-2.5 flex items-center justify-between text-xs gap-3">
-                  <div className="flex items-center gap-2 text-amber-600 font-bold">
-                    <span className="w-2 h-2 rounded-full bg-amber-500 flex-shrink-0"></span>
-                    <span className="text-[10px] uppercase bg-amber-50 px-1.5 py-0.5 rounded border border-amber-100 flex-shrink-0">Warning</span>
-                    <span className="text-slate-700 font-semibold">{a.text}</span>
-                  </div>
-                  <button onClick={() => navigate(a.actionPath)} className="text-[10px] font-black text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded transition-all flex-shrink-0">
-                    {a.actionText}
-                  </button>
-                </div>
-              ))}
-              {alerts.info.map((a, i) => (
-                <div key={i} className="py-2.5 flex items-center justify-between text-xs gap-3">
-                  <div className="flex items-center gap-2 text-blue-600 font-bold">
-                    <span className="w-2 h-2 rounded-full bg-blue-500 flex-shrink-0"></span>
-                    <span className="text-[10px] uppercase bg-blue-50 px-1.5 py-0.5 rounded border border-blue-100 flex-shrink-0">Info</span>
-                    <span className="text-slate-700 font-semibold">{a.text}</span>
-                  </div>
-                  <button onClick={() => navigate(a.actionPath)} className="text-[10px] font-black text-indigo-600 hover:text-indigo-800 bg-indigo-50 px-2 py-1 rounded transition-all flex-shrink-0">
-                    {a.actionText}
-                  </button>
-                </div>
-              ))}
-            </div>
+        {/* Alerts Center */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+            <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Alerts & Action Hub</h3>
+            <span className="text-[9px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full border border-rose-100 font-bold">
+              {alerts.critical.length + alerts.warning.length} Attention Items
+            </span>
           </div>
-          <div className="bg-slate-50 p-3.5 rounded-xl border border-slate-100 flex items-center justify-between text-xs mt-2">
-            <div className="flex items-center gap-2.5">
-              <Shield size={16} className="text-indigo-600" />
-              <div>
-                <p className="font-black text-slate-800">Compliance Health Score</p>
-                <p className="text-[10px] text-slate-400 font-semibold">Active assets status ratio overview.</p>
-              </div>
-            </div>
-            <div className="flex items-center gap-3">
-              <span className="text-emerald-600 font-bold">🟢 {healthScore.healthy} Healthy</span>
-              <span className="text-amber-500 font-bold">🟠 {healthScore.attention} Attention</span>
-              <span className="text-rose-600 font-bold">🔴 {healthScore.critical} Critical</span>
-            </div>
-          </div>
-        </div>
 
-        {/* Upcoming Run Timeline */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-1 space-y-4">
-          <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider flex items-center gap-2 border-b border-slate-50 pb-2">
-            <Clock size={16} className="text-indigo-600" /> Upcoming Runs Calendar
-          </h3>
-          <div className="space-y-4">
-            {upcomingRuns.map((run, i) => (
-              <div key={i} className="flex items-start gap-3 relative">
-                {i !== upcomingRuns.length - 1 && (
-                  <span className="absolute left-[7px] top-[14px] w-0.5 h-[50px] bg-slate-100" />
-                )}
-                <span className={`w-3.5 h-3.5 rounded-full ${run.color} border-4 border-white shadow flex-shrink-0 mt-1`}></span>
-                <div className="flex-1 min-w-0">
-                  <div className="flex items-center justify-between gap-1">
-                    <p className="text-xs font-black text-slate-800">{run.book}</p>
-                    <span className={`text-[9px] font-bold px-1.5 py-0.5 rounded uppercase ${
-                      run.status.includes('Tomorrow') ? 'bg-rose-50 text-rose-600 border border-rose-100' :
-                      run.status.includes('Days') ? 'bg-amber-50 text-amber-600 border border-amber-100' :
-                      'bg-indigo-50 text-indigo-600 border border-indigo-100'
-                    }`}>
-                      {run.status}
-                    </span>
-                  </div>
-                  <p className="text-[10px] text-slate-400 font-bold">Target Period: {run.period}</p>
+          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
+            {alerts.critical.map(alert => (
+              <div key={alert.id} className="p-3 bg-rose-50/50 border border-rose-100 rounded-xl flex items-center justify-between text-xs font-semibold text-rose-800 animate-in fade-in duration-200">
+                <div className="flex items-center gap-2">
+                  <ShieldAlert size={15} className="text-rose-500 shrink-0" />
+                  <span>{alert.text}</span>
                 </div>
+                <Link to={alert.actionPath} className="px-2.5 py-1 bg-white border border-rose-200 hover:bg-rose-50 rounded-lg text-[10px] font-bold text-rose-700 transition-all shadow-sm">
+                  {alert.actionText}
+                </Link>
+              </div>
+            ))}
+
+            {alerts.warning.map(alert => (
+              <div key={alert.id} className="p-3 bg-amber-50/40 border border-amber-100 rounded-xl flex items-center justify-between text-xs font-semibold text-amber-800 animate-in fade-in duration-200">
+                <div className="flex items-center gap-2">
+                  <AlertTriangle size={15} className="text-amber-500 shrink-0" />
+                  <span>{alert.text}</span>
+                </div>
+                <Link to={alert.actionPath} className="px-2.5 py-1 bg-white border border-amber-200 hover:bg-amber-50 rounded-lg text-[10px] font-bold text-amber-700 transition-all shadow-sm">
+                  {alert.actionText}
+                </Link>
+              </div>
+            ))}
+
+            {alerts.info.map(alert => (
+              <div key={alert.id} className="p-3 bg-indigo-50/30 border border-indigo-100/50 rounded-xl flex items-center justify-between text-xs font-semibold text-indigo-800 animate-in fade-in duration-200">
+                <div className="flex items-center gap-2">
+                  <Info size={15} className="text-indigo-500 shrink-0" />
+                  <span>{alert.text}</span>
+                </div>
+                <Link to={alert.actionPath} className="px-2.5 py-1 bg-white border border-indigo-200 hover:bg-indigo-50 rounded-lg text-[10px] font-bold text-indigo-700 transition-all shadow-sm">
+                  {alert.actionText}
+                </Link>
               </div>
             ))}
           </div>
         </div>
+
+        {/* Operations Queue Card */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-1 space-y-4">
+          <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+            <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Operations Queue</h3>
+            <ClipboardList size={16} className="text-slate-400" />
+          </div>
+          <div className="divide-y divide-slate-100 text-xs font-semibold text-slate-600">
+            <div className="py-2.5 flex justify-between items-center">
+              <span className="flex items-center gap-2"><MapPin size={13} className="text-blue-500" /> Pending Location Transfers</span>
+              <span className={`px-2 py-0.5 rounded font-mono font-bold ${operationsQueue.pendingTransfers > 0 ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
+                {operationsQueue.pendingTransfers}
+              </span>
+            </div>
+            <div className="py-2.5 flex justify-between items-center">
+              <span className="flex items-center gap-2"><Trash2 size={13} className="text-rose-500" /> Pending Disposals</span>
+              <span className={`px-2 py-0.5 rounded font-mono font-bold ${operationsQueue.pendingDisposals > 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500'}`}>
+                {operationsQueue.pendingDisposals}
+              </span>
+            </div>
+            <div className="py-2.5 flex justify-between items-center">
+              <span className="flex items-center gap-2"><Wrench size={13} className="text-amber-500" /> Active Maintenance Orders</span>
+              <span className={`px-2 py-0.5 rounded font-mono font-bold ${operationsQueue.scheduledMaintenance > 0 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                {operationsQueue.scheduledMaintenance}
+              </span>
+            </div>
+            <div className="py-2.5 flex justify-between items-center">
+              <span className="flex items-center gap-2"><Clock size={13} className="text-red-500" /> Overdue Work Orders</span>
+              <span className={`px-2 py-0.5 rounded font-mono font-bold ${operationsQueue.overdueMaintenance > 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'}`}>
+                {operationsQueue.overdueMaintenance}
+              </span>
+            </div>
+            <div className="py-2.5 flex justify-between items-center">
+              <span className="flex items-center gap-2"><Layers size={13} className="text-emerald-500" /> Draft Capitalizations</span>
+              <span className={`px-2 py-0.5 rounded font-mono font-bold ${operationsQueue.pendingCapitalization > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
+                {operationsQueue.pendingCapitalization}
+              </span>
+            </div>
+          </div>
+        </div>
       </div>
 
-      {/* Row 3: Category Distribution | Expense Trend */}
+      {/* Row 3: Distribution Chart | Trend Chart */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Distribution Charts */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-1 flex flex-col">
-          <div className="flex items-center justify-between gap-2 mb-4">
-            <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Distribution Summary</h3>
-            <select 
-              value={distMode} 
-              onChange={(e) => setDistMode(e.target.value)}
-              className="text-[11px] font-bold bg-slate-50 border border-slate-200 rounded px-2 py-1 text-slate-600 outline-none"
-            >
-              <option value="category">Category</option>
-              <option value="location">Location</option>
-              <option value="status">Status</option>
-              <option value="custodian">Custodian</option>
-            </select>
+        {/* Asset Distribution */}
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-1 space-y-4">
+          <div className="flex justify-between items-center">
+            <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Asset Distribution</h3>
+            <div className="flex gap-1">
+              {['category', 'location', 'status'].map(mode => (
+                <button
+                  key={mode}
+                  onClick={() => setDistMode(mode)}
+                  className={`px-2 py-0.5 rounded text-[9.5px] font-extrabold uppercase transition-all ${
+                    distMode === mode ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-400 border border-slate-100 hover:text-slate-600'
+                  }`}
+                >
+                  {mode}
+                </button>
+              ))}
+            </div>
           </div>
-          <div className="h-60 w-full relative flex items-center justify-center">
-            {distData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={240}>
-                <PieChart>
-                  <Pie
-                    data={distData}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={55}
-                    outerRadius={75}
-                    paddingAngle={3}
-                    dataKey="value"
-                  >
-                    {distData.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                    ))}
-                  </Pie>
-                  <Tooltip formatter={(value) => `PKR ${value.toLocaleString()}`} />
-                </PieChart>
-              </ResponsiveContainer>
-            ) : (
-              <span className="text-slate-400 text-sm font-semibold">No data.</span>
-            )}
+
+          <div className="h-56">
+            <ResponsiveContainer width="100%" height="100%">
+              <PieChart>
+                <Pie
+                  data={distData}
+                  cx="50%"
+                  cy="50%"
+                  innerRadius={60}
+                  outerRadius={80}
+                  paddingAngle={3}
+                  dataKey="value"
+                >
+                  {distData.map((entry, index) => (
+                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                  ))}
+                </Pie>
+                <Tooltip 
+                  formatter={(value) => `PKR ${value.toLocaleString()}`}
+                  contentStyle={{ background: '#252423', borderRadius: 8, border: 'none', color: '#fff', fontSize: 11 }}
+                />
+              </PieChart>
+            </ResponsiveContainer>
           </div>
-          <div className="mt-4 space-y-1.5 flex-1 overflow-y-auto max-h-36 pr-1 custom-scrollbar">
-            {distData.map((d, i) => (
-              <div key={i} className="flex items-center justify-between text-xs">
-                <div className="flex items-center gap-1.5 truncate mr-2">
-                  <span className="w-2.5 h-2.5 rounded-full flex-shrink-0" style={{ backgroundColor: COLORS[i % COLORS.length] }}></span>
-                  <span className="text-slate-600 font-bold truncate">{d.name}</span>
-                </div>
-                <span className="font-mono text-slate-500 flex-shrink-0">PKR {d.value.toLocaleString()}</span>
+
+          <div className="grid grid-cols-2 gap-2 text-[10px] font-semibold text-slate-500">
+            {distData.map((item, idx) => (
+              <div key={idx} className="flex items-center gap-1.5">
+                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></span>
+                <span className="truncate">{item.name}</span>
               </div>
             ))}
           </div>
         </div>
 
         {/* Depreciation Trend */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2 flex flex-col">
-          <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider mb-4">Depreciation Expense Trend</h3>
-          <div className="h-72 w-full">
+        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2 space-y-4">
+          <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Depreciation Trend</h3>
+          <div className="h-64">
             {trendData.length > 0 ? (
-              <ResponsiveContainer width="100%" height={280}>
-                <RechartsBarChart data={trendData}>
-                  <XAxis dataKey="month" stroke="#94a3b8" fontSize={11} tickLine={false} />
-                  <YAxis stroke="#94a3b8" fontSize={11} tickLine={false} />
-                  <Tooltip formatter={(value) => `PKR ${value.toLocaleString()}`} />
-                  <Bar dataKey="amount" fill="#6366f1" radius={[4, 4, 0, 0]} name="Depreciation (PKR)" />
+              <ResponsiveContainer width="100%" height="100%">
+                <RechartsBarChart data={trendData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
+                  <XAxis dataKey="month" tickLine={false} axisLine={false} style={{ fontSize: 10, fill: '#8a8886' }} />
+                  <YAxis tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} tickLine={false} axisLine={false} style={{ fontSize: 10, fill: '#8a8886' }} />
+                  <Tooltip
+                    formatter={(value) => `PKR ${value.toLocaleString()}`}
+                    contentStyle={{ background: '#252423', borderRadius: 8, border: 'none', color: '#fff', fontSize: 11 }}
+                  />
+                  <Bar dataKey="amount" fill="#6366f1" radius={[4, 4, 0, 0]} />
                 </RechartsBarChart>
               </ResponsiveContainer>
             ) : (
-              <div className="h-full flex items-center justify-center">
-                <span className="text-slate-400 text-sm font-semibold">No posted depreciation cycles detected.</span>
+              <div className="h-full flex items-center justify-center text-slate-400 font-semibold text-xs">
+                No depreciation trends logged.
               </div>
             )}
           </div>
         </div>
       </div>
 
-      {/* Row 4: Recent Activities | Quick Actions */}
+      {/* Row 4: Recent Sub-Ledger Entries | Quick Actions Hub */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Recent Ledger logs */}
+        {/* Ledger logs */}
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2 space-y-4">
-          <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider border-b border-slate-50 pb-2">Recent Sub-Ledger Activities</h3>
-          <div className="flow-root animate-fade-in">
+          <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Recent Asset Activities</h3>
+          <div className="flow-root">
             <ul className="-mb-8">
-              {recentLedger.map((event, idx) => (
+              {recentLedger.map((event, eventIdx) => (
                 <li key={event.id}>
-                  <div className="relative pb-6">
-                    {idx !== recentLedger.length - 1 && (
+                  <div className="relative pb-8">
+                    {eventIdx !== recentLedger.length - 1 ? (
                       <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-slate-100" aria-hidden="true" />
-                    )}
+                    ) : null}
                     <div className="relative flex space-x-3">
                       <div>
-                        <span className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white text-[10px] font-bold ${
-                          EVENT_COLORS[event.event_type]?.badge || 'bg-slate-50 text-slate-600'
-                        }`}>
-                          {event.event_type.slice(0, 3)}
+                        <span className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white ${EVENT_COLORS[event.event_type]?.dot || 'bg-slate-500'}`}>
+                          <Activity className="h-4 w-4 text-white" aria-hidden="true" />
                         </span>
                       </div>
                       <div className="flex-1 min-w-0 pt-1.5 flex justify-between space-x-4">
@@ -627,7 +678,7 @@ export default function FixedAssetsDashboard() {
         </div>
       </div>
 
-      {/* Row 5: Assets Near End-of-Life | Upcoming Maintenance | Draft Assets */}
+      {/* Row 5: Assets Near End-of-Life | Upcoming Maintenance | Asset Health Summary */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
           <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider border-b border-slate-50 pb-2">Assets Near End-of-Life</h3>
@@ -668,17 +719,26 @@ export default function FixedAssetsDashboard() {
           </div>
         </div>
 
+        {/* Asset Health Summary */}
         <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
-          <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider border-b border-slate-50 pb-2">Draft Capitalization Cards</h3>
-          <div className="space-y-2.5 text-xs text-slate-500 font-semibold">
-            {assets.filter(a => a.status === 'DRAFT').slice(0, 3).map((a, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <span className="font-bold text-slate-700">{a.asset_name} ({a.asset_code})</span>
-                <span className="text-[10px] bg-slate-50 text-slate-600 px-1.5 py-0.5 rounded border border-slate-100">Draft</span>
+          <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider border-b border-slate-50 pb-2">Asset Health Scores</h3>
+          <div className="space-y-3 text-xs font-semibold">
+            {assetHealthList.map(a => (
+              <div key={a.id} className="flex justify-between items-center">
+                <div>
+                  <p className="font-bold text-slate-800">{a.name}</p>
+                  <p className="text-[9px] text-slate-400 font-mono">Code: {a.code}</p>
+                </div>
+                <div className="text-right">
+                  <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${a.badge}`}>
+                    {a.score}% ({a.label})
+                  </span>
+                  <p className="text-[9px] text-slate-400 mt-1">Useful Life: {a.remainingLife}% remaining</p>
+                </div>
               </div>
             ))}
-            {assets.filter(a => a.status === 'DRAFT').length === 0 && (
-              <p className="text-center text-slate-400 text-xs py-2 font-semibold">No draft capitalization cards pending.</p>
+            {assetHealthList.length === 0 && (
+              <p className="text-center text-slate-400 text-xs py-2 font-semibold">No assets registered for health calculation.</p>
             )}
           </div>
         </div>

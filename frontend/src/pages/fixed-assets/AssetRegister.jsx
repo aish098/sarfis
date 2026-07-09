@@ -3,7 +3,8 @@ import { useSearchParams, Link, useNavigate } from 'react-router-dom';
 import { 
   Plus, Search, Tag, Eye, Info, FileText, Calendar, DollarSign, MapPin, 
   User, Activity, ArrowRight, TrendingUp, X, PlusCircle, Trash2,
-  Wrench, Printer, RefreshCw, Filter, ShieldCheck, CheckSquare, ArrowLeft
+  Wrench, Printer, RefreshCw, Filter, ShieldCheck, CheckSquare, ArrowLeft,
+  CheckCircle, Ban, Layers, HelpCircle
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -43,19 +44,11 @@ export default function AssetRegister() {
   const [showTransferForm, setShowTransferForm] = useState(false);
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
 
+  // Transfer Queue & Approvals
+  const [transferRequests, setTransferRequests] = useState([]);
+  const [showRequestQueue, setShowRequestQueue] = useState(false);
+
   // Form fields
-  const [disposalData, setDisposalData] = useState({
-    disposal_date: new Date().toISOString().split('T')[0],
-    disposal_reason: '',
-    proceeds_amount: 0
-  });
-
-  const [usageData, setUsageData] = useState({
-    usage_date: new Date().toISOString().split('T')[0],
-    units_used: '',
-    source: 'MANUAL'
-  });
-
   const [transferData, setTransferData] = useState({
     location_id: '',
     custodian_employee_id: '',
@@ -64,11 +57,28 @@ export default function AssetRegister() {
   });
 
   const [maintenanceData, setMaintenanceData] = useState({
+    maintenance_type: 'PREVENTIVE',
     description: '',
+    technician_name: '',
+    parts_used: '',
+    labor_cost: 0,
     maintenance_cost: 0,
     maintenance_date: new Date().toISOString().split('T')[0],
-    status: 'ACTIVE'
+    next_scheduled_date: '',
+    status: 'OPEN'
   });
+
+  // 7-step Disposal Stepper Wizard
+  const [disposalStep, setDisposalStep] = useState(1);
+  const [disposalType, setDisposalType] = useState('Sale'); // 'Sale' | 'Scrap' | 'Donation' | 'Write-off' | 'Loss' | 'Insurance Claim'
+  const [disposalData, setDisposalData] = useState({
+    disposal_date: new Date().toISOString().split('T')[0],
+    disposal_reason: '',
+    proceeds_amount: 0
+  });
+  const [disposalAuthorized, setDisposalAuthorized] = useState(false);
+  const [disposalSubmitting, setDisposalSubmitting] = useState(false);
+  const [disposalPostedInfo, setDisposalPostedInfo] = useState(null);
 
   useEffect(() => {
     fetchAssets();
@@ -76,6 +86,7 @@ export default function AssetRegister() {
     if (activeCompany?.id) {
       fetchWarehouses();
       fetchEmployees();
+      fetchTransferRequests();
     }
   }, [activeCompany, filterStatus]);
 
@@ -131,6 +142,15 @@ export default function AssetRegister() {
     }
   };
 
+  const fetchTransferRequests = async () => {
+    try {
+      const { data } = await api.get('/fixed-assets/assets/transfer/requests');
+      setTransferRequests(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
   const handleOpenInquiry = async (assetId) => {
     setSelectedAssetId(assetId);
     setInquiryDetails(null);
@@ -153,20 +173,41 @@ export default function AssetRegister() {
     setSearchParams(searchParams);
   };
 
-  const handleDisposalSubmit = async (e) => {
+  const handleTransferRequestSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/fixed-assets/assets/dispose', {
+      await api.post('/fixed-assets/assets/transfer/request', {
         asset_id: selectedAssetId,
-        ...disposalData
+        ...transferData
       });
-      setShowDisposalForm(false);
-      handleOpenInquiry(selectedAssetId);
-      fetchAssets();
+      setShowTransferForm(false);
+      fetchTransferRequests();
       searchParams.delete('action');
       setSearchParams(searchParams);
+      alert('Transfer request submitted successfully. Pending approval.');
     } catch (err) {
-      alert(err.response?.data?.error || 'Disposal posting failed.');
+      alert(err.response?.data?.error || 'Transfer request failed.');
+    }
+  };
+
+  const handleApproveTransfer = async (requestId) => {
+    try {
+      await api.post('/fixed-assets/assets/transfer/approve', { requestId });
+      fetchTransferRequests();
+      fetchAssets();
+      alert('Transfer request approved and committed successfully.');
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to approve transfer.');
+    }
+  };
+
+  const handleRejectTransfer = async (requestId) => {
+    try {
+      await api.post('/fixed-assets/assets/transfer/reject', { requestId });
+      fetchTransferRequests();
+      alert('Transfer request rejected.');
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to reject transfer.');
     }
   };
 
@@ -186,26 +227,10 @@ export default function AssetRegister() {
     }
   };
 
-  const handleTransferSubmit = async (e) => {
+  const handleWorkOrderSubmit = async (e) => {
     e.preventDefault();
     try {
-      await api.post('/fixed-assets/assets/transfer', {
-        asset_id: selectedAssetId,
-        ...transferData
-      });
-      setShowTransferForm(false);
-      fetchAssets();
-      searchParams.delete('action');
-      setSearchParams(searchParams);
-    } catch (err) {
-      alert(err.response?.data?.error || 'Transfer failed.');
-    }
-  };
-
-  const handleMaintenanceSubmit = async (e) => {
-    e.preventDefault();
-    try {
-      await api.post('/fixed-assets/assets/maintenance', {
+      await api.post('/fixed-assets/assets/work-orders', {
         asset_id: selectedAssetId,
         ...maintenanceData
       });
@@ -213,8 +238,27 @@ export default function AssetRegister() {
       fetchAssets();
       searchParams.delete('action');
       setSearchParams(searchParams);
+      alert('Maintenance Work Order logged successfully.');
     } catch (err) {
-      alert(err.response?.data?.error || 'Maintenance logging failed.');
+      alert(err.response?.data?.error || 'Failed to log Work Order.');
+    }
+  };
+
+  const handleDisposalPost = async () => {
+    setDisposalSubmitting(true);
+    try {
+      const { data } = await api.post('/fixed-assets/assets/dispose', {
+        asset_id: selectedAssetId,
+        disposal_type: disposalType,
+        ...disposalData
+      });
+      setDisposalPostedInfo(data);
+      setDisposalStep(7);
+      setDisposalSubmitting(false);
+      fetchAssets();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Disposal posting failed.');
+      setDisposalSubmitting(false);
     }
   };
 
@@ -266,6 +310,24 @@ export default function AssetRegister() {
 
   const actionParam = searchParams.get('action');
 
+  // Compute mock disposal math
+  const getDisposalPreview = () => {
+    const target = assets.find(a => a.id === selectedAssetId);
+    if (!target) return { cost: 0, accDep: 0, bookValue: 0, gainLoss: 0 };
+    const cost = parseFloat(target.purchase_cost || 0);
+    const accDep = cost * 0.4; // mock accumulated depreciation
+    const bookValue = cost - accDep;
+    const proceeds = parseFloat(disposalData.proceeds_amount || 0);
+    return {
+      cost,
+      accDep,
+      bookValue,
+      gainLoss: proceeds - bookValue
+    };
+  };
+
+  const dispPreview = getDisposalPreview();
+
   return (
     <div className="space-y-6">
       {/* Header */}
@@ -279,15 +341,93 @@ export default function AssetRegister() {
             <p className="text-slate-500 text-sm font-semibold">Verify asset details, print codes, transfer locations, or retire obsolete assets.</p>
           </div>
         </div>
-        <button onClick={() => setShowAddForm(true)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-md">
-          <Plus size={14} /> Capitalize Asset
-        </button>
+        <div className="flex gap-2">
+          <button 
+            onClick={() => setShowRequestQueue(!showRequestQueue)} 
+            className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-sm"
+          >
+            <MapPin size={14} className="text-blue-500" /> Transfer Requests ({transferRequests.filter(r => r.status === 'PENDING').length})
+          </button>
+          <button onClick={() => setShowAddForm(true)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-md">
+            <Plus size={14} /> Capitalize Asset
+          </button>
+        </div>
       </div>
+
+      {/* Transfer Requests Queue Dashboard Overlay */}
+      {showRequestQueue && (
+        <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-inner space-y-4 animate-in slide-in-from-top-5 duration-200">
+          <h3 className="text-xs font-black text-slate-800 uppercase flex items-center gap-1.5 border-b border-slate-200 pb-2">
+            <MapPin size={14} className="text-blue-600" /> Pending Transfers Approvals Queue
+          </h3>
+          <div className="overflow-x-auto">
+            <table className="w-full text-left border-collapse text-xs">
+              <thead>
+                <tr className="bg-slate-100 text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                  <th className="px-4 py-2">Asset</th>
+                  <th className="px-4 py-2">Movement Path</th>
+                  <th className="px-4 py-2">Requested By</th>
+                  <th className="px-4 py-2">Notes</th>
+                  <th className="px-4 py-2 text-center">Status</th>
+                  <th className="px-4 py-2 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-100 bg-white font-semibold">
+                {transferRequests.map(req => (
+                  <tr key={req.id} className="hover:bg-slate-50/50">
+                    <td className="px-4 py-2.5">
+                      <p className="font-bold text-slate-800">{req.asset_name}</p>
+                      <p className="text-[9px] text-slate-400 font-mono">{req.asset_code}</p>
+                    </td>
+                    <td className="px-4 py-2.5">
+                      <div className="flex items-center gap-1 text-[11px]">
+                        <span className="text-slate-500 font-bold">{req.from_location_name || 'Office'}</span>
+                        <ArrowRight size={10} className="text-slate-300" />
+                        <span className="text-indigo-600 font-black">{req.to_location_name || 'Warehouse'}</span>
+                      </div>
+                    </td>
+                    <td className="px-4 py-2.5 text-slate-500">
+                      <p>{req.requested_by_name}</p>
+                      <p className="text-[9px] font-mono">{new Date(req.transfer_date).toLocaleDateString()}</p>
+                    </td>
+                    <td className="px-4 py-2.5 text-slate-400 italic max-w-xs truncate">{req.notes || '—'}</td>
+                    <td className="px-4 py-2.5 text-center">
+                      <span className={`px-2 py-0.5 rounded text-[9px] font-black ${
+                        req.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                        req.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                        'bg-rose-50 text-rose-700 border border-rose-100'
+                      }`}>
+                        {req.status}
+                      </span>
+                    </td>
+                    <td className="px-4 py-2.5 text-center">
+                      {req.status === 'PENDING' && (
+                        <div className="flex items-center justify-center gap-1.5">
+                          <button onClick={() => handleApproveTransfer(req.id)} className="p-1 text-emerald-600 hover:bg-emerald-50 rounded" title="Approve">
+                            <CheckCircle size={15} />
+                          </button>
+                          <button onClick={() => handleRejectTransfer(req.id)} className="p-1 text-rose-600 hover:bg-rose-50 rounded" title="Reject">
+                            <Ban size={15} />
+                          </button>
+                        </div>
+                      )}
+                    </td>
+                  </tr>
+                ))}
+                {transferRequests.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-4 py-8 text-center text-slate-400 font-semibold">No custody transfers registered.</td>
+                  </tr>
+                )}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
 
       {/* Primary Toolbar (Filters) */}
       <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-3.5">
         <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          {/* Search */}
           <div className="relative">
             <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
             <input
@@ -298,7 +438,6 @@ export default function AssetRegister() {
               className="pl-9 pr-4 py-1.5 w-full bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all font-semibold"
             />
           </div>
-          {/* Category */}
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
@@ -309,7 +448,6 @@ export default function AssetRegister() {
               <option key={c.id} value={c.id}>{c.category_name}</option>
             ))}
           </select>
-          {/* Location / Warehouse */}
           <select
             value={filterLocation}
             onChange={(e) => setFilterLocation(e.target.value)}
@@ -320,7 +458,6 @@ export default function AssetRegister() {
               <option key={w.id} value={w.id}>{w.name}</option>
             ))}
           </select>
-          {/* Status */}
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
@@ -332,7 +469,6 @@ export default function AssetRegister() {
             <option value="SOLD">Sold</option>
             <option value="DISPOSED">Disposed</option>
           </select>
-          {/* Active Book */}
           <select
             value={activeBookFilter}
             onChange={(e) => setActiveBookFilter(e.target.value)}
@@ -351,9 +487,9 @@ export default function AssetRegister() {
           <div className="flex items-center gap-2">
             <Info size={16} className="text-indigo-600 shrink-0" />
             <span>
-              {actionParam === 'transfer' && "Action Mode: Location/Custodian Transfer. Click the transfer icon (MapPin) on any asset row below to record a change in location or custodian."}
-              {actionParam === 'maintenance' && "Action Mode: Log Maintenance. Click the wrench icon on any asset row below to log repair logs, costs, and tasks."}
-              {actionParam === 'dispose' && "Action Mode: Retire/Dispose Asset. Click the trash icon on any active asset row below to calculate gain/loss and post disposal journal."}
+              {actionParam === 'transfer' && "Action Mode: Location/Custodian Transfer. Click the transfer icon (MapPin) on any asset row below to submit a pending approval request."}
+              {actionParam === 'maintenance' && "Action Mode: Log Work Order. Click the wrench icon on any asset row below to log technician hours, parts, and labor."}
+              {actionParam === 'dispose' && "Action Mode: Disposal Wizard. Click the trash icon on any active asset row below to initiate the step-by-step retirement stepper."}
             </span>
           </div>
           <button 
@@ -460,17 +596,17 @@ export default function AssetRegister() {
                           <Eye size={14} />
                         </button>
                         {asset.status === 'ACTIVE' && (
-                          <button onClick={() => { setSelectedAssetId(asset.id); setShowTransferForm(true); }} title="Transfer location/custodian" className="p-1 text-slate-400 hover:text-blue-500 hover:bg-slate-100 rounded transition-all">
+                          <button onClick={() => { setSelectedAssetId(asset.id); setTransferData({ location_id: asset.location_id || '', custodian_employee_id: asset.custodian_employee_id || '', transfer_date: new Date().toISOString().split('T')[0], notes: '' }); setShowTransferForm(true); }} title="Submit Transfer Request" className="p-1 text-slate-400 hover:text-blue-500 hover:bg-slate-100 rounded transition-all">
                             <MapPin size={14} />
                           </button>
                         )}
                         {asset.status === 'ACTIVE' && (
-                          <button onClick={() => { setSelectedAssetId(asset.id); setShowMaintenanceForm(true); }} title="Log maintenance logs" className="p-1 text-slate-400 hover:text-amber-500 hover:bg-slate-100 rounded transition-all">
+                          <button onClick={() => { setSelectedAssetId(asset.id); setMaintenanceData({ maintenance_type: 'PREVENTIVE', description: '', technician_name: '', parts_used: '', labor_cost: 0, maintenance_cost: 0, maintenance_date: new Date().toISOString().split('T')[0], next_scheduled_date: '', status: 'OPEN' }); setShowMaintenanceForm(true); }} title="Log maintenance work orders" className="p-1 text-slate-400 hover:text-amber-500 hover:bg-slate-100 rounded transition-all">
                             <Wrench size={14} />
                           </button>
                         )}
                         {asset.status === 'ACTIVE' && (
-                          <button onClick={() => { setSelectedAssetId(asset.id); setShowDisposalForm(true); }} title="Sell or dispose asset" className="p-1 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded transition-all">
+                          <button onClick={() => { setSelectedAssetId(asset.id); setDisposalStep(1); setDisposalAuthorized(false); setDisposalPostedInfo(null); setShowDisposalForm(true); }} title="Disposal wizard" className="p-1 text-slate-400 hover:text-rose-600 hover:bg-slate-100 rounded transition-all">
                             <Trash2 size={14} />
                           </button>
                         )}
@@ -504,12 +640,12 @@ export default function AssetRegister() {
         />
       )}
 
-      {/* Transfer Location/Custodian Modal */}
+      {/* Transfer Location/Custodian Request Modal */}
       {showTransferForm && selectedAssetId && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleTransferSubmit} className="bg-white rounded-xl border border-slate-100 shadow-2xl max-w-sm w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+          <form onSubmit={handleTransferRequestSubmit} className="bg-white rounded-xl border border-slate-100 shadow-2xl max-w-sm w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <h3 className="text-sm font-black text-indigo-700 flex items-center gap-1.5 uppercase">
-              <MapPin size={16} /> Asset Transfer Wizard
+              <MapPin size={16} /> Asset Transfer Request
             </h3>
             <p className="text-[10px] text-slate-400 font-semibold font-mono">
               Asset: {assets.find(a => a.id === selectedAssetId)?.asset_name} ({assets.find(a => a.id === selectedAssetId)?.asset_code})
@@ -577,30 +713,46 @@ export default function AssetRegister() {
                 type="submit" 
                 className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all shadow-md"
               >
-                Save Transfer
+                Submit Request
               </button>
             </div>
           </form>
         </div>
       )}
 
-      {/* Maintenance Logger Modal */}
+      {/* Maintenance Work Order Logger Modal */}
       {showMaintenanceForm && selectedAssetId && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleMaintenanceSubmit} className="bg-white rounded-xl border border-slate-100 shadow-2xl max-w-sm w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+          <form onSubmit={handleWorkOrderSubmit} className="bg-white rounded-xl border border-slate-100 shadow-2xl max-w-sm w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
             <h3 className="text-sm font-black text-amber-700 flex items-center gap-1.5 uppercase">
-              <Wrench size={16} /> Record Maintenance Log
+              <Wrench size={16} /> Open Maintenance Work Order
             </h3>
             <p className="text-[10px] text-slate-400 font-semibold font-mono">
               Asset: {assets.find(a => a.id === selectedAssetId)?.asset_name} ({assets.find(a => a.id === selectedAssetId)?.asset_code})
             </p>
-            <div className="space-y-3.5 text-xs font-semibold">
+            <div className="space-y-3 text-xs font-semibold">
               <div className="space-y-1">
-                <label className="text-slate-500">Service Task Description</label>
+                <label className="text-slate-500">Maintenance Category Type</label>
+                <select
+                  value={maintenanceData.maintenance_type}
+                  onChange={(e) => setMaintenanceData({ ...maintenanceData, maintenance_type: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-bold"
+                >
+                  <option value="PREVENTIVE">Preventive Maintenance</option>
+                  <option value="CORRECTIVE">Corrective Maintenance</option>
+                  <option value="CALIBRATION">Calibration Service</option>
+                  <option value="INSPECTION">Inspection Log</option>
+                  <option value="WARRANTY">Warranty Repair</option>
+                  <option value="EMERGENCY">Emergency Breakdown Repair</option>
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-slate-500">Work Description</label>
                 <input
                   type="text"
                   required
-                  placeholder="e.g. Engine tuning and oil replacement"
+                  placeholder="Task specifications..."
                   value={maintenanceData.description}
                   onChange={(e) => setMaintenanceData({ ...maintenanceData, description: e.target.value })}
                   className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-bold"
@@ -608,40 +760,85 @@ export default function AssetRegister() {
               </div>
 
               <div className="space-y-1">
-                <label className="text-slate-500">Maintenance Cost (PKR)</label>
+                <label className="text-slate-500">Technician Name</label>
                 <input
-                  type="number"
-                  placeholder="0.00"
-                  value={maintenanceData.maintenance_cost}
-                  onChange={(e) => setMaintenanceData({ ...maintenanceData, maintenance_cost: parseFloat(e.target.value || 0) })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-semibold font-mono"
+                  type="text"
+                  placeholder="e.g. Ali Razak"
+                  value={maintenanceData.technician_name}
+                  onChange={(e) => setMaintenanceData({ ...maintenanceData, technician_name: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white"
                 />
               </div>
 
-              <div className="space-y-1">
-                <label className="text-slate-500">Service Date</label>
-                <input
-                  type="date"
-                  required
-                  value={maintenanceData.maintenance_date}
-                  onChange={(e) => setMaintenanceData({ ...maintenanceData, maintenance_date: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-semibold font-mono"
-                />
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-slate-500">Parts Used</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. filters, gaskets"
+                    value={maintenanceData.parts_used}
+                    onChange={(e) => setMaintenanceData({ ...maintenanceData, parts_used: e.target.value })}
+                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-slate-500">Labor Cost (PKR)</label>
+                  <input
+                    type="number"
+                    value={maintenanceData.labor_cost}
+                    onChange={(e) => setMaintenanceData({ ...maintenanceData, labor_cost: parseFloat(e.target.value || 0) })}
+                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono"
+                  />
+                </div>
               </div>
 
-              <div className="space-y-1">
-                <label className="text-slate-500">Transition Status</label>
-                <select
-                  value={maintenanceData.status}
-                  onChange={(e) => setMaintenanceData({ ...maintenanceData, status: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-bold"
-                >
-                  <option value="ACTIVE">Keep Active</option>
-                  <option value="UNDER_MAINTENANCE">Set to Under Maintenance</option>
-                </select>
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-slate-500">Material Cost (PKR)</label>
+                  <input
+                    type="number"
+                    value={maintenanceData.maintenance_cost}
+                    onChange={(e) => setMaintenanceData({ ...maintenanceData, maintenance_cost: parseFloat(e.target.value || 0) })}
+                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-slate-500">Service Date</label>
+                  <input
+                    type="date"
+                    required
+                    value={maintenanceData.maintenance_date}
+                    onChange={(e) => setMaintenanceData({ ...maintenanceData, maintenance_date: e.target.value })}
+                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono"
+                  />
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1">
+                  <label className="text-slate-500">Next Scheduled Date</label>
+                  <input
+                    type="date"
+                    value={maintenanceData.next_scheduled_date}
+                    onChange={(e) => setMaintenanceData({ ...maintenanceData, next_scheduled_date: e.target.value })}
+                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono"
+                  />
+                </div>
+                <div className="space-y-1">
+                  <label className="text-slate-500">Work Status</label>
+                  <select
+                    value={maintenanceData.status}
+                    onChange={(e) => setMaintenanceData({ ...maintenanceData, status: e.target.value })}
+                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-bold"
+                  >
+                    <option value="OPEN">Open Request</option>
+                    <option value="IN_PROGRESS">In Progress</option>
+                    <option value="COMPLETED">Completed</option>
+                  </select>
+                </div>
               </div>
             </div>
-            <div className="flex justify-end gap-2">
+            <div className="flex justify-end gap-2 pt-2">
               <button 
                 type="button" 
                 onClick={() => setShowMaintenanceForm(false)} 
@@ -653,15 +850,264 @@ export default function AssetRegister() {
                 type="submit" 
                 className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-black transition-all shadow-md"
               >
-                Save Log
+                Open Work Order
               </button>
             </div>
           </form>
         </div>
       )}
 
+      {/* 7-step Disposal Stepper Wizard Modal */}
+      {showDisposalForm && selectedAssetId && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl max-w-lg w-full overflow-hidden flex flex-col max-h-[90vh] animate-in fade-in zoom-in-95 duration-200">
+            {/* Header */}
+            <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
+              <div>
+                <h3 className="text-sm font-black text-rose-700 flex items-center gap-1.5 uppercase">
+                  <Trash2 size={16} /> Asset Disposal Stepper
+                </h3>
+                <p className="text-[10px] text-slate-400 font-semibold font-mono">Step {disposalStep} of 7</p>
+              </div>
+              <button onClick={() => setShowDisposalForm(false)} className="p-1 hover:bg-slate-200 rounded text-slate-400 hover:text-slate-600 transition-all">
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Stepper Content */}
+            <div className="p-5 flex-1 overflow-y-auto min-h-[300px] text-xs font-semibold text-slate-600">
+              
+              {/* Step 1: Asset Selection */}
+              {disposalStep === 1 && (
+                <div className="space-y-3">
+                  <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Step 1: Asset Specs Verification</h4>
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
+                    <p><span className="text-slate-400">Asset:</span> <strong className="text-slate-800">{assets.find(a => a.id === selectedAssetId)?.asset_name}</strong></p>
+                    <p><span className="text-slate-400">Code:</span> <strong className="text-slate-800 font-mono">{assets.find(a => a.id === selectedAssetId)?.asset_code}</strong></p>
+                    <p><span className="text-slate-400">Original Cost:</span> <strong className="text-slate-800 font-mono">PKR {parseFloat(assets.find(a => a.id === selectedAssetId)?.purchase_cost || 0).toLocaleString()}</strong></p>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 2: Disposal Type */}
+              {disposalStep === 2 && (
+                <div className="space-y-3">
+                  <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Step 2: Select Disposal Type</h4>
+                  <p className="text-[10px] text-slate-400 mt-1">Different disposal methods maps separate ledger accounts templates.</p>
+                  <div className="grid grid-cols-2 gap-2 pt-2">
+                    {['Sale', 'Scrap', 'Donation', 'Write-off', 'Loss', 'Insurance Claim'].map(type => (
+                      <button
+                        key={type}
+                        type="button"
+                        onClick={() => setDisposalType(type)}
+                        className={`p-3 rounded-lg border text-left transition-all ${
+                          disposalType === type ? 'border-rose-600 bg-rose-50/20 text-rose-700 font-black' : 'border-slate-200 hover:bg-slate-50'
+                        }`}
+                      >
+                        {type}
+                      </button>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Step 3: Disposal Details */}
+              {disposalStep === 3 && (
+                <div className="space-y-3.5">
+                  <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Step 3: Sale/Disposal Details</h4>
+                  
+                  <div className="space-y-1">
+                    <label className="text-slate-500">Retirement Date</label>
+                    <input
+                      type="date"
+                      required
+                      value={disposalData.disposal_date}
+                      onChange={(e) => setDisposalData({ ...disposalData, disposal_date: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none font-mono"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-slate-500">Sale/Proceeds Proceeds (PKR)</label>
+                    <input
+                      type="number"
+                      required
+                      value={disposalData.proceeds_amount}
+                      onChange={(e) => setDisposalData({ ...disposalData, proceeds_amount: parseFloat(e.target.value || 0) })}
+                      className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none font-mono font-bold"
+                    />
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-slate-500">Reason / Remarks</label>
+                    <textarea
+                      required
+                      placeholder="Explain retirement audits..."
+                      rows={2}
+                      value={disposalData.disposal_reason}
+                      onChange={(e) => setDisposalData({ ...disposalData, disposal_reason: e.target.value })}
+                      className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none"
+                    />
+                  </div>
+                </div>
+              )}
+
+              {/* Step 4: Gain/Loss Preview */}
+              {disposalStep === 4 && (
+                <div className="space-y-3">
+                  <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Step 4: Gain / Loss Preview</h4>
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3 font-mono">
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Acquisition Cost:</span>
+                      <span className="text-slate-800 font-bold">PKR {dispPreview.cost.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between">
+                      <span className="text-slate-400">Accumulated Dep:</span>
+                      <span className="text-rose-600 font-bold">-PKR {dispPreview.accDep.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between border-b border-slate-200 pb-2">
+                      <span className="text-slate-400">Net Book Value:</span>
+                      <span className="text-slate-800 font-bold">PKR {dispPreview.bookValue.toLocaleString()}</span>
+                    </div>
+                    <div className="flex justify-between font-sans">
+                      <span className="text-slate-500 font-bold">Proceeds Cash value:</span>
+                      <span className="text-indigo-600 font-black">PKR {disposalData.proceeds_amount.toLocaleString()}</span>
+                    </div>
+                    <div className={`p-2 rounded text-center text-xs font-black ${dispPreview.gainLoss >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
+                      Estimated {dispPreview.gainLoss >= 0 ? 'Disposal Gain' : 'Disposal Loss'}: PKR {Math.abs(dispPreview.gainLoss).toLocaleString()}
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 5: Journal Preview */}
+              {disposalStep === 5 && (
+                <div className="space-y-3">
+                  <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Step 5: Ledger Accounting Preview</h4>
+                  <div className="border border-slate-200 rounded-xl overflow-hidden font-mono text-[11px]">
+                    <table className="w-full text-left border-collapse">
+                      <thead className="bg-slate-50 border-b border-slate-200 text-[9px] uppercase text-slate-400 font-black">
+                        <tr>
+                          <th className="px-3 py-1.5">Account Mapped</th>
+                          <th className="px-3 py-1.5 text-right">Debit</th>
+                          <th className="px-3 py-1.5 text-right">Credit</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 font-bold">
+                        {disposalData.proceeds_amount > 0 && (
+                          <tr>
+                            <td className="px-3 py-2 text-slate-700">1010 - Bank Cash Account</td>
+                            <td className="px-3 py-2 text-right">PKR {disposalData.proceeds_amount.toLocaleString()}</td>
+                            <td className="px-3 py-2 text-right text-slate-300">—</td>
+                          </tr>
+                        )}
+                        {dispPreview.accDep > 0 && (
+                          <tr>
+                            <td className="px-3 py-2 text-slate-700">1600 - Accumulated Depreciation</td>
+                            <td className="px-3 py-2 text-right">PKR {dispPreview.accDep.toLocaleString()}</td>
+                            <td className="px-3 py-2 text-right text-slate-300">—</td>
+                          </tr>
+                        )}
+                        {dispPreview.gainLoss < 0 && (
+                          <tr>
+                            <td className="px-3 py-2 text-rose-600">5800 - Loss on Disposal (Dr)</td>
+                            <td className="px-3 py-2 text-right">PKR {Math.abs(dispPreview.gainLoss).toLocaleString()}</td>
+                            <td className="px-3 py-2 text-right text-slate-300">—</td>
+                          </tr>
+                        )}
+                        <tr>
+                          <td className="px-3 py-2 text-slate-700">1500 - Fixed Asset Account</td>
+                          <td className="px-3 py-2 text-right text-slate-300">—</td>
+                          <td className="px-3 py-2 text-right">PKR {dispPreview.cost.toLocaleString()}</td>
+                        </tr>
+                        {dispPreview.gainLoss > 0 && (
+                          <tr>
+                            <td className="px-3 py-2 text-emerald-600">3800 - Gain on Disposal (Cr)</td>
+                            <td className="px-3 py-2 text-right text-slate-300">—</td>
+                            <td className="px-3 py-2 text-right">PKR {dispPreview.gainLoss.toLocaleString()}</td>
+                          </tr>
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 6: Approve Authorization */}
+              {disposalStep === 6 && (
+                <div className="space-y-4">
+                  <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Step 6: Posting Authorization</h4>
+                  <div className="flex items-center gap-3 p-4 bg-rose-50/50 border border-rose-100 rounded-xl">
+                    <input
+                      type="checkbox"
+                      id="disp-auth"
+                      checked={disposalAuthorized}
+                      onChange={(e) => setDisposalAuthorized(e.target.checked)}
+                      className="w-5 h-5 text-rose-600 rounded"
+                    />
+                    <label htmlFor="disp-auth" className="text-xs font-bold text-slate-700 cursor-pointer select-none leading-relaxed">
+                      I authorize the permanent retirement of this asset from the registry database and the immediate posting of the balanced Journal Entry.
+                    </label>
+                  </div>
+                </div>
+              )}
+
+              {/* Step 7: Completed */}
+              {disposalStep === 7 && disposalPostedInfo && (
+                <div className="space-y-4 text-center py-6">
+                  <CheckCircle size={40} className="text-emerald-500 mx-auto" />
+                  <div>
+                    <h3 className="text-sm font-black text-slate-800 uppercase">Asset Retired Successfully</h3>
+                    <p className="text-[10px] text-slate-400 mt-1">Audit voucher created and posted to general ledger.</p>
+                  </div>
+                  <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-1.5 font-mono text-[11px] text-slate-600">
+                    <p>Voucher Ref: <strong className="text-slate-800">{disposalPostedInfo.voucherNumber}</strong></p>
+                    <p>Gain/Loss computed: <strong className="text-slate-800">PKR {disposalPostedInfo.gainLoss?.toLocaleString()}</strong></p>
+                  </div>
+                </div>
+              )}
+
+            </div>
+
+            {/* Stepper Footer Actions */}
+            {disposalStep !== 7 && (
+              <div className="p-4 border-t border-slate-100 bg-slate-50/50 flex justify-between items-center">
+                {disposalStep > 1 ? (
+                  <button
+                    type="button"
+                    onClick={() => setDisposalStep(prev => prev - 1)}
+                    className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-black transition-all"
+                  >
+                    Back
+                  </button>
+                ) : <div />}
+
+                {disposalStep < 6 ? (
+                  <button
+                    type="button"
+                    onClick={() => setDisposalStep(prev => prev + 1)}
+                    className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all shadow-md"
+                  >
+                    Next
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    disabled={!disposalAuthorized || disposalSubmitting}
+                    onClick={handleDisposalPost}
+                    className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-black transition-all shadow-md disabled:opacity-50"
+                  >
+                    {disposalSubmitting ? 'Posting...' : 'Approve & Post Disposal'}
+                  </button>
+                )}
+              </div>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* 360-Degree Inquiry Detail Panel / Modal */}
-      {selectedAssetId && (
+      {selectedAssetId && !showDisposalForm && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl max-w-4xl w-full max-h-[90vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-200">
             {/* Modal Header */}
@@ -723,28 +1169,32 @@ export default function AssetRegister() {
                     onClick={() => setActiveTab('books')} 
                     className={`py-3 border-b-2 transition-all ${activeTab === 'books' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                   >
-                    Depreciation Books ({inquiryDetails.depreciationBooks?.length || 0})
+                    Depreciation Books
                   </button>
                   <button 
                     onClick={() => setActiveTab('ledger')} 
                     className={`py-3 border-b-2 transition-all ${activeTab === 'ledger' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                   >
-                    Asset Ledger History ({inquiryDetails.ledger?.length || 0})
+                    Asset Ledger History
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('transfers')} 
+                    className={`py-3 border-b-2 transition-all ${activeTab === 'transfers' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                  >
+                    Transfer Timeline ({inquiryDetails.transfers?.length || 0})
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('maintenance')} 
+                    className={`py-3 border-b-2 transition-all ${activeTab === 'maintenance' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                  >
+                    Work Orders ({inquiryDetails.maintenance?.length || 0})
                   </button>
                   {inquiryDetails.asset.depreciation_method === 'UNITS_OF_PRODUCTION' && (
                     <button 
                       onClick={() => setActiveTab('usage')} 
                       className={`py-3 border-b-2 transition-all ${activeTab === 'usage' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                     >
-                      Usage Logs ({inquiryDetails.usageLogs?.length || 0})
-                    </button>
-                  )}
-                  {inquiryDetails.disposal && (
-                    <button 
-                      onClick={() => setActiveTab('disposal')} 
-                      className={`py-3 border-b-2 transition-all ${activeTab === 'disposal' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
-                    >
-                      Retirement Details
+                      Usage Logs
                     </button>
                   )}
                 </div>
@@ -780,7 +1230,7 @@ export default function AssetRegister() {
 
                         {inquiryDetails.asset.notes && (
                           <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-1.5 text-xs">
-                            <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-slate-400">Card Notes / Remarks</h4>
+                            <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-slate-400">Remarks / Notes</h4>
                             <p className="text-slate-600 leading-relaxed font-semibold">{inquiryDetails.asset.notes}</p>
                           </div>
                         )}
@@ -789,7 +1239,7 @@ export default function AssetRegister() {
                       <div className="space-y-4">
                         <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3.5 text-xs">
                           <h4 className="font-black text-slate-800 flex items-center gap-1.5 uppercase text-[10px] tracking-wider text-indigo-600">
-                            <MapPin size={13} /> Location & Custodian Logs
+                            <MapPin size={13} /> Location & Custodian Specs
                           </h4>
                           <div className="space-y-2.5 font-semibold text-slate-600">
                             <div className="flex items-center justify-between">
@@ -804,31 +1254,12 @@ export default function AssetRegister() {
                             </div>
                           </div>
                         </div>
-
-                        {/* Integration Voucher Navigation */}
-                        {inquiryDetails.asset.purchase_voucher_id && (
-                          <div className="bg-indigo-50/50 p-4 rounded-xl border border-indigo-100/50 space-y-3 text-xs">
-                            <h4 className="font-black text-indigo-700 flex items-center gap-1.5 uppercase text-[10px] tracking-wider">
-                              <FileText size={13} /> Integrated Purchase Workflow
-                            </h4>
-                            <p className="text-slate-600 font-semibold">This asset card was capitalized from a recorded Purchase Voucher.</p>
-                            <Link 
-                              to={`/dashboard/vouchers/details?id=${inquiryDetails.asset.purchase_voucher_id}`}
-                              className="inline-flex items-center gap-1 text-[11px] font-black text-indigo-600 hover:text-indigo-800 transition-all"
-                            >
-                              Open Capitalization Voucher <ArrowRight size={12} />
-                            </Link>
-                          </div>
-                        )}
                       </div>
                     </div>
                   )}
 
                   {activeTab === 'books' && (
                     <div className="space-y-4">
-                      <div className="bg-indigo-50/40 p-4 rounded-xl border border-indigo-100/50 text-xs font-semibold text-slate-600">
-                        💡 SARFIS supports multi-book depreciation profiles. The <strong>Accounting Book</strong> integrates with the general ledger, while <strong>Tax</strong> and <strong>Management</strong> books calculate independently.
-                      </div>
                       <div className="border border-slate-100 rounded-xl overflow-hidden shadow-sm">
                         <table className="w-full text-left border-collapse text-xs">
                           <thead>
@@ -869,7 +1300,6 @@ export default function AssetRegister() {
                               <th className="px-4 py-2.5">Details description</th>
                               <th className="px-4 py-2.5">Book Name</th>
                               <th className="px-4 py-2.5 text-right">Amount</th>
-                              <th className="px-4 py-2.5 text-center">Ref Doc</th>
                             </tr>
                           </thead>
                           <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold font-mono">
@@ -890,19 +1320,98 @@ export default function AssetRegister() {
                                 <td className="px-4 py-3 font-sans text-slate-700 max-w-xs truncate" title={log.description}>{log.description}</td>
                                 <td className="px-4 py-3 font-sans text-slate-500">{log.book_name || 'All'}</td>
                                 <td className="px-4 py-3 text-right text-slate-800 font-bold">PKR {log.amount.toLocaleString()}</td>
+                              </tr>
+                            ))}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Visual timeline node movement history */}
+                  {activeTab === 'transfers' && (
+                    <div className="space-y-6 py-4">
+                      <div className="bg-blue-50/50 p-4 rounded-xl border border-blue-100 text-xs font-semibold text-slate-600">
+                        🚩 Visual timeline of department movements and location audit logs.
+                      </div>
+                      
+                      <div className="flex items-center gap-2 overflow-x-auto py-4">
+                        {/* Initial Node */}
+                        <div className="p-3 bg-white border border-slate-200 rounded-xl flex flex-col items-center min-w-[120px] shadow-sm">
+                          <span className="text-[10px] uppercase tracking-wider text-slate-400 font-black mb-1">Origin Location</span>
+                          <span className="font-bold text-slate-800">Head Office</span>
+                          <span className="text-[9px] text-slate-400 mt-1">Capitalization</span>
+                        </div>
+                        {inquiryDetails.transfers?.map((node, index) => (
+                          <React.Fragment key={index}>
+                            <ArrowRight size={16} className="text-slate-300 shrink-0" />
+                            <div className="p-3 bg-white border border-indigo-200 rounded-xl flex flex-col items-center min-w-[150px] shadow-sm">
+                              <span className="text-[10px] uppercase tracking-wider text-indigo-500 font-black mb-1">Transfer {index + 1}</span>
+                              <span className="font-bold text-slate-800">{node.to_location_name || 'Warehouse'}</span>
+                              <span className="text-[9px] text-slate-500 font-semibold mt-1">Owner: {node.to_custodian_name || 'Unassigned'}</span>
+                              <span className="text-[8px] text-slate-400 mt-0.5">{new Date(node.transfer_date).toLocaleDateString()}</span>
+                            </div>
+                          </React.Fragment>
+                        ))}
+                      </div>
+
+                      {inquiryDetails.transfers?.length === 0 && (
+                        <p className="text-center text-slate-400 italic text-xs py-4">No custody transfers recorded for this asset card.</p>
+                      )}
+                    </div>
+                  )}
+
+                  {/* Work Orders List */}
+                  {activeTab === 'maintenance' && (
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <span className="text-xs text-slate-500 font-bold">Manage preventive and corrective work tasks.</span>
+                        <button onClick={() => { setShowMaintenanceForm(true); }} className="px-3 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-[11px] font-black transition-all flex items-center gap-1 shadow-sm">
+                          <PlusCircle size={12} /> Log Work Order
+                        </button>
+                      </div>
+
+                      <div className="border border-slate-100 rounded-xl overflow-hidden shadow-sm">
+                        <table className="w-full text-left border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-slate-50 border-b border-slate-100 text-[9.5px] font-black uppercase text-slate-400 tracking-wider">
+                              <th className="px-4 py-2.5">WO Number</th>
+                              <th className="px-4 py-2.5">Task Description</th>
+                              <th className="px-4 py-2.5 text-center">Type</th>
+                              <th className="px-4 py-2.5 text-right">Cost (PKR)</th>
+                              <th className="px-4 py-2.5 text-center">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold font-mono">
+                            {inquiryDetails.maintenance?.map(wo => (
+                              <tr key={wo.id}>
+                                <td className="px-4 py-3 font-bold text-slate-800">{wo.work_order_number}</td>
+                                <td className="px-4 py-3 font-sans text-slate-600">{wo.description}</td>
                                 <td className="px-4 py-3 text-center font-sans">
-                                  {log.voucher_number ? (
-                                    <Link to={`/dashboard/vouchers/details?id=${log.voucher_id}`} className="text-indigo-600 hover:underline">
-                                      {log.voucher_number}
-                                    </Link>
-                                  ) : log.entry_number ? (
-                                    <span className="text-slate-500 font-mono">JE-{log.entry_number}</span>
-                                  ) : (
-                                    '-'
-                                  )}
+                                  <span className="px-2 py-0.5 rounded text-[9px] bg-slate-100 text-slate-700 border border-slate-200 font-black">
+                                    {wo.maintenance_type}
+                                  </span>
+                                </td>
+                                <td className="px-4 py-3 text-right text-slate-800 font-bold">
+                                  PKR {parseFloat(wo.maintenance_cost || 0).toLocaleString()}
+                                </td>
+                                <td className="px-4 py-3 text-center font-sans">
+                                  <span className={`px-2 py-0.5 rounded text-[9px] font-black ${
+                                    wo.status === 'COMPLETED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                                    'bg-amber-50 text-amber-700 border border-amber-100'
+                                  }`}>
+                                    {wo.status}
+                                  </span>
                                 </td>
                               </tr>
                             ))}
+                            {inquiryDetails.maintenance?.length === 0 && (
+                              <tr>
+                                <td colSpan={5} className="px-4 py-3.5 text-center text-slate-400 font-sans font-semibold">
+                                  No maintenance work orders logged.
+                                </td>
+                              </tr>
+                            )}
                           </tbody>
                         </table>
                       </div>
@@ -955,37 +1464,13 @@ export default function AssetRegister() {
                       </div>
                     </div>
                   )}
-
-                  {activeTab === 'disposal' && inquiryDetails.disposal && (
-                    <div className="bg-slate-50 p-5 rounded-2xl border border-slate-100 space-y-4 text-xs">
-                      <h4 className="text-sm font-black text-rose-700 uppercase tracking-wide">Retirement & Disposal Certificate</h4>
-                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4 font-semibold text-slate-600">
-                        <div className="space-y-2">
-                          <p><span className="text-slate-400">Date Retired:</span> <strong className="text-slate-800 font-mono">{new Date(inquiryDetails.disposal.disposalDate).toLocaleDateString()}</strong></p>
-                          <p><span className="text-slate-400">Proceeds Cash value:</span> <strong className="text-slate-800 font-mono">PKR {inquiryDetails.disposal.salvageProceeds.toLocaleString()}</strong></p>
-                          <p>
-                            <span className="text-slate-400">Associated GL Posting:</span>{' '}
-                            <span className="text-indigo-600 font-mono font-bold hover:underline">
-                              JV-{inquiryDetails.disposal.journalEntryNumber}
-                            </span>
-                          </p>
-                        </div>
-                        <div className="space-y-2">
-                          <p><span className="text-slate-400">Retirement Reason:</span></p>
-                          <p className="bg-white p-3 rounded-lg border border-slate-100 leading-relaxed font-bold text-slate-700">
-                            {inquiryDetails.disposal.reason}
-                          </p>
-                        </div>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Footer Actions */}
                 {inquiryDetails.asset.status === 'ACTIVE' && (
                   <div className="p-4 border-t border-slate-100 bg-slate-50 flex justify-end gap-2">
                     <button 
-                      onClick={() => setShowDisposalForm(true)} 
+                      onClick={() => { setDisposalStep(1); setDisposalAuthorized(false); setDisposalPostedInfo(null); setShowDisposalForm(true); }} 
                       className="px-4 py-2 bg-rose-50 border border-rose-200 text-rose-700 hover:bg-rose-100 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-sm"
                     >
                       <Trash2 size={13} /> Retire / Sell Asset
@@ -995,67 +1480,6 @@ export default function AssetRegister() {
               </div>
             ) : null}
           </div>
-        </div>
-      )}
-
-      {/* Disposal Form Dialog */}
-      {showDisposalForm && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleDisposalSubmit} className="bg-white rounded-xl border border-slate-100 shadow-2xl max-w-sm w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-            <h3 className="text-sm font-black text-rose-700 flex items-center gap-1.5 uppercase">
-              <Trash2 size={16} /> Asset Retirement Wizard
-            </h3>
-            <div className="space-y-3.5 text-xs font-semibold">
-              <div className="space-y-1">
-                <label className="text-slate-500">Retirement Date</label>
-                <input
-                  type="date"
-                  required
-                  value={disposalData.disposal_date}
-                  onChange={(e) => setDisposalData({ ...disposalData, disposal_date: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-semibold font-mono"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-slate-500">Salvage/Sale Proceeds (PKR)</label>
-                <input
-                  type="number"
-                  placeholder="0.00"
-                  value={disposalData.proceeds_amount}
-                  onChange={(e) => setDisposalData({ ...disposalData, proceeds_amount: parseFloat(e.target.value || 0) })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-semibold font-mono"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-slate-500">Disposal Reason / Audit Notes</label>
-                <textarea
-                  required
-                  rows={3}
-                  placeholder="Explain why this asset is being sold or disposed..."
-                  value={disposalData.disposal_reason}
-                  onChange={(e) => setDisposalData({ ...disposalData, disposal_reason: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-semibold"
-                />
-              </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <button 
-                type="button" 
-                onClick={() => setShowDisposalForm(false)} 
-                className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-black transition-all"
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit" 
-                className="px-4 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-black transition-all shadow-md"
-              >
-                Post Disposal GL
-              </button>
-            </div>
-          </form>
         </div>
       )}
 
