@@ -11,10 +11,8 @@ router.get('/income-statement/:companyId', companyGuard, requirePermission('repo
 router.get('/balance-sheet/:companyId', companyGuard, requirePermission('report.view'), reportController.getBalanceSheet);
 router.get('/cash-flow/:companyId', companyGuard, requirePermission('report.view'), reportController.getCashFlow);
 
-// For ledger, there is no companyId in the route path, it's /ledger/:accountId.
-// We can't use companyGuard here unless we modify the path or fetch the company from account.
-// So we just apply authMiddleware and requirePermission.
 router.get('/ledger/:accountId', requirePermission('ledger.view'), reportController.getLedgerByAccount);
+router.get('/balance-sheet/note/:accountId', requirePermission('report.view'), reportController.getBalanceSheetNote);
 
 router.post('/close-period/:companyId', companyGuard, requirePermission('journal.post'), reportController.closePeriod);
 

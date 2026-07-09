@@ -136,6 +136,7 @@ export default function SettingsPage() {
         fiscalYear: raw.fiscalYear || 'July-June',
         
         defaultSalesAccountId: raw.defaultSalesAccountId || raw.default_sales_account_id || '',
+        negativeBalanceStyle: raw.negativeBalanceStyle || raw.negative_balance_style || 'minus',
         defaultApAccountId: raw.defaultApAccountId || raw.default_ap_account_id || '',
         defaultArAccountId: raw.defaultArAccountId || raw.default_ar_account_id || '',
         defaultInventoryAccountId: raw.defaultInventoryAccountId || raw.default_inventory_account_id || '',
@@ -609,6 +610,20 @@ export default function SettingsPage() {
             <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
               <Field label="Default Salaries Expense Account" hint="Tracks payroll salaries cost.">
                 <SelectField value={localSettings.defaultSalariesAccountId} onChange={v => update('defaultSalariesAccountId', v)} options={filterAccounts(['Expense'])} disabled={!canEdit} />
+              </Field>
+            </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+              <Field label="Negative Balance Display Style" hint="Style applied globally to credit/negative statement amounts.">
+                <select
+                  value={localSettings.negativeBalanceStyle || 'minus'}
+                  onChange={e => update('negativeBalanceStyle', e.target.value)}
+                  disabled={!canEdit}
+                  className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-slate-50 disabled:text-slate-500 transition-all font-semibold"
+                >
+                  <option value="minus">Minus Sign (-2,000,000.00)</option>
+                  <option value="parentheses">Parentheses ((2,000,000.00))</option>
+                  <option value="red">Red Highlights (-2,000,000.00 in Red)</option>
+                </select>
               </Field>
             </div>
 

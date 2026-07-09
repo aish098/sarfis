@@ -82,3 +82,24 @@ exports.getLedgerByAccount = async (req, res) => {
   }
 };
 
+const FinancialNotesService = require('../services/financial_notes.service');
+
+exports.getBalanceSheetNote = async (req, res) => {
+  const { accountId } = req.params;
+  const { asOfDate } = req.query;
+  const companyId = req.companyId;
+
+  if (!companyId) {
+    return res.status(400).json({ error: 'Company context is required.' });
+  }
+
+  try {
+    const note = await FinancialNotesService.getAccountNote(companyId, accountId, asOfDate);
+    res.json(note);
+  } catch (err) {
+    console.error('getBalanceSheetNote error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+

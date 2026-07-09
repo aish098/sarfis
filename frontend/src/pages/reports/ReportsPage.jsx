@@ -1,6 +1,10 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Download, Calendar, AlertTriangle, CheckCircle2, ShieldAlert, RefreshCw, Calculator, Activity, PieChart, FileText, Zap, X } from 'lucide-react';
+import { 
+  Download, Calendar, AlertTriangle, CheckCircle2, ShieldAlert, RefreshCw, 
+  Calculator, Activity, PieChart, FileText, Zap, X, FileSpreadsheet, Printer, ArrowRight
+} from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import { jsPDF } from 'jspdf';
@@ -22,9 +26,17 @@ const fmt = v => {
 };
 
 export default function ReportsPage() {
-  const { activeCompany } = useAuthStore();
+  const navigate = useNavigate();
+  const { activeCompany, settings } = useAuthStore();
   const [tab, setTab] = useState('trial_balance');
   const [data, setData] = useState(null);
+  
+  // Financial Note Drawer States
+  const [noteDrawerOpen, setNoteDrawerOpen] = useState(false);
+  const [selectedNoteAccount, setSelectedNoteAccount] = useState(null);
+  const [noteData, setNoteData] = useState(null);
+  const [noteLoading, setNoteLoading] = useState(false);
+  const [noteError, setNoteError] = useState('');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [startDate, setStartDate] = useState('2020-01-01');
@@ -56,6 +68,107 @@ export default function ReportsPage() {
     } catch (err) { setError(err.response?.data?.error || 'Failed to load report.'); }
     setLoading(false);
   }, [activeCompany, tab, startDate, endDate, asOfDate]);
+
+  const openNoteDrawer = async (account) => {
+    setSelectedNoteAccount(account);
+    setNoteDrawerOpen(true);
+    setNoteLoading(true);
+    setNoteData(null);
+    setNoteError('');
+    try {
+      const res = await api.get(`/reports/balance-sheet/note/${account.id}`, {
+        params: { asOfDate }
+      });
+      setNoteData(res.data);
+    } catch (err) {
+      console.error(err);
+      setNoteError('Failed to load note schedule.');
+    } finally {
+      setNoteLoading(false);
+    }
+  };
+
+  const formatAmount = (v, isContra = false) => {
+    if (v === null || v === undefined) return '—';
+    const n = parseFloat(v);
+    const absVal = Math.abs(n);
+    const formattedNum = absVal.toLocaleString('en-US', { minimumFractionDigits: 2 });
+    const stylePreference = settings?.negativeBalanceStyle || 'minus';
+
+    if (n < 0 || (isContra && n > 0)) {
+      const displayVal = n > 0 && isContra ? -n : n;
+      const formattedAbs = Math.abs(displayVal).toLocaleString('en-US', { minimumFractionDigits: 2 });
+      if (stylePreference === 'parentheses') {
+        return `($${formattedAbs})`;
+      }
+      if (stylePreference === 'red') {
+        return <span className="text-rose-600 font-bold">-$${formattedAbs}</span>;
+      }
+      return `-$${formattedAbs}`;
+    }
+    return `$${formattedNum}`;
+  };
+
+  const exportNoteToPDF = () => {
+    if (!noteData) return;
+    const doc = new jsPDF();
+    
+    // Header
+    doc.setFontSize(18);
+    doc.setTextColor(30, 41, 59);
+    doc.text(activeCompany?.name || 'Sarfis Financials', 14, 20);
+    
+    doc.setFontSize(12);
+    doc.setTextColor(100, 116, 139);
+    doc.text(`Supporting Schedule: ${noteData.account.name} (Code: ${noteData.account.code})`, 14, 28);
+    doc.text(`As of Date: ${asOfDate}`, 14, 34);
+    
+    // Summary
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text(`Opening Balance: PKR ${noteData.openingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 14, 46);
+    doc.text(`Current Movements: PKR ${noteData.movements.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 14, 52);
+    doc.text(`Closing Balance: PKR ${noteData.closingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 14, 58);
+    
+    // Breakdown Table
+    doc.setFontSize(12);
+    doc.text('Composition Breakdown', 14, 70);
+    
+    const breakdownRows = (noteData.breakdown || []).map(b => [
+      b.item,
+      `PKR ${b.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+      `${b.percent}%`
+    ]);
+    
+    autoTable(doc, {
+      startY: 74,
+      head: [['Item Name', 'Carrying Amount', 'Contribution %']],
+      body: breakdownRows,
+      theme: 'striped',
+      headStyles: { fillColor: [16, 185, 129] }
+    });
+    
+    // Recent journal entries
+    doc.setFontSize(12);
+    doc.text('Recent GL Postings', 14, doc.lastAutoTable.finalY + 12);
+    
+    const journalRows = (noteData.journalEntries || []).map(je => [
+      new Date(je.date).toLocaleDateString(),
+      je.description || '—',
+      je.debit > 0 ? `PKR ${je.debit.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—',
+      je.credit > 0 ? `PKR ${je.credit.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'
+    ]);
+    
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 16,
+      head: [['Date', 'Description', 'Debit', 'Credit']],
+      body: journalRows,
+      theme: 'grid',
+      headStyles: { fillColor: [99, 102, 241] }
+    });
+    
+    doc.save(`GL_Note_${noteData.account.code}.pdf`);
+  };
 
   useEffect(() => { load(); }, [load]);
 
@@ -342,7 +455,7 @@ export default function ReportsPage() {
               >
                 {tab === 'trial_balance' && <TrialBalance data={data} />}
                 {tab === 'income_statement' && <IncomeStatement data={data} companyName={activeCompany?.name} startDate={startDate} endDate={endDate} />}
-                {tab === 'balance_sheet' && <BalanceSheet data={data} companyName={activeCompany?.name} asOfDate={asOfDate} />}
+                {tab === 'balance_sheet' && <BalanceSheet data={data} companyName={activeCompany?.name} asOfDate={asOfDate} formatAmount={formatAmount} openNoteDrawer={openNoteDrawer} />}
                 {tab === 'cash_flow' && <CashFlow data={data} companyName={activeCompany?.name} startDate={startDate} endDate={endDate} />}
               </motion.div>
             </AnimatePresence>
@@ -411,6 +524,207 @@ export default function ReportsPage() {
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Financial Notes Side Drawer */}
+      <AnimatePresence>
+        {noteDrawerOpen && selectedNoteAccount && (
+          <div className="fixed inset-0 z-50 overflow-hidden">
+            {/* Backdrop */}
+            <motion.div 
+              className="absolute inset-0 bg-slate-900/35 backdrop-blur-xs"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              exit={{ opacity: 0 }}
+              onClick={() => setNoteDrawerOpen(false)}
+            />
+
+            {/* Slide over Container */}
+            <div className="absolute inset-y-0 right-0 max-w-xl w-full flex pl-10">
+              <motion.div 
+                className="w-full bg-white shadow-2xl flex flex-col h-full overflow-hidden border-l border-slate-100"
+                initial={{ x: '100%' }}
+                animate={{ x: 0 }}
+                exit={{ x: '100%' }}
+                transition={{ type: 'spring', damping: 25, stiffness: 220 }}
+              >
+                {/* Header */}
+                <div className="p-5 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                      <FileText size={16} />
+                    </div>
+                    <div>
+                      <h3 className="text-xs font-black uppercase text-indigo-700 tracking-wider">Note supporting schedule</h3>
+                      <h2 className="text-sm font-black text-slate-800 tracking-tight">{selectedNoteAccount.name}</h2>
+                      <p className="text-[10px] text-slate-400 font-mono">GL Account: {selectedNoteAccount.code}</p>
+                    </div>
+                  </div>
+                  
+                  <div className="flex items-center gap-1.5">
+                    <button 
+                      onClick={exportNoteToPDF}
+                      disabled={!noteData || noteLoading}
+                      className="p-1.5 text-slate-500 hover:text-indigo-600 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
+                      title="Export Note to PDF"
+                    >
+                      <Download size={15} />
+                    </button>
+                    <button 
+                      onClick={() => setNoteDrawerOpen(false)} 
+                      className="p-1.5 text-slate-400 hover:text-slate-600 hover:bg-slate-100 rounded-lg transition-all cursor-pointer"
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                </div>
+
+                {/* Content */}
+                <div className="flex-1 overflow-y-auto p-6 space-y-6 text-xs font-semibold text-slate-600">
+                  {noteLoading ? (
+                    <div className="p-16 text-center space-y-3">
+                      <RefreshCw size={24} className="animate-spin text-indigo-600 mx-auto" />
+                      <p className="text-slate-400">Loading note details...</p>
+                    </div>
+                  ) : noteError ? (
+                    <div className="p-8 text-center text-rose-600">
+                      <AlertTriangle size={24} className="mx-auto mb-2 text-rose-500" />
+                      <p>{noteError}</p>
+                    </div>
+                  ) : noteData ? (
+                    <div className="space-y-6">
+                      {/* Summary Cards */}
+                      <div className="grid grid-cols-3 gap-3">
+                        <div className="bg-slate-50 border border-slate-100 p-3.5 rounded-xl text-center space-y-1 shadow-2xs">
+                          <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-black">Opening Balance</span>
+                          <span className="font-mono text-slate-700 font-black text-[13px]">
+                            {formatAmount(noteData.openingBalance)}
+                          </span>
+                        </div>
+                        <div className="bg-indigo-50/30 border border-indigo-100 p-3.5 rounded-xl text-center space-y-1 shadow-2xs">
+                          <span className="text-[9px] uppercase tracking-wider text-indigo-500 block font-black">Period Movement</span>
+                          <span className="font-mono text-indigo-700 font-black text-[13px]">
+                            {noteData.movements > 0 ? '+' : ''}{formatAmount(noteData.movements)}
+                          </span>
+                        </div>
+                        <div className="bg-slate-50 border border-slate-100 p-3.5 rounded-xl text-center space-y-1 shadow-2xs">
+                          <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-black">Closing Balance</span>
+                          <span className="font-mono text-slate-800 font-black text-[13px]">
+                            {formatAmount(noteData.closingBalance)}
+                          </span>
+                        </div>
+                      </div>
+
+                      {/* Supporting Schedule Breakdown Table */}
+                      <div className="space-y-2">
+                        <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600 flex items-center justify-between">
+                          <span>Supporting Schedule / Composition</span>
+                          <span className="text-[9px] text-slate-400 capitalize normal-case font-normal font-sans">
+                            Breakdown by {noteData.account.name.toLowerCase().includes('depreciation') ? 'Asset Cards' : 'Incidents & Details'}
+                          </span>
+                        </h4>
+                        <div className="border border-slate-100 rounded-xl overflow-hidden shadow-2xs">
+                          <table className="w-full text-left border-collapse">
+                            <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-wider">
+                              <tr className="border-b border-slate-100">
+                                <th className="px-3 py-2">Item Description</th>
+                                <th className="px-3 py-2 text-right">Carrying Amount</th>
+                                <th className="px-3 py-2 text-center" style={{ width: 80 }}>% Total</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50 text-[11px] font-semibold text-slate-600 bg-white">
+                              {noteData.breakdown?.map((item, idx) => (
+                                <tr key={item.id || idx} className="hover:bg-slate-50/50">
+                                  <td className="px-3 py-2">
+                                    {item.drilldownType === 'asset' ? (
+                                      <button 
+                                        onClick={() => { setNoteDrawerOpen(false); navigate(`/dashboard/fixed-assets/register?assetId=${item.drilldownId}`); }}
+                                        className="text-left font-black text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer"
+                                      >
+                                        {item.item} <ArrowRight size={10} />
+                                      </button>
+                                    ) : item.drilldownType === 'client' ? (
+                                      <button 
+                                        onClick={() => { setNoteDrawerOpen(false); navigate('/dashboard/crm'); }}
+                                        className="text-left font-black text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer"
+                                      >
+                                        {item.item} <ArrowRight size={10} />
+                                      </button>
+                                    ) : (
+                                      <span>{item.item}</span>
+                                    )}
+                                  </td>
+                                  <td className="px-3 py-2 text-right font-mono font-bold text-slate-800">
+                                    {formatAmount(item.amount)}
+                                  </td>
+                                  <td className="px-3 py-2 text-center font-mono text-slate-500 font-bold">
+                                    {item.percent}%
+                                  </td>
+                                </tr>
+                              ))}
+                              {(!noteData.breakdown || noteData.breakdown.length === 0) && (
+                                <tr>
+                                  <td colSpan={3} className="px-3 py-4 text-center text-slate-400 italic">No breakdown details resolved.</td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+
+                      {/* Recent Journal Entries postings */}
+                      <div className="space-y-2">
+                        <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">
+                          Recent General Ledger Postings
+                        </h4>
+                        <div className="border border-slate-100 rounded-xl overflow-hidden shadow-2xs">
+                          <table className="w-full text-left border-collapse">
+                            <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-wider">
+                              <tr className="border-b border-slate-100">
+                                <th className="px-3 py-2">Date</th>
+                                <th className="px-3 py-2">Reference / Description</th>
+                                <th className="px-3 py-2 text-right">Debit</th>
+                                <th className="px-3 py-2 text-right">Credit</th>
+                              </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-50 text-[10.5px] font-semibold text-slate-500 bg-white">
+                              {noteData.journalEntries?.map((je, idx) => (
+                                <tr key={je.journal_entry_id || idx} className="hover:bg-slate-50/50">
+                                  <td className="px-3 py-2 font-mono whitespace-nowrap">
+                                    {new Date(je.date).toLocaleDateString()}
+                                  </td>
+                                  <td className="px-3 py-2 max-w-xs truncate" title={je.description}>
+                                    <button 
+                                      onClick={() => { setNoteDrawerOpen(false); navigate(`/dashboard/vouchers/details/${je.journal_entry_id}`); }}
+                                      className="text-left font-black text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer"
+                                    >
+                                      {je.voucher_number ? `${je.voucher_type} #${je.voucher_number}` : je.description || 'Journal Entry'} <ArrowRight size={10} />
+                                    </button>
+                                  </td>
+                                  <td className="px-3 py-2 text-right font-mono text-emerald-600">
+                                    {je.debit > 0 ? formatAmount(je.debit) : '—'}
+                                  </td>
+                                  <td className="px-3 py-2 text-right font-mono text-rose-600">
+                                    {je.credit > 0 ? formatAmount(je.credit) : '—'}
+                                  </td>
+                                </tr>
+                              ))}
+                              {(!noteData.journalEntries || noteData.journalEntries.length === 0) && (
+                                <tr>
+                                  <td colSpan={4} className="px-3 py-4 text-center text-slate-400 italic">No postings found.</td>
+                                </tr>
+                              )}
+                            </tbody>
+                          </table>
+                        </div>
+                      </div>
+                    </div>
+                  ) : null}
+                </div>
+              </motion.div>
+            </div>
+          </div>
         )}
       </AnimatePresence>
     </div>
@@ -559,100 +873,127 @@ function IncomeStatement({ data, companyName, startDate, endDate }) {
   );
 }
 
-function BalanceSheet({ data, companyName, asOfDate }) {
+function BalanceSheet({ data, companyName, asOfDate, formatAmount, openNoteDrawer }) {
   if (!data) return <Empty />;
   const assets = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'asset').map(a => ({ ...a, net: parseFloat(a.total_debit || 0) - parseFloat(a.total_credit || 0) })).filter(a => Math.abs(a.net) > 0);
   const liabs = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'liability').map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
   const equity = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'equity').map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
+  
   const revLines = (data || []).filter(a => ['income','revenue'].includes((a.category || a.type)?.toLowerCase())).map(a => parseFloat(a.total_credit||0)-parseFloat(a.total_debit||0));
   const expLines = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'expense').map(a => parseFloat(a.total_debit||0)-parseFloat(a.total_credit||0));
   const ytd = revLines.reduce((s,n)=>s+n,0) - expLines.reduce((s,n)=>s+n,0);
   if (Math.abs(ytd) > 0.001) equity.push({ id: 'ytd', name: 'Current Year Earnings', net: ytd });
+  
   const tA = assets.reduce((s,r)=>s+r.net,0);
   const tL = liabs.reduce((s,r)=>s+r.net,0);
   const tE = equity.reduce((s,r)=>s+r.net,0);
   const balanced = Math.abs(tA - (tL + tE)) < 0.01;
+
+  const getNoteRef = (code, name) => {
+    const c = String(code || '');
+    const n = String(name || '').toLowerCase();
+    if (c.startsWith('10')) return { num: 2, label: 'Cash & Cash Equivalents' };
+    if (c.startsWith('12') && !n.includes('allowance')) return { num: 3, label: 'Trade Receivables' };
+    if (n.includes('allowance') || n.includes('bad debt')) return { num: 4, label: 'Allowance for Doubtful Accounts' };
+    if (c.startsWith('13')) return { num: 5, label: 'Inventories' };
+    if (c.startsWith('15') || c.startsWith('16')) return { num: 7, label: 'Property, Plant & Equipment' };
+    if (c.startsWith('20') || c.startsWith('21')) return { num: 8, label: 'Trade and Other Payables' };
+    if (n.includes('tax') || c.startsWith('22')) return { num: 9, label: 'Taxation Liabilities' };
+    return null;
+  };
+
+  const RenderSection = ({ title, items, total, headerClass, totalBg, totalBorder, totalText }) => (
+    <div>
+      <div className={`stmt-section-header border-l-4 pl-2 font-extrabold text-[12px] mb-3 ${headerClass}`}>{title}</div>
+      <div className="rounded-xl border border-slate-100 overflow-hidden divide-y divide-[#E6EBE8] mb-3 bg-white shadow-xs">
+        {items.map((r, idx) => {
+          const noteRef = getNoteRef(r.code, r.name);
+          return (
+            <div 
+              key={r.id || idx} 
+              className={`flex justify-between items-center py-2.5 px-3 text-slate-700 transition-all font-semibold text-[13.5px] hover:bg-slate-50/50 ${
+                idx % 2 === 0 ? 'bg-[#FFFDFB]' : 'bg-[#FAFAF9]'
+              }`}
+            >
+              <div className="flex items-center gap-1.5">
+                <span className={r.is_contra ? 'ml-4 text-slate-400 font-bold' : ''}>
+                  {r.is_contra ? 'Less: ' : ''}{r.name}
+                </span>
+                {noteRef && (
+                  <button 
+                    onClick={() => openNoteDrawer(r)}
+                    className="text-[9px] text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-1.5 py-0.5 rounded font-black transition-all cursor-pointer select-none"
+                    title={noteRef.label}
+                  >
+                    Note {noteRef.num}
+                  </button>
+                )}
+              </div>
+              <span className={`font-mono font-bold ${r.is_contra ? 'text-slate-500' : 'text-slate-800'}`}>
+                {formatAmount(r.net, r.is_contra)}
+              </span>
+            </div>
+          );
+        })}
+        {items.length === 0 && <p className="text-[12.5px] text-slate-400 italic py-3 px-3">No lines recorded</p>}
+      </div>
+      <div className={`flex justify-between items-center mt-2 px-3 py-2.5 rounded-xl font-black text-[13.5px] border ${totalBg} ${totalBorder}`}>
+        <span className={`${totalText} uppercase tracking-wider text-[10px] font-black`}>Total {title}</span>
+        <span className="font-mono font-black text-[15px]">{formatAmount(total)}</span>
+      </div>
+    </div>
+  );
+
   return (
-    <div className="max-w-4xl mx-auto">
+    <div className="max-w-4xl mx-auto space-y-6">
       {!balanced && (
-        <div className="mb-5 p-3 rounded-2xl bg-rose-50 border border-rose-100 text-[12px] font-bold text-rose-700 text-center uppercase tracking-wider flex items-center justify-center gap-2">
+        <div className="p-3 rounded-2xl bg-rose-50 border border-rose-100 text-[12px] font-bold text-rose-700 text-center uppercase tracking-wider flex items-center justify-center gap-2">
           <AlertTriangle size={14} className="text-rose-600 animate-pulse" />
           <span>Balance Sheet Imbalance Detected</span>
         </div>
       )}
-      <div className="text-center mb-8 pb-6 border-b-2 border-[#10b981]/20">
-        <p className="stmt-company">{companyName}</p>
-        <p className="stmt-title mt-1">Balance Sheet</p>
+      
+      <div className="text-center pb-6 border-b-2 border-[#10b981]/20">
+        <p className="stmt-company text-slate-800 font-black text-lg uppercase tracking-tight">{companyName}</p>
+        <p className="stmt-title mt-1 font-display font-extrabold text-slate-700">Balance Sheet</p>
         <p className="text-[12px] text-slate-400 mt-1 font-semibold">As of {asOfDate}</p>
       </div>
       
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-10">
-        <div>
-          <div className="stmt-section-header border-emerald-500 text-emerald-800 font-extrabold text-[12px] mb-3">Assets</div>
-          <div className="rounded-xl border border-slate-100 overflow-hidden divide-y divide-[#E6EBE8] mb-3">
-            {assets.map((r, idx) => (
-              <div 
-                key={r.id} 
-                className={`flex justify-between py-2.5 px-3 text-slate-700 transition-colors font-semibold text-[13.5px] ${
-                  idx % 2 === 0 ? 'bg-[#FFFDFB]' : 'bg-[#FAFAF9]'
-                }`}
-              >
-                <span className={r.is_contra ? 'ml-4 text-slate-400' : ''}>{r.name}</span>
-                <span className="font-mono font-bold text-slate-800">{fmt(r.net)}</span>
-              </div>
-            ))}
-            {assets.length === 0 && <p className="text-[12.5px] text-slate-400 italic py-3 px-3">No assets recorded</p>}
-          </div>
-          <div className="flex justify-between items-center mt-2 px-3 py-2.5 rounded-xl font-black text-[13.5px] bg-[#EBFDF5] border border-[#C2F3DC]">
-            <span className="text-[#064E3B] uppercase tracking-wider text-[10px] font-black">Total Assets</span>
-            <span className="font-mono text-emerald-800 font-black text-[15px]">{fmt(tA)}</span>
-          </div>
-        </div>
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+        <RenderSection 
+          title="Assets" 
+          items={assets} 
+          total={tA} 
+          headerClass="border-emerald-500 text-emerald-800"
+          totalBg="bg-[#EBFDF5]"
+          totalBorder="border-[#C2F3DC]"
+          totalText="text-[#064E3B]"
+        />
         
-        <div>
-          <div className="stmt-section-header border-cyan-500 text-cyan-800 font-extrabold text-[12px] mb-3">Liabilities</div>
-          <div className="rounded-xl border border-slate-100 overflow-hidden divide-y divide-[#E6EBE8] mb-3">
-            {liabs.map((r, idx) => (
-              <div 
-                key={r.id} 
-                className={`flex justify-between py-2.5 px-3 text-slate-700 transition-colors font-semibold text-[13.5px] ${
-                  idx % 2 === 0 ? 'bg-[#FFFDFB]' : 'bg-[#FAFAF9]'
-                }`}
-              >
-                <span className={r.is_contra ? 'ml-4 text-slate-400' : ''}>{r.name}</span>
-                <span className="font-mono font-bold text-slate-800">{fmt(r.net)}</span>
-              </div>
-            ))}
-            {liabs.length === 0 && <p className="text-[12.5px] text-slate-400 italic py-3 px-3">No liabilities recorded</p>}
-          </div>
-          <div className="flex justify-between items-center mt-2 px-3 py-2.5 rounded-xl font-black text-[13.5px] bg-cyan-50 border border-cyan-100 mb-6">
-            <span className="text-cyan-900 uppercase tracking-wider text-[10px] font-black">Total Liabilities</span>
-            <span className="font-mono text-cyan-800 font-black text-[15px]">{fmt(tL)}</span>
-          </div>
+        <div className="space-y-6">
+          <RenderSection 
+            title="Liabilities" 
+            items={liabs} 
+            total={tL} 
+            headerClass="border-cyan-500 text-cyan-800"
+            totalBg="bg-cyan-50"
+            totalBorder="border-cyan-100"
+            totalText="text-cyan-900"
+          />
           
-          <div className="stmt-section-header border-emerald-500 text-emerald-800 font-extrabold text-[12px] mb-3">Equity</div>
-          <div className="rounded-xl border border-slate-100 overflow-hidden divide-y divide-[#E6EBE8] mb-3">
-            {equity.map((r, idx) => (
-              <div 
-                key={r.id || idx} 
-                className={`flex justify-between py-2.5 px-3 text-slate-700 transition-colors font-semibold text-[13.5px] ${
-                  idx % 2 === 0 ? 'bg-[#FFFDFB]' : 'bg-[#FAFAF9]'
-                }`}
-              >
-                <span className={r.is_contra ? 'ml-4 text-slate-400' : ''}>{r.name}</span>
-                <span className="font-mono font-bold text-slate-800">{fmt(r.net)}</span>
-              </div>
-            ))}
-            {equity.length === 0 && <p className="text-[12.5px] text-slate-400 italic py-3 px-3">No equity recorded</p>}
-          </div>
-          <div className="flex justify-between items-center mt-2 px-3 py-2.5 rounded-xl font-black text-[13.5px] bg-[#EBFDF5] border border-[#C2F3DC]">
-            <span className="text-[#064E3B] uppercase tracking-wider text-[10px] font-black">Total Equity</span>
-            <span className="font-mono text-emerald-800 font-black text-[15px]">{fmt(tE)}</span>
-          </div>
+          <RenderSection 
+            title="Equity" 
+            items={equity} 
+            total={tE} 
+            headerClass="border-emerald-500 text-emerald-800"
+            totalBg="bg-[#EBFDF5]"
+            totalBorder="border-[#C2F3DC]"
+            totalText="text-[#064E3B]"
+          />
           
           <div className="bg-gradient-to-r from-[#10b981] to-[#06b6d4] text-white shadow-md shadow-emerald-500/10 p-4 rounded-xl flex justify-between items-center mt-6">
             <span className="font-display font-extrabold uppercase tracking-widest text-[12px] text-emerald-50">Total L & E</span>
-            <span className="font-mono font-black text-[18px] text-white">{fmt(tL + tE)}</span>
+            <span className="font-mono font-black text-[18px] text-white">{formatAmount(tL + tE)}</span>
           </div>
         </div>
       </div>

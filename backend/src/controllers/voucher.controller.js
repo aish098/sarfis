@@ -252,7 +252,8 @@ exports.updateSettings = async (req, res) => {
         default_inventory_account_id: req.body.defaultInventoryAccountId,
         default_cogs_account_id: req.body.defaultCogsAccountId,
         default_cash_account_id: req.body.defaultCashAccountId,
-        tax_rate: parseFloat(req.body.taxRate || 0)
+        tax_rate: parseFloat(req.body.taxRate || 0),
+        negative_balance_style: req.body.negativeBalanceStyle || 'minus'
       })
       .returning('*');
     res.json(updated);
