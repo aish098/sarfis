@@ -6,7 +6,7 @@ const { authMiddleware, requirePermission, companyGuard } = require('../middlewa
 router.use(authMiddleware);
 
 // Get settings for a company
-router.get('/:companyId', companyGuard, requirePermission('settings.manage'), async (req, res) => {
+router.get('/:companyId', companyGuard, async (req, res) => {
   try {
     const { companyId } = req.params;
     const settings = await SettingsModel.getSettings(companyId);
