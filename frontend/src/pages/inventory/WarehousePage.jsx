@@ -5,7 +5,7 @@ import {
   AlertTriangle, RefreshCw, X, CheckCircle2, Building2,
   TrendingUp, BarChart2, Calendar, LayoutDashboard,
   Package, ArrowRight, ArrowLeft, Settings, Info,
-  TrendingDown, CheckSquare, Layers
+  TrendingDown, CheckSquare, Layers, History
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
