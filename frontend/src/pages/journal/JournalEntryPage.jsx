@@ -689,7 +689,7 @@ export default function JournalEntryPage() {
                     return (
                       <tr 
                         key={line.id} 
-                        className={`group transition-colors relative focus-within:z-30 ${
+                        className={`group transition-colors ${
                           idx % 2 === 0 ? 'bg-[#FFFDFB] hover:bg-emerald-50/15' : 'bg-[#FAFAF9] hover:bg-emerald-50/15'
                         }`}
                       >
@@ -702,7 +702,7 @@ export default function JournalEntryPage() {
                             idx + 1
                           )}
                         </td>
-                        <td className="px-2 py-1.5 relative focus-within:z-30">
+                        <td className="px-2 py-1.5">
                           <AccountSelect 
                             id={`je-input-${idx}-account`}
                             accounts={accounts} 
