@@ -412,7 +412,19 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
       await handleMarkAsRead(notif.id);
     }
     closeAll();
-    if (notif.entity_type === 'voucher') {
+    
+    // Deep-link mappings
+    if (notif.event_code === 'LOW_STOCK_ALERT' || notif.entity_type === 'warehouse') {
+      navigate('/dashboard/warehouses');
+    } else if (notif.event_code === 'ASSET_TRANSFER_PENDING' || notif.entity_type === 'asset') {
+      navigate('/dashboard/fixed-assets/register');
+    } else if (notif.event_code === 'DEPRECIATION_RUN_COMPLETE') {
+      navigate('/dashboard/fixed-assets/wizard');
+    } else if (notif.event_code === 'RISK_OVERRIDE_REQUESTED' || notif.event_code === 'RISK_OVERRIDE_APPROVED' || notif.event_code === 'RISK_OVERRIDE_REJECTED' || notif.entity_type === 'risk') {
+      navigate('/dashboard/risk');
+    } else if (notif.event_code === 'JOURNAL_POSTED') {
+      navigate('/dashboard/journal');
+    } else if (notif.entity_type === 'voucher') {
       navigate('/dashboard/vouchers');
     } else if (notif.entity_type === 'journal') {
       navigate('/dashboard/ledger');
