@@ -403,6 +403,7 @@ class PostingEngineService {
         companyId,
         entryDate: txDate,
         description,
+        status: 'POSTED',
         userId
       }, trx);
 
