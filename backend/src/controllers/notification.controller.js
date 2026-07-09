@@ -167,22 +167,26 @@ exports.unarchiveNotification = async (req, res) => {
 exports.getPreferences = async (req, res) => {
   const companyId = req.companyId;
   try {
-    let pref = await db('user_notification_preferences')
-      .where({ user_id: req.user.id })
-      .andWhere((builder) => {
-        builder.where('company_id', companyId).orWhereNull('company_id');
-      })
-      .orderBy('company_id', 'desc') // company-specific first
-      .first();
+    const events = await db('notification_events').orderBy('module').orderBy('event_name');
+    const prefs = await db('user_notification_preferences').where({ user_id: req.user.id, company_id: companyId });
 
-    if (!pref) {
-      pref = {
-        email_enabled: true,
-        in_app_enabled: true,
-        critical_only: false
+    const response = events.map(ev => {
+      const p = prefs.find(x => x.event_id === ev.id);
+      return {
+        eventId: ev.id,
+        eventCode: ev.event_code,
+        eventName: ev.event_name,
+        module: ev.module,
+        category: ev.category,
+        description: ev.description,
+        email: p ? p.email : true,
+        app: p ? p.app : true,
+        sms: p ? p.sms : false,
+        push: p ? p.push : false,
+        whatsapp: p ? p.whatsapp : false
       };
-    }
-    res.json(pref);
+    });
+    res.json(response);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -190,37 +194,93 @@ exports.getPreferences = async (req, res) => {
 
 exports.updatePreferences = async (req, res) => {
   const companyId = req.companyId;
-  const { email_enabled, in_app_enabled, critical_only } = req.body;
+  const { preferences } = req.body;
 
   try {
-    // Check if preference already exists for this user/company
-    const existing = await db('user_notification_preferences')
-      .where({ user_id: req.user.id, company_id: companyId })
-      .first();
+    await db.transaction(async trx => {
+      for (const p of preferences) {
+        const existing = await trx('user_notification_preferences')
+          .where({ company_id: companyId, user_id: req.user.id, event_id: p.eventId })
+          .first();
 
-    if (existing) {
-      const [updated] = await db('user_notification_preferences')
-        .where({ id: existing.id })
-        .update({
-          email_enabled: !!email_enabled,
-          in_app_enabled: !!in_app_enabled,
-          critical_only: !!critical_only,
-          updated_at: db.fn.now()
-        })
-        .returning('*');
-      res.json(updated);
-    } else {
-      const [inserted] = await db('user_notification_preferences')
-        .insert({
-          user_id: req.user.id,
-          company_id: companyId,
-          email_enabled: email_enabled !== undefined ? !!email_enabled : true,
-          in_app_enabled: in_app_enabled !== undefined ? !!in_app_enabled : true,
-          critical_only: !!critical_only
-        })
-        .returning('*');
-      res.json(inserted);
+        if (existing) {
+          await trx('user_notification_preferences')
+            .where({ id: existing.id })
+            .update({
+              email: !!p.email,
+              app: !!p.app,
+              sms: !!p.sms,
+              push: !!p.push,
+              whatsapp: !!p.whatsapp,
+              updated_at: trx.fn.now()
+            });
+        } else {
+          await trx('user_notification_preferences')
+            .insert({
+              company_id: companyId,
+              user_id: req.user.id,
+              event_id: p.eventId,
+              email: !!p.email,
+              app: !!p.app,
+              sms: !!p.sms,
+              push: !!p.push,
+              whatsapp: !!p.whatsapp
+            });
+        }
+      }
+    });
+    res.json({ success: true });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ─── EMAIL CENTER ──────────────────────────────────────────
+exports.getEmailQueue = async (req, res) => {
+  const companyId = req.companyId;
+  try {
+    const { status, search } = req.query;
+
+    let query = db('notification_queue as nq')
+      .join('users as u', 'nq.user_id', 'u.id')
+      .join('notification_events as ne', 'nq.event_code', 'ne.event_code')
+      .where('nq.company_id', companyId)
+      .select(
+        'nq.*',
+        'u.name as recipient_name',
+        'ne.module',
+        'ne.priority'
+      );
+
+    if (status) {
+      query = query.where('nq.status', status.toUpperCase());
     }
+
+    if (search) {
+      query = query.andWhere(builder => {
+        builder.whereILike('nq.recipient_email', `%${search}%`)
+          .orWhereILike('nq.subject', `%${search}%`);
+      });
+    }
+
+    const queue = await query.orderBy('nq.created_at', 'desc').limit(200);
+    res.json(queue);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.resendEmail = async (req, res) => {
+  const { id } = req.params;
+  const companyId = req.companyId;
+  try {
+    const item = await db('notification_queue').where({ id, company_id: companyId }).first();
+    if (!item) {
+      return res.status(404).json({ error: 'Notification queue item not found.' });
+    }
+
+    await NotificationService.resendQueueItem(id);
+    res.json({ success: true, message: 'Re-queued email for immediate delivery.' });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

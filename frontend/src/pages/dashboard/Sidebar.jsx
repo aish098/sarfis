@@ -4,7 +4,7 @@ import {
   LayoutDashboard, BookOpen, FilePlus, BookMarked,
   BarChart2, TrendingUp, Target, Settings, LogOut,
   Home, ChevronLeft, ChevronRight, Zap, Building2, Activity,
-  Package, Truck, ShieldCheck, Briefcase
+  Package, Truck, ShieldCheck, Briefcase, Mail
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
@@ -52,6 +52,7 @@ const NAV_SECTIONS = [
 
 const BOTTOM_ITEMS = [
   { to: '/', icon: Home, label: 'Back to Home' },
+  { to: '/dashboard/email-center', icon: Mail, label: 'Email Center', permission: 'settings.manage' },
   { to: '/dashboard/settings', icon: Settings, label: 'Settings', permission: 'settings.manage' },
 ];
 

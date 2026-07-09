@@ -1,3 +1,4 @@
+const db = require('../config/db');
 const sseConnections = new Map();
 
 class NotificationService {
@@ -26,13 +27,10 @@ class NotificationService {
   }
 
   /**
-   * Retrieves all user IDs in a company who currently possess the specified permission,
-   * accounting for roles, overrides, and administrative bypasses.
+   * Helper to retrieve all user IDs in a company who currently possess the specified permission.
    */
   static async getUsersWithPermission(companyId, permissionCode) {
-    const db = require('../config/db');
     try {
-      // 1. Get all users who have the permission via their roles
       const roleUsers = await db('user_roles as ur')
         .join('role_permissions as rp', 'ur.role_id', 'rp.role_id')
         .join('permissions as p', 'rp.permission_id', 'p.id')
@@ -42,7 +40,6 @@ class NotificationService {
 
       const roleUserIds = roleUsers.map(r => r.user_id);
 
-      // 2. Get overrides for this permission in the company
       const overrides = await db('user_permission_overrides as upo')
         .join('permissions as p', 'upo.permission_id', 'p.id')
         .select('upo.user_id', 'upo.is_allowed')
@@ -54,13 +51,12 @@ class NotificationService {
       const grantedUserIds = overrides.filter(o => o.is_allowed).map(o => o.user_id);
       const revokedUserIds = overrides.filter(o => !o.is_allowed).map(o => o.user_id);
 
-      // Combine: (Role users minus revoked users) plus explicitly granted users
       const finalUserIds = new Set([
         ...roleUserIds.filter(uid => !revokedUserIds.includes(uid)),
         ...grantedUserIds
       ]);
 
-      // 3. Always notify company admins/super admins as they oversee all approvals
+      // Fallback: notify company admins/super admins
       const companyAdmins = await db('company_users')
         .select('user_id')
         .where('company_id', companyId)
@@ -76,92 +72,199 @@ class NotificationService {
   }
 
   /**
-   * Create a notification record and stream it to the user if online.
+   * Central notify method mapping template variables, policy defaults, and preferences.
    */
-  static async createNotification({ companyId, userId, title, message, type = 'system', priority = 'MEDIUM', entityType = null, entityId = null }) {
-    const db = require('../config/db');
+  static async notify({ eventCode, companyId, payload = {}, forceUserIds = [], entityType = null, entityId = null }) {
     try {
-      // 1. Retrieve user notification preferences (company-specific first, then global default)
-      const pref = await db('user_notification_preferences')
-        .where({ user_id: userId })
-        .andWhere((builder) => {
-          builder.where('company_id', companyId).orWhereNull('company_id');
-        })
-        .orderBy('company_id', 'desc')
-        .first();
-
-      const emailEnabled = pref ? pref.email_enabled : true;
-      const inAppEnabled = pref ? pref.in_app_enabled : true;
-      const criticalOnly = pref ? pref.critical_only : false;
-
-      // 2. Filter priority if criticalOnly is enabled (only allow HIGH and CRITICAL)
-      if (criticalOnly && !['HIGH', 'CRITICAL'].includes(priority?.toUpperCase())) {
-        return null;
+      // 1. Fetch Event Definition
+      const eventDef = await db('notification_events').where({ event_code: eventCode }).first();
+      if (!eventDef) {
+        console.warn(`[NOTIFY] Event definition not found for code: ${eventCode}`);
+        return [];
       }
 
-      // 3. Simulate email dispatch if enabled
-      if (emailEnabled) {
-        const recipient = await db('users').where({ id: userId }).first();
-        const email = recipient ? recipient.email : 'unknown@domain.com';
-        console.log(`[EMAIL DISPATCH] Sending notification email to ${email} | Title: "${title}" | Message: "${message}"`);
-      }
-
-      // 4. Skip saving/streaming if in-app notifications are disabled
-      if (!inAppEnabled) {
-        return null;
-      }
-
-      const [notif] = await db('notifications')
-        .insert({
-          company_id: companyId,
-          user_id: userId,
-          title,
-          message,
-          type,
-          priority,
-          entity_type: entityType,
-          entity_id: entityId,
-          is_read: false,
-          is_archived: false
-        })
-        .returning('*');
-
-      // Dispatch real-time event via SSE if user is online
-      const list = sseConnections.get(userId);
-      if (list && list.length > 0) {
-        const payload = JSON.stringify(notif);
-        list.forEach(res => {
-          res.write(`data: ${payload}\n\n`);
+      // 2. Fetch Template
+      const template = await db('notification_templates').where({ event_code: eventCode }).first();
+      
+      // Interpolate helper
+      const interpolate = (str, vars = {}) => {
+        let output = str || '';
+        Object.entries(vars).forEach(([k, v]) => {
+          output = output.replace(new RegExp(`\\{\\{${k}\\}\\}`, 'g'), v);
         });
+        return output;
+      };
+
+      const title = template ? interpolate(template.subject, payload) : eventDef.event_name;
+      const message = template ? interpolate(template.plain_body, payload) : JSON.stringify(payload);
+      const htmlBody = template ? interpolate(template.html_body, payload) : `<p>${message}</p>`;
+
+      // 3. Resolve Recipients
+      let userIds = [...forceUserIds];
+      if (userIds.length === 0) {
+        const policies = await db('company_notification_policies')
+          .where({ company_id: companyId, event_id: eventDef.id });
+
+        const resolvedUsers = new Set();
+        for (const policy of policies) {
+          if (policy.recipient_type === 'USER') {
+            resolvedUsers.add(parseInt(policy.recipient_value));
+          } else if (policy.recipient_type === 'ROLE') {
+            const roleUsers = await db('company_users')
+              .where({ company_id: companyId, role: policy.recipient_value })
+              .select('user_id');
+            roleUsers.forEach(u => resolvedUsers.add(u.user_id));
+          } else if (policy.recipient_type === 'PERMISSION') {
+            const permUsers = await this.getUsersWithPermission(companyId, policy.recipient_value);
+            permUsers.forEach(uid => resolvedUsers.add(uid));
+          }
+        }
+
+        // Fallback to company admins if no policy exists
+        if (resolvedUsers.size === 0) {
+          const admins = await db('company_users')
+            .where({ company_id: companyId })
+            .whereIn('role', ['Company Admin', 'Super Admin', 'Admin'])
+            .select('user_id');
+          admins.forEach(u => resolvedUsers.add(u.user_id));
+        }
+
+        userIds = Array.from(resolvedUsers);
       }
-      return notif;
+
+      const results = [];
+
+      // 4. Distribute Notifications per Recipient
+      for (const userId of userIds) {
+        // Load preference
+        const pref = await db('user_notification_preferences')
+          .where({ company_id: companyId, user_id: userId, event_id: eventDef.id })
+          .first();
+
+        const emailEnabled = pref ? pref.email : true;
+        const appEnabled = pref ? pref.app : true;
+
+        const recipient = await db('users').where({ id: userId }).first();
+        if (!recipient) continue;
+
+        // In-App delivery
+        if (appEnabled) {
+          const [notif] = await db('notifications')
+            .insert({
+              company_id: companyId,
+              user_id: userId,
+              event_code: eventCode,
+              title,
+              message,
+              priority: eventDef.priority,
+              is_read: false,
+              entity_type: entityType,
+              entity_id: entityId
+            })
+            .returning('*');
+
+          // SSE real-time dispatch
+          const connections = sseConnections.get(userId);
+          if (connections && connections.length > 0) {
+            const payloadStr = JSON.stringify(notif);
+            connections.forEach(res => {
+              res.write(`data: ${payloadStr}\n\n`);
+            });
+          }
+          results.push({ userId, status: 'IN_APP_SENT', id: notif.id });
+        }
+
+        // Email Queue delivery
+        if (emailEnabled) {
+          await db('notification_queue').insert({
+            company_id: companyId,
+            user_id: userId,
+            event_code: eventCode,
+            recipient_email: recipient.email,
+            subject: title,
+            body: htmlBody,
+            status: 'PENDING',
+            attempts: 0,
+            max_attempts: 3
+          });
+          results.push({ userId, status: 'EMAIL_QUEUED' });
+        }
+      }
+
+      return results;
     } catch (err) {
-      console.error('Failed to create notification:', err);
-      return null;
+      console.error('Central notify failed:', err);
+      return [];
     }
   }
 
   /**
-   * Route a notification to all users holding a specific permission inside the company.
+   * Scans queue and runs transactional sending loop.
    */
-  static async notifyUsersWithPermission({ companyId, permissionCode, title, message, type, priority = 'MEDIUM', entityType = null, entityId = null }) {
-    const userIds = await this.getUsersWithPermission(companyId, permissionCode);
-    const notifications = [];
-    for (const userId of userIds) {
-      const notif = await this.createNotification({
-        companyId,
-        userId,
-        title,
-        message,
-        type,
-        priority,
-        entityType,
-        entityId
-      });
-      if (notif) notifications.push(notif);
+  static async processQueue() {
+    try {
+      const pendingItems = await db('notification_queue')
+        .whereIn('status', ['PENDING', 'RETRY'])
+        .andWhere('attempts', '<', db.ref('max_attempts'))
+        .limit(30);
+
+      for (const item of pendingItems) {
+        const nextAttempts = item.attempts + 1;
+        await db('notification_queue')
+          .where({ id: item.id })
+          .update({
+            attempts: nextAttempts,
+            last_attempt_at: db.fn.now()
+          });
+
+        try {
+          // Simulate mailer - will trigger simulated fail if recipient is 'fail@domain.com'
+          if (item.recipient_email === 'fail@domain.com') {
+            throw new Error('SMTP connection rejected: Timeout');
+          }
+
+          console.log(`[EMAIL CENTER] Dispatched SMTP to ${item.recipient_email} | Subject: "${item.subject}"`);
+          
+          await db('notification_queue')
+            .where({ id: item.id })
+            .update({
+              status: 'SENT',
+              sent_at: db.fn.now(),
+              error_log: null
+            });
+        } catch (err) {
+          const reachedLimit = nextAttempts >= item.max_attempts;
+          await db('notification_queue')
+            .where({ id: item.id })
+            .update({
+              status: reachedLimit ? 'FAILED' : 'RETRY',
+              error_log: err.message
+            });
+        }
+      }
+    } catch (err) {
+      console.error('Queue runner failed:', err);
     }
-    return notifications;
+  }
+
+  /**
+   * Reset attempts to queue resending.
+   */
+  static async resendQueueItem(itemId) {
+    await db('notification_queue')
+      .where({ id: itemId })
+      .update({
+        status: 'PENDING',
+        attempts: 0,
+        error_log: null,
+        sent_at: null
+      });
   }
 }
+
+// Start background queue processing ticker (every 10 seconds)
+setInterval(() => {
+  NotificationService.processQueue();
+}, 10000);
 
 module.exports = NotificationService;

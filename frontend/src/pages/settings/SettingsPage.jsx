@@ -9,6 +9,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import NotificationPreferencesTab from './NotificationPreferencesTab';
 
 // Tabs configuration
 const TABS = [
@@ -1138,57 +1139,7 @@ export default function SettingsPage() {
         );
 
       case 'notifications':
-        return (
-          <div className="space-y-6">
-            <h2 className="text-[18px] font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-              <Bell size={20} className="text-emerald-500" /> Notification Preferences
-            </h2>
-            <p className="text-[13px] text-slate-500 leading-relaxed">
-              Choose how you want to be notified about transaction approvals, period locks, permission overrides, and system events.
-            </p>
-
-            <div className="space-y-4 pt-2">
-              <div className="flex items-start justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                <div>
-                  <span className="block text-[13px] font-bold text-slate-800">In-App Notifications</span>
-                  <span className="block text-[11px] text-slate-500 mt-0.5">Show notifications inside the ERP bell icon dropdown and alerts.</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={notifPreferences.in_app_enabled}
-                  onChange={e => setNotifPreferences(s => ({ ...s, in_app_enabled: e.target.checked }))}
-                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"
-                />
-              </div>
-
-              <div className="flex items-start justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                <div>
-                  <span className="block text-[13px] font-bold text-slate-800">Email Notifications</span>
-                  <span className="block text-[11px] text-slate-500 mt-0.5">Receive summary or instant emails for events.</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={notifPreferences.email_enabled}
-                  onChange={e => setNotifPreferences(s => ({ ...s, email_enabled: e.target.checked }))}
-                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"
-                />
-              </div>
-
-              <div className="flex items-start justify-between p-4 rounded-xl border border-slate-100 bg-slate-50/50 hover:bg-slate-50 transition-colors">
-                <div>
-                  <span className="block text-[13px] font-bold text-slate-800">Critical Alerts Only</span>
-                  <span className="block text-[11px] text-slate-500 mt-0.5">Filter out low/medium priority events. Only show/email CRITICAL and HIGH priority alerts.</span>
-                </div>
-                <input
-                  type="checkbox"
-                  checked={notifPreferences.critical_only}
-                  onChange={e => setNotifPreferences(s => ({ ...s, critical_only: e.target.checked }))}
-                  className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"
-                />
-              </div>
-            </div>
-          </div>
-        );
+        return <NotificationPreferencesTab />;
 
       default:
         return null;

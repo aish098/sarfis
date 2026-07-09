@@ -13,5 +13,7 @@ router.put('/notifications/:companyId/:id/archive', companyGuard, notifCtrl.arch
 router.put('/notifications/:companyId/:id/unarchive', companyGuard, notifCtrl.unarchiveNotification);
 router.get('/notifications/preferences/:companyId', companyGuard, notifCtrl.getPreferences);
 router.put('/notifications/preferences/:companyId', companyGuard, notifCtrl.updatePreferences);
+router.get('/notifications/admin/email-queue/:companyId', companyGuard, notifCtrl.getEmailQueue);
+router.post('/notifications/admin/email-queue/:id/resend/:companyId', companyGuard, notifCtrl.resendEmail);
 
 module.exports = router;
