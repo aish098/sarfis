@@ -14,7 +14,8 @@ class JournalModel {
         created_by: entryData.userId
       })
       .returning('id');
-    return entry.id;
+    if (!entry) throw new Error('Failed to create journal entry.');
+    return (typeof entry === 'object' && entry !== null) ? entry.id : entry;
   }
 
   static async createLine(lineData, trx) {
