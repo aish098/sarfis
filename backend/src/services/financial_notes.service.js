@@ -170,6 +170,7 @@ class FinancialNotesService {
         'je.description',
         'jl.debit',
         'jl.credit',
+        'v.id as voucher_id',
         'v.voucher_number',
         'v.type as voucher_type'
       )

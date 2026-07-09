@@ -99,14 +99,14 @@ export default function ReportsPage() {
       const displayVal = n > 0 && isContra ? -n : n;
       const formattedAbs = Math.abs(displayVal).toLocaleString('en-US', { minimumFractionDigits: 2 });
       if (stylePreference === 'parentheses') {
-        return `($${formattedAbs})`;
+        return `(PKR ${formattedAbs})`;
       }
       if (stylePreference === 'red') {
-        return <span className="text-rose-600 font-bold">-$${formattedAbs}</span>;
+        return <span className="text-rose-600 font-bold">-PKR {formattedAbs}</span>;
       }
-      return `-$${formattedAbs}`;
+      return `-PKR ${formattedAbs}`;
     }
-    return `$${formattedNum}`;
+    return `PKR ${formattedNum}`;
   };
 
   const exportNoteToPDF = () => {
@@ -757,12 +757,19 @@ export default function ReportsPage() {
                                     {new Date(je.date).toLocaleDateString()}
                                   </td>
                                   <td className="px-3 py-2 max-w-xs truncate" title={je.description}>
-                                    <button 
-                                      onClick={() => { setNoteDrawerOpen(false); navigate(`/dashboard/vouchers/details/${je.journal_entry_id}`); }}
-                                      className="text-left font-black text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer"
-                                    >
-                                      {je.voucher_number ? `${je.voucher_type} #${je.voucher_number}` : je.description || 'Journal Entry'} <ArrowRight size={10} />
-                                    </button>
+                                    {je.voucher_id ? (
+                                      <button 
+                                        onClick={() => { setNoteDrawerOpen(false); navigate(`/dashboard/vouchers/details/${je.voucher_id}`); }}
+                                        className="text-left font-black text-indigo-600 hover:underline flex items-center gap-1 cursor-pointer font-sans"
+                                      >
+                                        {je.voucher_number ? `${je.voucher_type} #${je.voucher_number}` : je.description || 'Journal Entry'} <ArrowRight size={10} />
+                                      </button>
+                                    ) : (
+                                      <div className="flex items-center gap-1.5 font-sans">
+                                        <span className="text-slate-700 font-bold">{je.description || 'Manual Journal Entry'}</span>
+                                        <span className="text-[9px] bg-slate-100 border border-slate-200 px-1 py-0.5 rounded text-slate-500 font-mono select-none font-black" title="No voucher linked">Manual</span>
+                                      </div>
+                                    )}
                                   </td>
                                   <td className="px-3 py-2 text-right font-mono text-emerald-600">
                                     {je.debit > 0 ? formatAmount(je.debit) : '—'}
