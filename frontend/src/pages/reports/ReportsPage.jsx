@@ -37,6 +37,7 @@ export default function ReportsPage() {
   const [noteData, setNoteData] = useState(null);
   const [noteLoading, setNoteLoading] = useState(false);
   const [noteError, setNoteError] = useState('');
+  const [statementVersion, setStatementVersion] = useState('Draft');
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
   const [startDate, setStartDate] = useState('2020-01-01');
@@ -113,61 +114,140 @@ export default function ReportsPage() {
     if (!noteData) return;
     const doc = new jsPDF();
     
-    // Header
-    doc.setFontSize(18);
+    // 1. Company Name & Main Title
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(20);
     doc.setTextColor(30, 41, 59);
-    doc.text(activeCompany?.name || 'Sarfis Financials', 14, 20);
+    doc.text(activeCompany?.name.toUpperCase() || 'SARFIS FINANCIALS', 14, 20);
     
+    doc.setFont("Helvetica", "normal");
     doc.setFontSize(12);
     doc.setTextColor(100, 116, 139);
-    doc.text(`Supporting Schedule: ${noteData.account.name} (Code: ${noteData.account.code})`, 14, 28);
-    doc.text(`As of Date: ${asOfDate}`, 14, 34);
+    doc.text('Notes to the Financial Statements', 14, 26);
+    doc.text(`Financial Period: FY${new Date(asOfDate).getFullYear()} | Version: ${statementVersion.toUpperCase()}`, 14, 32);
     
-    // Summary
+    // Draw divider line
+    doc.setDrawColor(226, 232, 240);
+    doc.setLineWidth(0.5);
+    doc.line(14, 36, 196, 36);
+
+    // 2. Note Header
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(14);
+    doc.setTextColor(30, 41, 59);
+    const noteNumStr = noteData.metadata.noteNumber ? `NOTE ${noteData.metadata.noteNumber}: ` : '';
+    doc.text(`${noteNumStr}${noteData.account.name.toUpperCase()}`, 14, 44);
+
+    // Draw divider line
+    doc.line(14, 48, 196, 48);
+
+    // 3. Carrying Summary Card Table
+    const summaryData = [
+      ['Opening Balance', `PKR ${noteData.openingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
+      ['Current Movements', `PKR ${noteData.movements.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
+      ['Closing Balance', `PKR ${noteData.closingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`]
+    ];
+
+    autoTable(doc, {
+      startY: 52,
+      body: summaryData,
+      theme: 'plain',
+      styles: { fontSize: 10, cellPadding: 3, fontStyle: 'bold' },
+      columnStyles: {
+        0: { textColor: [100, 116, 139], width: 60 },
+        1: { halign: 'right', textColor: [30, 41, 59] }
+      }
+    });
+
+    // 4. Reconciliation Status Card
+    const reconciliationY = doc.lastAutoTable.finalY + 8;
+    doc.setFont("Helvetica", "bold");
     doc.setFontSize(11);
     doc.setTextColor(30, 41, 59);
-    doc.text(`Opening Balance: PKR ${noteData.openingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 14, 46);
-    doc.text(`Current Movements: PKR ${noteData.movements.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 14, 52);
-    doc.text(`Closing Balance: PKR ${noteData.closingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, 14, 58);
-    
-    // Breakdown Table
-    doc.setFontSize(12);
-    doc.text('Composition Breakdown', 14, 70);
-    
+    doc.text('RECONCILIATION SUMMARY', 14, reconciliationY);
+
+    const reconStatus = noteData.reconciliation.status === 'VERIFIED'
+      ? `✓ VERIFIED (No differences detected between General Ledger and ${noteData.metadata.source})`
+      : `⚠ DISCREPANCY DETECTED (Difference: PKR ${noteData.reconciliation.difference.toLocaleString('en-US', { minimumFractionDigits: 2 })})`;
+
+    const reconRows = [
+      ['Reconciliation Status', reconStatus],
+      ['GL Control Balance', `PKR ${noteData.reconciliation.ledgerTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
+      ['Sub-ledger Balance', `PKR ${noteData.reconciliation.subledgerTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`]
+    ];
+
+    autoTable(doc, {
+      startY: reconciliationY + 4,
+      body: reconRows,
+      theme: 'grid',
+      styles: { fontSize: 9, cellPadding: 3 },
+      columnStyles: {
+        0: { fontStyle: 'bold', textColor: [100, 116, 139], width: 50 },
+        1: { textColor: [30, 41, 59] }
+      }
+    });
+
+    // 5. Supporting Schedule Breakdown Table
+    const breakdownY = doc.lastAutoTable.finalY + 10;
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text('SUPPORTING SCHEDULE / COMPOSITION', 14, breakdownY);
+
     const breakdownRows = (noteData.breakdown || []).map(b => [
       b.item,
       `PKR ${b.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
       `${b.percent}%`
     ]);
-    
+
     autoTable(doc, {
-      startY: 74,
+      startY: breakdownY + 4,
       head: [['Item Name', 'Carrying Amount', 'Contribution %']],
       body: breakdownRows,
       theme: 'striped',
-      headStyles: { fillColor: [16, 185, 129] }
+      headStyles: { fillColor: [30, 41, 59], fontStyle: 'bold' },
+      styles: { fontSize: 8.5, cellPadding: 2.5 },
+      columnStyles: {
+        1: { halign: 'right' },
+        2: { halign: 'center' }
+      }
     });
-    
-    // Recent journal entries
-    doc.setFontSize(12);
-    doc.text('Recent GL Postings', 14, doc.lastAutoTable.finalY + 12);
-    
+
+    // 6. Recent GL Postings
+    const postingsY = doc.lastAutoTable.finalY + 10;
+    doc.setFont("Helvetica", "bold");
+    doc.setFontSize(11);
+    doc.setTextColor(30, 41, 59);
+    doc.text('RECENT GENERAL LEDGER POSTINGS', 14, postingsY);
+
     const journalRows = (noteData.journalEntries || []).map(je => [
       new Date(je.date).toLocaleDateString(),
-      je.description || '—',
+      je.voucher_number ? `${je.voucher_type} #${je.voucher_number}` : je.description || 'Journal Entry',
       je.debit > 0 ? `PKR ${je.debit.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—',
       je.credit > 0 ? `PKR ${je.credit.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'
     ]);
-    
+
     autoTable(doc, {
-      startY: doc.lastAutoTable.finalY + 16,
-      head: [['Date', 'Description', 'Debit', 'Credit']],
+      startY: postingsY + 4,
+      head: [['Date', 'Reference / Description', 'Debit', 'Credit']],
       body: journalRows,
       theme: 'grid',
-      headStyles: { fillColor: [99, 102, 241] }
+      headStyles: { fillColor: [99, 102, 241], fontStyle: 'bold' },
+      styles: { fontSize: 8, cellPadding: 2.5 },
+      columnStyles: {
+        2: { halign: 'right' },
+        3: { halign: 'right' }
+      }
     });
-    
-    doc.save(`GL_Note_${noteData.account.code}.pdf`);
+
+    // Footer info
+    const finalY = doc.lastAutoTable.finalY + 12;
+    doc.setFont("Helvetica", "oblique");
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184);
+    doc.text(`Generated Automatically by SARFIS System on ${new Date(noteData.metadata.lastUpdated).toLocaleString()}`, 14, finalY);
+
+    doc.save(`GL_Note_${noteData.account.code}_V${statementVersion}.pdf`);
   };
 
   useEffect(() => { load(); }, [load]);
@@ -383,35 +463,50 @@ export default function ReportsPage() {
             })}
           </div>
 
-          <div className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-white border-2 border-slate-100 shadow-sm focus-within:border-emerald-500/50 focus-within:ring-4 focus-within:ring-emerald-500/5">
-            <Calendar size={14} className="text-slate-400 flex-shrink-0" />
-            {tab === 'balance_sheet' ? (
-              <div className="flex items-center gap-1.5">
-                <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">AS OF</span>
-                <input 
-                  type="date" 
-                  className="text-[13px] text-slate-700 border-none outline-none bg-transparent font-semibold cursor-pointer" 
-                  value={asOfDate} 
-                  onChange={e => setAsOfDate(e.target.value)} 
-                />
-              </div>
-            ) : (
-              <div className="flex items-center gap-1.5">
-                <input 
-                  type="date" 
-                  className="text-[13px] text-slate-700 border-none outline-none bg-transparent font-semibold cursor-pointer" 
-                  value={startDate} 
-                  onChange={e => setStartDate(e.target.value)} 
-                />
-                <span className="text-slate-300 font-bold">—</span>
-                <input 
-                  type="date" 
-                  className="text-[13px] text-slate-700 border-none outline-none bg-transparent font-semibold cursor-pointer" 
-                  value={endDate} 
-                  onChange={e => setEndDate(e.target.value)} 
-                />
-              </div>
-            )}
+          <div className="flex flex-wrap items-center gap-3">
+            <div className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-white border-2 border-slate-100 shadow-sm focus-within:border-emerald-500/50 focus-within:ring-4 focus-within:ring-emerald-500/5">
+              <Calendar size={14} className="text-slate-400 flex-shrink-0" />
+              {tab === 'balance_sheet' ? (
+                <div className="flex items-center gap-1.5">
+                  <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">AS OF</span>
+                  <input 
+                    type="date" 
+                    className="text-[13px] text-slate-700 border-none outline-none bg-transparent font-semibold cursor-pointer" 
+                    value={asOfDate} 
+                    onChange={e => setAsOfDate(e.target.value)} 
+                  />
+                </div>
+              ) : (
+                <div className="flex items-center gap-1.5">
+                  <input 
+                    type="date" 
+                    className="text-[13px] text-slate-700 border-none outline-none bg-transparent font-semibold cursor-pointer" 
+                    value={startDate} 
+                    onChange={e => setStartDate(e.target.value)} 
+                  />
+                  <span className="text-slate-300 font-bold">—</span>
+                  <input 
+                    type="date" 
+                    className="text-[13px] text-slate-700 border-none outline-none bg-transparent font-semibold cursor-pointer" 
+                    value={endDate} 
+                    onChange={e => setEndDate(e.target.value)} 
+                  />
+                </div>
+              )}
+            </div>
+
+            <div className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-white border-2 border-slate-100 shadow-sm focus-within:border-emerald-500/50 focus-within:ring-4 focus-within:ring-emerald-500/5">
+              <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">Version</span>
+              <select
+                value={statementVersion}
+                onChange={e => setStatementVersion(e.target.value)}
+                className="text-[13px] text-slate-700 border-none outline-none bg-transparent font-bold cursor-pointer text-slate-800"
+              >
+                <option value="Draft">Draft</option>
+                <option value="Adjusted">Adjusted</option>
+                <option value="Final">Final</option>
+              </select>
+            </div>
           </div>
         </div>
       </div>
@@ -595,26 +690,42 @@ export default function ReportsPage() {
                   ) : noteData ? (
                     <div className="space-y-6">
                       {/* System Cross-Reference Card */}
-                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 shadow-3xs grid grid-cols-2 md:grid-cols-4 gap-4">
+                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 shadow-3xs grid grid-cols-2 md:grid-cols-3 gap-y-4 gap-x-2">
                         <div>
                           <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-black mb-0.5">Source Registry</span>
                           <span className="font-extrabold text-slate-700">{noteData.metadata.source}</span>
                         </div>
                         <div>
-                          <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-black mb-0.5">Generation Type</span>
-                          <span className="font-extrabold text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded-md text-[10px] inline-block">
+                          <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-black mb-0.5">Generated By</span>
+                          <span className="font-extrabold text-indigo-700 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded-md text-[10.5px] inline-block font-mono">
                             {noteData.metadata.generated}
                           </span>
                         </div>
                         <div>
-                          <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-black mb-0.5">Last Updated</span>
+                          <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-black mb-0.5">Generated On</span>
                           <span className="font-extrabold text-slate-700">
                             {new Date(noteData.metadata.lastUpdated).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
                           </span>
                         </div>
                         <div>
+                          <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-black mb-0.5">Financial Period</span>
+                          <span className="font-extrabold text-slate-700 font-mono">FY{new Date(asOfDate).getFullYear()}</span>
+                        </div>
+                        <div>
                           <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-black mb-0.5">Supporting Records</span>
                           <span className="font-extrabold text-slate-700">{noteData.metadata.supportingRecordsCount} Items</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-black mb-0.5">Report Version</span>
+                          <span className={`font-extrabold text-[10px] px-1.5 py-0.5 rounded-md inline-block uppercase tracking-wider ${
+                            statementVersion === 'Final'
+                              ? 'text-emerald-700 bg-emerald-50 border border-emerald-200'
+                              : statementVersion === 'Adjusted'
+                              ? 'text-amber-700 bg-amber-50 border border-amber-200'
+                              : 'text-slate-600 bg-slate-100 border border-slate-200'
+                          }`}>
+                            {statementVersion}
+                          </span>
                         </div>
                       </div>
 

@@ -112,6 +112,19 @@ class FinancialNotesService {
     return new DefaultResolver();
   }
 
+  static getReportGroup(account) {
+    const c = String(account.code || '');
+    const n = String(account.name || '').toLowerCase();
+    if (c.startsWith('10')) return 'CASH';
+    if (c.startsWith('12') && !n.includes('allowance') && !n.includes('bad debt') && !n.includes('doubtful')) return 'RECEIVABLES';
+    if (n.includes('allowance') || n.includes('bad debt') || n.includes('doubtful')) return 'BAD_DEBT';
+    if (c.startsWith('13')) return 'INVENTORY';
+    if (c.startsWith('15') || c.startsWith('16')) return 'PPE';
+    if (c.startsWith('20') || c.startsWith('21')) return 'PAYABLES';
+    if (n.includes('tax') || c.startsWith('22')) return 'TAX';
+    return 'DEFAULT';
+  }
+
   static async getAccountNote(companyId, accountId, asOfDate) {
     const account = await db('accounts')
       .where({ id: accountId, company_id: companyId })
@@ -180,6 +193,14 @@ class FinancialNotesService {
     const ReconciliationService = require('./reconciliation.service');
     const reconciliation = await ReconciliationService.reconcileAccount(companyId, account, closingBalance, breakdown);
 
+    const reportGroup = this.getReportGroup(account);
+    const template = await db('financial_statement_note_templates')
+      .where({ company_id: companyId, statement_type: 'BALANCE_SHEET', report_group: reportGroup })
+      .first();
+
+    const noteNumber = template ? template.note_number : null;
+    const noteName = template ? template.note_name : account.name;
+
     const nameLower = account.name.toLowerCase();
     let source = 'General Ledger';
     if (nameLower.includes('depreciation') || nameLower.includes('amortization')) {
@@ -213,7 +234,9 @@ class FinancialNotesService {
         source,
         generated: 'Automatically',
         lastUpdated,
-        supportingRecordsCount: breakdown.length
+        supportingRecordsCount: breakdown.length,
+        noteNumber,
+        noteName
       },
       reconciliation
     };
