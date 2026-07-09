@@ -389,7 +389,7 @@ export default function JournalEntryPage() {
         });
         setControlWarningOpen(true);
       } else {
-        setError(err.response?.data?.message || 'Failed to process entry.');
+        setError(err.response?.data?.message || err.response?.data?.error || 'Failed to process entry.');
       }
     }
     setSaving(false);
@@ -444,7 +444,7 @@ export default function JournalEntryPage() {
       setDetailEntry(null);
       fetchRecent();
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to delete draft.");
+      setError(err.response?.data?.message || err.response?.data?.error || "Failed to delete draft.");
     }
   };
 
@@ -457,7 +457,7 @@ export default function JournalEntryPage() {
       setDetailEntry(null);
       fetchRecent();
     } catch (err) {
-      setError(err.response?.data?.message || "Failed to submit draft.");
+      setError(err.response?.data?.message || err.response?.data?.error || "Failed to submit draft.");
     }
   };
 
@@ -1257,7 +1257,7 @@ export default function JournalEntryPage() {
                         setDetailEntry(null);
                         fetchRecent();
                       } catch (err) {
-                        setError(err.response?.data?.message || "Failed to post entry.");
+                        setError(err.response?.data?.message || err.response?.data?.error || "Failed to post entry.");
                       }
                     }}
                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold text-emerald-800 bg-[#EBFDF5] hover:bg-[#d5f7e6] transition-colors border border-[#C2F3DC] cursor-pointer"
