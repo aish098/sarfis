@@ -26,17 +26,17 @@ router.get('/assets/work-orders', FixedAssetsController.getWorkOrders);
 router.put('/assets/work-orders/:id', FixedAssetsController.updateWorkOrder);
 
 // Assignments / Lending / Checkout
-router.post('/assets/assignments/reserve', FixedAssetsController.reserveAsset);
-router.post('/assets/assignments/checkout', FixedAssetsController.checkoutAsset);
-router.post('/assets/assignments/checkin/:id', FixedAssetsController.checkinAsset);
-router.get('/assets/assignments', FixedAssetsController.getAssignments);
+router.post('/assignments/reserve', FixedAssetsController.reserveAsset);
+router.post('/assignments/checkout', FixedAssetsController.checkoutAsset);
+router.post('/assignments/checkin/:id', FixedAssetsController.checkinAsset);
+router.get('/assignments', FixedAssetsController.getAssignments);
 
 // Physical Verifications
-router.post('/assets/verification/sessions', FixedAssetsController.createVerificationSession);
-router.get('/assets/verification/sessions', FixedAssetsController.getVerificationSessions);
-router.get('/assets/verification/sessions/:id/items', FixedAssetsController.getVerificationSessionItems);
-router.post('/assets/verification/verify', FixedAssetsController.logVerificationItem);
-router.post('/assets/verification/sessions/:id/complete', FixedAssetsController.completeVerificationSession);
+router.post('/verification/sessions', FixedAssetsController.createVerificationSession);
+router.get('/verification/sessions', FixedAssetsController.getVerificationSessions);
+router.get('/verification/sessions/:id/items', FixedAssetsController.getVerificationSessionItems);
+router.post('/verification/verify', FixedAssetsController.logVerificationItem);
+router.post('/verification/sessions/:id/complete', FixedAssetsController.completeVerificationSession);
 
 // Depreciation Calculator & Wizard
 router.get('/depreciation/preview', FixedAssetsController.getDepreciationPreview);
