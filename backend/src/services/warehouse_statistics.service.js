@@ -225,6 +225,25 @@ class WarehouseStatisticsService {
       .sort((a, b) => b.value - a.value)
       .slice(0, 5);
 
+    // 11b. Chronological Movements
+    const movements = await db('stock_logs as sl')
+      .join('products as p', 'sl.product_id', 'p.id')
+      .leftJoin('users as u', 'sl.created_by', 'u.id')
+      .where('sl.warehouse_id', warehouseId)
+      .select(
+        'sl.id',
+        'sl.created_at as date',
+        'sl.type',
+        'sl.quantity_change as qtyChange',
+        'sl.quantity_after as qtyAfter',
+        'sl.unit_cost as unitCost',
+        'p.sku as productSku',
+        'p.name as productName',
+        'u.name as userName'
+      )
+      .orderBy('sl.created_at', 'desc')
+      .limit(100);
+
     // 12. Stock Movement Charts data (past 6 months)
     const months = [];
     for (let i = 5; i >= 0; i--) {
@@ -308,6 +327,7 @@ class WarehouseStatisticsService {
         inventoryAccuracy: 99.4 // Standard mock value for demonstration
       },
       products,
+      movements,
       categoryBreakdown,
       topProducts,
       reorderSuggestions,

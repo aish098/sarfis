@@ -482,9 +482,7 @@ export default function WarehousePage({ globalSearch = "" }) {
                         </tr>
                       </thead>
                       <tbody className="divide-y divide-slate-50 bg-white text-[11px] font-bold text-slate-600">
-                        {whStats.products.flatMap(p => 
-                          (p.movements || []).map((m, idx) => ({ ...m, productSku: p.sku, productName: p.name }))
-                        ).map((log, idx) => (
+                        {(whStats.movements || []).map((log, idx) => (
                           <tr key={idx} className="hover:bg-slate-50/50">
                             <td className="px-4 py-2.5 font-mono text-slate-500">{new Date(log.date).toLocaleDateString()}</td>
                             <td className="px-4 py-2.5">
@@ -506,6 +504,13 @@ export default function WarehousePage({ globalSearch = "" }) {
                             <td className="px-4 py-2.5 text-slate-400 font-sans">{log.userName || 'System'}</td>
                           </tr>
                         ))}
+                        {(!whStats.movements || whStats.movements.length === 0) && (
+                          <tr>
+                            <td colSpan={6} className="px-4 py-6 text-center text-slate-400 italic">
+                              No stock movement logs found for this warehouse facility.
+                            </td>
+                          </tr>
+                        )}
                       </tbody>
                     </table>
                   </div>
