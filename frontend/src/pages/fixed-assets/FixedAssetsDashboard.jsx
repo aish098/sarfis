@@ -99,17 +99,19 @@ export default function FixedAssetsDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [assetsRes, transfersRes, workOrdersRes, assignmentsRes] = await Promise.all([
+      const [assetsRes, transfersRes, workOrdersRes, assignmentsRes, sessionsRes] = await Promise.all([
         api.get('/fixed-assets/assets'),
         api.get('/fixed-assets/assets/transfer/requests'),
         api.get('/fixed-assets/assets/work-orders'),
-        api.get('/fixed-assets/assignments')
+        api.get('/fixed-assets/assignments'),
+        api.get('/fixed-assets/verification/sessions')
       ]);
 
       const rawAssets = assetsRes.data || [];
       const rawTransfers = transfersRes.data || [];
       const rawWorkOrders = workOrdersRes.data || [];
       const rawAssignments = assignmentsRes.data || [];
+      const rawSessions = sessionsRes.data || [];
 
       setAssets(rawAssets);
       if (rawAssets.length > 0 && !selectedLifecycleAssetId) {
@@ -306,11 +308,45 @@ export default function FixedAssetsDashboard() {
       }).length;
 
       setLendingMetrics({
-        checkedOut: checkedOutCount || 12,
-        overdue: overdueCount || 2,
-        reserved: reservedCount || 4,
-        returnedToday: returnedTodayCount || 3
+        checkedOut: checkedOutCount,
+        overdue: overdueCount,
+        reserved: reservedCount,
+        returnedToday: returnedTodayCount
       });
+
+      // Dynamic physical verification metrics
+      let activeSessionData = {
+        sessionName: 'No Active Audit',
+        percent: 0,
+        verified: 0,
+        missing: 0,
+        damaged: 0,
+        pending: rawAssets.length
+      };
+
+      if (rawSessions.length > 0) {
+        const latestSession = rawSessions[0];
+        try {
+          const { data: items } = await api.get(`/fixed-assets/verification/sessions/${latestSession.id}/items`);
+          const verified = items.length;
+          const missing = items.filter(x => x.status === 'MISSING').length;
+          const damaged = items.filter(x => x.status === 'DAMAGED').length;
+          const totalAssets = rawAssets.length || 1;
+          const percent = Math.round((verified / totalAssets) * 100);
+
+          activeSessionData = {
+            sessionName: latestSession.session_name,
+            percent,
+            verified,
+            missing,
+            damaged,
+            pending: Math.max(0, totalAssets - verified)
+          };
+        } catch (err) {
+          console.error(err);
+        }
+      }
+      setVerificationProgress(activeSessionData);
 
       setMetrics({
         totalCost,
