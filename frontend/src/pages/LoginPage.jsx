@@ -37,8 +37,13 @@ export default function LoginPage() {
             label="Password" value={formData.password}
             onChange={handleChange} placeholder="••••••••" />
           <div className="flex items-center justify-between">
-            <label className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer">
-              <input type="checkbox" className="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500" />
+            <label htmlFor="remember-me" className="flex items-center gap-2 text-sm text-slate-400 cursor-pointer">
+              <input 
+                id="remember-me"
+                name="remember"
+                type="checkbox" 
+                className="rounded border-slate-600 bg-slate-800 text-emerald-500 focus:ring-emerald-500" 
+              />
               Remember me
             </label>
             <a href="#" className="text-sm text-emerald-400 hover:text-emerald-300 transition">
