@@ -4,7 +4,7 @@ import {
   Briefcase, Settings, Play, Calendar, DollarSign, Layers, Activity,
   ArrowRight, ShieldAlert, CheckCircle2, AlertTriangle, Info, Clock, 
   User, MapPin, Wrench, Shield, TrendingUp, TrendingDown, ArrowLeft,
-  ThumbsUp, ThumbsDown, CheckSquare, ClipboardList, ShieldCheck
+  ThumbsUp, ThumbsDown, CheckSquare, ClipboardList, ShieldCheck, Trash2
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, BarChart as RechartsBarChart, 
