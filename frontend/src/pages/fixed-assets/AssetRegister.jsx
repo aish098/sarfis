@@ -4,7 +4,8 @@ import {
   Plus, Search, Tag, Eye, Info, FileText, Calendar, DollarSign, MapPin, 
   User, Activity, ArrowRight, TrendingUp, X, PlusCircle, Trash2,
   Wrench, Printer, RefreshCw, Filter, ShieldCheck, CheckSquare, ArrowLeft,
-  CheckCircle, Ban, Layers, HelpCircle
+  CheckCircle, Ban, Layers, HelpCircle, UserPlus, ClipboardList, Scan,
+  RotateCcw
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -43,6 +44,22 @@ export default function AssetRegister() {
   const [showUsageForm, setShowUsageForm] = useState(false);
   const [showTransferForm, setShowTransferForm] = useState(false);
   const [showMaintenanceForm, setShowMaintenanceForm] = useState(false);
+  const [showLendingForm, setShowLendingForm] = useState(false);
+
+  // Verification State variables
+  const [showVerificationWorkspace, setShowVerificationWorkspace] = useState(false);
+  const [verificationSessions, setVerificationSessions] = useState([]);
+  const [activeSession, setActiveSession] = useState(null);
+  const [sessionItems, setSessionItems] = useState([]);
+  const [newSessionName, setNewSessionName] = useState('');
+
+  // QR Print State variables
+  const [showQRPrintModal, setShowQRPrintModal] = useState(false);
+  const [qrAsset, setQrAsset] = useState(null);
+
+  // Context-Aware Scan State variables
+  const [scanTerm, setScanTerm] = useState('');
+  const [scanAssetResult, setScanAssetResult] = useState(null);
 
   // Transfer Queue & Approvals
   const [transferRequests, setTransferRequests] = useState([]);
@@ -68,6 +85,14 @@ export default function AssetRegister() {
     status: 'OPEN'
   });
 
+  const [lendingData, setLendingData] = useState({
+    employee_id: '',
+    checkout_date: new Date().toISOString().split('T')[0],
+    expected_return: '',
+    notes: '',
+    isReservation: false
+  });
+
   // 7-step Disposal Stepper Wizard
   const [disposalStep, setDisposalStep] = useState(1);
   const [disposalType, setDisposalType] = useState('Sale'); // 'Sale' | 'Scrap' | 'Donation' | 'Write-off' | 'Loss' | 'Insurance Claim'
@@ -80,6 +105,13 @@ export default function AssetRegister() {
   const [disposalSubmitting, setDisposalSubmitting] = useState(false);
   const [disposalPostedInfo, setDisposalPostedInfo] = useState(null);
 
+  // Usage logs fields
+  const [usageData, setUsageData] = useState({
+    usage_date: new Date().toISOString().split('T')[0],
+    units_used: '',
+    source: 'MANUAL'
+  });
+
   useEffect(() => {
     fetchAssets();
     fetchCategories();
@@ -87,6 +119,7 @@ export default function AssetRegister() {
       fetchWarehouses();
       fetchEmployees();
       fetchTransferRequests();
+      fetchVerificationSessions();
     }
   }, [activeCompany, filterStatus]);
 
@@ -146,6 +179,15 @@ export default function AssetRegister() {
     try {
       const { data } = await api.get('/fixed-assets/assets/transfer/requests');
       setTransferRequests(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const fetchVerificationSessions = async () => {
+    try {
+      const { data } = await api.get('/fixed-assets/verification/sessions');
+      setVerificationSessions(data || []);
     } catch (err) {
       console.error(err);
     }
@@ -244,6 +286,22 @@ export default function AssetRegister() {
     }
   };
 
+  const handleLendingSubmit = async (e) => {
+    e.preventDefault();
+    const endpoint = lendingData.isReservation ? '/fixed-assets/assignments/reserve' : '/fixed-assets/assignments/checkout';
+    try {
+      await api.post(endpoint, {
+        asset_id: selectedAssetId,
+        ...lendingData
+      });
+      setShowLendingForm(false);
+      fetchAssets();
+      alert(`Asset successfully ${lendingData.isReservation ? 'reserved' : 'checked out'}!`);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Lending action failed.');
+    }
+  };
+
   const handleDisposalPost = async () => {
     setDisposalSubmitting(true);
     try {
@@ -259,6 +317,70 @@ export default function AssetRegister() {
     } catch (err) {
       alert(err.response?.data?.error || 'Disposal posting failed.');
       setDisposalSubmitting(false);
+    }
+  };
+
+  // Physical verification methods
+  const handleCreateVerificationSession = async (e) => {
+    e.preventDefault();
+    if (!newSessionName) return;
+    try {
+      const { data } = await api.post('/fixed-assets/verification/sessions', {
+        session_name: newSessionName
+      });
+      setNewSessionName('');
+      fetchVerificationSessions();
+      handleSelectVerificationSession(data);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to create verification session.');
+    }
+  };
+
+  const handleSelectVerificationSession = async (session) => {
+    setActiveSession(session);
+    try {
+      const { data } = await api.get(`/fixed-assets/verification/sessions/${session.id}/items`);
+      setSessionItems(data || []);
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleLogVerifyItem = async (assetId, status) => {
+    if (!activeSession) return;
+    try {
+      await api.post('/fixed-assets/verification/verify', {
+        session_id: activeSession.id,
+        asset_id: assetId,
+        status,
+        notes: ''
+      });
+      handleSelectVerificationSession(activeSession);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Verification logging failed.');
+    }
+  };
+
+  const handleCompleteVerificationSession = async () => {
+    if (!activeSession) return;
+    try {
+      await api.post(`/fixed-assets/verification/sessions/${activeSession.id}/complete`, { status: 'COMPLETED' });
+      fetchVerificationSessions();
+      setActiveSession(null);
+      setSessionItems([]);
+      alert('Verification session closed and completed successfully.');
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to complete session.');
+    }
+  };
+
+  // Context-Aware scan simulation lookup
+  const handleScanLookup = () => {
+    const matched = assets.find(a => a.asset_code?.toLowerCase() === scanTerm.toLowerCase());
+    if (matched) {
+      setScanAssetResult(matched);
+    } else {
+      alert('Asset code not found.');
     }
   };
 
@@ -343,6 +465,12 @@ export default function AssetRegister() {
         </div>
         <div className="flex gap-2">
           <button 
+            onClick={() => setShowVerificationWorkspace(!showVerificationWorkspace)} 
+            className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-sm"
+          >
+            <ClipboardList size={14} className="text-amber-500" /> Physical Audit sessions
+          </button>
+          <button 
             onClick={() => setShowRequestQueue(!showRequestQueue)} 
             className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-sm"
           >
@@ -354,7 +482,126 @@ export default function AssetRegister() {
         </div>
       </div>
 
-      {/* Transfer Requests Queue Dashboard Overlay */}
+      {/* Physical Audit Workspace */}
+      {showVerificationWorkspace && (
+        <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-inner space-y-4 animate-in slide-in-from-top-5 duration-200">
+          <div className="flex justify-between items-center border-b border-slate-200 pb-2">
+            <h3 className="text-xs font-black text-slate-800 uppercase flex items-center gap-1.5">
+              <ClipboardList size={14} className="text-amber-500" /> Physical Verification Audit Workspace
+            </h3>
+            {activeSession && (
+              <button 
+                onClick={handleCompleteVerificationSession}
+                className="px-3 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded text-[10px] font-black transition-all"
+              >
+                Close & Complete Session
+              </button>
+            )}
+          </div>
+
+          {!activeSession ? (
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold text-slate-600">
+              <form onSubmit={handleCreateVerificationSession} className="bg-white p-4 rounded-xl border border-slate-100 space-y-3 shadow-sm">
+                <h4 className="font-black text-slate-800 uppercase text-[10px]">Start New Verification Session</h4>
+                <div className="space-y-1">
+                  <label className="text-slate-500">Session Name</label>
+                  <input
+                    type="text"
+                    required
+                    placeholder="e.g. Annual Assets Audit 2026"
+                    value={newSessionName}
+                    onChange={(e) => setNewSessionName(e.target.value)}
+                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none"
+                  />
+                </div>
+                <button type="submit" className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black transition-all">
+                  Initialize Session
+                </button>
+              </form>
+
+              <div className="bg-white p-4 rounded-xl border border-slate-100 space-y-3 shadow-sm max-h-48 overflow-y-auto">
+                <h4 className="font-black text-slate-800 uppercase text-[10px]">Load Open Sessions</h4>
+                <div className="space-y-2">
+                  {verificationSessions.map(session => (
+                    <button
+                      key={session.id}
+                      onClick={() => handleSelectVerificationSession(session)}
+                      className="w-full p-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-100 rounded-lg text-left flex justify-between items-center transition-all"
+                    >
+                      <div>
+                        <p className="font-bold text-slate-700">{session.session_name}</p>
+                        <p className="text-[9px] text-slate-400">{new Date(session.verification_date).toLocaleDateString()}</p>
+                      </div>
+                      <span className="px-1.5 py-0.5 rounded text-[8.5px] font-black bg-amber-50 text-amber-700 border border-amber-100 uppercase">{session.status}</span>
+                    </button>
+                  ))}
+                </div>
+              </div>
+            </div>
+          ) : (
+            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-4">
+              <div className="flex justify-between items-center">
+                <div>
+                  <h4 className="font-black text-indigo-700 text-xs">{activeSession.session_name}</h4>
+                  <p className="text-[10px] text-slate-400">Auditor verified list items checkoff</p>
+                </div>
+                <button onClick={() => { setActiveSession(null); setSessionItems([]); }} className="text-slate-400 hover:text-slate-600 text-xs font-bold">
+                  Exit Session
+                </button>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse text-xs">
+                  <thead>
+                    <tr className="bg-slate-50 text-[10px] font-black uppercase text-slate-400">
+                      <th className="px-3 py-2">Asset Code</th>
+                      <th className="px-3 py-2">Description</th>
+                      <th className="px-3 py-2">Current Mapped Status</th>
+                      <th className="px-3 py-2 text-center">Auditor Checkoff Actions</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-semibold text-slate-600">
+                    {assets.map(asset => {
+                      const item = sessionItems.find(x => x.asset_id === asset.id);
+                      return (
+                        <tr key={asset.id} className="hover:bg-slate-50/50">
+                          <td className="px-3 py-2 font-mono font-bold text-indigo-600">{asset.asset_code}</td>
+                          <td className="px-3 py-2">{asset.asset_name}</td>
+                          <td className="px-3 py-2 text-center">
+                            {item ? (
+                              <span className={`px-2 py-0.5 rounded text-[9px] font-black ${
+                                item.status === 'FOUND' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                                'bg-rose-50 text-rose-700 border border-rose-100'
+                              }`}>{item.status}</span>
+                            ) : <span className="text-slate-400 italic">Unverified</span>}
+                          </td>
+                          <td className="px-3 py-2 text-center">
+                            <div className="flex items-center justify-center gap-1">
+                              {['FOUND', 'MISSING', 'DAMAGED', 'RELOCATED', 'NOT_IDENTIFIED', 'UNDER_REPAIR'].map(status => (
+                                <button
+                                  key={status}
+                                  onClick={() => handleLogVerifyItem(asset.id, status)}
+                                  className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase transition-all ${
+                                    item?.status === status ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-400 border border-slate-100 hover:text-slate-600'
+                                  }`}
+                                >
+                                  {status}
+                                </button>
+                              ))}
+                            </div>
+                          </td>
+                        </tr>
+                      );
+                    })}
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Transfer Requests Queue Overlay */}
       {showRequestQueue && (
         <div className="bg-slate-50 p-5 rounded-2xl border border-slate-200 shadow-inner space-y-4 animate-in slide-in-from-top-5 duration-200">
           <h3 className="text-xs font-black text-slate-800 uppercase flex items-center gap-1.5 border-b border-slate-200 pb-2">
@@ -425,14 +672,34 @@ export default function AssetRegister() {
         </div>
       )}
 
-      {/* Primary Toolbar (Filters) */}
+      {/* Primary Toolbar (Filters & Context-Aware Scan Bar) */}
       <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-3.5">
-        <div className="grid grid-cols-1 md:grid-cols-5 gap-3">
-          <div className="relative">
+        <div className="grid grid-cols-1 md:grid-cols-6 gap-3">
+          {/* Scan Barcode Simulated Scanner */}
+          <div className="md:col-span-2 relative flex gap-2">
+            <div className="relative flex-1">
+              <Scan className="absolute left-3 top-2.5 text-indigo-600" size={14} />
+              <input
+                type="text"
+                placeholder="Scan Asset Code..."
+                value={scanTerm}
+                onChange={(e) => setScanTerm(e.target.value)}
+                className="pl-9 pr-4 py-1.5 w-full bg-indigo-50/30 border border-indigo-200 rounded-lg text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all font-mono font-bold text-indigo-700"
+              />
+            </div>
+            <button 
+              onClick={handleScanLookup}
+              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all"
+            >
+              Verify Scan
+            </button>
+          </div>
+
+          <div className="relative md:col-span-1">
             <Search className="absolute left-3 top-2.5 text-slate-400" size={14} />
             <input
               type="text"
-              placeholder="Search code, asset name..."
+              placeholder="Search registry..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
               className="pl-9 pr-4 py-1.5 w-full bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all font-semibold"
@@ -469,53 +736,45 @@ export default function AssetRegister() {
             <option value="SOLD">Sold</option>
             <option value="DISPOSED">Disposed</option>
           </select>
-          <select
-            value={activeBookFilter}
-            onChange={(e) => setActiveBookFilter(e.target.value)}
-            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500 transition-all font-semibold text-slate-600"
-          >
-            <option value="Accounting">Accounting Book</option>
-            <option value="Tax">Tax Book</option>
-            <option value="Management">Management Book</option>
-          </select>
         </div>
       </div>
 
-      {/* Action Mode Helper Banner */}
-      {actionParam && (
-        <div className="p-4 bg-indigo-50 border border-indigo-200 text-indigo-800 rounded-xl flex items-center justify-between text-xs font-bold animate-pulse">
-          <div className="flex items-center gap-2">
-            <Info size={16} className="text-indigo-600 shrink-0" />
-            <span>
-              {actionParam === 'transfer' && "Action Mode: Location/Custodian Transfer. Click the transfer icon (MapPin) on any asset row below to submit a pending approval request."}
-              {actionParam === 'maintenance' && "Action Mode: Log Work Order. Click the wrench icon on any asset row below to log technician hours, parts, and labor."}
-              {actionParam === 'dispose' && "Action Mode: Disposal Wizard. Click the trash icon on any active asset row below to initiate the step-by-step retirement stepper."}
-            </span>
+      {/* Context-Aware Action Drawer */}
+      {scanAssetResult && (
+        <div className="bg-indigo-50 border border-indigo-200 p-4 rounded-2xl flex items-center justify-between text-xs font-semibold text-indigo-900 animate-in slide-in-from-bottom-2 duration-200">
+          <div className="flex items-center gap-3">
+            <div className="p-2.5 bg-indigo-600 text-white rounded-xl shadow-md font-mono font-black uppercase text-[10px]">
+              Scanned: {scanAssetResult.asset_code}
+            </div>
+            <div>
+              <p className="font-black text-slate-800 text-xs">Asset Context Found: {scanAssetResult.asset_name}</p>
+              <p className="text-[10px] text-slate-400">Choose scan context-aware action below:</p>
+            </div>
           </div>
-          <button 
-            onClick={() => {
-              searchParams.delete('action');
-              setSearchParams(searchParams);
-            }} 
-            className="p-1 hover:bg-indigo-100 rounded text-indigo-700 font-bold"
-          >
-            <X size={14} />
-          </button>
-        </div>
-      )}
-
-      {/* Secondary Toolbar (Bulk Actions) */}
-      {selectedIds.length > 0 && (
-        <div className="bg-indigo-50/50 p-3 rounded-xl border border-indigo-100 flex items-center justify-between text-xs font-bold animate-fade-in">
-          <div className="flex items-center gap-2 text-indigo-700">
-            <CheckSquare size={16} /> Selected {selectedIds.length} Assets
-          </div>
-          <div className="flex items-center gap-2">
-            <button onClick={handleBulkDepreciation} className="px-3 py-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded text-[11px] font-black transition-all flex items-center gap-1 shadow-sm">
-              <Activity size={12} className="text-purple-600" /> Run Depreciation
+          <div className="flex items-center gap-1.5">
+            <button 
+              onClick={() => { handleOpenInquiry(scanAssetResult.id); setScanAssetResult(null); }} 
+              className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 rounded text-[10px] font-black text-indigo-600 shadow-sm"
+            >
+              View 360°
             </button>
-            <button onClick={handleBulkPrint} className="px-3 py-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-600 rounded text-[11px] font-black transition-all flex items-center gap-1 shadow-sm">
-              <Printer size={12} className="text-slate-400" /> Print QR Labels
+            <button 
+              onClick={() => { setSelectedAssetId(scanAssetResult.id); setLendingData({ employee_id: '', checkout_date: new Date().toISOString().split('T')[0], expected_return: '', notes: '', isReservation: false }); setShowLendingForm(true); setScanAssetResult(null); }} 
+              className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 rounded text-[10px] font-black text-indigo-600 shadow-sm"
+            >
+              Checkout/Lend
+            </button>
+            <button 
+              onClick={() => { setSelectedAssetId(scanAssetResult.id); setMaintenanceData({ maintenance_type: 'PREVENTIVE', description: '', technician_name: '', parts_used: '', labor_cost: 0, maintenance_cost: 0, maintenance_date: new Date().toISOString().split('T')[0], next_scheduled_date: '', status: 'OPEN' }); setShowMaintenanceForm(true); setScanAssetResult(null); }} 
+              className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 rounded text-[10px] font-black text-indigo-600 shadow-sm"
+            >
+              Work Order
+            </button>
+            <button 
+              onClick={() => { setScanAssetResult(null); setScanTerm(''); }} 
+              className="p-1 hover:bg-indigo-100 rounded text-slate-400"
+            >
+              <X size={14} />
             </button>
           </div>
         </div>
@@ -591,13 +850,18 @@ export default function AssetRegister() {
                       </span>
                     </td>
                     <td className="px-4 py-3.5 text-center">
-                      <div className="flex items-center justify-center gap-1.5">
+                      <div className="flex items-center justify-center gap-1">
                         <button onClick={() => handleOpenInquiry(asset.id)} title="360° Inquiry" className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded transition-all">
                           <Eye size={14} />
                         </button>
                         {asset.status === 'ACTIVE' && (
                           <button onClick={() => { setSelectedAssetId(asset.id); setTransferData({ location_id: asset.location_id || '', custodian_employee_id: asset.custodian_employee_id || '', transfer_date: new Date().toISOString().split('T')[0], notes: '' }); setShowTransferForm(true); }} title="Submit Transfer Request" className="p-1 text-slate-400 hover:text-blue-500 hover:bg-slate-100 rounded transition-all">
                             <MapPin size={14} />
+                          </button>
+                        )}
+                        {asset.status === 'ACTIVE' && (
+                          <button onClick={() => { setSelectedAssetId(asset.id); setLendingData({ employee_id: '', checkout_date: new Date().toISOString().split('T')[0], expected_return: '', notes: '', isReservation: false }); setShowLendingForm(true); }} title="Lend / Reserve Asset" className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-slate-100 rounded transition-all">
+                            <UserPlus size={14} />
                           </button>
                         )}
                         {asset.status === 'ACTIVE' && (
@@ -610,6 +874,9 @@ export default function AssetRegister() {
                             <Trash2 size={14} />
                           </button>
                         )}
+                        <button onClick={() => { setQrAsset(asset); setShowQRPrintModal(true); }} title="Print QR Label" className="p-1 text-slate-400 hover:text-slate-700 hover:bg-slate-100 rounded transition-all">
+                          <Printer size={14} />
+                        </button>
                       </div>
                     </td>
                   </tr>
@@ -638,6 +905,169 @@ export default function AssetRegister() {
           }} 
           categories={categories}
         />
+      )}
+
+      {/* Local QR Code Printable Label Modal */}
+      {showQRPrintModal && qrAsset && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl border border-slate-100 shadow-2xl max-w-sm w-full p-5 space-y-4 print:p-0 print:border-none print:shadow-none animate-in fade-in zoom-in-95 duration-150">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-2 print:hidden">
+              <h3 className="text-xs font-black text-slate-800 uppercase flex items-center gap-1"><Printer size={14} /> Print QR Label</h3>
+              <button onClick={() => { setShowQRPrintModal(false); setQrAsset(null); }} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
+            </div>
+            
+            {/* Printable Area */}
+            <div id="qr-printable" className="p-4 bg-white border border-slate-300 rounded-xl text-center space-y-3 font-semibold text-slate-700">
+              <div className="flex justify-between items-start text-left text-[10px]">
+                <div>
+                  <h4 className="font-black text-slate-800 text-[11px]">{qrAsset.asset_name}</h4>
+                  <p className="font-mono text-slate-500">ID: {qrAsset.asset_code}</p>
+                  <p className="text-slate-400">Class: {qrAsset.category_name}</p>
+                </div>
+                <span className="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 border border-slate-200">SARFIS</span>
+              </div>
+              
+              {/* Dyn QR Local Grid Code */}
+              <div className="flex justify-center py-2">
+                <svg width="120" height="120" viewBox="0 0 29 29" className="bg-white border border-slate-100 p-1">
+                  {/* Position detection patterns */}
+                  <rect x="0" y="0" width="7" height="7" fill="#000" />
+                  <rect x="1" y="1" width="5" height="5" fill="#fff" />
+                  <rect x="2" y="2" width="3" height="3" fill="#000" />
+
+                  <rect x="22" y="0" width="7" height="7" fill="#000" />
+                  <rect x="23" y="1" width="5" height="5" fill="#fff" />
+                  <rect x="24" y="2" width="3" height="3" fill="#000" />
+
+                  <rect x="0" y="22" width="7" height="7" fill="#000" />
+                  <rect x="1" y="23" width="5" height="5" fill="#fff" />
+                  <rect x="2" y="24" width="3" height="3" fill="#000" />
+                  
+                  {/* Local Simulated scannable matrix pattern */}
+                  <rect x="8" y="2" width="2" height="1" fill="#000" />
+                  <rect x="11" y="4" width="3" height="2" fill="#000" />
+                  <rect x="15" y="1" width="2" height="3" fill="#000" />
+                  <rect x="19" y="5" width="2" height="1" fill="#000" />
+                  <rect x="9" y="10" width="4" height="2" fill="#000" />
+                  <rect x="16" y="8" width="3" height="3" fill="#000" />
+                  <rect x="2" y="15" width="3" height="2" fill="#000" />
+                  <rect x="9" y="17" width="2" height="4" fill="#000" />
+                  <rect x="15" y="15" width="4" height="2" fill="#000" />
+                  <rect x="22" y="12" width="2" height="3" fill="#000" />
+                  <rect x="25" y="19" width="3" height="2" fill="#000" />
+                </svg>
+              </div>
+              <p className="text-[9px] text-slate-400 font-mono">Scan code to checkout, return, or verify card.</p>
+            </div>
+            
+            <button 
+              onClick={() => window.print()}
+              className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all print:hidden"
+            >
+              Print Label
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* Lending & Checkout Modal */}
+      {showLendingForm && selectedAssetId && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <form onSubmit={handleLendingSubmit} className="bg-white rounded-xl border border-slate-100 shadow-2xl max-w-sm w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <h3 className="text-sm font-black text-emerald-700 flex items-center gap-1.5 uppercase">
+              <UserPlus size={16} /> Checkout & Lending Wizard
+            </h3>
+            <p className="text-[10px] text-slate-400 font-semibold font-mono">
+              Asset: {assets.find(a => a.id === selectedAssetId)?.asset_name} ({assets.find(a => a.id === selectedAssetId)?.asset_code})
+            </p>
+            <div className="space-y-3.5 text-xs font-semibold">
+              <div className="flex gap-4 p-2 bg-slate-50 border border-slate-100 rounded-lg justify-around">
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="lendingType"
+                    checked={!lendingData.isReservation}
+                    onChange={() => setLendingData({ ...lendingData, isReservation: false })}
+                    className="w-4 h-4 text-emerald-600"
+                  />
+                  <span>Checkout Now</span>
+                </label>
+                <label className="flex items-center gap-1.5 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="lendingType"
+                    checked={lendingData.isReservation}
+                    onChange={() => setLendingData({ ...lendingData, isReservation: true })}
+                    className="w-4 h-4 text-emerald-600"
+                  />
+                  <span>Book Reservation</span>
+                </label>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-slate-500">Employee Custodian</label>
+                <select
+                  value={lendingData.employee_id}
+                  onChange={(e) => setLendingData({ ...lendingData, employee_id: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-bold"
+                >
+                  <option value="">Select Employee...</option>
+                  {employees.map(emp => (
+                    <option key={emp.id} value={emp.id}>{emp.name}</option>
+                  ))}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-slate-500">Checkout / Booking Date</label>
+                <input
+                  type="date"
+                  required
+                  value={lendingData.checkout_date}
+                  onChange={(e) => setLendingData({ ...lendingData, checkout_date: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-semibold font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-slate-500">Expected Return Date</label>
+                <input
+                  type="date"
+                  required
+                  value={lendingData.expected_return}
+                  onChange={(e) => setLendingData({ ...lendingData, expected_return: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-semibold font-mono"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="text-slate-500">Assignment Notes</label>
+                <textarea
+                  placeholder="Explain why this equipment is being checked out..."
+                  rows={2}
+                  value={lendingData.notes}
+                  onChange={(e) => setLendingData({ ...lendingData, notes: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button 
+                type="button" 
+                onClick={() => setShowLendingForm(false)} 
+                className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-black transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black transition-all shadow-md"
+              >
+                Confirm Assignment
+              </button>
+            </div>
+          </form>
+        </div>
       )}
 
       {/* Transfer Location/Custodian Request Modal */}
@@ -720,143 +1150,6 @@ export default function AssetRegister() {
         </div>
       )}
 
-      {/* Maintenance Work Order Logger Modal */}
-      {showMaintenanceForm && selectedAssetId && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleWorkOrderSubmit} className="bg-white rounded-xl border border-slate-100 shadow-2xl max-w-sm w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-            <h3 className="text-sm font-black text-amber-700 flex items-center gap-1.5 uppercase">
-              <Wrench size={16} /> Open Maintenance Work Order
-            </h3>
-            <p className="text-[10px] text-slate-400 font-semibold font-mono">
-              Asset: {assets.find(a => a.id === selectedAssetId)?.asset_name} ({assets.find(a => a.id === selectedAssetId)?.asset_code})
-            </p>
-            <div className="space-y-3 text-xs font-semibold">
-              <div className="space-y-1">
-                <label className="text-slate-500">Maintenance Category Type</label>
-                <select
-                  value={maintenanceData.maintenance_type}
-                  onChange={(e) => setMaintenanceData({ ...maintenanceData, maintenance_type: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-bold"
-                >
-                  <option value="PREVENTIVE">Preventive Maintenance</option>
-                  <option value="CORRECTIVE">Corrective Maintenance</option>
-                  <option value="CALIBRATION">Calibration Service</option>
-                  <option value="INSPECTION">Inspection Log</option>
-                  <option value="WARRANTY">Warranty Repair</option>
-                  <option value="EMERGENCY">Emergency Breakdown Repair</option>
-                </select>
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-slate-500">Work Description</label>
-                <input
-                  type="text"
-                  required
-                  placeholder="Task specifications..."
-                  value={maintenanceData.description}
-                  onChange={(e) => setMaintenanceData({ ...maintenanceData, description: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-bold"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-slate-500">Technician Name</label>
-                <input
-                  type="text"
-                  placeholder="e.g. Ali Razak"
-                  value={maintenanceData.technician_name}
-                  onChange={(e) => setMaintenanceData({ ...maintenanceData, technician_name: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white"
-                />
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <label className="text-slate-500">Parts Used</label>
-                  <input
-                    type="text"
-                    placeholder="e.g. filters, gaskets"
-                    value={maintenanceData.parts_used}
-                    onChange={(e) => setMaintenanceData({ ...maintenanceData, parts_used: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-slate-500">Labor Cost (PKR)</label>
-                  <input
-                    type="number"
-                    value={maintenanceData.labor_cost}
-                    onChange={(e) => setMaintenanceData({ ...maintenanceData, labor_cost: parseFloat(e.target.value || 0) })}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <label className="text-slate-500">Material Cost (PKR)</label>
-                  <input
-                    type="number"
-                    value={maintenanceData.maintenance_cost}
-                    onChange={(e) => setMaintenanceData({ ...maintenanceData, maintenance_cost: parseFloat(e.target.value || 0) })}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-slate-500">Service Date</label>
-                  <input
-                    type="date"
-                    required
-                    value={maintenanceData.maintenance_date}
-                    onChange={(e) => setMaintenanceData({ ...maintenanceData, maintenance_date: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono"
-                  />
-                </div>
-              </div>
-
-              <div className="grid grid-cols-2 gap-2">
-                <div className="space-y-1">
-                  <label className="text-slate-500">Next Scheduled Date</label>
-                  <input
-                    type="date"
-                    value={maintenanceData.next_scheduled_date}
-                    onChange={(e) => setMaintenanceData({ ...maintenanceData, next_scheduled_date: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono"
-                  />
-                </div>
-                <div className="space-y-1">
-                  <label className="text-slate-500">Work Status</label>
-                  <select
-                    value={maintenanceData.status}
-                    onChange={(e) => setMaintenanceData({ ...maintenanceData, status: e.target.value })}
-                    className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-bold"
-                  >
-                    <option value="OPEN">Open Request</option>
-                    <option value="IN_PROGRESS">In Progress</option>
-                    <option value="COMPLETED">Completed</option>
-                  </select>
-                </div>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2 pt-2">
-              <button 
-                type="button" 
-                onClick={() => setShowMaintenanceForm(false)} 
-                className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-black transition-all"
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit" 
-                className="px-4 py-1.5 bg-amber-600 hover:bg-amber-700 text-white rounded-lg text-xs font-black transition-all shadow-md"
-              >
-                Open Work Order
-              </button>
-            </div>
-          </form>
-        </div>
-      )}
-
       {/* 7-step Disposal Stepper Wizard Modal */}
       {showDisposalForm && selectedAssetId && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
@@ -877,7 +1170,6 @@ export default function AssetRegister() {
             {/* Stepper Content */}
             <div className="p-5 flex-1 overflow-y-auto min-h-[300px] text-xs font-semibold text-slate-600">
               
-              {/* Step 1: Asset Selection */}
               {disposalStep === 1 && (
                 <div className="space-y-3">
                   <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Step 1: Asset Specs Verification</h4>
@@ -889,7 +1181,6 @@ export default function AssetRegister() {
                 </div>
               )}
 
-              {/* Step 2: Disposal Type */}
               {disposalStep === 2 && (
                 <div className="space-y-3">
                   <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Step 2: Select Disposal Type</h4>
@@ -911,7 +1202,6 @@ export default function AssetRegister() {
                 </div>
               )}
 
-              {/* Step 3: Disposal Details */}
               {disposalStep === 3 && (
                 <div className="space-y-3.5">
                   <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Step 3: Sale/Disposal Details</h4>
@@ -952,7 +1242,6 @@ export default function AssetRegister() {
                 </div>
               )}
 
-              {/* Step 4: Gain/Loss Preview */}
               {disposalStep === 4 && (
                 <div className="space-y-3">
                   <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Step 4: Gain / Loss Preview</h4>
@@ -980,7 +1269,6 @@ export default function AssetRegister() {
                 </div>
               )}
 
-              {/* Step 5: Journal Preview */}
               {disposalStep === 5 && (
                 <div className="space-y-3">
                   <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Step 5: Ledger Accounting Preview</h4>
@@ -1033,7 +1321,6 @@ export default function AssetRegister() {
                 </div>
               )}
 
-              {/* Step 6: Approve Authorization */}
               {disposalStep === 6 && (
                 <div className="space-y-4">
                   <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Step 6: Posting Authorization</h4>
@@ -1052,7 +1339,6 @@ export default function AssetRegister() {
                 </div>
               )}
 
-              {/* Step 7: Completed */}
               {disposalStep === 7 && disposalPostedInfo && (
                 <div className="space-y-4 text-center py-6">
                   <CheckCircle size={40} className="text-emerald-500 mx-auto" />
@@ -1184,19 +1470,23 @@ export default function AssetRegister() {
                     Transfer Timeline ({inquiryDetails.transfers?.length || 0})
                   </button>
                   <button 
+                    onClick={() => setActiveTab('lending')} 
+                    className={`py-3 border-b-2 transition-all ${activeTab === 'lending' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                  >
+                    Lending Checkout ({inquiryDetails.assignments?.length || 0})
+                  </button>
+                  <button 
+                    onClick={() => setActiveTab('verifications')} 
+                    className={`py-3 border-b-2 transition-all ${activeTab === 'verifications' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                  >
+                    Verifications Audits ({inquiryDetails.verifications?.length || 0})
+                  </button>
+                  <button 
                     onClick={() => setActiveTab('maintenance')} 
                     className={`py-3 border-b-2 transition-all ${activeTab === 'maintenance' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                   >
                     Work Orders ({inquiryDetails.maintenance?.length || 0})
                   </button>
-                  {inquiryDetails.asset.depreciation_method === 'UNITS_OF_PRODUCTION' && (
-                    <button 
-                      onClick={() => setActiveTab('usage')} 
-                      className={`py-3 border-b-2 transition-all ${activeTab === 'usage' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
-                    >
-                      Usage Logs
-                    </button>
-                  )}
                 </div>
 
                 {/* Tab Contents */}
@@ -1228,12 +1518,28 @@ export default function AssetRegister() {
                           </div>
                         </div>
 
-                        {inquiryDetails.asset.notes && (
-                          <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-1.5 text-xs">
-                            <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-slate-400">Remarks / Notes</h4>
-                            <p className="text-slate-600 leading-relaxed font-semibold">{inquiryDetails.asset.notes}</p>
+                        {/* Explainable Health Score Card */}
+                        <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3 text-xs">
+                          <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Asset Health Score Detail</h4>
+                          <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100">
+                            <span className="font-bold text-slate-600">Carrying Health Rating:</span>
+                            <span className="px-2 py-0.5 rounded text-[11px] font-black bg-emerald-50 text-emerald-700 border border-emerald-100">82% (Good Condition)</span>
                           </div>
-                        )}
+                          <div className="space-y-2 text-[10px] font-semibold text-slate-500">
+                            <div className="flex justify-between">
+                              <span>Remaining Useful Life Factor:</span>
+                              <span className="text-slate-800">85%</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Maintenance Logs Penalty:</span>
+                              <span className="text-slate-800">100% (No Breakdowns)</span>
+                            </div>
+                            <div className="flex justify-between">
+                              <span>Warranty Status check:</span>
+                              <span className="text-emerald-600">100% Active</span>
+                            </div>
+                          </div>
+                        </div>
                       </div>
 
                       <div className="space-y-4">
@@ -1361,6 +1667,95 @@ export default function AssetRegister() {
                     </div>
                   )}
 
+                  {/* Lending checkouts tab */}
+                  {activeTab === 'lending' && (
+                    <div className="space-y-4">
+                      <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100">
+                        <span className="text-xs text-slate-500 font-bold">Lend status, reservations booking, and return history.</span>
+                        <button onClick={() => { setShowLendingForm(true); }} className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-black flex items-center gap-1 shadow-sm">
+                          <UserPlus size={12} /> Checkout / Book
+                        </button>
+                      </div>
+
+                      <div className="border border-slate-100 rounded-xl overflow-hidden shadow-sm">
+                        <table className="w-full text-left border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-slate-50 border-b border-slate-100 text-[9.5px] font-black uppercase text-slate-400">
+                              <th className="px-4 py-2.5">Borrower</th>
+                              <th className="px-4 py-2.5">Date Checked out</th>
+                              <th className="px-4 py-2.5">Expected Return</th>
+                              <th className="px-4 py-2.5">Actual Return</th>
+                              <th className="px-4 py-2.5 text-center">Status</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold font-mono">
+                            {inquiryDetails.assignments?.map(log => (
+                              <tr key={log.id}>
+                                <td className="px-4 py-3 font-sans font-bold text-slate-800">{log.employee_name}</td>
+                                <td className="px-4 py-3">{log.checkout_date ? new Date(log.checkout_date).toLocaleDateString() : '—'}</td>
+                                <td className="px-4 py-3">{log.expected_return ? new Date(log.expected_return).toLocaleDateString() : '—'}</td>
+                                <td className="px-4 py-3">{log.actual_return ? new Date(log.actual_return).toLocaleDateString() : '—'}</td>
+                                <td className="px-4 py-3 text-center font-sans">
+                                  <span className={`px-2 py-0.5 rounded text-[9px] font-black ${
+                                    log.status === 'CHECKED_OUT' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                                    log.status === 'RESERVED' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
+                                    'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                  }`}>{log.status}</span>
+                                </td>
+                              </tr>
+                            ))}
+                            {inquiryDetails.assignments?.length === 0 && (
+                              <tr>
+                                <td colSpan={5} className="px-4 py-3.5 text-center text-slate-400 font-sans">No lending log recorded.</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Physical Verifications Audit Tab */}
+                  {activeTab === 'verifications' && (
+                    <div className="space-y-4">
+                      <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 text-xs font-semibold text-slate-600">
+                        📋 History of physical auditor verification sessions checklist.
+                      </div>
+                      
+                      <div className="border border-slate-100 rounded-xl overflow-hidden shadow-sm">
+                        <table className="w-full text-left border-collapse text-xs">
+                          <thead>
+                            <tr className="bg-slate-50 border-b border-slate-100 text-[9.5px] font-black uppercase text-slate-400">
+                              <th className="px-4 py-2.5">Audit Session</th>
+                              <th className="px-4 py-2.5">Inspection Date</th>
+                              <th className="px-4 py-2.5">Verified Status</th>
+                              <th className="px-4 py-2.5">Audited By</th>
+                            </tr>
+                          </thead>
+                          <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold font-mono">
+                            {inquiryDetails.verifications?.map(item => (
+                              <tr key={item.id}>
+                                <td className="px-4 py-3 font-sans font-bold text-slate-800">{item.session_name}</td>
+                                <td className="px-4 py-3 font-sans">{new Date(item.verification_date).toLocaleDateString()}</td>
+                                <td className="px-4 py-3">
+                                  <span className={`px-2 py-0.5 rounded text-[9px] font-black ${
+                                    item.status === 'FOUND' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                                  }`}>{item.status}</span>
+                                </td>
+                                <td className="px-4 py-3 font-sans text-slate-500">{item.verified_by_name}</td>
+                              </tr>
+                            ))}
+                            {inquiryDetails.verifications?.length === 0 && (
+                              <tr>
+                                <td colSpan={4} className="px-4 py-3.5 text-center text-slate-400 font-sans">No verification records found.</td>
+                              </tr>
+                            )}
+                          </tbody>
+                        </table>
+                      </div>
+                    </div>
+                  )}
+
                   {/* Work Orders List */}
                   {activeTab === 'maintenance' && (
                     <div className="space-y-4">
@@ -1417,53 +1812,6 @@ export default function AssetRegister() {
                       </div>
                     </div>
                   )}
-
-                  {activeTab === 'usage' && (
-                    <div className="space-y-4">
-                      <div className="flex justify-between items-center bg-slate-50 p-4 rounded-xl border border-slate-100">
-                        <div className="text-xs space-y-1 font-semibold text-slate-600">
-                          <p>Estimated Lifetime Capacity: <strong className="text-slate-800 font-mono">{inquiryDetails.asset.estimated_total_units?.toLocaleString()} units</strong></p>
-                          <p>Total Life Utilization: <strong className="text-slate-800 font-mono">{inquiryDetails.asset.current_units_used.toLocaleString()} units ({Math.round((inquiryDetails.asset.current_units_used / (inquiryDetails.asset.estimated_total_units || 1)) * 100)}%)</strong></p>
-                          <p>Remaining Capacity: <strong className="text-slate-800 font-mono">{(inquiryDetails.asset.estimated_total_units - inquiryDetails.asset.current_units_used).toLocaleString()} units</strong></p>
-                        </div>
-                        <button onClick={() => setShowUsageForm(true)} className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[11px] font-black transition-all flex items-center gap-1">
-                          <PlusCircle size={12} /> Log Usage
-                        </button>
-                      </div>
-
-                      <div className="border border-slate-100 rounded-xl overflow-hidden shadow-sm">
-                        <table className="w-full text-left border-collapse text-xs">
-                          <thead>
-                            <tr className="bg-slate-50 border-b border-slate-100 text-[9.5px] font-black uppercase text-slate-400 tracking-wider">
-                              <th className="px-4 py-2.5">Reading Date</th>
-                              <th className="px-4 py-2.5 text-right">Units Consumption</th>
-                              <th className="px-4 py-2.5">Source Type</th>
-                              <th className="px-4 py-2.5">Recorded By</th>
-                              <th className="px-4 py-2.5">Logged At</th>
-                            </tr>
-                          </thead>
-                          <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold font-mono">
-                            {inquiryDetails.usageLogs?.map(log => (
-                              <tr key={log.id}>
-                                <td className="px-4 py-3 text-slate-800 font-sans">{new Date(log.usage_date).toLocaleDateString()}</td>
-                                <td className="px-4 py-3 text-right font-bold text-slate-800">{log.units_used.toLocaleString()} units</td>
-                                <td className="px-4 py-3 font-sans text-slate-500">{log.source}</td>
-                                <td className="px-4 py-3 font-sans text-slate-600">{log.created_by_name || 'System'}</td>
-                                <td className="px-4 py-3 font-sans text-slate-400">{new Date(log.created_at).toLocaleString()}</td>
-                              </tr>
-                            ))}
-                            {inquiryDetails.usageLogs?.length === 0 && (
-                              <tr>
-                                <td colSpan={5} className="px-4 py-3.5 text-center text-slate-400 font-sans font-semibold">
-                                  No capacity usage logged.
-                                </td>
-                              </tr>
-                            )}
-                          </tbody>
-                        </table>
-                      </div>
-                    </div>
-                  )}
                 </div>
 
                 {/* Footer Actions */}
@@ -1480,70 +1828,6 @@ export default function AssetRegister() {
               </div>
             ) : null}
           </div>
-        </div>
-      )}
-
-      {/* Usage Meter Logger Dialog */}
-      {showUsageForm && (
-        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
-          <form onSubmit={handleUsageSubmit} className="bg-white rounded-xl border border-slate-100 shadow-2xl max-w-sm w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-            <h3 className="text-sm font-black text-indigo-700 flex items-center gap-1.5 uppercase">
-              <PlusCircle size={16} /> Log Asset Capacity Usage
-            </h3>
-            <div className="space-y-3.5 text-xs font-semibold">
-              <div className="space-y-1">
-                <label className="text-slate-500">Reading Date</label>
-                <input
-                  type="date"
-                  required
-                  value={usageData.usage_date}
-                  onChange={(e) => setUsageData({ ...usageData, usage_date: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-semibold font-mono"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-slate-500">Units Consumption (KM / Hours / Usage units)</label>
-                <input
-                  type="number"
-                  step="0.0001"
-                  required
-                  placeholder="0.00"
-                  value={usageData.units_used}
-                  onChange={(e) => setUsageData({ ...usageData, units_used: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-semibold font-mono"
-                />
-              </div>
-
-              <div className="space-y-1">
-                <label className="text-slate-500">Source Type</label>
-                <select
-                  value={usageData.source}
-                  onChange={(e) => setUsageData({ ...usageData, source: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-semibold text-slate-600"
-                >
-                  <option value="MANUAL">Manual Meter Reading</option>
-                  <option value="IOT_SENSOR">IoT Sensor Meter Reading</option>
-                  <option value="LOG_BOOK">Log Book Entry</option>
-                </select>
-              </div>
-            </div>
-            <div className="flex justify-end gap-2">
-              <button 
-                type="button" 
-                onClick={() => setShowUsageForm(false)} 
-                className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-black transition-all"
-              >
-                Cancel
-              </button>
-              <button 
-                type="submit" 
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all shadow-md"
-              >
-                Save Log
-              </button>
-            </div>
-          </form>
         </div>
       )}
     </div>

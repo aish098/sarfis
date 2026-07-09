@@ -217,6 +217,103 @@ class FixedAssetsController {
       next(err);
     }
   }
+
+  // Reservation & Checkout
+  static async reserveAsset(req, res, next) {
+    try {
+      const companyId = req.headers['x-company-id'] || 1;
+      const userId = req.user?.id || 1;
+      const result = await AssetMovementService.reserveAsset(companyId, userId, req.body);
+      res.status(201).json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async checkoutAsset(req, res, next) {
+    try {
+      const companyId = req.headers['x-company-id'] || 1;
+      const userId = req.user?.id || 1;
+      const result = await AssetMovementService.checkoutAsset(companyId, userId, req.body);
+      res.status(201).json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async checkinAsset(req, res, next) {
+    try {
+      const companyId = req.headers['x-company-id'] || 1;
+      const userId = req.user?.id || 1;
+      const result = await AssetMovementService.checkinAsset(companyId, userId, req.params.id, req.body);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async getAssignments(req, res, next) {
+    try {
+      const companyId = req.headers['x-company-id'] || 1;
+      const result = await AssetMovementService.getAssignments(companyId);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  // Physical Verification
+  static async createVerificationSession(req, res, next) {
+    try {
+      const companyId = req.headers['x-company-id'] || 1;
+      const userId = req.user?.id || 1;
+      const result = await AssetMovementService.createVerificationSession(companyId, userId, req.body);
+      res.status(201).json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async getVerificationSessions(req, res, next) {
+    try {
+      const companyId = req.headers['x-company-id'] || 1;
+      const result = await AssetMovementService.getVerificationSessions(companyId);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async getVerificationSessionItems(req, res, next) {
+    try {
+      const result = await AssetMovementService.getVerificationSessionItems(req.params.id);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async logVerificationItem(req, res, next) {
+    try {
+      const companyId = req.headers['x-company-id'] || 1;
+      const userId = req.user?.id || 1;
+      const result = await AssetMovementService.logVerificationItem(companyId, userId, req.body);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
+
+  static async completeVerificationSession(req, res, next) {
+    try {
+      const companyId = req.headers['x-company-id'] || 1;
+      const userId = req.user?.id || 1;
+      const result = await AssetMovementService.completeVerificationSession(companyId, userId, req.params.id, req.body.status);
+      res.json(result);
+    } catch (err) {
+      next(err);
+    }
+  }
 }
 
 module.exports = FixedAssetsController;

@@ -179,7 +179,6 @@ class AssetMovementService {
 
     const id = extractId(insertResult);
 
-    // If initial status is COMPLETED, log to ledger immediately
     if (data.status === 'COMPLETED') {
       await db('asset_ledger').insert({
         company_id: companyId,
@@ -233,7 +232,6 @@ class AssetMovementService {
         });
 
       if (isTransitioningToComplete) {
-        // Log to ledger
         const total = parseFloat(data.maintenance_cost || 0) + parseFloat(data.labor_cost || 0);
         await trx('asset_ledger').insert({
           company_id: companyId,
@@ -248,6 +246,149 @@ class AssetMovementService {
 
       return { success: true };
     });
+  }
+
+  // =========================================================================
+  // RESERVATION & CHECKOUT PIPELINE
+  // =========================================================================
+
+  static async reserveAsset(companyId, userId, data) {
+    const insertResult = await db('asset_assignments')
+      .insert({
+        company_id: companyId,
+        asset_id: data.asset_id,
+        employee_id: data.employee_id,
+        checkout_date: data.checkout_date || null,
+        expected_return: data.expected_return || null,
+        status: 'RESERVED',
+        notes: data.notes || '',
+        created_by: userId
+      })
+      .returning('id');
+    const id = extractId(insertResult);
+    return { id, status: 'RESERVED' };
+  }
+
+  static async checkoutAsset(companyId, userId, data) {
+    if (data.assignment_id) {
+      // Transition from Reserved to Checked Out
+      await db('asset_assignments')
+        .where({ id: data.assignment_id, company_id: companyId })
+        .update({
+          status: 'CHECKED_OUT',
+          checkout_date: data.checkout_date || new Date().toISOString().split('T')[0],
+          updated_at: db.fn.now()
+        });
+      return { id: data.assignment_id, status: 'CHECKED_OUT' };
+    } else {
+      // Direct checkout
+      const insertResult = await db('asset_assignments')
+        .insert({
+          company_id: companyId,
+          asset_id: data.asset_id,
+          employee_id: data.employee_id,
+          checkout_date: data.checkout_date || new Date().toISOString().split('T')[0],
+          expected_return: data.expected_return || null,
+          status: 'CHECKED_OUT',
+          notes: data.notes || '',
+          created_by: userId
+        })
+        .returning('id');
+      const id = extractId(insertResult);
+      return { id, status: 'CHECKED_OUT' };
+    }
+  }
+
+  static async checkinAsset(companyId, userId, assignmentId, data) {
+    await db('asset_assignments')
+      .where({ id: assignmentId, company_id: companyId })
+      .update({
+        status: 'RETURNED',
+        actual_return: data.actual_return || new Date().toISOString().split('T')[0],
+        notes: data.notes || '',
+        updated_at: db.fn.now()
+      });
+    return { success: true };
+  }
+
+  static async getAssignments(companyId) {
+    return await db('asset_assignments as g')
+      .leftJoin('assets as a', 'g.asset_id', 'a.id')
+      .leftJoin('employees as e', 'g.employee_id', 'e.id')
+      .where({ 'g.company_id': companyId })
+      .select('g.*', 'a.asset_name', 'a.asset_code', 'e.name as employee_name')
+      .orderBy('g.checkout_date', 'desc');
+  }
+
+  // =========================================================================
+  // PHYSICAL VERIFICATIONS PIPELINE
+  // =========================================================================
+
+  static async createVerificationSession(companyId, userId, data) {
+    const insertResult = await db('asset_verification_sessions')
+      .insert({
+        company_id: companyId,
+        session_name: data.session_name,
+        verification_date: data.verification_date || new Date().toISOString().split('T')[0],
+        status: 'PLANNED',
+        created_by: userId
+      })
+      .returning('id');
+    const id = extractId(insertResult);
+    return { id, status: 'PLANNED' };
+  }
+
+  static async getVerificationSessions(companyId) {
+    return await db('asset_verification_sessions')
+      .where({ company_id: companyId })
+      .orderBy('created_at', 'desc');
+  }
+
+  static async getVerificationSessionItems(sessionId) {
+    return await db('asset_verification_items as vi')
+      .leftJoin('assets as a', 'vi.asset_id', 'a.id')
+      .leftJoin('users as u', 'vi.verified_by', 'u.id')
+      .where({ 'vi.session_id': sessionId })
+      .select('vi.*', 'a.asset_name', 'a.asset_code', 'u.name as verified_by_name');
+  }
+
+  static async logVerificationItem(companyId, userId, data) {
+    const existing = await db('asset_verification_items')
+      .where({ session_id: data.session_id, asset_id: data.asset_id })
+      .first();
+
+    if (existing) {
+      await db('asset_verification_items')
+        .where({ id: existing.id })
+        .update({
+          status: data.status || 'FOUND',
+          notes: data.notes || '',
+          verified_by: userId,
+          verified_at: db.fn.now()
+        });
+      return { success: true };
+    } else {
+      await db('asset_verification_items')
+        .insert({
+          session_id: data.session_id,
+          asset_id: data.asset_id,
+          status: data.status || 'FOUND',
+          notes: data.notes || '',
+          verified_by: userId,
+          verified_at: db.fn.now()
+        });
+      return { success: true };
+    }
+  }
+
+  static async completeVerificationSession(companyId, userId, sessionId, status = 'COMPLETED') {
+    await db('asset_verification_sessions')
+      .where({ id: sessionId, company_id: companyId })
+      .update({
+        status,
+        updated_at: db.fn.now()
+      });
+    return { success: true };
   }
 
   // =========================================================================
@@ -311,7 +452,6 @@ class AssetMovementService {
         journalLines.push({ accountId: disposalGainLossAccount, debit: -gainLoss, credit: 0 });
       }
 
-      // Query Sequence
       const seqRecord = await trx('voucher_sequences')
         .where({ company_id: companyId, type: 'JOURNAL' })
         .forUpdate()
@@ -333,7 +473,6 @@ class AssetMovementService {
         lines: journalLines
       };
 
-      // Create Voucher
       const insertResult = await trx('vouchers')
         .insert({
           company_id: companyId,
@@ -349,7 +488,6 @@ class AssetMovementService {
         .returning('id');
       const voucherId = extractId(insertResult);
 
-      // Post Transaction
       const { journalEntryId } = await PostingEngineService.postTransaction({
         type: 'JOURNAL',
         companyId,
@@ -358,23 +496,19 @@ class AssetMovementService {
         voucherId
       }, trx);
 
-      // Update Voucher status
       await trx('vouchers')
         .where({ id: voucherId })
         .update({ status: 'POSTED', updated_at: trx.fn.now() });
 
-      // Update Asset Status to Disposed/Sold
       const newStatus = data.disposal_type === 'Sale' ? 'SOLD' : 'DISPOSED';
       await trx('assets')
         .where({ id: asset.id })
         .update({ status: newStatus, updated_at: trx.fn.now() });
 
-      // Zero out books
       await trx('asset_depreciation_books')
         .where({ asset_id: asset.id })
         .update({ current_book_value: 0.00, updated_at: trx.fn.now() });
 
-      // Write sub-ledger record
       await trx('asset_ledger').insert({
         company_id: companyId,
         asset_id: asset.id,

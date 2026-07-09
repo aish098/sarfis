@@ -104,6 +104,22 @@ class AssetInquiryService {
 
     const revaluation = []; // Reserved for future Revaluation runs
 
+    // Fetch assignments and verifications
+    const assignments = await db('asset_assignments as g')
+      .leftJoin('employees as e', 'g.employee_id', 'e.id')
+      .leftJoin('users as u', 'g.created_by', 'u.id')
+      .where({ 'g.asset_id': assetId, 'g.company_id': companyId })
+      .select('g.*', 'e.name as employee_name', 'u.name as created_by_name')
+      .orderBy('g.checkout_date', 'desc')
+      .orderBy('g.created_at', 'desc');
+
+    const verifications = await db('asset_verification_items as vi')
+      .leftJoin('asset_verification_sessions as vs', 'vi.session_id', 'vs.id')
+      .leftJoin('users as u', 'vi.verified_by', 'u.id')
+      .where({ 'vi.asset_id': assetId })
+      .select('vi.*', 'vs.session_name', 'vs.verification_date', 'u.name as verified_by_name')
+      .orderBy('vs.verification_date', 'desc');
+
     // 6. Fetch Disposal Details if the asset status is DISPOSED or SOLD
     let disposal = null;
     if (asset.status === 'DISPOSED' || asset.status === 'SOLD') {
@@ -139,6 +155,8 @@ class AssetInquiryService {
       usageLogs,
       maintenance,
       transfers,
+      assignments,
+      verifications,
       revaluation,
       disposal,
       audit

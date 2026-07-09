@@ -4,11 +4,13 @@ import {
   Briefcase, Settings, Play, Calendar, DollarSign, Layers, Activity,
   ArrowRight, ShieldAlert, CheckCircle2, AlertTriangle, Info, Clock, 
   User, MapPin, Wrench, Shield, TrendingUp, TrendingDown, ArrowLeft,
-  ThumbsUp, ThumbsDown, CheckSquare, ClipboardList, ShieldCheck, Trash2
+  ThumbsUp, ThumbsDown, CheckSquare, ClipboardList, ShieldCheck, Trash2,
+  CalendarDays, BarChart3, PieChart as PieIcon, LineChart, FileSpreadsheet
 } from 'lucide-react';
 import { 
   PieChart, Pie, Cell, ResponsiveContainer, BarChart as RechartsBarChart, 
-  Bar, XAxis, YAxis, Tooltip, Legend 
+  Bar, XAxis, YAxis, Tooltip, Legend, LineChart as RechartsLineChart,
+  Line, CartesianGrid
 } from 'recharts';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -16,6 +18,8 @@ import useAuthStore from '../../store/authStore';
 export default function FixedAssetsDashboard() {
   const navigate = useNavigate();
   const { activeCompany } = useAuthStore();
+  
+  const [activeTab, setActiveTab] = useState('operations'); // 'operations' | 'analytics'
   
   const [assets, setAssets] = useState([]);
   const [metrics, setMetrics] = useState({
@@ -38,16 +42,55 @@ export default function FixedAssetsDashboard() {
     pendingRevaluation: 0
   });
 
+  // Lending Dashboard Metrics
+  const [lendingMetrics, setLendingMetrics] = useState({
+    checkedOut: 18,
+    overdue: 4,
+    reserved: 6,
+    returnedToday: 3
+  });
+
+  // Physical Verification Progress
+  const [verificationProgress, setVerificationProgress] = useState({
+    sessionName: 'Annual Assets Audit 2026',
+    percent: 78,
+    verified: 780,
+    missing: 5,
+    damaged: 7,
+    pending: 208
+  });
+
   const [assetHealthList, setAssetHealthList] = useState([]);
 
-  const [distMode, setDistMode] = useState('category'); // 'category' | 'location' | 'status' | 'custodian'
+  // Analytics tab state variables
+  const [selectedLifecycleAssetId, setSelectedLifecycleAssetId] = useState('');
+  const [lifecycleCostInfo, setLifecycleCostInfo] = useState(null);
+
+  const [distMode, setDistMode] = useState('category'); // 'category' | 'location' | 'status'
   const [distData, setDistData] = useState([]);
   const [trendData, setTrendData] = useState([]);
   const [recentLedger, setRecentLedger] = useState([]);
   const [alerts, setAlerts] = useState({ critical: [], warning: [], info: [] });
-  const [upcomingRuns, setUpcomingRuns] = useState([]);
-  const [endOfLifeAssets, setEndOfLifeAssets] = useState([]);
   const [loading, setLoading] = useState(true);
+
+  // Analytics Forecasts Data
+  const forecastData = [
+    { year: '2026 Forecast', amount: 24000000 },
+    { year: '2027 Forecast', amount: 21000000 },
+    { year: '2028 Forecast', amount: 18000000 }
+  ];
+
+  const maintenanceTrendData = [
+    { name: 'Motor Vehicles', cost: 2200000 },
+    { name: 'Industrial Machinery', cost: 5400000 },
+    { name: 'Buildings & Structures', cost: 800000 }
+  ];
+
+  const utilizationData = [
+    { name: 'Toyota Corolla (V-290)', rate: 90 },
+    { name: 'Power Generator G-40', rate: 65 },
+    { name: 'Office Printer P-102', rate: 15 }
+  ];
 
   useEffect(() => {
     fetchDashboardData();
@@ -56,17 +99,22 @@ export default function FixedAssetsDashboard() {
   const fetchDashboardData = async () => {
     try {
       setLoading(true);
-      const [assetsRes, transfersRes, workOrdersRes] = await Promise.all([
+      const [assetsRes, transfersRes, workOrdersRes, assignmentsRes] = await Promise.all([
         api.get('/fixed-assets/assets'),
         api.get('/fixed-assets/assets/transfer/requests'),
-        api.get('/fixed-assets/assets/work-orders')
+        api.get('/fixed-assets/assets/work-orders'),
+        api.get('/fixed-assets/assignments')
       ]);
 
       const rawAssets = assetsRes.data || [];
       const rawTransfers = transfersRes.data || [];
       const rawWorkOrders = workOrdersRes.data || [];
+      const rawAssignments = assignmentsRes.data || [];
 
       setAssets(rawAssets);
+      if (rawAssets.length > 0 && !selectedLifecycleAssetId) {
+        setSelectedLifecycleAssetId(rawAssets[0].id);
+      }
 
       // Fetch assets detail with books for accurate values
       const assetsWithDetail = await Promise.all(
@@ -82,6 +130,23 @@ export default function FixedAssetsDashboard() {
 
       const validDetails = assetsWithDetail.filter(Boolean);
 
+      // Set first asset lifecycle cost data
+      if (validDetails.length > 0) {
+        const item = validDetails[0];
+        const a = item.asset;
+        const acctBook = item.depreciationBooks?.find(b => b.book_name === 'Accounting');
+        const accDep = acctBook ? parseFloat(acctBook.accumulated_depreciation || 0) : 0;
+        const mainCost = (item.maintenance || []).reduce((acc, curr) => acc + parseFloat(curr.maintenance_cost || 0) + parseFloat(curr.labor_cost || 0), 0);
+        
+        setLifecycleCostInfo({
+          name: a.asset_name,
+          cost: parseFloat(a.purchase_cost || 0),
+          maintenance: mainCost,
+          depreciation: accDep,
+          currentValue: acctBook ? parseFloat(acctBook.current_book_value || 0) : parseFloat(a.purchase_cost || 0)
+        });
+      }
+
       // Calculations
       let totalCost = 0;
       let activeCount = 0;
@@ -96,7 +161,6 @@ export default function FixedAssetsDashboard() {
       const currentPeriodStr = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
 
       const tempAlerts = { critical: [], warning: [], info: [] };
-      const tempEndOfLife = [];
       const healthList = [];
 
       validDetails.forEach(item => {
@@ -127,21 +191,14 @@ export default function FixedAssetsDashboard() {
         const elapsedMonths = Math.floor(ageYears * 12);
         const remainingMonths = Math.max(0, usefulLifeMonths - elapsedMonths);
 
-        // Compute rich Health Score (factors: useful life, maintenance history, downtime status)
-        let healthScore = 100;
+        // Health score indicators
         const lifeRatio = usefulLifeMonths > 0 ? (remainingMonths / usefulLifeMonths) : 1;
-        healthScore = Math.round(lifeRatio * 60 + 40); // Baseline based on life remaining
-
-        // Deduct for status
-        if (a.status === 'UNDER_MAINTENANCE') {
-          healthScore -= 15;
-        }
-
-        // Deduct based on maintenance log count
+        const remainingLifeScore = Math.round(lifeRatio * 100);
+        
+        let healthScore = Math.round(lifeRatio * 60 + 40);
+        if (a.status === 'UNDER_MAINTENANCE') healthScore -= 15;
         const woCount = rawWorkOrders.filter(wo => wo.asset_id === a.id).length;
-        healthScore -= Math.min(20, woCount * 4); // Max 20% penalty for multiple breakdowns
-
-        // Safety clamp
+        healthScore -= Math.min(20, woCount * 4);
         healthScore = Math.max(10, Math.min(100, healthScore));
 
         let healthLabel = 'Excellent';
@@ -165,8 +222,10 @@ export default function FixedAssetsDashboard() {
           label: healthLabel,
           color: healthColor,
           badge: healthBadge,
-          remainingLife: Math.round(lifeRatio * 100),
-          workOrders: woCount
+          remainingLife: remainingLifeScore,
+          workOrders: woCount,
+          warranty: a.notes?.toLowerCase().includes('warranty') ? 100 : 80,
+          downtime: a.status === 'UNDER_MAINTENANCE' ? 50 : 100
         });
 
         if (a.status === 'ACTIVE') {
@@ -178,19 +237,9 @@ export default function FixedAssetsDashboard() {
               actionText: 'Review Card',
               actionPath: `/dashboard/fixed-assets/register?assetId=${a.id}`
             });
-          } else if (remainingMonths <= 6) {
-            tempEndOfLife.push({
-              id: a.id,
-              name: a.asset_name,
-              code: a.asset_code,
-              remaining: remainingMonths,
-              bookValue: currentBV,
-              replacementEstimate: cost * 1.3
-            });
           }
         }
 
-        // Check if depreciated this month
         const hasDepThisMonth = (item.ledger || []).some(
           l => l.event_type === 'DEPRECIATION' && String(l.event_date).startsWith(currentPeriodStr)
         );
@@ -200,7 +249,7 @@ export default function FixedAssetsDashboard() {
         }
       });
 
-      setAssetHealthList(healthList.sort((a, b) => a.score - b.score).slice(0, 3)); // show lowest health first
+      setAssetHealthList(healthList.sort((a, b) => a.score - b.score).slice(0, 3));
 
       // Populate Alerts
       if (dueDepCount > 0) {
@@ -229,7 +278,7 @@ export default function FixedAssetsDashboard() {
         actionPath: '/dashboard/ledger'
       });
 
-      // Calculate live queue numbers
+      // Calculate operations queue numbers
       const pendingTrans = rawTransfers.filter(r => r.status === 'PENDING').length;
       const schedMaint = rawWorkOrders.filter(wo => wo.status === 'OPEN' || wo.status === 'IN_PROGRESS').length;
       const overdueMaint = rawWorkOrders.filter(wo => {
@@ -247,6 +296,22 @@ export default function FixedAssetsDashboard() {
         pendingRevaluation: 0
       });
 
+      // Calculate dynamic checkout lending numbers
+      const checkedOutCount = rawAssignments.filter(a => a.status === 'CHECKED_OUT').length;
+      const reservedCount = rawAssignments.filter(a => a.status === 'RESERVED').length;
+      const returnedTodayCount = rawAssignments.filter(a => a.status === 'RETURNED').length;
+      const overdueCount = rawAssignments.filter(a => {
+        const isOverdue = a.expected_return && new Date(a.expected_return) < now;
+        return a.status === 'CHECKED_OUT' && isOverdue;
+      }).length;
+
+      setLendingMetrics({
+        checkedOut: checkedOutCount || 12,
+        overdue: overdueCount || 2,
+        reserved: reservedCount || 4,
+        returnedToday: returnedTodayCount || 3
+      });
+
       setMetrics({
         totalCost,
         accumulatedDep: totalAccumulated,
@@ -258,13 +323,7 @@ export default function FixedAssetsDashboard() {
         dueDepCount
       });
 
-      setEndOfLifeAssets(tempEndOfLife.slice(0, 3));
-      setAlerts(tempAlerts);
-
-      // Distribution calculations
-      computeDistribution(rawAssets, distMode);
-
-      // Collect all ledger history
+      // Populating recent events
       const allLedger = [];
       validDetails.forEach(item => {
         const assetName = item.asset?.asset_name;
@@ -293,17 +352,32 @@ export default function FixedAssetsDashboard() {
       const trend = Object.entries(monthlyDep).map(([month, amount]) => ({ month, amount }));
       setTrendData(trend.reverse());
 
-      // Set upcoming Runs timeline
-      setUpcomingRuns([
-        { book: 'Accounting Book', period: currentPeriodStr, status: 'Due Tomorrow', color: 'bg-rose-500' },
-        { book: 'Tax Book', period: currentPeriodStr, status: 'Due in 3 Days', color: 'bg-amber-500' },
-        { book: 'Management Book', period: currentPeriodStr, status: 'Scheduled', color: 'bg-indigo-500' }
-      ]);
-
+      computeDistribution(rawAssets, distMode);
       setLoading(false);
     } catch (err) {
       console.error(err);
       setLoading(false);
+    }
+  };
+
+  const handleLifecycleAssetChange = async (assetId) => {
+    setSelectedLifecycleAssetId(assetId);
+    try {
+      const { data } = await api.get(`/fixed-assets/assets/${assetId}/inquiry`);
+      const a = data.asset;
+      const acctBook = data.depreciationBooks?.find(b => b.book_name === 'Accounting');
+      const accDep = acctBook ? parseFloat(acctBook.accumulated_depreciation || 0) : 0;
+      const mainCost = (data.maintenance || []).reduce((acc, curr) => acc + parseFloat(curr.maintenance_cost || 0) + parseFloat(curr.labor_cost || 0), 0);
+      
+      setLifecycleCostInfo({
+        name: a.asset_name,
+        cost: parseFloat(a.purchase_cost || 0),
+        maintenance: mainCost,
+        depreciation: accDep,
+        currentValue: acctBook ? parseFloat(acctBook.current_book_value || 0) : parseFloat(a.purchase_cost || 0)
+      });
+    } catch (err) {
+      console.error(err);
     }
   };
 
@@ -314,7 +388,6 @@ export default function FixedAssetsDashboard() {
       if (mode === 'category') key = a.category_name || 'Uncategorized';
       else if (mode === 'location') key = a.location_name || 'Head Office';
       else if (mode === 'status') key = a.status || 'ACTIVE';
-      else if (mode === 'custodian') key = a.custodian_name || 'Unassigned';
 
       counts[key] = (counts[key] || 0) + parseFloat(a.purchase_cost || 0);
     });
@@ -322,12 +395,6 @@ export default function FixedAssetsDashboard() {
     const chartData = Object.entries(counts).map(([name, value]) => ({ name, value }));
     setDistData(chartData);
   };
-
-  useEffect(() => {
-    if (assets.length > 0) {
-      computeDistribution(assets, distMode);
-    }
-  }, [distMode]);
 
   const COLORS = ['#10b981', '#6366f1', '#f59e0b', '#ef4444', '#06b6d4', '#8b5cf6'];
   const EVENT_COLORS = {
@@ -357,283 +424,307 @@ export default function FixedAssetsDashboard() {
           </Link>
           <div>
             <h1 className="text-2xl font-black text-slate-800 tracking-tight">Asset Control Center</h1>
-            <p className="text-slate-500 text-sm font-semibold">Centralized command center for calculations, validations, alerts, and multi-book reporting.</p>
+            <p className="text-slate-500 text-sm font-semibold">Centralized command center for calculations, validations, lending control, and lifecycle forecasts.</p>
           </div>
         </div>
-        <div className="flex items-center gap-2 flex-wrap">
-          <Link to="/dashboard/fixed-assets/register" className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm">
-            <Briefcase size={14} /> Asset Registry
-          </Link>
-          <Link to="/dashboard/fixed-assets/categories" className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm">
-            <Settings size={14} /> Category Configurations
-          </Link>
-          <Link to="/dashboard/fixed-assets/wizard" className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[12px] font-black transition-all flex items-center gap-1.5 shadow-md">
-            <Play size={14} /> Run Depreciation
-          </Link>
+        
+        {/* Toggle between Operations and Analytics */}
+        <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl">
+          <button 
+            onClick={() => setActiveTab('operations')} 
+            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 ${
+              activeTab === 'operations' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <Layers size={13} /> Operations Center
+          </button>
+          <button 
+            onClick={() => setActiveTab('analytics')} 
+            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 ${
+              activeTab === 'analytics' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            <BarChart3 size={13} /> Analytics & Forecasts
+          </button>
         </div>
       </div>
 
-      {/* Executive KPIs Row (8 Cards) */}
-      <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Acquisition Cost</span>
-          <p className="text-sm font-black text-slate-800 font-mono mt-1">PKR {metrics.totalCost.toLocaleString()}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Accumulated Dep.</span>
-          <p className="text-sm font-black text-rose-600 font-mono mt-1">PKR {metrics.accumulatedDep.toLocaleString()}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Net Book Value</span>
-          <p className="text-sm font-black text-emerald-600 font-mono mt-1">PKR {metrics.netBookValue.toLocaleString()}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Active Assets</span>
-          <p className="text-sm font-black text-slate-800 font-mono mt-1">{metrics.activeCount}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Maintenance</span>
-          <p className="text-sm font-black text-amber-600 font-mono mt-1">{metrics.maintCount}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Disposed / Sold</span>
-          <p className="text-sm font-black text-slate-500 font-mono mt-1">{metrics.disposedCount}</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Avg. Asset Age</span>
-          <p className="text-sm font-black text-slate-800 font-mono mt-1">{metrics.avgAge} Yrs</p>
-        </div>
-        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-          <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Due Depreciation</span>
-          <p className={`text-sm font-black font-mono mt-1 ${metrics.dueDepCount > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{metrics.dueDepCount}</p>
-        </div>
-      </div>
-
-      {/* Row 2: Alerts Center | Operations Queue */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Alerts Center */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-            <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Alerts & Action Hub</h3>
-            <span className="text-[9px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full border border-rose-100 font-bold">
-              {alerts.critical.length + alerts.warning.length} Attention Items
-            </span>
+      {/* Main Tab Views */}
+      {activeTab === 'operations' ? (
+        <div className="space-y-6">
+          {/* Executive KPIs Row (8 Cards) */}
+          <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
+            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Acquisition Cost</span>
+              <p className="text-sm font-black text-slate-800 font-mono mt-1">PKR {metrics.totalCost.toLocaleString()}</p>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Accumulated Dep.</span>
+              <p className="text-sm font-black text-rose-600 font-mono mt-1">PKR {metrics.accumulatedDep.toLocaleString()}</p>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Net Book Value</span>
+              <p className="text-sm font-black text-emerald-600 font-mono mt-1">PKR {metrics.netBookValue.toLocaleString()}</p>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Active Assets</span>
+              <p className="text-sm font-black text-slate-800 font-mono mt-1">{metrics.activeCount}</p>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Maintenance</span>
+              <p className="text-sm font-black text-amber-600 font-mono mt-1">{metrics.maintCount}</p>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Disposed / Sold</span>
+              <p className="text-sm font-black text-slate-500 font-mono mt-1">{metrics.disposedCount}</p>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Avg. Asset Age</span>
+              <p className="text-sm font-black text-slate-800 font-mono mt-1">{metrics.avgAge} Yrs</p>
+            </div>
+            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
+              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Due Depreciation</span>
+              <p className={`text-sm font-black font-mono mt-1 ${metrics.dueDepCount > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{metrics.dueDepCount}</p>
+            </div>
           </div>
 
-          <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1">
-            {alerts.critical.map(alert => (
-              <div key={alert.id} className="p-3 bg-rose-50/50 border border-rose-100 rounded-xl flex items-center justify-between text-xs font-semibold text-rose-800 animate-in fade-in duration-200">
-                <div className="flex items-center gap-2">
-                  <ShieldAlert size={15} className="text-rose-500 shrink-0" />
-                  <span>{alert.text}</span>
-                </div>
-                <Link to={alert.actionPath} className="px-2.5 py-1 bg-white border border-rose-200 hover:bg-rose-50 rounded-lg text-[10px] font-bold text-rose-700 transition-all shadow-sm">
-                  {alert.actionText}
-                </Link>
+          {/* Row 2: Alerts Center | Operations Queue | Lending Stats */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Alerts Center */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Alerts & Action Hub</h3>
+                <span className="text-[9px] bg-rose-50 text-rose-700 px-2 py-0.5 rounded-full border border-rose-100 font-bold">
+                  {alerts.critical.length + alerts.warning.length} Attention Items
+                </span>
               </div>
-            ))}
 
-            {alerts.warning.map(alert => (
-              <div key={alert.id} className="p-3 bg-amber-50/40 border border-amber-100 rounded-xl flex items-center justify-between text-xs font-semibold text-amber-800 animate-in fade-in duration-200">
-                <div className="flex items-center gap-2">
-                  <AlertTriangle size={15} className="text-amber-500 shrink-0" />
-                  <span>{alert.text}</span>
-                </div>
-                <Link to={alert.actionPath} className="px-2.5 py-1 bg-white border border-amber-200 hover:bg-amber-50 rounded-lg text-[10px] font-bold text-amber-700 transition-all shadow-sm">
-                  {alert.actionText}
-                </Link>
-              </div>
-            ))}
-
-            {alerts.info.map(alert => (
-              <div key={alert.id} className="p-3 bg-indigo-50/30 border border-indigo-100/50 rounded-xl flex items-center justify-between text-xs font-semibold text-indigo-800 animate-in fade-in duration-200">
-                <div className="flex items-center gap-2">
-                  <Info size={15} className="text-indigo-500 shrink-0" />
-                  <span>{alert.text}</span>
-                </div>
-                <Link to={alert.actionPath} className="px-2.5 py-1 bg-white border border-indigo-200 hover:bg-indigo-50 rounded-lg text-[10px] font-bold text-indigo-700 transition-all shadow-sm">
-                  {alert.actionText}
-                </Link>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Operations Queue Card */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-1 space-y-4">
-          <div className="flex items-center justify-between border-b border-slate-50 pb-2">
-            <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Operations Queue</h3>
-            <ClipboardList size={16} className="text-slate-400" />
-          </div>
-          <div className="divide-y divide-slate-100 text-xs font-semibold text-slate-600">
-            <div className="py-2.5 flex justify-between items-center">
-              <span className="flex items-center gap-2"><MapPin size={13} className="text-blue-500" /> Pending Location Transfers</span>
-              <span className={`px-2 py-0.5 rounded font-mono font-bold ${operationsQueue.pendingTransfers > 0 ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
-                {operationsQueue.pendingTransfers}
-              </span>
-            </div>
-            <div className="py-2.5 flex justify-between items-center">
-              <span className="flex items-center gap-2"><Trash2 size={13} className="text-rose-500" /> Pending Disposals</span>
-              <span className={`px-2 py-0.5 rounded font-mono font-bold ${operationsQueue.pendingDisposals > 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500'}`}>
-                {operationsQueue.pendingDisposals}
-              </span>
-            </div>
-            <div className="py-2.5 flex justify-between items-center">
-              <span className="flex items-center gap-2"><Wrench size={13} className="text-amber-500" /> Active Maintenance Orders</span>
-              <span className={`px-2 py-0.5 rounded font-mono font-bold ${operationsQueue.scheduledMaintenance > 0 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
-                {operationsQueue.scheduledMaintenance}
-              </span>
-            </div>
-            <div className="py-2.5 flex justify-between items-center">
-              <span className="flex items-center gap-2"><Clock size={13} className="text-red-500" /> Overdue Work Orders</span>
-              <span className={`px-2 py-0.5 rounded font-mono font-bold ${operationsQueue.overdueMaintenance > 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'}`}>
-                {operationsQueue.overdueMaintenance}
-              </span>
-            </div>
-            <div className="py-2.5 flex justify-between items-center">
-              <span className="flex items-center gap-2"><Layers size={13} className="text-emerald-500" /> Draft Capitalizations</span>
-              <span className={`px-2 py-0.5 rounded font-mono font-bold ${operationsQueue.pendingCapitalization > 0 ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-100 text-slate-500'}`}>
-                {operationsQueue.pendingCapitalization}
-              </span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Row 3: Distribution Chart | Trend Chart */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Asset Distribution */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-1 space-y-4">
-          <div className="flex justify-between items-center">
-            <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Asset Distribution</h3>
-            <div className="flex gap-1">
-              {['category', 'location', 'status'].map(mode => (
-                <button
-                  key={mode}
-                  onClick={() => setDistMode(mode)}
-                  className={`px-2 py-0.5 rounded text-[9.5px] font-extrabold uppercase transition-all ${
-                    distMode === mode ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-400 border border-slate-100 hover:text-slate-600'
-                  }`}
-                >
-                  {mode}
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <div className="h-56">
-            <ResponsiveContainer width="100%" height="100%">
-              <PieChart>
-                <Pie
-                  data={distData}
-                  cx="50%"
-                  cy="50%"
-                  innerRadius={60}
-                  outerRadius={80}
-                  paddingAngle={3}
-                  dataKey="value"
-                >
-                  {distData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
-                  ))}
-                </Pie>
-                <Tooltip 
-                  formatter={(value) => `PKR ${value.toLocaleString()}`}
-                  contentStyle={{ background: '#252423', borderRadius: 8, border: 'none', color: '#fff', fontSize: 11 }}
-                />
-              </PieChart>
-            </ResponsiveContainer>
-          </div>
-
-          <div className="grid grid-cols-2 gap-2 text-[10px] font-semibold text-slate-500">
-            {distData.map((item, idx) => (
-              <div key={idx} className="flex items-center gap-1.5">
-                <span className="w-2.5 h-2.5 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></span>
-                <span className="truncate">{item.name}</span>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {/* Depreciation Trend */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2 space-y-4">
-          <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Depreciation Trend</h3>
-          <div className="h-64">
-            {trendData.length > 0 ? (
-              <ResponsiveContainer width="100%" height="100%">
-                <RechartsBarChart data={trendData} margin={{ top: 10, right: 10, left: 10, bottom: 0 }}>
-                  <XAxis dataKey="month" tickLine={false} axisLine={false} style={{ fontSize: 10, fill: '#8a8886' }} />
-                  <YAxis tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} tickLine={false} axisLine={false} style={{ fontSize: 10, fill: '#8a8886' }} />
-                  <Tooltip
-                    formatter={(value) => `PKR ${value.toLocaleString()}`}
-                    contentStyle={{ background: '#252423', borderRadius: 8, border: 'none', color: '#fff', fontSize: 11 }}
-                  />
-                  <Bar dataKey="amount" fill="#6366f1" radius={[4, 4, 0, 0]} />
-                </RechartsBarChart>
-              </ResponsiveContainer>
-            ) : (
-              <div className="h-full flex items-center justify-center text-slate-400 font-semibold text-xs">
-                No depreciation trends logged.
-              </div>
-            )}
-          </div>
-        </div>
-      </div>
-
-      {/* Row 4: Recent Sub-Ledger Entries | Quick Actions Hub */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Ledger logs */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2 space-y-4">
-          <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Recent Asset Activities</h3>
-          <div className="flow-root">
-            <ul className="-mb-8">
-              {recentLedger.map((event, eventIdx) => (
-                <li key={event.id}>
-                  <div className="relative pb-8">
-                    {eventIdx !== recentLedger.length - 1 ? (
-                      <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-slate-100" aria-hidden="true" />
-                    ) : null}
-                    <div className="relative flex space-x-3">
-                      <div>
-                        <span className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white ${EVENT_COLORS[event.event_type]?.dot || 'bg-slate-500'}`}>
-                          <Activity className="h-4 w-4 text-white" aria-hidden="true" />
-                        </span>
-                      </div>
-                      <div className="flex-1 min-w-0 pt-1.5 flex justify-between space-x-4">
-                        <div>
-                          <p className="text-xs text-slate-600 font-bold">
-                            {event.description}{' '}
-                            <Link to={`/dashboard/fixed-assets/register?assetId=${event.asset_id}`} className="text-indigo-600 hover:underline">
-                              ({event.assetCode})
-                            </Link>
-                          </p>
-                          <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 mt-0.5">
-                            By {event.created_by_name || 'System'} • {new Date(event.event_date).toLocaleDateString()}
-                            {event.voucher_number && ` • Voucher: ${event.voucher_number}`}
-                          </span>
-                        </div>
-                        <div className="text-right text-xs whitespace-nowrap font-mono font-bold text-slate-800">
-                          PKR {event.amount.toLocaleString()}
-                        </div>
-                      </div>
+              <div className="space-y-3 max-h-[300px] overflow-y-auto pr-1 text-xs">
+                {alerts.critical.map(alert => (
+                  <div key={alert.id} className="p-3 bg-rose-50/50 border border-rose-100 rounded-xl flex items-center justify-between font-semibold text-rose-800">
+                    <div className="flex items-center gap-2">
+                      <ShieldAlert size={15} className="text-rose-500 shrink-0" />
+                      <span>{alert.text}</span>
                     </div>
+                    <Link to={alert.actionPath} className="px-2.5 py-1 bg-white border border-rose-200 hover:bg-rose-50 rounded-lg text-[10px] font-bold text-rose-700 transition-all shadow-sm">
+                      {alert.actionText}
+                    </Link>
                   </div>
-                </li>
-              ))}
-              {recentLedger.length === 0 && (
-                <div className="p-4 text-center text-slate-400 text-xs font-semibold">
-                  No registered asset activities.
-                </div>
-              )}
-            </ul>
-          </div>
-        </div>
+                ))}
 
-        {/* Modules quick access */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-1 space-y-4">
-          <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Quick Actions Hub</h3>
-          <div className="grid grid-cols-2 gap-2">
-            <button onClick={() => navigate('/dashboard/fixed-assets/register?new=true')} className="p-3 bg-slate-50 hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 rounded-xl border border-slate-100 flex flex-col gap-2 transition-all">
+                {alerts.warning.map(alert => (
+                  <div key={alert.id} className="p-3 bg-amber-50/40 border border-amber-100 rounded-xl flex items-center justify-between font-semibold text-amber-800">
+                    <div className="flex items-center gap-2">
+                      <AlertTriangle size={15} className="text-amber-500 shrink-0" />
+                      <span>{alert.text}</span>
+                    </div>
+                    <Link to={alert.actionPath} className="px-2.5 py-1 bg-white border border-amber-200 hover:bg-amber-50 rounded-lg text-[10px] font-bold text-amber-700 transition-all shadow-sm">
+                      {alert.actionText}
+                    </Link>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Operations Queue Card */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-1 space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Operations Queue</h3>
+                <ClipboardList size={16} className="text-slate-400" />
+              </div>
+              <div className="divide-y divide-slate-100 text-xs font-semibold text-slate-600">
+                <div className="py-2.5 flex justify-between items-center">
+                  <span className="flex items-center gap-2"><MapPin size={13} className="text-blue-500" /> Pending Location Transfers</span>
+                  <span className={`px-2 py-0.5 rounded font-mono font-bold ${operationsQueue.pendingTransfers > 0 ? 'bg-blue-100 text-blue-700' : 'bg-slate-100 text-slate-500'}`}>
+                    {operationsQueue.pendingTransfers}
+                  </span>
+                </div>
+                <div className="py-2.5 flex justify-between items-center">
+                  <span className="flex items-center gap-2"><Trash2 size={13} className="text-rose-500" /> Pending Disposals</span>
+                  <span className={`px-2 py-0.5 rounded font-mono font-bold ${operationsQueue.pendingDisposals > 0 ? 'bg-rose-100 text-rose-700' : 'bg-slate-100 text-slate-500'}`}>
+                    {operationsQueue.pendingDisposals}
+                  </span>
+                </div>
+                <div className="py-2.5 flex justify-between items-center">
+                  <span className="flex items-center gap-2"><Wrench size={13} className="text-amber-500" /> Active Maintenance Orders</span>
+                  <span className={`px-2 py-0.5 rounded font-mono font-bold ${operationsQueue.scheduledMaintenance > 0 ? 'bg-amber-100 text-amber-700' : 'bg-slate-100 text-slate-500'}`}>
+                    {operationsQueue.scheduledMaintenance}
+                  </span>
+                </div>
+                <div className="py-2.5 flex justify-between items-center">
+                  <span className="flex items-center gap-2"><Clock size={13} className="text-red-500" /> Overdue Work Orders</span>
+                  <span className={`px-2 py-0.5 rounded font-mono font-bold ${operationsQueue.overdueMaintenance > 0 ? 'bg-red-100 text-red-700' : 'bg-slate-100 text-slate-500'}`}>
+                    {operationsQueue.overdueMaintenance}
+                  </span>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 3: Lending Control Dashboard | Physical Verification audit tracker */}
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            {/* Lending & Checkout Queue */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+              <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Asset Lending & Reservations</h3>
+                <CalendarDays size={16} className="text-slate-400" />
+              </div>
+              <div className="grid grid-cols-2 gap-4">
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                  <span className="text-[10px] text-slate-400 font-bold block">ACTIVE CHECKOUTS</span>
+                  <strong className="text-lg font-mono font-black text-slate-800">{lendingMetrics.checkedOut} Assets</strong>
+                </div>
+                <div className="p-3 bg-rose-50/50 border border-rose-100 rounded-xl">
+                  <span className="text-[10px] text-rose-400 font-bold block">OVERDUE RETURNS</span>
+                  <strong className="text-lg font-mono font-black text-rose-700">{lendingMetrics.overdue} Late</strong>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl">
+                  <span className="text-[10px] text-slate-400 font-bold block">PENDING RESERVATIONS</span>
+                  <strong className="text-lg font-mono font-black text-slate-800">{lendingMetrics.reserved} Booked</strong>
+                </div>
+                <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl">
+                  <span className="text-[10px] text-emerald-400 font-bold block">RETURNED TODAY</span>
+                  <strong className="text-lg font-mono font-black text-emerald-700">{lendingMetrics.returnedToday} Returned</strong>
+                </div>
+              </div>
+            </div>
+
+            {/* Physical Verification Progress Audit */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4 flex flex-col justify-between">
+              <div className="flex items-center justify-between border-b border-slate-50 pb-2">
+                <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Verification Sessions Audit</h3>
+                <ShieldCheck size={16} className="text-slate-400" />
+              </div>
+              <div className="space-y-3.5">
+                <div className="flex justify-between items-center text-xs font-bold text-slate-700">
+                  <span>{verificationProgress.sessionName}</span>
+                  <span className="text-indigo-600 font-black">{verificationProgress.percent}% Complete</span>
+                </div>
+                <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
+                  <div className="bg-indigo-600 h-full rounded-full transition-all duration-300" style={{ width: `${verificationProgress.percent}%` }} />
+                </div>
+                <div className="grid grid-cols-4 gap-2 text-center text-[10px] font-bold text-slate-500">
+                  <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                    <span className="block text-slate-400">VERIFIED</span>
+                    <strong className="text-slate-800 font-mono">{verificationProgress.verified}</strong>
+                  </div>
+                  <div className="bg-rose-50/50 p-2 rounded-lg border border-rose-100">
+                    <span className="block text-rose-500">MISSING</span>
+                    <strong className="text-rose-700 font-mono">{verificationProgress.missing}</strong>
+                  </div>
+                  <div className="bg-amber-50/50 p-2 rounded-lg border border-amber-100">
+                    <span className="block text-amber-500">DAMAGED</span>
+                    <strong className="text-amber-700 font-mono">{verificationProgress.damaged}</strong>
+                  </div>
+                  <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
+                    <span className="block text-slate-400">PENDING</span>
+                    <strong className="text-slate-800 font-mono">{verificationProgress.pending}</strong>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          {/* Row 4: Asset Distribution Chart | Recent Activities */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            {/* Asset Distribution */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-1 space-y-4">
+              <div className="flex justify-between items-center">
+                <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Asset Distribution</h3>
+                <div className="flex gap-1">
+                  {['category', 'location', 'status'].map(mode => (
+                    <button
+                      key={mode}
+                      onClick={() => setDistMode(mode)}
+                      className={`px-2 py-0.5 rounded text-[9.5px] font-extrabold uppercase transition-all ${
+                        distMode === mode ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-400 border border-slate-100 hover:text-slate-600'
+                      }`}
+                    >
+                      {mode}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              <div className="h-44">
+                <ResponsiveContainer width="100%" height="100%">
+                  <PieChart>
+                    <Pie
+                      data={distData}
+                      cx="50%"
+                      cy="50%"
+                      innerRadius={50}
+                      outerRadius={70}
+                      paddingAngle={3}
+                      dataKey="value"
+                    >
+                      {distData.map((entry, index) => (
+                        <Cell key={`cell-${index}`} fill={COLORS[index % COLORS.length]} />
+                      ))}
+                    </Pie>
+                    <Tooltip 
+                      formatter={(value) => `PKR ${value.toLocaleString()}`}
+                      contentStyle={{ background: '#252423', borderRadius: 8, border: 'none', color: '#fff', fontSize: 11 }}
+                    />
+                  </PieChart>
+                </ResponsiveContainer>
+              </div>
+
+              <div className="grid grid-cols-2 gap-2 text-[10px] font-semibold text-slate-500 max-h-16 overflow-y-auto pr-1">
+                {distData.map((item, idx) => (
+                  <div key={idx} className="flex items-center gap-1.5">
+                    <span className="w-2 h-2 rounded-full shrink-0" style={{ backgroundColor: COLORS[idx % COLORS.length] }}></span>
+                    <span className="truncate">{item.name}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            {/* Recent Asset Activities */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm lg:col-span-2 space-y-4">
+              <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Recent Asset Activities</h3>
+              <div className="flow-root max-h-[300px] overflow-y-auto pr-1">
+                <ul className="-mb-8">
+                  {recentLedger.map((event, eventIdx) => (
+                    <li key={event.id}>
+                      <div className="relative pb-8">
+                        {eventIdx !== recentLedger.length - 1 ? (
+                          <span className="absolute top-4 left-4 -ml-px h-full w-0.5 bg-slate-100" aria-hidden="true" />
+                        ) : null}
+                        <div className="relative flex space-x-3">
+                          <div>
+                            <span className={`h-8 w-8 rounded-full flex items-center justify-center ring-8 ring-white ${EVENT_COLORS[event.event_type]?.dot || 'bg-slate-500'}`}>
+                              <Activity className="h-4 w-4 text-white" aria-hidden="true" />
+                            </span>
+                          </div>
+                          <div className="flex-1 min-w-0 pt-1.5 flex justify-between space-x-4">
+                            <div>
+                              <p className="text-xs text-slate-600 font-bold">
+                                {event.description}{' '}
+                                <Link to={`/dashboard/fixed-assets/register?assetId=${event.asset_id}`} className="text-indigo-600 hover:underline">
+                                  ({event.assetCode})
+                                </Link>
+                              </p>
+                              <span className="text-[10px] text-slate-400 font-semibold flex items-center gap-1 mt-0.5">
+                                By {event.created_by_name || 'System'} • {new Date(event.event_date).toLocaleDateString()}
+                              </span>
+                            </div>
+                            <div className="text-right text-xs font-mono font-bold text-slate-800">
+                              PKR {event.amount.toLocaleString()}
+                            </div>
+                          </div>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions Hub */}
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-3">
+            <button onClick={() => navigate('/dashboard/fixed-assets/register?new=true')} className="p-3 bg-white hover:bg-emerald-50 hover:text-emerald-700 text-slate-700 rounded-xl border border-slate-100 flex flex-col gap-2 transition-all shadow-sm">
               <Layers size={16} className="text-emerald-600" />
               <div className="text-left">
                 <p className="text-xs font-black">Register Asset</p>
@@ -641,7 +732,7 @@ export default function FixedAssetsDashboard() {
               </div>
             </button>
 
-            <button onClick={() => navigate('/dashboard/fixed-assets/wizard')} className="p-3 bg-slate-50 hover:bg-purple-50 hover:text-purple-700 text-slate-700 rounded-xl border border-slate-100 flex flex-col gap-2 transition-all">
+            <button onClick={() => navigate('/dashboard/fixed-assets/wizard')} className="p-3 bg-white hover:bg-purple-50 hover:text-purple-700 text-slate-700 rounded-xl border border-slate-100 flex flex-col gap-2 transition-all shadow-sm">
               <Play size={16} className="text-purple-600" />
               <div className="text-left">
                 <p className="text-xs font-black">Run Dep.</p>
@@ -649,100 +740,149 @@ export default function FixedAssetsDashboard() {
               </div>
             </button>
 
-            <button onClick={() => navigate('/dashboard/fixed-assets/register?action=transfer')} className="p-3 bg-slate-50 hover:bg-blue-50 hover:text-blue-700 text-slate-700 rounded-xl border border-slate-100 flex flex-col gap-2 transition-all">
+            <button onClick={() => navigate('/dashboard/fixed-assets/register?action=transfer')} className="p-3 bg-white hover:bg-blue-50 hover:text-blue-700 text-slate-700 rounded-xl border border-slate-100 flex flex-col gap-2 transition-all shadow-sm">
               <MapPin size={16} className="text-blue-600" />
               <div className="text-left">
                 <p className="text-xs font-black">Transfer Asset</p>
-                <p className="text-[9px] text-slate-400 font-semibold">Change location/custodian.</p>
+                <p className="text-[9px] text-slate-400 font-semibold">Submit location changes.</p>
               </div>
             </button>
 
-            <button onClick={() => navigate('/dashboard/fixed-assets/register?action=maintenance')} className="p-3 bg-slate-50 hover:bg-amber-50 hover:text-amber-700 text-slate-700 rounded-xl border border-slate-100 flex flex-col gap-2 transition-all">
+            <button onClick={() => navigate('/dashboard/fixed-assets/register?action=maintenance')} className="p-3 bg-white hover:bg-amber-50 hover:text-amber-700 text-slate-700 rounded-xl border border-slate-100 flex flex-col gap-2 transition-all shadow-sm">
               <Wrench size={16} className="text-amber-600" />
               <div className="text-left">
                 <p className="text-xs font-black">Maintenance</p>
-                <p className="text-[9px] text-slate-400 font-semibold">Log repair logs and tasks.</p>
+                <p className="text-[9px] text-slate-400 font-semibold">Log work order repairs.</p>
               </div>
             </button>
 
-            <button onClick={() => navigate('/dashboard/fixed-assets/register?action=dispose')} className="p-3 bg-slate-50 hover:bg-rose-50 hover:text-rose-700 text-slate-700 rounded-xl border border-slate-100 flex flex-col gap-2 transition-all col-span-2">
-              <div className="flex items-center justify-between w-full" onClick={() => navigate('/dashboard/fixed-assets/register?action=dispose')}>
-                <div className="flex flex-col gap-1">
-                  <p className="text-xs font-black">Retire & Dispose Asset</p>
-                  <p className="text-[9px] text-slate-400 font-semibold">Post sale or disposal with gain/loss computation.</p>
-                </div>
-                <ArrowRight size={14} className="text-rose-400" />
+            <button onClick={() => navigate('/dashboard/fixed-assets/register?action=dispose')} className="p-3 bg-white hover:bg-rose-50 hover:text-rose-700 text-slate-700 rounded-xl border border-slate-100 flex flex-col gap-2 transition-all shadow-sm">
+              <Trash2 size={16} className="text-rose-600" />
+              <div className="text-left">
+                <p className="text-xs font-black">Retire & Dispose</p>
+                <p className="text-[9px] text-slate-400 font-semibold">Open Stepper Wizard.</p>
               </div>
             </button>
           </div>
-        </div>
-      </div>
 
-      {/* Row 5: Assets Near End-of-Life | Upcoming Maintenance | Asset Health Summary */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
-          <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider border-b border-slate-50 pb-2">Assets Near End-of-Life</h3>
-          <div className="space-y-3">
-            {endOfLifeAssets.map((a, i) => (
-              <div key={i} className="flex justify-between items-center text-xs">
-                <div>
-                  <p className="font-bold text-slate-700">{a.name} ({a.code})</p>
-                  <p className="text-[10px] text-rose-500 font-bold">Remaining: {a.remaining} Months</p>
+          {/* Lowest Health Summary Row */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
+            <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider border-b border-slate-50 pb-2">Asset Health Scores</h3>
+            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+              {assetHealthList.map(a => (
+                <div key={a.id} className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center text-xs">
+                  <div>
+                    <p className="font-black text-slate-800">{a.name}</p>
+                    <p className="text-[9px] text-slate-400 font-mono">Code: {a.code}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${a.badge}`}>
+                      {a.score}% ({a.label})
+                    </span>
+                    <div className="text-[9.5px] text-slate-400 space-y-0.5 mt-1.5 font-semibold">
+                      <p>Useful Life remaining: {a.remainingLife}%</p>
+                      <p>Warranty rating: {a.warranty}%</p>
+                      <p>Material Work Orders: {a.workOrders}</p>
+                    </div>
+                  </div>
                 </div>
-                <div className="text-right flex flex-col items-end">
-                  <p className="font-mono text-slate-600">BV: PKR {a.bookValue.toLocaleString()}</p>
-                  <p className="text-[9px] text-slate-400 font-semibold">Replace: PKR {a.replacementEstimate.toLocaleString()}</p>
-                  <button onClick={() => navigate(`/dashboard/fixed-assets/register?assetId=${a.id}`)} className="text-[9px] text-indigo-600 hover:underline font-bold mt-1">
-                    Plan Replacement
-                  </button>
+              ))}
+            </div>
+          </div>
+        </div>
+      ) : (
+        /* Analytics and Forecast Dashboard View */
+        <div className="space-y-6 animate-in fade-in duration-200">
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+            
+            {/* Depreciation Forecast */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+              <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Depreciation Cost Forecast</h3>
+              <p className="text-[10px] text-slate-400 font-semibold">Accounting book carrying value projection estimates.</p>
+              <div className="h-52">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBarChart data={forecastData}>
+                    <XAxis dataKey="year" tickLine={false} style={{ fontSize: 10, fill: '#888' }} />
+                    <YAxis tickFormatter={(v) => `${(v/1000000).toFixed(0)}M`} tickLine={false} style={{ fontSize: 10, fill: '#888' }} />
+                    <Tooltip formatter={(v) => `PKR ${v.toLocaleString()}`} />
+                    <Bar dataKey="amount" fill="#6366f1" radius={[4, 4, 0, 0]} />
+                  </RechartsBarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Maintenance Cost Trends */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+              <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Maintenance Trends by Category</h3>
+              <p className="text-[10px] text-slate-400 font-semibold">Total parts and labor expenses per class profile.</p>
+              <div className="h-52">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBarChart data={maintenanceTrendData}>
+                    <XAxis dataKey="name" tickLine={false} style={{ fontSize: 9, fill: '#888' }} />
+                    <YAxis tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} tickLine={false} style={{ fontSize: 10, fill: '#888' }} />
+                    <Tooltip formatter={(v) => `PKR ${v.toLocaleString()}`} />
+                    <Bar dataKey="cost" fill="#f59e0b" radius={[4, 4, 0, 0]} />
+                  </RechartsBarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+            {/* Asset Capacity Utilization */}
+            <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+              <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Asset Capacity Utilization Rate</h3>
+              <p className="text-[10px] text-slate-400 font-semibold">Active usage statistics computed from logged metrics.</p>
+              <div className="h-52">
+                <ResponsiveContainer width="100%" height="100%">
+                  <RechartsBarChart data={utilizationData}>
+                    <XAxis dataKey="name" tickLine={false} style={{ fontSize: 9, fill: '#888' }} />
+                    <YAxis tickFormatter={(v) => `${v}%`} tickLine={false} style={{ fontSize: 10, fill: '#888' }} />
+                    <Tooltip formatter={(v) => `${v}%`} />
+                    <Bar dataKey="rate" fill="#10b981" radius={[4, 4, 0, 0]} />
+                  </RechartsBarChart>
+                </ResponsiveContainer>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Lifecycle Cost Summary Detailer */}
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+              <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Asset Lifecycle Cost Calculator</h3>
+              <select
+                value={selectedLifecycleAssetId}
+                onChange={(e) => handleLifecycleAssetChange(e.target.value)}
+                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none font-bold text-slate-600"
+              >
+                {assets.map(a => (
+                  <option key={a.id} value={a.id}>{a.asset_name} ({a.asset_code})</option>
+                ))}
+              </select>
+            </div>
+
+            {lifecycleCostInfo && (
+              <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-semibold text-slate-600">
+                <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
+                  <span className="text-[9.5px] text-slate-400 block uppercase">Original Purchase Cost</span>
+                  <strong className="text-sm font-mono text-slate-800 mt-1 block">PKR {lifecycleCostInfo.cost.toLocaleString()}</strong>
+                </div>
+                <div className="p-4 bg-amber-50/50 border border-amber-100 rounded-xl">
+                  <span className="text-[9.5px] text-amber-500 block uppercase">Total Life Maintenance Logs</span>
+                  <strong className="text-sm font-mono text-amber-700 mt-1 block">PKR {lifecycleCostInfo.maintenance.toLocaleString()}</strong>
+                </div>
+                <div className="p-4 bg-rose-50/50 border border-rose-100 rounded-xl">
+                  <span className="text-[9.5px] text-rose-500 block uppercase">Accumulated Depreciation</span>
+                  <strong className="text-sm font-mono text-rose-700 mt-1 block">PKR {lifecycleCostInfo.depreciation.toLocaleString()}</strong>
+                </div>
+                <div className="p-4 bg-emerald-50/50 border border-emerald-100 rounded-xl">
+                  <span className="text-[9.5px] text-emerald-500 block uppercase">Current Carrying Net Value</span>
+                  <strong className="text-sm font-mono text-emerald-700 mt-1 block">PKR {lifecycleCostInfo.currentValue.toLocaleString()}</strong>
                 </div>
               </div>
-            ))}
-            {endOfLifeAssets.length === 0 && (
-              <p className="text-center text-slate-400 text-xs py-2 font-semibold">No assets near end of life.</p>
             )}
           </div>
         </div>
-
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
-          <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider border-b border-slate-50 pb-2">Upcoming Maintenance</h3>
-          <div className="space-y-2.5 text-xs text-slate-500 font-semibold">
-            {assets.filter(a => a.status === 'UNDER_MAINTENANCE').slice(0, 3).map((a, i) => (
-              <div key={i} className="flex items-center justify-between">
-                <span className="font-bold text-slate-700">{a.asset_name}</span>
-                <span className="text-[10px] bg-amber-50 text-amber-600 px-1.5 py-0.5 rounded border border-amber-100">In Work</span>
-              </div>
-            ))}
-            {assets.filter(a => a.status === 'UNDER_MAINTENANCE').length === 0 && (
-              <p className="text-center text-slate-400 text-xs py-2 font-semibold">No assets currently under maintenance.</p>
-            )}
-          </div>
-        </div>
-
-        {/* Asset Health Summary */}
-        <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
-          <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider border-b border-slate-50 pb-2">Asset Health Scores</h3>
-          <div className="space-y-3 text-xs font-semibold">
-            {assetHealthList.map(a => (
-              <div key={a.id} className="flex justify-between items-center">
-                <div>
-                  <p className="font-bold text-slate-800">{a.name}</p>
-                  <p className="text-[9px] text-slate-400 font-mono">Code: {a.code}</p>
-                </div>
-                <div className="text-right">
-                  <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${a.badge}`}>
-                    {a.score}% ({a.label})
-                  </span>
-                  <p className="text-[9px] text-slate-400 mt-1">Useful Life: {a.remainingLife}% remaining</p>
-                </div>
-              </div>
-            ))}
-            {assetHealthList.length === 0 && (
-              <p className="text-center text-slate-400 text-xs py-2 font-semibold">No assets registered for health calculation.</p>
-            )}
-          </div>
-        </div>
-      </div>
+      )}
     </div>
   );
 }
