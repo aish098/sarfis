@@ -16,12 +16,20 @@ exports.createJournalEntry = async (req, res) => {
       userId,
       entryDate: entry_date,
       description,
-      lines
+      lines,
+      overrideControlWarning: req.body.overrideControlWarning
     });
 
     res.status(201).json({ id: entryId, message: 'Journal entry drafted successfully' });
   } catch (err) {
     console.error('Journal entry error:', err);
+    if (err.isControlWarning) {
+      return res.status(409).json({
+        warning: 'CONTROL_ACCOUNT_DIRECT_POST',
+        message: err.message,
+        controlAccounts: err.controlAccounts
+      });
+    }
     res.status(err.message.includes('required') || err.message.includes('lines') || err.message.includes('Uneven') || err.message.includes('Negative') ? 400 : 500).json({ message: err.message });
   }
 };

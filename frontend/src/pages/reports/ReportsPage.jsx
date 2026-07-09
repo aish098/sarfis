@@ -594,6 +594,68 @@ export default function ReportsPage() {
                     </div>
                   ) : noteData ? (
                     <div className="space-y-6">
+                      {/* System Cross-Reference Card */}
+                      <div className="bg-slate-50 border border-slate-100 rounded-xl p-4 shadow-3xs grid grid-cols-2 md:grid-cols-4 gap-4">
+                        <div>
+                          <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-black mb-0.5">Source Registry</span>
+                          <span className="font-extrabold text-slate-700">{noteData.metadata.source}</span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-black mb-0.5">Generation Type</span>
+                          <span className="font-extrabold text-indigo-600 bg-indigo-50 border border-indigo-100 px-1.5 py-0.5 rounded-md text-[10px] inline-block">
+                            {noteData.metadata.generated}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-black mb-0.5">Last Updated</span>
+                          <span className="font-extrabold text-slate-700">
+                            {new Date(noteData.metadata.lastUpdated).toLocaleDateString(undefined, { day: '2-digit', month: 'short', year: 'numeric' })}
+                          </span>
+                        </div>
+                        <div>
+                          <span className="text-[9px] uppercase tracking-wider text-slate-400 block font-black mb-0.5">Supporting Records</span>
+                          <span className="font-extrabold text-slate-700">{noteData.metadata.supportingRecordsCount} Items</span>
+                        </div>
+                      </div>
+
+                      {/* Reconciliation Audit Panel */}
+                      <div className={`p-4 rounded-xl border flex flex-col gap-2.5 shadow-3xs ${
+                        noteData.reconciliation.status === 'VERIFIED'
+                          ? 'bg-[#EBFDF5] border-[#C2F3DC] text-[#064E3B]'
+                          : noteData.reconciliation.status === 'WARNING'
+                          ? 'bg-amber-50/50 border-amber-200 text-amber-800'
+                          : noteData.reconciliation.status === 'MISMATCH'
+                          ? 'bg-rose-50 border-rose-200 text-rose-800'
+                          : 'bg-slate-50 border-slate-200 text-slate-700'
+                      }`}>
+                        <div className="flex items-center justify-between">
+                          <div className="flex items-center gap-1.5 font-black text-[12px] uppercase tracking-wider">
+                            {noteData.reconciliation.status === 'VERIFIED' ? (
+                              <><CheckCircle2 size={15} className="text-emerald-600" /> <span>✓ Verified</span></>
+                            ) : noteData.reconciliation.status === 'WARNING' ? (
+                              <><AlertTriangle size={15} className="text-amber-500 animate-pulse" /> <span>⚠ Variance Warning</span></>
+                            ) : noteData.reconciliation.status === 'MISMATCH' ? (
+                              <><ShieldAlert size={15} className="text-rose-600 animate-pulse" /> <span className="font-black">⚠ Discrepancy Alert</span></>
+                            ) : (
+                              <span>Reconciliation N/A</span>
+                            )}
+                          </div>
+                          <span className="font-mono font-black text-[12px]">
+                            {noteData.reconciliation.status === 'VERIFIED' ? 'No Differences' : `Diff: ${formatAmount(noteData.reconciliation.difference)}`}
+                          </span>
+                        </div>
+                        
+                        {/* Diagnostics & Possible Causes */}
+                        <div className="text-[11px] font-medium leading-relaxed opacity-95 pl-5 space-y-1">
+                          {noteData.reconciliation.reasons?.map((reason, i) => (
+                            <div key={i} className="flex items-start gap-1.5">
+                              <span className="text-[12px] leading-none select-none text-slate-400 font-bold">•</span>
+                              <span>{reason}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+
                       {/* Summary Cards */}
                       <div className="grid grid-cols-3 gap-3">
                         <div className="bg-slate-50 border border-slate-100 p-3.5 rounded-xl text-center space-y-1 shadow-2xs">
@@ -907,26 +969,54 @@ function BalanceSheet({ data, companyName, asOfDate, formatAmount, openNoteDrawe
       <div className={`stmt-section-header border-l-4 pl-2 font-extrabold text-[12px] mb-3 ${headerClass}`}>{title}</div>
       <div className="rounded-xl border border-slate-100 overflow-hidden divide-y divide-[#E6EBE8] mb-3 bg-white shadow-xs">
         {items.map((r, idx) => {
-          const noteRef = getNoteRef(r.code, r.name);
           return (
             <div 
               key={r.id || idx} 
-              className={`flex justify-between items-center py-2.5 px-3 text-slate-700 transition-all font-semibold text-[13.5px] hover:bg-slate-50/50 ${
+              className={`flex justify-between items-center py-3 px-3 text-slate-700 transition-all font-semibold text-[13.5px] hover:bg-slate-50/50 ${
                 idx % 2 === 0 ? 'bg-[#FFFDFB]' : 'bg-[#FAFAF9]'
               }`}
             >
-              <div className="flex items-center gap-1.5">
-                <span className={r.is_contra ? 'ml-4 text-slate-400 font-bold' : ''}>
-                  {r.is_contra ? 'Less: ' : ''}{r.name}
-                </span>
-                {noteRef && (
-                  <button 
-                    onClick={() => openNoteDrawer(r)}
-                    className="text-[9px] text-emerald-600 bg-emerald-50 hover:bg-emerald-100 border border-emerald-200 px-1.5 py-0.5 rounded font-black transition-all cursor-pointer select-none"
-                    title={noteRef.label}
-                  >
-                    Note {noteRef.num}
-                  </button>
+              <div className="flex flex-col">
+                <div className="flex items-center gap-2">
+                  <span className={r.is_contra ? 'ml-4 text-slate-400 font-bold' : 'text-slate-800'}>
+                    {r.is_contra ? 'Less: ' : ''}{r.name}
+                  </span>
+                  {r.noteMeta && (
+                    <button 
+                      onClick={() => openNoteDrawer(r)}
+                      className={`text-[9px] px-2 py-0.5 rounded font-black transition-all cursor-pointer select-none border flex items-center gap-1 ${
+                        r.noteMeta.reconciliationStatus === 'VERIFIED'
+                          ? 'text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
+                          : r.noteMeta.reconciliationStatus === 'WARNING'
+                          ? 'text-amber-700 bg-amber-50 border-amber-200 hover:bg-amber-100'
+                          : r.noteMeta.reconciliationStatus === 'MISMATCH'
+                          ? 'text-rose-700 bg-rose-50 border-rose-200 hover:bg-rose-100 animate-pulse font-extrabold'
+                          : 'text-slate-600 bg-slate-50 border-slate-200 hover:bg-slate-100'
+                      }`}
+                      title={`${r.noteMeta.label} (${r.noteMeta.reconciliationStatus})`}
+                    >
+                      📄 Note {r.noteMeta.num}
+                    </button>
+                  )}
+                </div>
+                {r.noteMeta && (
+                  <span className="text-[10px] text-slate-400 font-medium mt-1 flex items-center gap-1.5 pl-0">
+                    <span>{r.noteMeta.supportingRecordsCount} Items</span>
+                    <span className="text-slate-200">•</span>
+                    <span>Updated {new Date(r.noteMeta.lastUpdated).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}</span>
+                    <span className="text-slate-200">•</span>
+                    <span className={`font-bold uppercase text-[8px] tracking-wider ${
+                      r.noteMeta.reconciliationStatus === 'VERIFIED'
+                        ? 'text-emerald-600'
+                        : r.noteMeta.reconciliationStatus === 'WARNING'
+                        ? 'text-amber-500'
+                        : r.noteMeta.reconciliationStatus === 'MISMATCH'
+                        ? 'text-rose-500 font-black'
+                        : 'text-slate-400'
+                    }`}>
+                      {r.noteMeta.reconciliationStatus === 'VERIFIED' ? '✓ Verified' : r.noteMeta.reconciliationStatus === 'WARNING' ? '⚠ Warning' : '⚠ Mismatch'}
+                    </span>
+                  </span>
                 )}
               </div>
               <span className={`font-mono font-bold ${r.is_contra ? 'text-slate-500' : 'text-slate-800'}`}>

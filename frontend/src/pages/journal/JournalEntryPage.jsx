@@ -157,6 +157,8 @@ export default function JournalEntryPage() {
   const [confirmOpen, setConfirmOpen] = useState(false);
   const [keyboardHelpOpen, setKeyboardHelpOpen] = useState(false);
   const [nextAction, setNextAction] = useState('post'); // post | draft
+  const [controlWarningOpen, setControlWarningOpen] = useState(false);
+  const [controlWarningData, setControlWarningData] = useState(null);
   
   // Recent transactions sidebar state
   const [recentDrawerOpen, setRecentDrawerOpen] = useState(false);
@@ -343,7 +345,7 @@ export default function JournalEntryPage() {
     setNextAction(action); setConfirmOpen(true);
   };
 
-  const submit = async () => {
+  const submit = async (overrideControl = false) => {
     setConfirmOpen(false); setSaving(true);
     const cleanLines = lines.filter(l => l.accountId && (parseFloat(l.debit || 0) > 0 || parseFloat(l.credit || 0) > 0))
       .map(l => ({ accountId: l.accountId, description: l.description, debit: parseFloat(l.debit || 0), credit: parseFloat(l.credit || 0) }));
@@ -351,6 +353,7 @@ export default function JournalEntryPage() {
       const response = await api.post('/journal', {
         company_id: activeCompany.id, entry_date: date, reference,
         description: cleanLines[0]?.description || 'Journal Entry', lines: cleanLines,
+        overrideControlWarning: overrideControl
       });
       
       const entryId = response.data.id;
@@ -377,7 +380,18 @@ export default function JournalEntryPage() {
       setToast(true); setTimeout(() => setToast(false), 3500);
       fetchRecent();
       handleNewEntry();
-    } catch (err) { setError(err.response?.data?.message || 'Failed to process entry.'); }
+    } catch (err) {
+      if (err.response?.status === 409 && err.response?.data?.warning === 'CONTROL_ACCOUNT_DIRECT_POST') {
+        setControlWarningData({
+          message: err.response.data.message,
+          accounts: err.response.data.controlAccounts,
+          onConfirm: () => submit(true)
+        });
+        setControlWarningOpen(true);
+      } else {
+        setError(err.response?.data?.message || 'Failed to process entry.');
+      }
+    }
     setSaving(false);
   };
 
@@ -920,6 +934,60 @@ export default function JournalEntryPage() {
                   className="flex-1 inline-flex items-center justify-center gap-2 px-5 rounded-xl font-bold text-[14px] bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white shadow-lg transition-all active:scale-95 cursor-pointer"
                 >
                   <FileText size={14} /> {nextAction === 'post' ? 'Post to Ledger' : nextAction === 'submit' ? 'Submit for Approval' : 'Save Draft'}
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Control Warning Override Modal */}
+      <AnimatePresence>
+        {controlWarningOpen && controlWarningData && (
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="modal-box w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100"
+              initial={{ opacity: 0, scale: 0.95, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }} transition={{ duration: 0.2 }}>
+              <div className="px-7 pt-6 pb-4 border-b border-slate-100 bg-amber-50/50 flex items-center gap-2.5">
+                <AlertTriangle className="text-amber-500 animate-pulse" size={20} />
+                <div>
+                  <h2 className="font-display font-extrabold text-[16px] text-amber-950">Control Account Warning</h2>
+                  <p className="text-[11.5px] text-amber-700 mt-0.5 font-medium">Direct manual posting detected.</p>
+                </div>
+              </div>
+              <div className="p-7 space-y-4">
+                <p className="text-[12.5px] text-slate-600 font-semibold leading-relaxed">
+                  You are attempting to post a manual journal entry directly to the following control accounts:
+                </p>
+                
+                <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 space-y-1.5 font-mono text-[12px] font-bold text-slate-700">
+                  {controlWarningData.accounts.map((name, i) => (
+                    <div key={i} className="flex items-center gap-2">
+                      <span className="h-1.5 w-1.5 rounded-full bg-amber-500" />
+                      <span>{name}</span>
+                    </div>
+                  ))}
+                </div>
+
+                <p className="text-[12px] text-slate-500 leading-relaxed">
+                  ⚠ Direct postings to system control accounts can create reconciliation differences between the General Ledger and corresponding sub-ledgers (e.g. Asset Register, Customer Risk logs).
+                </p>
+              </div>
+              <div className="flex gap-3 px-7 pb-7">
+                <button 
+                  onClick={() => { setControlWarningOpen(false); setSaving(false); }} 
+                  className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-600 px-4 py-2.5 text-[12.5px] font-bold rounded-xl border border-slate-200 transition-all active:scale-95 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  onClick={async () => {
+                    setControlWarningOpen(false);
+                    await controlWarningData.onConfirm();
+                  }}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-[12.5px] bg-amber-600 hover:bg-amber-700 text-white shadow-lg transition-all active:scale-95 cursor-pointer"
+                >
+                  Override & Post
                 </button>
               </div>
             </motion.div>

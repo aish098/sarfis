@@ -176,6 +176,19 @@ class FinancialNotesService {
       .orderBy('je.entry_date', 'desc')
       .limit(10);
 
+    const ReconciliationService = require('./reconciliation.service');
+    const reconciliation = await ReconciliationService.reconcileAccount(companyId, account, closingBalance, breakdown);
+
+    const nameLower = account.name.toLowerCase();
+    let source = 'General Ledger';
+    if (nameLower.includes('depreciation') || nameLower.includes('amortization')) {
+      source = 'Asset Register';
+    } else if (nameLower.includes('bad debt') || nameLower.includes('allowance') || nameLower.includes('doubtful')) {
+      source = 'Risk Register';
+    }
+
+    const lastUpdated = journalEntries[0]?.date || targetDate;
+
     return {
       account: {
         id: account.id,
@@ -183,7 +196,8 @@ class FinancialNotesService {
         name: account.name,
         category: account.category,
         normal_balance: account.normal_balance,
-        is_contra: account.is_contra
+        is_contra: account.is_contra,
+        is_control: account.is_control
       },
       openingBalance,
       movements,
@@ -193,7 +207,14 @@ class FinancialNotesService {
         ...je,
         debit: parseFloat(je.debit || 0),
         credit: parseFloat(je.credit || 0)
-      }))
+      })),
+      metadata: {
+        source,
+        generated: 'Automatically',
+        lastUpdated,
+        supportingRecordsCount: breakdown.length
+      },
+      reconciliation
     };
   }
 }

@@ -6,9 +6,24 @@ class JournalService {
   /**
    * Logic to create a balanced journal entry with multiple lines.
    */
-  static async createJournalEntry({ companyId, userId, entryDate, description, lines }) {
+  static async createJournalEntry({ companyId, userId, entryDate, description, lines, overrideControlWarning }) {
     if (!companyId) throw new Error('Company context required.');
     if (!lines || lines.length < 2) throw new Error('Journal entry must have at least 2 lines.');
+
+    // Check for direct manual posting to control accounts
+    const accountIds = lines.map(l => l.accountId).filter(Boolean);
+    if (accountIds.length > 0) {
+      const controlAccounts = await db('accounts')
+        .whereIn('id', accountIds)
+        .andWhere('is_control', true);
+
+      if (controlAccounts.length > 0 && !overrideControlWarning) {
+        const err = new Error('Direct posting to control accounts detected.');
+        err.isControlWarning = true;
+        err.controlAccounts = controlAccounts.map(a => a.name);
+        throw err;
+      }
+    }
 
     // Validate debits and credits match
     let totalDebit = 0;

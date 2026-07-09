@@ -36,7 +36,46 @@ exports.getBalanceSheet = async (req, res) => {
   
   try {
     const balanceSheet = await ReportModel.getBalanceSheet(companyId, asOfDate);
-    res.json(balanceSheet);
+
+    const getNoteRef = (code, name) => {
+      const c = String(code || '');
+      const n = String(name || '').toLowerCase();
+      if (c.startsWith('10')) return { num: 2, label: 'Cash & Cash Equivalents' };
+      if (c.startsWith('12') && !n.includes('allowance')) return { num: 3, label: 'Trade Receivables' };
+      if (n.includes('allowance') || n.includes('bad debt')) return { num: 4, label: 'Allowance for Doubtful Accounts' };
+      if (c.startsWith('13')) return { num: 5, label: 'Inventories' };
+      if (c.startsWith('15') || c.startsWith('16')) return { num: 7, label: 'Property, Plant & Equipment' };
+      if (c.startsWith('20') || c.startsWith('21')) return { num: 8, label: 'Trade and Other Payables' };
+      if (n.includes('tax') || c.startsWith('22')) return { num: 9, label: 'Taxation Liabilities' };
+      return null;
+    };
+
+    const FinancialNotesService = require('../services/financial_notes.service');
+    const enrichedBalanceSheet = await Promise.all(balanceSheet.map(async (acc) => {
+      const noteRef = getNoteRef(acc.code, acc.name);
+      if (noteRef) {
+        try {
+          const noteInfo = await FinancialNotesService.getAccountNote(companyId, acc.id, asOfDate);
+          return {
+            ...acc,
+            noteMeta: {
+              num: noteRef.num,
+              label: noteRef.label,
+              source: noteInfo.metadata.source,
+              generated: noteInfo.metadata.generated,
+              lastUpdated: noteInfo.metadata.lastUpdated,
+              supportingRecordsCount: noteInfo.metadata.supportingRecordsCount,
+              reconciliationStatus: noteInfo.reconciliation.status
+            }
+          };
+        } catch (e) {
+          console.error(`Failed to enrich note metadata for account ${acc.id}:`, e);
+        }
+      }
+      return acc;
+    }));
+
+    res.json(enrichedBalanceSheet);
   } catch (err) {
     console.error('getBalanceSheet error:', err);
     res.status(500).json({ error: err.message });
