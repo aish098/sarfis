@@ -260,6 +260,47 @@ class NotificationService {
         sent_at: null
       });
   }
+
+  /**
+   * Direct in-app sending (backward compatibility)
+   */
+  static async notifyDirect({ companyId, userIds, title, message, type = 'system', priority = 'MEDIUM', entityType = null, entityId = null }) {
+    const results = [];
+    for (const userId of userIds) {
+      const [notif] = await db('notifications')
+        .insert({
+          company_id: companyId,
+          user_id: userId,
+          event_code: 'LOW_STOCK_ALERT', // default fallback code
+          title,
+          message,
+          priority: priority?.toUpperCase() || 'MEDIUM',
+          is_read: false,
+          entity_type: entityType,
+          entity_id: entityId
+        })
+        .returning('*');
+
+      const connections = sseConnections.get(userId);
+      if (connections && connections.length > 0) {
+        const payloadStr = JSON.stringify(notif);
+        connections.forEach(res => {
+          res.write(`data: ${payloadStr}\n\n`);
+        });
+      }
+      results.push(notif);
+    }
+    return results;
+  }
+
+  static async notifyUsersWithPermission({ companyId, permissionCode, title, message, type = 'system', priority = 'MEDIUM', entityType = null, entityId = null }) {
+    const userIds = await this.getUsersWithPermission(companyId, permissionCode);
+    return this.notifyDirect({ companyId, userIds, title, message, type, priority, entityType, entityId });
+  }
+
+  static async createNotification({ companyId, userId, title, message, type = 'system', priority = 'MEDIUM', entityType = null, entityId = null }) {
+    return this.notifyDirect({ companyId, userIds: [userId], title, message, type, priority, entityType, entityId });
+  }
 }
 
 // Start background queue processing ticker (every 10 seconds)
