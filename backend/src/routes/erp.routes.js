@@ -13,9 +13,11 @@ router.get('/warehouses/:companyId',       companyGuard, requirePermission('inve
 router.post('/warehouses/:companyId',      companyGuard, requirePermission('warehouse.manage'), invCtrl.createWarehouse);
 router.put('/warehouses/:companyId/:id',   companyGuard, requirePermission('warehouse.manage'), invCtrl.updateWarehouse);
 router.delete('/warehouses/:companyId/:id', companyGuard, requirePermission('warehouse.manage'), invCtrl.deleteWarehouse);
+router.get('/warehouses/:companyId/:id/statistics', companyGuard, requirePermission('inventory.view'), invCtrl.getWarehouseStatistics);
 
 // Products
 router.get('/products/:companyId',         companyGuard, requirePermission('inventory.view'), invCtrl.getProducts);
+router.get('/products/:companyId/:id/inquiry', companyGuard, requirePermission('inventory.view'), invCtrl.getProductInquiry);
 router.post('/products/:companyId',        companyGuard, requirePermission('product.manage'), invCtrl.createProduct);
 router.put('/products/:companyId/:id',     companyGuard, requirePermission('product.manage'), invCtrl.updateProduct);
 

@@ -132,3 +132,27 @@ exports.getDashboardStats = async (req, res) => {
     res.json({ stats, recentLogs, lowStock });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
+
+// ─── WAREHOUSE STATISTICS ──────────────────────────────────
+exports.getWarehouseStatistics = async (req, res) => {
+  try {
+    const { companyId, id } = req.params;
+    const WarehouseStatisticsService = require('../services/warehouse_statistics.service');
+    const stats = await WarehouseStatisticsService.getWarehouseStatistics(companyId, id);
+    res.json(stats);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// ─── PRODUCT INQUIRY ───────────────────────────────────────
+exports.getProductInquiry = async (req, res) => {
+  try {
+    const { companyId, id } = req.params;
+    const ProductInquiryService = require('../services/product_inquiry.service');
+    const inquiry = await ProductInquiryService.getProductInquiryDetails(companyId, id);
+    res.json(inquiry);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
