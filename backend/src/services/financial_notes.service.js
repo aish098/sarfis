@@ -39,8 +39,7 @@ class BadDebtResolver extends NoteResolver {
       .join('clients as c', 'bri.entity_id', 'c.id')
       .where('bri.entity_type', 'CUSTOMER')
       .andWhere('bri.company_id', companyId)
-      .select('c.id as client_id', 'c.name as item')
-      .sum(db.raw('bri.loss_amount - bri.recovered_amount as amount'))
+      .select('c.id as client_id', 'c.name as item', db.raw('SUM(bri.loss_amount - bri.recovered_amount) as amount'))
       .groupBy('c.id', 'c.name')
       .orderBy('amount', 'desc');
 
@@ -70,8 +69,7 @@ class DefaultResolver extends NoteResolver {
       .join('journal_entries as je', 'jl.entry_id', 'je.id')
       .where('jl.account_id', account.id)
       .andWhere('je.entry_date', '<=', targetDate)
-      .select('je.description as item')
-      .sum(db.raw('jl.debit - jl.credit as net_amount'))
+      .select('je.description as item', db.raw('SUM(jl.debit - jl.credit) as net_amount'))
       .groupBy('je.description')
       .orderBy(db.raw('ABS(SUM(jl.debit - jl.credit))'), 'desc')
       .limit(10);
