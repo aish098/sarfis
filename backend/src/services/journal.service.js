@@ -4,58 +4,28 @@ const db = require('../config/db');
 
 class JournalService {
   /**
-   * Logic to create a balanced journal entry with multiple lines.
+   * Creates a journal entry header and lines as a DRAFT.
    */
-  static async createJournalEntry({ companyId, userId, entryDate, description, lines, overrideControlWarning }) {
+  static async createDraft({ companyId, userId, entryDate, description, reference, lines }) {
     if (!companyId) throw new Error('Company context required.');
     if (!lines || lines.length < 2) throw new Error('Journal entry must have at least 2 lines.');
 
-    // Check for direct manual posting to control accounts
-    const accountIds = lines.map(l => l.accountId).filter(Boolean);
-    if (accountIds.length > 0) {
-      const controlAccounts = await db('accounts')
-        .whereIn('id', accountIds)
-        .andWhere('is_control', true);
-
-      if (controlAccounts.length > 0 && !overrideControlWarning) {
-        const err = new Error('Direct posting to control accounts detected.');
-        err.isControlWarning = true;
-        err.controlAccounts = controlAccounts.map(a => a.name);
-        throw err;
-      }
-    }
-
-    // Validate debits and credits match
-    let totalDebit = 0;
-    let totalCredit = 0;
-    for (const line of lines) {
-      if (line.debit < 0 || line.credit < 0) throw new Error('Negative values are not allowed.');
-      totalDebit += parseFloat(line.debit) || 0;
-      totalCredit += parseFloat(line.credit) || 0;
-    }
-
-    // Rounded comparison to avoid floating point issues
-    if (Math.round(totalDebit * 100) !== Math.round(totalCredit * 100)) {
-      throw new Error(`Uneven entry: Debits ($${totalDebit}) must equal Credits ($${totalCredit}).`);
-    }
-
     return await db.transaction(async (trx) => {
-      // 1. Insert Header as DRAFT
       const entryId = await JournalModel.createEntry({
         companyId,
         entryDate,
         description,
+        reference,
         userId,
         status: 'DRAFT'
       }, trx);
 
-      // 2. Insert Lines
       for (const line of lines) {
         await JournalModel.createLine({
           entryId,
           accountId: line.accountId,
-          debit: line.debit,
-          credit: line.credit
+          debit: parseFloat(line.debit) || 0,
+          credit: parseFloat(line.credit) || 0
         }, trx);
       }
       return entryId;
@@ -63,33 +33,149 @@ class JournalService {
   }
 
   /**
-   * Posts a draft journal entry (Updates ledgers)
+   * Updates an existing draft journal entry header and lines.
+   */
+  static async updateDraft(entryId, { companyId, entryDate, description, reference, lines }) {
+    return await db.transaction(async (trx) => {
+      const header = await trx('journal_entries').where({ id: entryId, company_id: companyId }).first();
+      if (!header) throw new Error('Journal entry not found.');
+      if (header.status !== 'DRAFT') throw new Error('Only draft entries can be updated.');
+
+      await trx('journal_entries')
+        .where({ id: entryId })
+        .update({
+          entry_date: entryDate,
+          description,
+          reference
+        });
+
+      // Clear existing lines and re-add updated lines
+      await trx('journal_lines').where({ entry_id: entryId }).delete();
+      
+      for (const line of lines) {
+        await JournalModel.createLine({
+          entryId,
+          accountId: line.accountId,
+          debit: parseFloat(line.debit) || 0,
+          credit: parseFloat(line.credit) || 0
+        }, trx);
+      }
+      return entryId;
+    });
+  }
+
+  /**
+   * Deletes (voids) an existing draft journal entry.
+   */
+  static async deleteDraft(entryId, companyId) {
+    const header = await db('journal_entries').where({ id: entryId, company_id: companyId }).first();
+    if (!header) throw new Error('Journal entry not found.');
+    if (header.status !== 'DRAFT') throw new Error('Only draft entries can be voided.');
+
+    await db('journal_entries').where({ id: entryId }).delete();
+    return true;
+  }
+
+  /**
+   * Backwards compatible entry creation (defaults to draft).
+   */
+  static async createJournalEntry({ companyId, userId, entryDate, description, lines, overrideControlWarning }) {
+    return await this.createDraft({ companyId, userId, entryDate, description, lines });
+  }
+
+  /**
+   * Posts a drafted journal entry (Updates ledgers and writes detailed logs)
    */
   static async postJournalEntry(entryId, companyId, userId) {
+    const startTime = Date.now();
+    const JournalValidationService = require('./journal_validation.service');
+    
     return await db.transaction(async (trx) => {
       const header = await trx('journal_entries').where({ id: entryId, company_id: companyId }).first();
       if (!header) throw new Error('Journal entry not found.');
       if (header.status === 'POSTED') throw new Error('Journal entry is already posted.');
+      if (header.status === 'REVERSED') throw new Error('Cannot post a reversed journal entry.');
 
       const lines = await trx('journal_lines').where('entry_id', entryId);
+      const totalDebit = lines.reduce((sum, l) => sum + (parseFloat(l.debit) || 0), 0);
 
-      for (const line of lines) {
-        // Auto-Posting: Update account balance
-        await AccountModel.updateBalance(line.account_id, companyId, line.debit, line.credit, trx);
+      // Create initial posting log
+      const [log] = await trx('journal_posting_logs')
+        .insert({
+          company_id: companyId,
+          journal_entry_id: entryId,
+          user_id: userId,
+          reference: header.reference || null,
+          status: 'POSTING_STARTED',
+          debit_total: totalDebit,
+          credit_total: totalDebit,
+          duration_ms: 0
+        })
+        .returning('id');
+      const logId = typeof log === 'object' ? log.id : log;
+
+      try {
+        const journalData = {
+          entryDate: header.entry_date,
+          reference: header.reference,
+          description: header.description,
+          lines: lines.map(l => ({ accountId: l.account_id, debit: l.debit, credit: l.credit }))
+        };
+
+        await trx('journal_posting_logs').where({ id: logId }).update({ status: 'VALIDATING_PERIOD' });
+        await JournalValidationService.validatePeriod(companyId, journalData.entryDate, trx);
+
+        await trx('journal_posting_logs').where({ id: logId }).update({ status: 'VALIDATING_ACCOUNTS' });
+        await JournalValidationService.validateAccounts(companyId, journalData.lines, trx);
+        await JournalValidationService.validateControlAccounts(companyId, journalData.lines, true, trx);
+        JournalValidationService.validateBalance(journalData.lines);
+        
+        if (header.reference) {
+          const exists = await trx('journal_entries')
+            .where({ company_id: companyId })
+            .andWhereRaw('LOWER(reference) = ?', [header.reference.trim().toLowerCase()])
+            .andWhereNot({ id: entryId })
+            .first();
+          if (exists) {
+            throw new Error(`A journal entry with reference '${header.reference}' already exists.`);
+          }
+        }
+
+        await trx('journal_posting_logs').where({ id: logId }).update({ status: 'UPDATING_LEDGER' });
+        for (const line of lines) {
+          await AccountModel.updateBalance(line.account_id, companyId, line.debit, line.credit, trx);
+        }
+
+        await trx('journal_entries').where({ id: entryId }).update({ status: 'POSTED' });
+
+        // Audit Log
+        await trx('transaction_audit_logs').insert({
+          company_id: companyId,
+          action: 'POST',
+          user_id: userId,
+          description: `Posted Journal Entry #${entryId} (Ref: ${header.reference || 'N/A'})`
+        });
+
+        const duration = Date.now() - startTime;
+        await trx('journal_posting_logs')
+          .where({ id: logId })
+          .update({
+            status: 'POSTED',
+            duration_ms: duration
+          });
+
+        return true;
+      } catch (err) {
+        const duration = Date.now() - startTime;
+        await trx('journal_posting_logs')
+          .where({ id: logId })
+          .update({
+            status: 'ROLLBACK',
+            error_message: err.message,
+            duration_ms: duration
+          });
+        throw err;
       }
-
-      await trx('journal_entries').where({ id: entryId }).update({ status: 'POSTED' });
-
-      // Audit Log
-      await trx('transaction_audit_logs').insert({
-        company_id: companyId,
-        voucher_id: null,
-        action: 'POST',
-        user_id: userId,
-        description: `Posted Journal Entry #${entryId}`
-      });
-
-      return true;
     });
   }
 }

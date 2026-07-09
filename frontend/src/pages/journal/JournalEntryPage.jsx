@@ -159,6 +159,9 @@ export default function JournalEntryPage() {
   const [nextAction, setNextAction] = useState('post'); // post | draft
   const [controlWarningOpen, setControlWarningOpen] = useState(false);
   const [controlWarningData, setControlWarningData] = useState(null);
+  const [reversalModalOpen, setReversalModalOpen] = useState(false);
+  const [reversalReason, setReversalReason] = useState('');
+  const [reversingEntry, setReversingEntry] = useState(null);
   
   // Recent transactions sidebar state
   const [recentDrawerOpen, setRecentDrawerOpen] = useState(false);
@@ -350,13 +353,22 @@ export default function JournalEntryPage() {
     const cleanLines = lines.filter(l => l.accountId && (parseFloat(l.debit || 0) > 0 || parseFloat(l.credit || 0) > 0))
       .map(l => ({ accountId: l.accountId, description: l.description, debit: parseFloat(l.debit || 0), credit: parseFloat(l.credit || 0) }));
     try {
-      const response = await api.post('/journal', {
-        company_id: activeCompany.id, entry_date: date, reference,
-        description: cleanLines[0]?.description || 'Journal Entry', lines: cleanLines,
-        overrideControlWarning: overrideControl
-      });
-      
-      const entryId = response.data.id;
+      let entryId;
+      if (editingId) {
+        await api.put(`/journal/${editingId}`, {
+          company_id: activeCompany.id, entry_date: date, reference,
+          description: cleanLines[0]?.description || 'Journal Entry', lines: cleanLines,
+          overrideControlWarning: overrideControl
+        });
+        entryId = editingId;
+      } else {
+        const response = await api.post('/journal', {
+          company_id: activeCompany.id, entry_date: date, reference,
+          description: cleanLines[0]?.description || 'Journal Entry', lines: cleanLines,
+          overrideControlWarning: overrideControl
+        });
+        entryId = response.data.id;
+      }
       
       if (nextAction === 'post') {
         await api.post(`/journal/${entryId}/post`);
@@ -366,15 +378,6 @@ export default function JournalEntryPage() {
         setToastMessage('Transaction submitted for approval.');
       } else {
         setToastMessage('Transaction saved as draft.');
-      }
-
-      // If we were editing a draft, void/delete the old one to avoid duplicates
-      if (editingId) {
-        try {
-          await api.delete(`/journal/${editingId}`);
-        } catch (e) {
-          console.error("Cleanup error", e);
-        }
       }
 
       setToast(true); setTimeout(() => setToast(false), 3500);
@@ -427,7 +430,7 @@ export default function JournalEntryPage() {
     mapped.push(genRow());
     
     setLines(mapped);
-    setEditingId(entryData.id);
+    setEditingId(entryData.status === 'DRAFT' ? entryData.id : null);
     setSelectedRecentEntry(null);
     setDetailEntry(null);
     setRecentDrawerOpen(false);
@@ -995,6 +998,86 @@ export default function JournalEntryPage() {
         )}
       </AnimatePresence>
 
+      {/* Reversal Confirmation Modal */}
+      <AnimatePresence>
+        {reversalModalOpen && reversingEntry && (
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="modal-box w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100"
+              initial={{ opacity: 0, scale: 0.95, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }} transition={{ duration: 0.2 }}>
+              <div className="px-7 pt-6 pb-4 border-b border-slate-100 bg-rose-50/50 flex items-center gap-2.5">
+                <RefreshCw className="text-rose-500 animate-spin-once" size={20} />
+                <div>
+                  <h2 className="font-display font-extrabold text-[16px] text-rose-950">Reverse Journal Entry</h2>
+                  <p className="text-[11.5px] text-rose-700 mt-0.5 font-medium">Reversing posted entry #{reversingEntry.id}</p>
+                </div>
+              </div>
+              <div className="p-7 space-y-4">
+                <p className="text-[12.5px] text-slate-600 font-semibold leading-relaxed">
+                  Please select or enter the reason for reversing this journal entry. This creates an opposite balancing transaction and marks this entry as REVERSED.
+                </p>
+                
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Reversal Reason</label>
+                  <select 
+                    value={reversalReason} 
+                    onChange={e => setReversalReason(e.target.value)} 
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500/20"
+                  >
+                    <option value="">Select a reason...</option>
+                    <option value="Wrong Account">Wrong Account selected</option>
+                    <option value="Duplicate Entry">Duplicate Entry posted</option>
+                    <option value="Wrong Amount/Value">Incorrect Amount entered</option>
+                    <option value="Wrong Accounting Period">Wrong Accounting Period</option>
+                    <option value="Other">Other (specify below)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Detailed Notes (Required)</label>
+                  <textarea 
+                    rows={3}
+                    placeholder="Enter detailed description supporting this reversal..."
+                    value={reversalReason === 'Other' || !['Wrong Account', 'Duplicate Entry', 'Wrong Amount/Value', 'Wrong Accounting Period'].includes(reversalReason) ? reversalReason : ''}
+                    onChange={e => setReversalReason(e.target.value)}
+                    className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-[13px] font-medium outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500/20 resize-none"
+                  />
+                </div>
+              </div>
+              <div className="flex gap-3 px-7 pb-7">
+                <button 
+                  onClick={() => { setReversalModalOpen(false); setReversingEntry(null); setReversalReason(''); }} 
+                  className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-600 px-4 py-2.5 text-[12.5px] font-bold rounded-xl border border-slate-200 transition-all active:scale-95 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  disabled={!reversalReason.trim()}
+                  onClick={async () => {
+                    try {
+                      await api.post(`/journal/${reversingEntry.id}/reverse`, { reason: reversalReason });
+                      setReversalModalOpen(false);
+                      setReversingEntry(null);
+                      setReversalReason('');
+                      setToastMessage("Journal entry reversed successfully.");
+                      setToast(true); setTimeout(() => setToast(false), 3500);
+                      setSelectedRecentEntry(null);
+                      setDetailEntry(null);
+                      fetchRecent();
+                    } catch (err) {
+                      setError(err.response?.data?.error || err.response?.data?.message || "Failed to reverse entry.");
+                    }
+                  }}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-[12.5px] bg-rose-600 hover:bg-rose-700 text-white disabled:opacity-50 disabled:cursor-not-allowed shadow-lg transition-all active:scale-95 cursor-pointer"
+                >
+                  Confirm Reversal
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
       {/* Keyboard Shortcuts Guide Modal */}
       <AnimatePresence>
         {keyboardHelpOpen && (
@@ -1111,7 +1194,11 @@ export default function JournalEntryPage() {
                         <div className="flex items-center gap-1.5">
                           <span className="text-[11px] font-bold text-slate-400 font-mono tracking-wider">#{String(entry.id)}</span>
                           <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                            entry.status === 'POSTED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-cyan-50 text-cyan-700 border border-cyan-100'
+                            entry.status === 'POSTED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                            entry.status === 'REVERSED' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
+                            entry.status === 'PENDING_APPROVAL' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                            entry.status === 'DRAFT' ? 'bg-slate-50 text-slate-600 border border-slate-100' :
+                            'bg-cyan-50 text-cyan-700 border border-cyan-100'
                           }`}>
                             {entry.status}
                           </span>
@@ -1177,7 +1264,11 @@ export default function JournalEntryPage() {
                         <span className="text-slate-400 font-semibold block">Status / Reference</span>
                         <div className="flex items-center gap-1.5 mt-0.5">
                           <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${
-                            detailEntry.status === 'POSTED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-cyan-50 text-cyan-700 border border-cyan-100'
+                            detailEntry.status === 'POSTED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                            detailEntry.status === 'REVERSED' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
+                            detailEntry.status === 'PENDING_APPROVAL' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                            detailEntry.status === 'DRAFT' ? 'bg-slate-50 text-slate-600 border border-slate-100' :
+                            'bg-cyan-50 text-cyan-700 border border-cyan-100'
                           }`}>
                             {detailEntry.status}
                           </span>
@@ -1263,6 +1354,18 @@ export default function JournalEntryPage() {
                     className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold text-emerald-800 bg-[#EBFDF5] hover:bg-[#d5f7e6] transition-colors border border-[#C2F3DC] cursor-pointer"
                   >
                     <CheckSquare size={13} /> Post GL
+                  </button>
+                )}
+
+                {detailEntry?.status === 'POSTED' && (
+                  <button 
+                    onClick={() => {
+                      setReversingEntry(detailEntry);
+                      setReversalModalOpen(true);
+                    }}
+                    className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold text-rose-800 bg-[#FFF1F2] hover:bg-[#FFE4E6] transition-colors border border-[#FECDD3] cursor-pointer"
+                  >
+                    <RefreshCw size={13} /> Reverse Journal
                   </button>
                 )}
 

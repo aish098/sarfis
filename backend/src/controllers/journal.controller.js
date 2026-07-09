@@ -1,36 +1,53 @@
 const JournalService = require('../services/journal.service');
 const JournalModel = require('../models/journal.model');
+const JournalPostingService = require('../services/journal_posting.service');
 
 /**
- * Creates a new journal entry with multiple lines (double-entry).
- * Enforces Balanced Entry (Debit = Credit).
+ * Creates a new draft journal entry.
  */
 exports.createJournalEntry = async (req, res) => {
-  const { entry_date, description, lines } = req.body;
+  const { entry_date, description, reference, lines } = req.body;
   const companyId = req.companyId;
   const userId = req.user.id;
 
   try {
-    const entryId = await JournalService.createJournalEntry({
+    const entryId = await JournalService.createDraft({
       companyId,
       userId,
       entryDate: entry_date,
       description,
-      lines,
-      overrideControlWarning: req.body.overrideControlWarning
+      reference,
+      lines
     });
 
     res.status(201).json({ id: entryId, message: 'Journal entry drafted successfully' });
   } catch (err) {
     console.error('Journal entry error:', err);
-    if (err.isControlWarning) {
-      return res.status(409).json({
-        warning: 'CONTROL_ACCOUNT_DIRECT_POST',
-        message: err.message,
-        controlAccounts: err.controlAccounts
-      });
-    }
-    res.status(err.message.includes('required') || err.message.includes('lines') || err.message.includes('Uneven') || err.message.includes('Negative') ? 400 : 500).json({ message: err.message });
+    res.status(400).json({ error: err.message });
+  }
+};
+
+/**
+ * Updates an existing draft journal entry.
+ */
+exports.updateJournalEntry = async (req, res) => {
+  const { id } = req.params;
+  const { entry_date, description, reference, lines } = req.body;
+  const companyId = req.companyId;
+
+  try {
+    await JournalService.updateDraft(id, {
+      companyId,
+      entryDate: entry_date,
+      description,
+      reference,
+      lines
+    });
+
+    res.json({ message: 'Journal entry draft updated successfully' });
+  } catch (err) {
+    console.error('Journal update error:', err);
+    res.status(400).json({ error: err.message });
   }
 };
 
@@ -154,5 +171,23 @@ exports.submitJournalForApproval = async (req, res) => {
   } catch (err) {
     console.error('Submit Approval Error:', err);
     res.status(500).json({ error: err.message });
+  }
+};
+
+/**
+ * Reverses a posted journal entry by generating a counter-balancing transaction.
+ */
+exports.reverseJournalEntry = async (req, res) => {
+  const { id } = req.params;
+  const { reason } = req.body;
+  const companyId = req.companyId;
+  const userId = req.user.id;
+
+  try {
+    await JournalPostingService.reverse(id, companyId, userId, reason);
+    res.json({ message: 'Journal entry successfully reversed' });
+  } catch (err) {
+    console.error('Reversal Error:', err);
+    res.status(400).json({ error: err.message });
   }
 };

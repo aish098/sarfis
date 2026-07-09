@@ -10,6 +10,10 @@ class JournalModel {
         company_id: entryData.companyId,
         entry_date: entryData.entryDate || new Date(),
         description: entryData.description,
+        reference: entryData.reference,
+        reversal_of_id: entryData.reversalOfId,
+        reversed_by_id: entryData.reversedById,
+        reversal_reason: entryData.reversalReason,
         status: entryData.status || 'DRAFT',
         created_by: entryData.userId
       })
