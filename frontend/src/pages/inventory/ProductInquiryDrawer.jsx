@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion as Motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   X, RefreshCw, AlertTriangle, Building2, Package,
   History, ArrowUpRight, ArrowDownLeft, TrendingUp,
@@ -43,7 +43,7 @@ export default function ProductInquiryDrawer({ productId, onClose }) {
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex justify-end overflow-hidden bg-slate-900/30 backdrop-blur-2xs">
-        <Motion.div 
+        <motion.div 
           initial={{ opacity: 0 }} 
           animate={{ opacity: 1 }} 
           exit={{ opacity: 0 }}
@@ -51,7 +51,7 @@ export default function ProductInquiryDrawer({ productId, onClose }) {
           onClick={onClose} 
         />
         
-        <Motion.div 
+        <motion.div 
           initial={{ x: '100%', opacity: 0.95 }}
           animate={{ x: 0, opacity: 1 }}
           exit={{ x: '100%', opacity: 0.95 }}
@@ -343,7 +343,7 @@ export default function ProductInquiryDrawer({ productId, onClose }) {
               </div>
             ) : null}
           </div>
-        </Motion.div>
+        </motion.div>
       </div>
     </AnimatePresence>
   );

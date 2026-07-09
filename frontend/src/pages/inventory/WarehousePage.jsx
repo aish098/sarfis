@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback } from 'react';
-import { motion as Motion, AnimatePresence } from 'framer-motion';
+import { motion, AnimatePresence } from 'framer-motion';
 import {
   Warehouse, Plus, MapPin, Search, Edit2, Trash2, 
   AlertTriangle, RefreshCw, X, CheckCircle2, Building2,
@@ -181,7 +181,7 @@ export default function WarehousePage({ globalSearch = "" }) {
                 </button>
               </div>
             ) : filtered.map((wh) => (
-              <Motion.div key={wh.id} variants={fadeUp} initial="initial" animate="animate"
+              <motion.div key={wh.id} variants={fadeUp} initial="initial" animate="animate"
                 onClick={() => setSelectedWhId(wh.id)}
                 className="card group hover:border-emerald-200 transition-all duration-300 cursor-pointer hover:shadow-md"
               >
@@ -216,7 +216,7 @@ export default function WarehousePage({ globalSearch = "" }) {
                   </span>
                   <span className="text-[11px] font-medium text-slate-400">Capacity: {wh.capacity_value?.toLocaleString()} {wh.capacity_type}</span>
                 </div>
-              </Motion.div>
+              </motion.div>
             ))}
           </div>
         </div>
@@ -594,9 +594,9 @@ export default function WarehousePage({ globalSearch = "" }) {
       <AnimatePresence>
         {modalOpen && (
           <div className="fixed inset-0 z-[100] flex items-center justify-center p-4">
-            <Motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
+            <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}
               onClick={() => setModalOpen(false)} className="absolute inset-0 bg-slate-900/60 backdrop-blur-sm" />
-            <Motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
+            <motion.div initial={{ opacity: 0, scale: 0.95, y: 20 }} animate={{ opacity: 1, scale: 1, y: 0 }} exit={{ opacity: 0, scale: 0.95, y: 20 }}
               className="relative w-full max-w-md bg-white rounded-2xl shadow-2xl overflow-hidden">
               <div className="p-6 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div>
@@ -662,7 +662,7 @@ export default function WarehousePage({ globalSearch = "" }) {
                   </button>
                 </div>
               </form>
-            </Motion.div>
+            </motion.div>
           </div>
         )}
       </AnimatePresence>
