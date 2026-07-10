@@ -1,12 +1,10 @@
 const db = require('../src/config/db');
 
-async function checkStages() {
+async function checkProductAccounts() {
   try {
-    const list = await db('workflow_stages').select('*');
-    console.log("Workflow Stages:");
-    list.forEach(s => {
-      console.log(`ID: ${s.id}, Name: ${s.name}, Req Role: ${s.required_role}, Conditions:`, s.conditions);
-    });
+    const list = await db('products').select('id', 'name', 'sku', 'inventory_account_id');
+    console.log("Products and their inventory accounts:");
+    console.log(list);
   } catch (err) {
     console.error(err);
   } finally {
@@ -14,4 +12,4 @@ async function checkStages() {
   }
 }
 
-checkStages();
+checkProductAccounts();

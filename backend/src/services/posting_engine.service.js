@@ -366,6 +366,52 @@ class PostingEngineService {
           break;
         }
 
+        case 'INVENTORY_ADJUSTMENT': {
+          const { productId, warehouseId, quantity, amount } = payload;
+          if (!productId) throw new Error('Product ID is required for Inventory Adjustment.');
+          if (!warehouseId) throw new Error('Warehouse ID is required for Inventory Adjustment.');
+          if (!quantity) throw new Error('Quantity is required for Inventory Adjustment.');
+
+          const product = await inventoryModel.getProductById(productId, companyId);
+          if (!product) throw new Error('Product not found.');
+
+          const inventoryAccount = settings.default_inventory_account_id;
+          if (!inventoryAccount) {
+            throw new Error('Default Inventory Asset account mapping is missing for this company.');
+          }
+
+          // Dynamically find shrinkage/adjustment expense account
+          const shrinkageAccount = await trx('accounts')
+            .where({ company_id: companyId, name: 'Inventory Shrinkage Expense' })
+            .first();
+          const expenseAccount = shrinkageAccount ? shrinkageAccount.id : settings.default_cogs_account_id;
+
+          if (!expenseAccount) {
+            throw new Error('Inventory Shrinkage Expense or Default COGS account is missing.');
+          }
+
+          const qty = parseFloat(quantity);
+          const amt = parseFloat(amount || (Math.abs(qty) * parseFloat(product.cost_price || 0)));
+
+          description = `Inventory Adjustment: ${product.name} (${qty > 0 ? '+' : ''}${qty}) - ${payload.notes || 'Adjustment'}`;
+          totalAmount = amt;
+
+          if (qty < 0) {
+            // Reduction (Shrinkage): Dr Expense, Cr Inventory
+            lines = [
+              { accountId: expenseAccount, debit: amt, credit: 0 },
+              { accountId: inventoryAccount, debit: 0, credit: amt }
+            ];
+          } else {
+            // Addition: Dr Inventory, Cr Expense
+            lines = [
+              { accountId: inventoryAccount, debit: amt, credit: 0 },
+              { accountId: expenseAccount, debit: 0, credit: amt }
+            ];
+          }
+          break;
+        }
+
         case 'JOURNAL': {
           if (!payload.lines || payload.lines.length < 2) {
             throw new Error('Journal Voucher must contain at least two double-entry lines.');

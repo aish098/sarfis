@@ -156,3 +156,17 @@ exports.getProductInquiry = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// ─── STOCK TRANSFER ─────────────────────────────────────────
+exports.transferStock = async (req, res) => {
+  try {
+    const result = await inventoryService.processTransfer({
+      companyId: req.params.companyId,
+      userId: req.user?.id,
+      ...req.body,
+    });
+    res.status(200).json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};

@@ -97,6 +97,31 @@ class DefaultResolver extends NoteResolver {
   }
 }
 
+// 4. Inventory Resolver: Handles Inventory sub-ledger note breakdowns matching stock valuation
+class InventoryResolver extends NoteResolver {
+  async resolve(companyId, account, targetDate) {
+    const stockItems = await db('v_stock_summary as v')
+      .join('products as p', 'v.product_id', 'p.id')
+      .where({ 'v.company_id': companyId, 'p.inventory_account_id': account.id })
+      .andWhere('v.total_qty', '>', 0)
+      .select('v.product_id', 'v.product_name as item', 'v.total_qty', 'v.cost_price');
+
+    const totalValuation = stockItems.reduce((sum, item) => sum + (parseFloat(item.total_qty) * parseFloat(item.cost_price)), 0) || 1;
+
+    return stockItems.map(item => {
+      const amount = parseFloat(item.total_qty) * parseFloat(item.cost_price);
+      return {
+        id: `product-${item.product_id}`,
+        item: item.item,
+        amount,
+        percent: Math.round((amount / totalValuation) * 100),
+        drilldownType: 'product',
+        drilldownId: item.product_id
+      };
+    });
+  }
+}
+
 // Main note coordination service
 class FinancialNotesService {
   static getResolver(account) {
@@ -107,6 +132,9 @@ class FinancialNotesService {
     }
     if (nameLower.includes('bad debt') || nameLower.includes('allowance') || nameLower.includes('doubtful')) {
       return new BadDebtResolver();
+    }
+    if (nameLower.includes('inventory')) {
+      return new InventoryResolver();
     }
     
     return new DefaultResolver();

@@ -30,6 +30,7 @@ router.get('/stock/logs/:productId',       requirePermission('inventory.view'), 
 // Operations
 router.post('/stock/:companyId/purchase',  companyGuard, requirePermission('inventory.edit'), invCtrl.processPurchase);
 router.post('/stock/:companyId/adjust',    companyGuard, requirePermission('inventory.edit'), invCtrl.adjustStock);
+router.post('/stock/:companyId/transfer',  companyGuard, requirePermission('inventory.edit'), invCtrl.transferStock);
 
 // Dashboard
 router.get('/inventory/:companyId/dashboard', companyGuard, requirePermission('inventory.view'), invCtrl.getDashboardStats);
