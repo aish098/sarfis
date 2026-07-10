@@ -9,4 +9,7 @@ router.post('/employees/:companyId', companyGuard, requirePermission('user.manag
 router.patch('/employees/:companyId/:id', companyGuard, requirePermission('user.manage'), employeeCtrl.updateEmployee);
 router.delete('/employees/:companyId/:id', companyGuard, requirePermission('user.manage'), employeeCtrl.deleteEmployee);
 
+router.get('/employees/:companyId/:id/notification-subscriptions', companyGuard, employeeCtrl.getNotificationSubscriptions);
+router.put('/employees/:companyId/:id/notification-subscriptions', companyGuard, requirePermission('user.manage'), employeeCtrl.updateNotificationSubscriptions);
+
 module.exports = router;

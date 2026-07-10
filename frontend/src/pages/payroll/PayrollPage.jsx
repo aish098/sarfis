@@ -38,6 +38,24 @@ export default function PayrollPage() {
   const [companyUsers, setCompanyUsers] = useState([]);
   const [linkedUserId, setLinkedUserId] = useState('');
 
+  // Edit Modal states
+  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
+  const [editingEmployee, setEditingEmployee] = useState(null);
+  const [editEmpName, setEditEmpName] = useState('');
+  const [editEmpRole, setEditEmpRole] = useState('');
+  const [editEmpDept, setEditEmpDept] = useState('Engineering');
+  const [editEmpSalary, setEditEmpSalary] = useState('');
+  const [editEmpStatus, setEditEmpStatus] = useState('Active');
+  const [editEmpBankName, setEditEmpBankName] = useState('Habib Bank');
+  const [editEmpBankAccount, setEditEmpBankAccount] = useState('');
+  const [editLinkedUserId, setEditLinkedUserId] = useState('');
+  const [editTab, setEditTab] = useState('details'); // 'details' | 'preferences'
+  const [subscriptions, setSubscriptions] = useState([]);
+  const [subLoading, setSubLoading] = useState(false);
+  const [subSearch, setSubSearch] = useState('');
+  const [subSaving, setSubSaving] = useState(false);
+  const [activePreviewEvent, setActivePreviewEvent] = useState(null);
+
   const requestConfig = useMemo(
     () => activeCompanyId ? { headers: { 'x-company-id': String(activeCompanyId) } } : undefined,
     [activeCompanyId]
@@ -64,7 +82,8 @@ export default function PayrollPage() {
     bankAccount: row.account_number,
     userId: row.user_id,
     userName: row.user_name,
-    userEmail: row.user_email
+    userEmail: row.user_email,
+    notificationCounts: row.notification_counts || {}
   });
 
   // Load Accounts, Employees & Company Members
@@ -188,6 +207,111 @@ export default function PayrollPage() {
       setActionMessage({ type: 'error', text: 'Failed to remove employee.' });
     }
     setLoading(false);
+  };
+
+  // Open edit modal and load subscriptions
+  const handleOpenEditModal = async (emp) => {
+    setEditingEmployee(emp);
+    setEditEmpName(emp.name);
+    setEditEmpRole(emp.role || '');
+    setEditEmpDept(emp.department || 'Engineering');
+    setEditEmpSalary(String(emp.salary || ''));
+    setEditEmpStatus(emp.status || 'Active');
+    setEditEmpBankName(emp.bankName || 'Habib Bank');
+    setEditEmpBankAccount(emp.bankAccount || '');
+    setEditLinkedUserId(String(emp.userId || ''));
+    setEditTab('details');
+    setIsEditModalOpen(true);
+
+    setSubLoading(true);
+    try {
+      const res = await api.get(`/employees/${activeCompanyId}/${emp.id}/notification-subscriptions`, requestConfig);
+      setSubscriptions(res.data || []);
+    } catch (err) {
+      console.error('Failed to load subscriptions', err);
+    }
+    setSubLoading(false);
+  };
+
+  // Save General details
+  const handleSaveGeneralDetails = async (e) => {
+    if (e) e.preventDefault();
+    if (!editingEmployee) return;
+    setLoading(true);
+    setActionMessage(null);
+    try {
+      await api.patch(`/employees/${activeCompanyId}/${editingEmployee.id}`, {
+        name: editEmpName,
+        role: editEmpRole,
+        department: editEmpDept,
+        salary: parseFloat(editEmpSalary || 0),
+        bankName: editEmpBankName,
+        accountNumber: editEmpBankAccount,
+        status: editEmpStatus,
+        userId: editLinkedUserId ? parseInt(editLinkedUserId) : null
+      }, requestConfig);
+
+      setActionMessage({ type: 'success', text: 'Employee details updated successfully!' });
+      setIsEditModalOpen(false);
+      await loadEmployeesAndUsers();
+    } catch (err) {
+      console.error(err);
+      setActionMessage({ type: 'error', text: err.response?.data?.error || 'Failed to update employee details.' });
+    }
+    setLoading(false);
+  };
+
+  // Save Subscriptions matrix
+  const handleSaveSubscriptions = async () => {
+    if (!editingEmployee) return;
+    setSubSaving(true);
+    setActionMessage(null);
+    try {
+      await api.put(`/employees/${activeCompanyId}/${editingEmployee.id}/notification-subscriptions`, {
+        subscriptions
+      }, requestConfig);
+
+      setActionMessage({ type: 'success', text: 'Communication preferences updated successfully!' });
+      setIsEditModalOpen(false);
+      await loadEmployeesAndUsers();
+    } catch (err) {
+      console.error(err);
+      setActionMessage({ type: 'error', text: err.response?.data?.error || 'Failed to update preferences.' });
+    }
+    setSubSaving(false);
+  };
+
+  const getEventPreview = (eventCode) => {
+    const previews = {
+      LOW_STOCK_ALERT: {
+        subject: "Low Stock Warning: Skin-101 Sheet Mask",
+        body: "Warning: Product Skin-101 — Glass Skin Sheet Mask in warehouse Ayesha Production has fallen to 5 units. Minimum threshold level is 10."
+      },
+      JOURNAL_POSTED: {
+        subject: "Manual Journal Entry Posted: JV-00123",
+        body: "Manual Journal Entry #123 has been posted to the General Ledger by Bisma Khan. Description: Salary adjustment for Q2. Total Amount: PKR 150,000."
+      },
+      RISK_OVERRIDE_REQUESTED: {
+        subject: "Manual Credit Override Approval Required: ayesha kashif",
+        body: "Customer ayesha kashif has exceeded their credit limits. An override approval request for PKR 10,000 has been submitted by salesperson Ali. Override Code: CR-9812."
+      },
+      RISK_OVERRIDE_APPROVED: {
+        subject: "Credit Override APPROVED: CR-9812",
+        body: "Override request CR-9812 for customer ayesha kashif has been APPROVED by Finance Manager Bisma Khan."
+      },
+      ASSET_TRANSFER_PENDING: {
+        subject: "Fixed Asset Transfer Approval Requested: AST-770",
+        body: "Asset Laptop Dell XPS (AST-770) is requested for location transfer from Head Office to Lahore Branch. Target Date: 2026-07-12."
+      },
+      DEPRECIATION_RUN_COMPLETE: {
+        subject: "Depreciation Wizard Session Completed - Period 2026-07",
+        body: "Depreciation run has completed successfully for period 2026-07. Total accumulated depreciation posted: PKR 45,000."
+      }
+    };
+    return previews[eventCode] || {
+      subject: `${eventCode.replace(/_/g, ' ')} Notification Alert`,
+      body: `This is a sample layout preview for the notification event: ${eventCode}. System variables will be resolved at runtime.`
+    };
   };
 
   // Export Payroll to CSV
@@ -517,6 +641,7 @@ export default function PayrollPage() {
                     <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Employee</th>
                     <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Department</th>
                     <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Role</th>
+                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Notifications</th>
                     <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Bank Details</th>
                     <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Monthly Salary</th>
                     <th className="text-center px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Status</th>
@@ -528,6 +653,9 @@ export default function PayrollPage() {
                     <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
                       <td className="px-4 py-3">
                         <span className="font-bold text-slate-900 block">{emp.name}</span>
+                        {emp.userEmail && (
+                          <span className="block text-[10px] text-slate-400 font-mono mt-0.5">{emp.userEmail}</span>
+                        )}
                         {emp.userName && (
                           <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[9px] font-bold border border-blue-100">
                             <Users size={8} /> {emp.userName}
@@ -536,6 +664,19 @@ export default function PayrollPage() {
                       </td>
                       <td className="px-4 py-3">{emp.department}</td>
                       <td className="px-4 py-3 text-slate-500">{emp.role}</td>
+                      <td className="px-4 py-3">
+                        {emp.notificationCounts && Object.keys(emp.notificationCounts).length > 0 ? (
+                          <div className="flex flex-wrap gap-1 max-w-[180px]">
+                            {Object.entries(emp.notificationCounts).map(([mod, count]) => (
+                              <span key={mod} className="inline-flex items-center px-1.5 py-0.5 rounded bg-emerald-50 text-[#064E3B] text-[9.5px] font-bold border border-emerald-100">
+                                {mod} ({count})
+                              </span>
+                            ))}
+                          </div>
+                        ) : (
+                          <span className="text-[11px] text-slate-400 italic">None</span>
+                        )}
+                      </td>
                       <td className="px-4 py-3">
                         <span className="block text-[12px] font-medium text-slate-700">{emp.bankName || '—'}</span>
                         <span className="block text-[10px] font-mono text-slate-400">{emp.bankAccount || 'No account linked'}</span>
@@ -551,6 +692,12 @@ export default function PayrollPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3 text-center whitespace-nowrap">
+                        <button 
+                          onClick={() => handleOpenEditModal(emp)}
+                          className="p-1.5 text-slate-400 hover:text-emerald-600 rounded transition-colors border border-transparent hover:border-emerald-200 mr-1"
+                        >
+                          <FileText size={13} />
+                        </button>
                         <button 
                           onClick={() => handleDeleteEmployee(emp.id)}
                           className="p-1.5 text-slate-400 hover:text-red-600 rounded transition-colors border border-transparent hover:border-red-200"
@@ -875,6 +1022,438 @@ export default function PayrollPage() {
                   </button>
                 </div>
               </form>
+            </Motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Edit Employee & Preferences Modal */}
+      <AnimatePresence>
+        {isEditModalOpen && (
+          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+            <Motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-white rounded-xl border border-slate-200 shadow-xl max-w-4xl w-full h-[85vh] flex flex-col overflow-hidden text-xs font-semibold text-slate-600"
+            >
+              {/* Modal Header */}
+              <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+                <div>
+                  <h3 className="font-bold text-[14px] text-slate-900">Edit Employee Profile</h3>
+                  <p className="text-[11px] text-slate-500 mt-0.5">Manage details and channel notification preferences for {editingEmployee?.name}.</p>
+                </div>
+                <button 
+                  onClick={() => setIsEditModalOpen(false)}
+                  className="text-slate-400 hover:text-slate-600 cursor-pointer"
+                >
+                  <X size={16} />
+                </button>
+              </div>
+
+              {/* Tabs Bar */}
+              <div className="flex border-b border-slate-100 bg-slate-50/50 px-4 text-[12px] font-bold">
+                <button
+                  onClick={() => setEditTab('details')}
+                  className={`px-4 py-3 border-b-2 transition-all cursor-pointer ${
+                    editTab === 'details' 
+                      ? 'border-emerald-600 text-emerald-700' 
+                      : 'border-transparent text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  General Details
+                </button>
+                <button
+                  onClick={() => setEditTab('preferences')}
+                  className={`px-4 py-3 border-b-2 transition-all cursor-pointer ${
+                    editTab === 'preferences' 
+                      ? 'border-emerald-600 text-emerald-700' 
+                      : 'border-transparent text-slate-500 hover:text-slate-700'
+                  }`}
+                >
+                  Communication Preferences
+                </button>
+              </div>
+
+              {/* Content Panel */}
+              <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
+                {editTab === 'details' ? (
+                  <form onSubmit={handleSaveGeneralDetails} className="space-y-4 max-w-lg">
+                    <div>
+                      <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Employee Name *</label>
+                      <input
+                        type="text"
+                        required
+                        value={editEmpName}
+                        onChange={e => setEditEmpName(e.target.value)}
+                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-800"
+                      />
+                    </div>
+
+                    <div>
+                      <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Job Title / Role *</label>
+                      <input
+                        type="text"
+                        required
+                        value={editEmpRole}
+                        onChange={e => setEditEmpRole(e.target.value)}
+                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-800"
+                      />
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Department</label>
+                        <select
+                          value={editEmpDept}
+                          onChange={e => setEditEmpDept(e.target.value)}
+                          className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-800"
+                        >
+                          <option value="Engineering">Engineering</option>
+                          <option value="Product">Product</option>
+                          <option value="People Operations">People Ops</option>
+                          <option value="Finance">Finance</option>
+                          <option value="Marketing">Marketing</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Status</label>
+                        <select
+                          value={editEmpStatus}
+                          onChange={e => setEditEmpStatus(e.target.value)}
+                          className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-800"
+                        >
+                          <option value="Active">Active</option>
+                          <option value="Processing">Processing</option>
+                          <option value="Paid">Paid</option>
+                          <option value="On Hold">On Hold</option>
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Bank Name</label>
+                        <select
+                          value={editEmpBankName}
+                          onChange={e => setEditEmpBankName(e.target.value)}
+                          className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-800"
+                        >
+                          <option value="Habib Bank">Habib Bank (HBL)</option>
+                          <option value="MCB Bank">MCB Bank</option>
+                          <option value="Bank Alfalah">Bank Alfalah</option>
+                          <option value="National Bank">National Bank</option>
+                          <option value="Meezan Bank">Meezan Bank</option>
+                        </select>
+                      </div>
+
+                      <div>
+                        <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Account / IBAN</label>
+                        <input
+                          type="text"
+                          value={editEmpBankAccount}
+                          onChange={e => setEditEmpBankAccount(e.target.value)}
+                          className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-800"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4">
+                      <div>
+                        <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Monthly Salary (PKR) *</label>
+                        <input
+                          type="number"
+                          required
+                          value={editEmpSalary}
+                          onChange={e => setEditEmpSalary(e.target.value)}
+                          className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-800"
+                        />
+                      </div>
+
+                      <div>
+                        <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Linked System User</label>
+                        <select
+                          value={editLinkedUserId}
+                          onChange={e => setEditLinkedUserId(e.target.value)}
+                          className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-800"
+                        >
+                          <option value="">-- None (External Employee) --</option>
+                          {companyUsers.map(u => (
+                            <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
+                          ))}
+                        </select>
+                      </div>
+                    </div>
+
+                    <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
+                      <button
+                        type="button"
+                        onClick={() => setIsEditModalOpen(false)}
+                        className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-[12px] font-bold rounded-lg text-slate-600 cursor-pointer"
+                      >
+                        Cancel
+                      </button>
+                      <button
+                        type="submit"
+                        disabled={loading}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-sm"
+                      >
+                        {loading && <RefreshCw size={12} className="animate-spin" />}
+                        Save Changes
+                      </button>
+                    </div>
+                  </form>
+                ) : (
+                  // Communication Preferences Tab
+                  <div className="space-y-6">
+                    {subLoading ? (
+                      <div className="p-16 text-center space-y-3">
+                        <RefreshCw size={24} className="animate-spin text-emerald-600 mx-auto" />
+                        <p className="text-slate-400 text-[12px]">Loading notification subscriptions...</p>
+                      </div>
+                    ) : (
+                      <>
+                        {/* Search & Bulk Actions Header */}
+                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
+                          <div className="relative flex-1 max-w-md">
+                            <input
+                              type="text"
+                              placeholder="Search events (e.g. journal)..."
+                              value={subSearch}
+                              onChange={e => setSubSearch(e.target.value)}
+                              className="w-full h-9 pl-8 pr-3 bg-white border border-slate-300 rounded-lg text-[12px] focus:outline-none focus:border-emerald-500 font-semibold"
+                            />
+                            <Search size={13} className="absolute left-2.5 top-3 text-slate-400" />
+                          </div>
+
+                          <div className="flex flex-wrap gap-2 text-[11px] font-bold">
+                            <button
+                              onClick={() => handleBulkToggleAll('EMAIL', true)}
+                              className="px-2.5 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-lg shadow-3xs cursor-pointer"
+                            >
+                              Enable All Emails
+                            </button>
+                            <button
+                              onClick={() => handleBulkToggleAll('EMAIL', false)}
+                              className="px-2.5 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-lg shadow-3xs cursor-pointer"
+                            >
+                              Disable All Emails
+                            </button>
+                            <button
+                              onClick={() => handleBulkToggleAll('APP', true)}
+                              className="px-2.5 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-lg shadow-3xs cursor-pointer"
+                            >
+                              Enable All App
+                            </button>
+                            <button
+                              onClick={() => handleBulkToggleAll('APP', false)}
+                              className="px-2.5 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-lg shadow-3xs cursor-pointer"
+                            >
+                              Disable All App
+                            </button>
+                          </div>
+                        </div>
+
+                        {/* Grouped Modules and Subscriptions */}
+                        <div className="space-y-6">
+                          {Object.entries(subscriptions.reduce((acc, sub) => {
+                            const q = subSearch.toLowerCase();
+                            if (sub.eventName.toLowerCase().includes(q) || sub.module.toLowerCase().includes(q) || sub.eventCode.toLowerCase().includes(q)) {
+                              if (!acc[sub.module]) acc[sub.module] = [];
+                              acc[sub.module].push(sub);
+                            }
+                            return acc;
+                          }, {})).length === 0 ? (
+                            <div className="p-10 text-center text-slate-400 italic">No events found matching your search.</div>
+                          ) : (
+                            Object.entries(subscriptions.reduce((acc, sub) => {
+                              const q = subSearch.toLowerCase();
+                              if (sub.eventName.toLowerCase().includes(q) || sub.module.toLowerCase().includes(q) || sub.eventCode.toLowerCase().includes(q)) {
+                                if (!acc[sub.module]) acc[sub.module] = [];
+                                acc[sub.module].push(sub);
+                              }
+                              return acc;
+                            }, {})).map(([moduleName, items]) => (
+                              <div key={moduleName} className="border border-slate-200 rounded-xl overflow-hidden shadow-3xs bg-white">
+                                <div className="p-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
+                                  <h4 className="font-extrabold text-[12px] text-emerald-800 uppercase tracking-tight">▼ {moduleName}</h4>
+                                  
+                                  {/* Module Level Bulk Toggles */}
+                                  <div className="flex items-center gap-3 text-[10.5px] font-bold text-slate-500">
+                                    <span>Bulk module action:</span>
+                                    <button 
+                                      onClick={() => handleBulkToggleModule(moduleName, 'EMAIL', true)}
+                                      className="text-emerald-700 hover:underline cursor-pointer"
+                                    >
+                                      All Email
+                                    </button>
+                                    <button 
+                                      onClick={() => handleBulkToggleModule(moduleName, 'APP', true)}
+                                      className="text-emerald-700 hover:underline cursor-pointer"
+                                    >
+                                      All App
+                                    </button>
+                                    <button 
+                                      onClick={() => {
+                                        handleBulkToggleModule(moduleName, 'EMAIL', false);
+                                        handleBulkToggleModule(moduleName, 'APP', false);
+                                      }}
+                                      className="text-slate-500 hover:underline cursor-pointer"
+                                    >
+                                      Clear All
+                                    </button>
+                                  </div>
+                                </div>
+
+                                <div className="divide-y divide-slate-100 p-4 space-y-4">
+                                  {items.map(item => (
+                                    <div key={item.eventId} className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-2 gap-3">
+                                      <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                          <span className="font-bold text-slate-800 text-[13px]">{item.eventName}</span>
+                                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 font-mono text-slate-400 font-bold border border-slate-200">{item.eventCode}</span>
+                                        </div>
+                                        {item.description && (
+                                          <p className="text-[11.5px] text-slate-400 font-normal leading-relaxed">{item.description}</p>
+                                        )}
+                                      </div>
+
+                                      <div className="flex items-center gap-4 text-[12px] font-bold text-slate-600 whitespace-nowrap self-start sm:self-center">
+                                        <label className="flex items-center gap-1.5 cursor-pointer">
+                                          <input
+                                            type="checkbox"
+                                            checked={item.channels.EMAIL || false}
+                                            onChange={() => {
+                                              setSubscriptions(prev =>
+                                                prev.map(p => p.eventId === item.eventId ? {
+                                                  ...p,
+                                                  channels: { ...p.channels, EMAIL: !p.channels.EMAIL }
+                                                } : p)
+                                              );
+                                            }}
+                                            className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                          />
+                                          <span>Email</span>
+                                        </label>
+
+                                        <label className="flex items-center gap-1.5 cursor-pointer">
+                                          <input
+                                            type="checkbox"
+                                            checked={item.channels.APP || false}
+                                            onChange={() => {
+                                              setSubscriptions(prev =>
+                                                prev.map(p => p.eventId === item.eventId ? {
+                                                  ...p,
+                                                  channels: { ...p.channels, APP: !p.channels.APP }
+                                                } : p)
+                                              );
+                                            }}
+                                            className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                          />
+                                          <span>In-App</span>
+                                        </label>
+
+                                        <label className="flex items-center gap-1.5 cursor-pointer">
+                                          <input
+                                            type="checkbox"
+                                            checked={item.channels.SMS || false}
+                                            onChange={() => {
+                                              setSubscriptions(prev =>
+                                                prev.map(p => p.eventId === item.eventId ? {
+                                                  ...p,
+                                                  channels: { ...p.channels, SMS: !p.channels.SMS }
+                                                } : p)
+                                              );
+                                            }}
+                                            className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                                          />
+                                          <span>SMS</span>
+                                        </label>
+
+                                        <button
+                                          onClick={() => setActivePreviewEvent(item.eventCode)}
+                                          className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-emerald-700 transition-colors cursor-pointer"
+                                        >
+                                          <Eye size={12} />
+                                          <span>Preview</span>
+                                        </button>
+                                      </div>
+                                    </div>
+                                  ))}
+                                </div>
+                              </div>
+                            ))
+                          )}
+                        </div>
+
+                        {/* Save Action Panel */}
+                        <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
+                          <button
+                            type="button"
+                            onClick={() => setIsEditModalOpen(false)}
+                            className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-[12px] font-bold rounded-lg text-slate-600 cursor-pointer"
+                          >
+                            Cancel
+                          </button>
+                          <button
+                            onClick={handleSaveSubscriptions}
+                            disabled={subSaving}
+                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-sm"
+                          >
+                            {subSaving && <RefreshCw size={12} className="animate-spin" />}
+                            Save Preferences
+                          </button>
+                        </div>
+                      </>
+                    )}
+                  </div>
+                )}
+              </div>
+            </Motion.div>
+          </div>
+        )}
+      </AnimatePresence>
+
+      {/* Nested Preview Dialog */}
+      <AnimatePresence>
+        {activePreviewEvent && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-[60] flex items-center justify-center p-4">
+            <Motion.div 
+              initial={{ scale: 0.95, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              exit={{ scale: 0.95, opacity: 0 }}
+              className="bg-slate-900 text-white rounded-xl shadow-2xl max-w-md w-full border border-slate-700 overflow-hidden font-sans"
+            >
+              <div className="p-4 bg-slate-800 border-b border-slate-700 flex items-center justify-between">
+                <span className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase">Notification Layout Preview</span>
+                <button onClick={() => setActivePreviewEvent(null)} className="text-slate-400 hover:text-white cursor-pointer">
+                  <X size={15} />
+                </button>
+              </div>
+              <div className="p-6 space-y-4">
+                <div>
+                  <span className="block text-[10px] font-black text-slate-500 uppercase tracking-widest">Email Subject</span>
+                  <div className="text-[13px] font-bold mt-1 bg-slate-800 p-2.5 rounded border border-slate-750 font-mono text-emerald-400">
+                    {getEventPreview(activePreviewEvent).subject}
+                  </div>
+                </div>
+                <div>
+                  <span className="block text-[10px] font-black text-slate-500 uppercase tracking-widest">Email HTML Body Content</span>
+                  <div 
+                    className="text-[12.5px] leading-relaxed mt-1 bg-slate-800 p-3 rounded border border-slate-750 text-slate-300 font-sans"
+                    dangerouslySetInnerHTML={{ __html: getEventPreview(activePreviewEvent).body }}
+                  />
+                </div>
+              </div>
+              <div className="p-4 bg-slate-800 border-t border-slate-700 flex justify-end">
+                <button 
+                  onClick={() => setActivePreviewEvent(null)}
+                  className="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-[12px] font-bold rounded-lg text-white cursor-pointer"
+                >
+                  Close Preview
+                </button>
+              </div>
             </Motion.div>
           </div>
         )}

@@ -99,53 +99,83 @@ class NotificationService {
       const message = template ? interpolate(template.plain_body, payload) : JSON.stringify(payload);
       const htmlBody = template ? interpolate(template.html_body, payload) : `<p>${message}</p>`;
 
-      // 3. Resolve Recipients
-      let userIds = [...forceUserIds];
-      if (userIds.length === 0) {
-        const policies = await db('company_notification_policies')
-          .where({ company_id: companyId, event_id: eventDef.id });
+      // 3. Resolve Recipients & Channels
+      let userIds = [];
+      const recipientChannels = new Map(); // userId -> Set of channels
 
-        const resolvedUsers = new Set();
-        for (const policy of policies) {
-          if (policy.recipient_type === 'USER') {
-            resolvedUsers.add(parseInt(policy.recipient_value));
-          } else if (policy.recipient_type === 'ROLE') {
-            const roleUsers = await db('company_users')
-              .where({ company_id: companyId, role: policy.recipient_value })
-              .select('user_id');
-            roleUsers.forEach(u => resolvedUsers.add(u.user_id));
-          } else if (policy.recipient_type === 'PERMISSION') {
-            const permUsers = await this.getUsersWithPermission(companyId, policy.recipient_value);
-            permUsers.forEach(uid => resolvedUsers.add(uid));
+      if (forceUserIds.length > 0) {
+        userIds = [...forceUserIds];
+        userIds.forEach(uid => {
+          recipientChannels.set(uid, new Set(['EMAIL', 'APP']));
+        });
+      } else {
+        const subscriptions = await db('employee_notification_subscriptions as ens')
+          .join('employees as e', 'ens.employee_id', 'e.id')
+          .join('users as u', 'e.user_id', 'u.id')
+          .select('e.user_id', 'ens.channel', 'ens.enabled')
+          .where({
+            'ens.company_id': companyId,
+            'ens.event_id': eventDef.id,
+            'e.status': 'Active',
+            'ens.enabled': true
+          });
+
+        if (subscriptions.length > 0) {
+          subscriptions.forEach(sub => {
+            const uid = sub.user_id;
+            if (!uid) return;
+            if (!recipientChannels.has(uid)) {
+              recipientChannels.set(uid, new Set());
+            }
+            recipientChannels.get(uid).add(sub.channel.toUpperCase());
+          });
+          userIds = Array.from(recipientChannels.keys());
+        } else {
+          // Fallback to company policies and roles
+          const policies = await db('company_notification_policies')
+            .where({ company_id: companyId, event_id: eventDef.id });
+
+          const resolvedUsers = new Set();
+          for (const policy of policies) {
+            if (policy.recipient_type === 'USER') {
+              resolvedUsers.add(parseInt(policy.recipient_value));
+            } else if (policy.recipient_type === 'ROLE') {
+              const roleUsers = await db('company_users')
+                .where({ company_id: companyId, role: policy.recipient_value })
+                .select('user_id');
+              roleUsers.forEach(u => resolvedUsers.add(u.user_id));
+            } else if (policy.recipient_type === 'PERMISSION') {
+              const permUsers = await this.getUsersWithPermission(companyId, policy.recipient_value);
+              permUsers.forEach(uid => resolvedUsers.add(uid));
+            }
           }
-        }
 
-        // Fallback to company admins if no policy exists
-        if (resolvedUsers.size === 0) {
-          const admins = await db('company_users')
-            .where({ company_id: companyId })
-            .whereIn('role', ['Company Admin', 'Super Admin', 'Admin'])
-            .select('user_id');
-          admins.forEach(u => resolvedUsers.add(u.user_id));
-        }
+          if (resolvedUsers.size === 0) {
+            const admins = await db('company_users')
+              .where({ company_id: companyId })
+              .whereIn('role', ['Company Admin', 'Super Admin', 'Admin', 'Owner', 'CEO'])
+              .select('user_id');
+            admins.forEach(u => resolvedUsers.add(u.user_id));
+          }
 
-        userIds = Array.from(resolvedUsers);
+          userIds = Array.from(resolvedUsers);
+          userIds.forEach(uid => {
+            recipientChannels.set(uid, new Set(['EMAIL', 'APP']));
+          });
+        }
       }
 
       const results = [];
 
       // 4. Distribute Notifications per Recipient
       for (const userId of userIds) {
-        // Load preference
-        const pref = await db('user_notification_preferences')
-          .where({ company_id: companyId, user_id: userId, event_id: eventDef.id })
-          .first();
-
-        const emailEnabled = pref ? pref.email : true;
-        const appEnabled = pref ? pref.app : true;
-
         const recipient = await db('users').where({ id: userId }).first();
         if (!recipient) continue;
+
+        const userChannels = recipientChannels.get(userId) || new Set();
+        const emailEnabled = userChannels.has('EMAIL');
+        const appEnabled = userChannels.has('APP');
+        const smsEnabled = userChannels.has('SMS');
 
         // In-App delivery
         if (appEnabled) {
@@ -188,6 +218,12 @@ class NotificationService {
             max_attempts: 3
           });
           results.push({ userId, status: 'EMAIL_QUEUED' });
+        }
+
+        // SMS Simulation Delivery
+        if (smsEnabled) {
+          console.log(`[SMS GATEWAY] Simulated SMS sent to user ${userId} (${recipient.email}) | Msg: "${message}"`);
+          results.push({ userId, status: 'SMS_SENT' });
         }
       }
 
