@@ -156,6 +156,9 @@ class BudgetService {
         posting_date: date
       });
     }
+
+    // Invalidate dashboard cache (Phase 16B)
+    await trx('budget_dashboard_cache').where({ company_id: companyId, fiscal_year: fiscalYear }).delete();
   }
 
   /**
@@ -200,15 +203,31 @@ class BudgetService {
         posting_date: date
       });
     }
+
+    // Invalidate dashboard cache (Phase 16B)
+    await trx('budget_dashboard_cache').where({ company_id: companyId, fiscal_year: fiscalYear }).delete();
   }
 
   /**
    * Releases budget consumption when a document is rejected or reversed.
    */
   static async releaseSpend(docTypeCode, docId, trx = db) {
+    const tx = await trx('budget_control_transactions as t')
+      .join('budget_control_lines as l', 't.budget_control_line_id', 'l.id')
+      .join('budget_headers as h', 'l.budget_header_id', 'h.id')
+      .where({ 't.document_type': docTypeCode, 't.document_id': docId })
+      .select('h.company_id', 'h.fiscal_year')
+      .first();
+
     await trx('budget_control_transactions')
       .where({ document_type: docTypeCode, document_id: docId })
       .delete();
+
+    if (tx) {
+      await trx('budget_dashboard_cache')
+        .where({ company_id: tx.company_id, fiscal_year: tx.fiscal_year })
+        .delete();
+    }
   }
 
   /**

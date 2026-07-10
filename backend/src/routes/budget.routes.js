@@ -31,4 +31,9 @@ router.get('/dashboard', companyGuard, requirePermission('analytics.view'), budg
 router.get('/reports/vs-actual', companyGuard, requirePermission('analytics.view'), budgetCtrl.getBudgetVsActualReport);
 router.get('/reports/overrides', companyGuard, requirePermission('analytics.view'), budgetCtrl.getBudgetOverrides);
 
+// Forecast overrides and Excel CSV imports (Phase 16B)
+router.post('/lines/:lineId/forecast-override', companyGuard, requirePermission('settings.manage'), budgetCtrl.saveForecastOverride);
+router.post('/:id/validate-import', companyGuard, requirePermission('settings.manage'), budgetCtrl.validateBudgetImport);
+router.post('/:id/commit-import', companyGuard, requirePermission('settings.manage'), budgetCtrl.commitBudgetImport);
+
 module.exports = router;

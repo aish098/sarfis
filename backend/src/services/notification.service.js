@@ -338,11 +338,85 @@ class NotificationService {
   static async createNotification({ companyId, userId, title, message, type = 'system', priority = 'MEDIUM', entityType = null, entityId = null }) {
     return this.notifyDirect({ companyId, userIds: [userId], title, message, type, priority, entityType, entityId });
   }
+
+  // Weekly Monday check for >90% budget utilization (Phase 16B)
+  static async checkWeeklyBudgets() {
+    const activeHeaders = await db('budget_headers').where({ status: 'ACTIVE' });
+    for (const header of activeHeaders) {
+      const companyId = header.company_id;
+      const lines = await db('budget_control_lines').where({ budget_header_id: header.id });
+      for (const line of lines) {
+        const alloc = parseFloat(line.current_budget_amount || line.allocated_amount || 0);
+        if (alloc <= 0) continue;
+
+        const actualRes = await db('budget_control_transactions')
+          .where({ budget_control_line_id: line.id, status: 'ACTUAL' })
+          .sum('amount as total');
+        const act = parseFloat(actualRes[0]?.total || 0);
+
+        const committedRes = await db('budget_control_transactions')
+          .where({ budget_control_line_id: line.id, status: 'COMMITTED' })
+          .sum('amount as total');
+        const com = parseFloat(committedRes[0]?.total || 0);
+
+        const consumed = act + com;
+        const pct = (consumed / alloc) * 100;
+
+        if (pct >= 90.00) {
+          const message = `Budget limit warning: Department ${line.department || 'General'} has utilized ${pct.toFixed(1)}% of its allocated budget (${consumed.toLocaleString()} / ${alloc.toLocaleString()}).`;
+          const title = `Budget Alert: ${line.department || 'General'} > 90%`;
+
+          const admins = await db('company_users')
+            .where({ company_id: companyId })
+            .whereIn('role', ['Company Admin', 'Super Admin', 'Admin', 'Owner', 'CEO'])
+            .select('user_id');
+
+          const userIds = admins.map(a => a.user_id);
+          if (userIds.length > 0) {
+            let event = await db('notification_events').where({ event_code: 'BUDGET_BREACH_WARNING' }).first();
+            if (!event) {
+              const [newEv] = await db('notification_events').insert({
+                event_code: 'BUDGET_BREACH_WARNING',
+                event_name: 'Budget Utilization Warning',
+                category: 'FINANCE',
+                priority: 'HIGH',
+                description: 'Triggers when a budget line exceeds 90% utilization'
+              }).returning('*');
+              event = newEv;
+            }
+
+            await NotificationService.notify({
+              eventCode: 'BUDGET_BREACH_WARNING',
+              companyId,
+              payload: { subject: title, plain_body: message, html_body: `<p>${message}</p>` },
+              forceUserIds: userIds
+            });
+          }
+        }
+      }
+    }
+  }
 }
 
 // Start background queue processing ticker (every 10 seconds)
 setInterval(() => {
   NotificationService.processQueue();
 }, 10000);
+
+let lastCheckDay = null;
+// Every Monday budget check ticker (runs once a day on Monday)
+setInterval(async () => {
+  const d = new Date();
+  const day = d.getDay(); // 1 = Monday
+  const dayStr = d.toISOString().split('T')[0];
+  if (day === 1 && lastCheckDay !== dayStr) {
+    lastCheckDay = dayStr;
+    try {
+      await NotificationService.checkWeeklyBudgets();
+    } catch (err) {
+      console.error('Error running weekly budget check:', err);
+    }
+  }
+}, 60000);
 
 module.exports = NotificationService;

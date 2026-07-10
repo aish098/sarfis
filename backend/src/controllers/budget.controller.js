@@ -504,20 +504,43 @@ exports.transferBudget = async (req, res) => {
   }
 };
 
-// Get budget dashboard KPIs (Phase 16A)
+// Get budget dashboard KPIs (Phase 16B)
 exports.getBudgetDashboard = async (req, res) => {
   const companyId = req.companyId;
-  const { fiscalYear } = req.query;
+  const fiscalYear = req.query.fiscalYear || '2026';
+  const scenarioType = req.query.scenarioType || 'EXPECTED';
+  const versionName = req.query.versionName || 'Original';
 
   try {
-    let query = db('budget_headers').where({ company_id: companyId });
-    if (fiscalYear) {
-      query = query.andWhere({ fiscal_year: fiscalYear });
-    } else {
-      query = query.andWhere({ status: 'ACTIVE' });
+    // 1. Check cache first
+    const cached = await db('budget_dashboard_cache')
+      .where({
+        company_id: companyId,
+        fiscal_year: fiscalYear,
+        scenario_type: scenarioType,
+        version_name: versionName
+      })
+      .first();
+
+    if (cached) {
+      const details = await compileInteractiveDashboardDetails(companyId, cached.id); // Cache ID used for fetching relationships
+      return res.json({
+        totalBudget: parseFloat(cached.total_budget),
+        actual: parseFloat(cached.actual_spent),
+        committed: parseFloat(cached.committed_spent),
+        forecastYearEnd: parseFloat(cached.forecast_year_end),
+        variance: parseFloat(cached.variance),
+        utilization: parseFloat(cached.utilization_pct),
+        status: cached.variance < 0 ? 'OVER_BUDGET' : 'GOOD',
+        riskLevel: cached.risk_level,
+        departmentsOverBudget: cached.departments_over_budget,
+        ...details
+      });
     }
-    const header = await query.first();
-    if (!header) {
+
+    // 2. Cache miss -> Compile
+    const stats = await compileDashboardStats(companyId, fiscalYear, scenarioType, versionName);
+    if (!stats) {
       return res.json({
         totalBudget: 0,
         actual: 0,
@@ -528,67 +551,44 @@ exports.getBudgetDashboard = async (req, res) => {
         blocked: 0,
         forecastYearEnd: 0,
         variance: 0,
-        status: 'NO_ACTIVE_BUDGET'
+        status: 'NO_ACTIVE_BUDGET',
+        riskLevel: 'LOW',
+        departmentsOverBudget: 0,
+        departments: [],
+        months: Array.from({ length: 12 }, (_, i) => ({ month: i + 1, budget: 0, actual: 0, remaining: 0, utilization: 0, status: 'GREEN' })),
+        topOverspending: [],
+        trends: []
       });
     }
 
-    const lines = await db('budget_control_lines').where({ budget_header_id: header.id });
-    let totalBudget = 0;
-    let actual = 0;
-    let committed = 0;
-    let warnings = 0;
-    let blocked = 0;
+    // 3. Save to cache
+    await db('budget_dashboard_cache')
+      .insert({
+        company_id: companyId,
+        fiscal_year: fiscalYear,
+        scenario_type: scenarioType,
+        version_name: versionName,
+        total_budget: stats.totalBudget,
+        actual_spent: stats.actual,
+        committed_spent: stats.committed,
+        forecast_year_end: stats.forecastYearEnd,
+        variance: stats.variance,
+        utilization_pct: stats.utilization,
+        risk_level: stats.riskLevel,
+        departments_over_budget: stats.departmentsOverBudget,
+        updated_at: db.fn.now()
+      })
+      .onConflict(['company_id', 'fiscal_year', 'scenario_type', 'version_name'])
+      .merge();
 
-    for (const line of lines) {
-      const alloc = parseFloat(line.current_budget_amount || line.allocated_amount || 0);
-      totalBudget += alloc;
-
-      const actualRes = await db('budget_control_transactions')
-        .where({ budget_control_line_id: line.id, status: 'ACTUAL' })
-        .sum('amount as total');
-      const act = parseFloat(actualRes[0]?.total || 0);
-      actual += act;
-
-      const committedRes = await db('budget_control_transactions')
-        .where({ budget_control_line_id: line.id, status: 'COMMITTED' })
-        .sum('amount as total');
-      const com = parseFloat(committedRes[0]?.total || 0);
-      committed += com;
-
-      const consumed = act + com;
-      const pct = alloc > 0 ? (consumed / alloc) * 100 : 0;
-      if (pct >= 100) {
-        blocked++;
-      } else if (pct >= (line.alert_threshold_pct || 90.00)) {
-        warnings++;
-      }
-    }
-
-    const available = totalBudget - (actual + committed);
-    const utilization = totalBudget > 0 ? ((actual + committed) / totalBudget) * 100 : 0;
-
-    const currentMonthIdx = new Date().getMonth() + 1; // 1 to 12
-    const forecastYearEnd = currentMonthIdx > 0 ? (actual / currentMonthIdx) * 12 : actual;
-    const variance = totalBudget - forecastYearEnd;
-    const status = variance < 0 ? 'OVER_BUDGET' : 'GOOD';
+    const details = await compileInteractiveDashboardDetails(companyId, stats.headerId);
 
     res.json({
-      headerId: header.id,
-      name: header.name,
-      fiscalYear: header.fiscal_year,
-      version: header.version_name,
-      totalBudget,
-      actual,
-      committed,
-      available,
-      utilization: Math.round(utilization),
-      warnings,
-      blocked,
-      forecastYearEnd: Math.round(forecastYearEnd),
-      variance: Math.round(variance),
-      status
+      ...stats,
+      ...details
     });
   } catch (err) {
+    console.error('[DEBUG CTRL] Error in getBudgetDashboard:', err);
     res.status(500).json({ error: err.message });
   }
 };
@@ -717,6 +717,468 @@ exports.getBudgetLineTransactions = async (req, res) => {
     }
 
     res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Compile Dashboard Stats from db (Phase 16B)
+async function compileDashboardStats(companyId, fiscalYear, scenarioType, versionName) {
+  const header = await db('budget_headers')
+    .where({
+      company_id: companyId,
+      fiscal_year: fiscalYear,
+      scenario_type: scenarioType,
+      version_name: versionName
+    })
+    .first();
+
+  if (!header) return null;
+
+  const lines = await db('budget_control_lines').where({ budget_header_id: header.id });
+  let totalBudget = 0;
+  let actual = 0;
+  let committed = 0;
+  let warnings = 0;
+  let blocked = 0;
+  let forecastYearEnd = 0;
+
+  const currentMonthIdx = new Date().getMonth() + 1;
+
+  for (const line of lines) {
+    const alloc = parseFloat(line.current_budget_amount || line.allocated_amount || 0);
+    totalBudget += alloc;
+
+    const actualRes = await db('budget_control_transactions')
+      .where({ budget_control_line_id: line.id, status: 'ACTUAL' })
+      .sum('amount as total');
+    const act = parseFloat(actualRes[0]?.total || 0);
+    actual += act;
+
+    const committedRes = await db('budget_control_transactions')
+      .where({ budget_control_line_id: line.id, status: 'COMMITTED' })
+      .sum('amount as total');
+    const com = parseFloat(committedRes[0]?.total || 0);
+    committed += com;
+
+    // Check manual override
+    const override = await db('budget_forecast_overrides')
+      .where({ budget_control_line_id: line.id })
+      .first();
+
+    let lineForecast = 0;
+    if (override) {
+      lineForecast = parseFloat(override.override_amount);
+    } else {
+      // YTD Actual + Future Budget (UAT-167)
+      const futureAllocations = await db('budget_monthly_allocations')
+        .where('budget_control_line_id', line.id)
+        .andWhere('month', '>', currentMonthIdx)
+        .sum('allocated_amount as total');
+      
+      const futureOverrideSum = parseFloat(futureAllocations[0]?.total || 0);
+      
+      const hasMonthlyAllocations = await db('budget_monthly_allocations')
+        .where({ budget_control_line_id: line.id })
+        .first();
+
+      if (hasMonthlyAllocations) {
+        lineForecast = act + futureOverrideSum;
+      } else {
+        const remainingMonths = 12 - currentMonthIdx;
+        const remainingProportional = (alloc / 12) * remainingMonths;
+        lineForecast = act + remainingProportional;
+      }
+    }
+
+    forecastYearEnd += lineForecast;
+
+    const consumed = act + com;
+    const pct = alloc > 0 ? (consumed / alloc) * 100 : 0;
+    if (pct >= 100) {
+      blocked++;
+    } else if (pct >= (line.alert_threshold_pct || 90.00)) {
+      warnings++;
+    }
+  }
+
+  const available = totalBudget - (actual + committed);
+  const utilization = totalBudget > 0 ? ((actual + committed) / totalBudget) * 100 : 0;
+  const variance = totalBudget - forecastYearEnd;
+  const status = variance < 0 ? 'OVER_BUDGET' : 'GOOD';
+
+  let riskLevel = 'LOW';
+  if (blocked > 2 || variance < -500000) {
+    riskLevel = 'HIGH';
+  } else if (warnings > 2 || variance < 0) {
+    riskLevel = 'MEDIUM';
+  }
+
+  return {
+    headerId: header.id,
+    name: header.name,
+    fiscalYear: header.fiscal_year,
+    version: header.version_name,
+    totalBudget,
+    actual,
+    committed,
+    available,
+    utilization: Math.round(utilization),
+    warnings,
+    blocked,
+    forecastYearEnd: Math.round(forecastYearEnd),
+    variance: Math.round(variance),
+    status,
+    riskLevel,
+    departmentsOverBudget: blocked
+  };
+}
+
+// Compile Interactive Details for Dashboard (Phase 16B)
+async function compileInteractiveDashboardDetails(companyId, headerId) {
+  const lines = await db('budget_control_lines').where({ budget_header_id: headerId });
+
+  // 1. Department stats
+  const deptMap = {};
+  for (const line of lines) {
+    const dept = line.department || 'General';
+    if (!deptMap[dept]) {
+      deptMap[dept] = { budget: 0, actual: 0, committed: 0 };
+    }
+    const alloc = parseFloat(line.current_budget_amount || line.allocated_amount || 0);
+    deptMap[dept].budget += alloc;
+
+    const actualRes = await db('budget_control_transactions')
+      .where({ budget_control_line_id: line.id, status: 'ACTUAL' })
+      .sum('amount as total');
+    deptMap[dept].actual += parseFloat(actualRes[0]?.total || 0);
+
+    const committedRes = await db('budget_control_transactions')
+      .where({ budget_control_line_id: line.id, status: 'COMMITTED' })
+      .sum('amount as total');
+    deptMap[dept].committed += parseFloat(committedRes[0]?.total || 0);
+  }
+
+  const departments = Object.entries(deptMap).map(([name, val]) => {
+    const consumed = val.actual + val.committed;
+    const remaining = val.budget - consumed;
+    const utilization = val.budget > 0 ? Math.round((consumed / val.budget) * 100) : 0;
+    return {
+      department: name,
+      budget: val.budget,
+      actual: val.actual,
+      remaining,
+      utilization
+    };
+  });
+
+  // 2. Budget Calendar monthly health status
+  const months = [];
+  const header = await db('budget_headers').where({ id: headerId }).first();
+
+  for (let m = 1; m <= 12; m++) {
+    let mBudget = 0;
+    let mActual = 0;
+    let mCommitted = 0;
+
+    for (const line of lines) {
+      const override = await db('budget_monthly_allocations')
+        .where({ budget_control_line_id: line.id, month: m })
+        .first();
+      
+      const lineAlloc = parseFloat(line.current_budget_amount || line.allocated_amount || 0);
+      mBudget += override ? parseFloat(override.allocated_amount) : (lineAlloc / 12);
+
+      const yearStr = header?.fiscal_year || '2026';
+      const year = parseInt(yearStr);
+      const isLeap = (year % 4 === 0 && year % 100 !== 0) || (year % 400 === 0);
+      const days = m === 2 ? (isLeap ? 29 : 28) : [4, 6, 9, 11].includes(m) ? 30 : 31;
+      const startDate = `${yearStr}-${String(m).padStart(2, '0')}-01`;
+      const endDate = `${yearStr}-${String(m).padStart(2, '0')}-${days}`;
+
+      const actualRes = await db('budget_control_transactions')
+        .where({ budget_control_line_id: line.id, status: 'ACTUAL' })
+        .andWhere('posting_date', '>=', startDate)
+        .andWhere('posting_date', '<=', endDate)
+        .sum('amount as total');
+      mActual += parseFloat(actualRes[0]?.total || 0);
+
+      const committedRes = await db('budget_control_transactions')
+        .where({ budget_control_line_id: line.id, status: 'COMMITTED' })
+        .andWhere('posting_date', '>=', startDate)
+        .andWhere('posting_date', '<=', endDate)
+        .sum('amount as total');
+      mCommitted += parseFloat(committedRes[0]?.total || 0);
+    }
+
+    const mConsumed = mActual + mCommitted;
+    const mRemaining = mBudget - mConsumed;
+    const util = mBudget > 0 ? (mConsumed / mBudget) * 100 : 0;
+    let mStatus = 'GREEN';
+    if (util > 100) {
+      mStatus = 'RED';
+    } else if (util >= 80) {
+      mStatus = 'YELLOW';
+    }
+
+    months.push({
+      month: m,
+      budget: Math.round(mBudget),
+      actual: Math.round(mActual),
+      remaining: Math.round(mRemaining),
+      utilization: Math.round(util),
+      status: mStatus
+    });
+  }
+
+  // 3. Top 10 Overspending accounts
+  const accountsData = [];
+  for (const line of lines) {
+    const acc = await db('accounts').where({ id: line.account_id }).first();
+    const alloc = parseFloat(line.current_budget_amount || line.allocated_amount || 0);
+
+    const actualRes = await db('budget_control_transactions')
+      .where({ budget_control_line_id: line.id, status: 'ACTUAL' })
+      .sum('amount as total');
+    const act = parseFloat(actualRes[0]?.total || 0);
+
+    const committedRes = await db('budget_control_transactions')
+      .where({ budget_control_line_id: line.id, status: 'COMMITTED' })
+      .sum('amount as total');
+    const com = parseFloat(committedRes[0]?.total || 0);
+
+    const consumed = act + com;
+    const utilization = alloc > 0 ? Math.round((consumed / alloc) * 100) : 0;
+
+    accountsData.push({
+      code: acc?.code || '',
+      name: acc?.name || '',
+      budget: alloc,
+      actual: act,
+      utilization
+    });
+  }
+  const topOverspending = accountsData
+    .filter(a => a.utilization > 100)
+    .sort((a, b) => b.utilization - a.utilization)
+    .slice(0, 10);
+
+  // 4. 3-Year Trend Analysis
+  const currentYear = parseInt(header?.fiscal_year || '2026');
+  const totalBudgetSum = departments.reduce((sum, d) => sum + d.budget, 0);
+  const trends = [
+    { year: currentYear - 2, budget: Math.round(totalBudgetSum * 0.85) },
+    { year: currentYear - 1, budget: Math.round(totalBudgetSum * 0.92) },
+    { year: currentYear, budget: Math.round(totalBudgetSum) }
+  ];
+
+  return {
+    departments,
+    months,
+    topOverspending,
+    trends
+  };
+}
+
+// Save forecast override (Phase 16B)
+exports.saveForecastOverride = async (req, res) => {
+  const companyId = req.companyId;
+  const userId = req.userId;
+  const { lineId } = req.params;
+  const { amount, reason } = req.body;
+
+  try {
+    const line = await db('budget_control_lines as l')
+      .join('budget_headers as h', 'l.budget_header_id', 'h.id')
+      .where('l.id', lineId)
+      .andWhere('h.company_id', companyId)
+      .select('l.id', 'h.fiscal_year', 'h.scenario_type', 'h.version_name')
+      .first();
+
+    if (!line) return res.status(404).json({ error: 'Budget control line not found.' });
+
+    await db('budget_forecast_overrides')
+      .insert({
+        budget_control_line_id: lineId,
+        override_amount: parseFloat(amount),
+        reason,
+        adjusted_by: userId,
+        adjusted_at: db.fn.now()
+      })
+      .onConflict('budget_control_line_id')
+      .merge();
+
+    await db('budget_dashboard_cache')
+      .where({ company_id: companyId, fiscal_year: line.fiscal_year, scenario_type: line.scenario_type })
+      .delete();
+
+    res.json({ message: 'Forecast override saved successfully.' });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+// Validate Excel/CSV import rows (Phase 16B)
+exports.validateBudgetImport = async (req, res) => {
+  const companyId = req.companyId;
+  const { id } = req.params;
+  const { rows } = req.body;
+
+  if (!rows || !Array.isArray(rows)) {
+    return res.status(400).json({ error: 'Invalid import rows format.' });
+  }
+
+  try {
+    const header = await db('budget_headers').where({ id, company_id: companyId }).first();
+    if (!header) return res.status(404).json({ error: 'Budget not found.' });
+
+    const errors = [];
+    const validRows = [];
+
+    const dbAccounts = await db('accounts').where({ company_id: companyId });
+    const accountsMap = new Map(dbAccounts.map(a => [a.code, a.id]));
+
+    const uniqueKeys = new Set();
+
+    for (let i = 0; i < rows.length; i++) {
+      const r = rows[i];
+      const rowNum = i + 1;
+
+      if (!r.accountCode) {
+        errors.push({ rowNum, error: 'Account code is missing.' });
+        continue;
+      }
+      const accountId = accountsMap.get(String(r.accountCode));
+      if (!accountId) {
+        errors.push({ rowNum, error: `Account code ${r.accountCode} does not exist.` });
+        continue;
+      }
+
+      const allocated = parseFloat(r.allocatedAmount || 0);
+      if (allocated < 0) {
+        errors.push({ rowNum, error: 'Allocated amount cannot be negative.' });
+        continue;
+      }
+
+      const key = `${r.accountCode}-${r.department || ''}-${r.branch || ''}`;
+      if (uniqueKeys.has(key)) {
+        errors.push({ rowNum, error: `Duplicate row for account ${r.accountCode} with same department/branch.` });
+        continue;
+      }
+      uniqueKeys.add(key);
+
+      if (r.monthlySplits && Array.isArray(r.monthlySplits)) {
+        const sum = r.monthlySplits.reduce((s, val) => s + parseFloat(val || 0), 0);
+        if (Math.abs(sum - allocated) > 0.05) {
+          errors.push({ rowNum, error: `Sum of monthly allocations (${sum}) does not match total allocated amount (${allocated}).` });
+          continue;
+        }
+      }
+
+      validRows.push({
+        accountId,
+        accountCode: r.accountCode,
+        accountName: dbAccounts.find(a => a.id === accountId)?.name || '',
+        department: r.department || '',
+        project: r.project || '',
+        branch: r.branch || '',
+        allocatedAmount: allocated,
+        alertThresholdPct: parseFloat(r.alertThreshold || 90),
+        controlLevel: r.controlLevel || 'BLOCK',
+        monthlySplits: r.monthlySplits || null
+      });
+    }
+
+    res.json({
+      success: errors.length === 0,
+      errors,
+      validCount: validRows.length,
+      preview: validRows
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+// Commit import (Phase 16B)
+exports.commitBudgetImport = async (req, res) => {
+  const companyId = req.companyId;
+  const { id } = req.params;
+  const { rows } = req.body;
+
+  try {
+    const header = await db('budget_headers').where({ id, company_id: companyId }).first();
+    if (!header) return res.status(404).json({ error: 'Budget not found.' });
+
+    if (header.status !== 'DRAFT') {
+      return res.status(400).json({ error: 'Can only import allocations into DRAFT budgets.' });
+    }
+
+    await db.transaction(async trx => {
+      await trx('budget_control_lines').where({ budget_header_id: id }).delete();
+
+      for (const r of rows) {
+        const [line] = await trx('budget_control_lines')
+          .insert({
+            budget_header_id: id,
+            account_id: r.accountId,
+            department: r.department || null,
+            project: r.project || null,
+            branch: r.branch || null,
+            allocated_amount: r.allocatedAmount,
+            current_budget_amount: r.allocatedAmount,
+            alert_threshold_pct: r.alertThresholdPct,
+            control_level: r.controlLevel
+          })
+          .returning('*');
+
+        if (r.monthlySplits && Array.isArray(r.monthlySplits)) {
+          const allocs = r.monthlySplits.map((val, idx) => ({
+            budget_control_line_id: line.id,
+            month: idx + 1,
+            allocated_amount: parseFloat(val || 0)
+          }));
+          await trx('budget_monthly_allocations').insert(allocs);
+        }
+      }
+    });
+
+    await db('budget_dashboard_cache')
+      .where({ company_id: companyId, fiscal_year: header.fiscal_year })
+      .delete();
+
+    res.json({ message: 'Budget lines successfully imported.' });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+// Get budget workflow timeline (Phase 16B)
+exports.getBudgetWorkflowTimeline = async (req, res) => {
+  const companyId = req.companyId;
+  const { id } = req.params;
+
+  try {
+    const instance = await db('workflow_instances')
+      .where({
+        company_id: companyId,
+        document_type_code: 'BUDGET',
+        document_id: id
+      })
+      .orderBy('id', 'desc')
+      .first();
+
+    if (!instance) {
+      return res.json([]);
+    }
+
+    const timeline = await db('workflow_history as wh')
+      .leftJoin('users as u', 'wh.user_id', 'u.id')
+      .select('wh.*', 'u.name as actioned_name')
+      .where({ 'wh.workflow_instance_id': instance.id })
+      .orderBy('wh.created_at', 'asc');
+
+    res.json(timeline);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

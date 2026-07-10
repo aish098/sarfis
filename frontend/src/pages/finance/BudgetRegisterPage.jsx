@@ -45,6 +45,9 @@ export default function BudgetRegisterPage() {
   const [transferAmount, setTransferAmount] = useState('');
   const [transferReason, setTransferReason] = useState('');
 
+  // Workflow timeline logs (Phase 16B)
+  const [timeline, setTimeline] = useState([]);
+
   const [activeMonthlyLine, setActiveMonthlyLine] = useState(null);
   const [monthlyAllocations, setMonthlyAllocations] = useState([]);
 
@@ -103,6 +106,10 @@ export default function BudgetRegisterPage() {
       setName(data.header.name);
       setVersionName(data.header.version_name);
       setStatus(data.header.status);
+
+      // Load timeline (Phase 16B)
+      const tlRes = await api.get(`/budgets/${id}/workflow-timeline`);
+      setTimeline(tlRes.data || []);
     } catch (err) {
       console.error(err);
     }
@@ -426,6 +433,27 @@ export default function BudgetRegisterPage() {
                 >
                   Edit Header Details
                 </button>
+
+                {timeline.length > 0 && (
+                  <div className="mt-4 pt-4 border-t border-slate-100 space-y-3">
+                    <span className="text-[10px] font-black uppercase text-slate-400 tracking-wider">Workflow Timeline</span>
+                    <div className="space-y-3.5 relative pl-4 before:content-[''] before:absolute before:left-1 before:top-1 before:bottom-1 before:w-[1.5px] before:bg-slate-200">
+                      {timeline.map((step, sIdx) => (
+                        <div key={sIdx} className="text-[10px] font-semibold text-slate-500 relative">
+                          <span className={`absolute -left-[19.5px] top-0.5 w-2.5 h-2.5 rounded-full border border-white ${
+                            step.action === 'APPROVED' ? 'bg-emerald-500' : step.action === 'REJECTED' ? 'bg-rose-500' : 'bg-indigo-500'
+                          }`} />
+                          <div className="flex justify-between text-slate-800 font-bold uppercase text-[9px]">
+                            <span>{step.stage_name || step.action}</span>
+                            <span className="text-slate-400 font-normal font-mono">{new Date(step.created_at).toLocaleDateString()}</span>
+                          </div>
+                          <p className="mt-0.5 text-slate-400">Action by: <span className="text-slate-650 font-bold">{step.actioned_name || 'System'}</span></p>
+                          {step.comments && <p className="mt-1 bg-slate-100 p-1.5 rounded-lg text-slate-500 italic">"{step.comments}"</p>}
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
