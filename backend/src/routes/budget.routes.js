@@ -35,5 +35,6 @@ router.get('/reports/overrides', companyGuard, requirePermission('analytics.view
 router.post('/lines/:lineId/forecast-override', companyGuard, requirePermission('settings.manage'), budgetCtrl.saveForecastOverride);
 router.post('/:id/validate-import', companyGuard, requirePermission('settings.manage'), budgetCtrl.validateBudgetImport);
 router.post('/:id/commit-import', companyGuard, requirePermission('settings.manage'), budgetCtrl.commitBudgetImport);
+router.get('/:id/workflow-timeline', companyGuard, requirePermission('analytics.view'), budgetCtrl.getBudgetWorkflowTimeline);
 
 module.exports = router;

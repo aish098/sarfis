@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Settings, Layers, Plus, Trash2, ShieldCheck, UserCheck, RefreshCw, 
   HelpCircle, AlertCircle, Save, Calendar, CheckSquare, PlusCircle, 
-  Copy, Edit, CheckCircle2, Sliders, PlayCircle, ArrowLeft
+  Copy, Edit, CheckCircle2, Sliders, PlayCircle, ArrowLeft, BarChart2
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';

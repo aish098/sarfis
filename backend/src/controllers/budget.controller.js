@@ -265,11 +265,12 @@ exports.getBudgetOverrides = async (req, res) => {
 
   try {
     const overrides = await db('workflow_instances as wi')
+      .join('workflow_definitions as wd', 'wi.workflow_definition_id', 'wd.id')
       .join('workflow_history as wh', 'wh.workflow_instance_id', 'wi.id')
       .leftJoin('users as u', 'wh.user_id', 'u.id')
       .select(
         'wi.document_id',
-        'wi.document_type_code',
+        'wd.document_type_code',
         'wh.action',
         'wh.comments',
         'u.name as actioned_by',
@@ -1159,13 +1160,15 @@ exports.getBudgetWorkflowTimeline = async (req, res) => {
   const { id } = req.params;
 
   try {
-    const instance = await db('workflow_instances')
+    const instance = await db('workflow_instances as wi')
+      .join('workflow_definitions as wd', 'wi.workflow_definition_id', 'wd.id')
       .where({
-        company_id: companyId,
-        document_type_code: 'BUDGET',
-        document_id: id
+        'wi.company_id': companyId,
+        'wd.document_type_code': 'BUDGET',
+        'wi.document_id': id
       })
-      .orderBy('id', 'desc')
+      .select('wi.id')
+      .orderBy('wi.id', 'desc')
       .first();
 
     if (!instance) {
