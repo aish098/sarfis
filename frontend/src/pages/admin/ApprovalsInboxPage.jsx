@@ -315,10 +315,10 @@ export default function ApprovalsInboxPage() {
                     <div className="p-4 bg-slate-50 border border-slate-100 rounded-2xl max-h-48 overflow-y-auto space-y-3 font-semibold text-slate-600 text-[11px]">
                       {selectedApproval.document_type_code === 'VOUCHER' ? (
                         <>
-                          <div className="flex justify-between"><span>Number:</span><span className="font-bold text-slate-800">{docPayload.voucher?.voucher_number}</span></div>
-                          <div className="flex justify-between"><span>Type:</span><span className="font-bold text-slate-800">{docPayload.voucher?.type}</span></div>
+                          <div className="flex justify-between"><span>Number:</span><span className="font-bold text-slate-800">{docPayload.document?.voucherNumber}</span></div>
+                          <div className="flex justify-between"><span>Type:</span><span className="font-bold text-slate-800">{docPayload.document?.type}</span></div>
                           <div className="border-t border-slate-200/50 pt-2 space-y-1">
-                            {docPayload.journalLines?.map((line, idx) => (
+                            {docPayload.financial?.journalLines?.map((line, idx) => (
                               <div key={idx} className="flex justify-between gap-2">
                                 <span className="truncate">{line.account_name}</span>
                                 <span className="font-mono font-bold shrink-0 text-slate-800">
