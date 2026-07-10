@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { 
   Play, Calendar, DollarSign, CheckCircle2, AlertCircle, ArrowLeft,
   Info, ChevronRight, ChevronLeft, TrendingDown, BookOpen, Layers, CheckSquare, ShieldCheck
@@ -9,6 +9,8 @@ import useAuthStore from '../../store/authStore';
 
 export default function DepreciationWizard() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const fromClose = searchParams.get('from') === 'close';
   const { activeCompany } = useAuthStore();
   
   const [currentStep, setCurrentStep] = useState(1);
@@ -110,7 +112,7 @@ export default function DepreciationWizard() {
     <div className="space-y-6 max-w-4xl mx-auto">
       {/* Header */}
       <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-        <Link to="/dashboard/fixed-assets" className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-all">
+        <Link to={fromClose ? "/dashboard/finance/close-wizard" : "/dashboard/fixed-assets"} className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-all">
           <ArrowLeft size={16} />
         </Link>
         <div>
@@ -337,7 +339,7 @@ export default function DepreciationWizard() {
               </div>
               <div className="pt-2">
                 <button 
-                  onClick={() => navigate('/dashboard/fixed-assets')}
+                  onClick={() => navigate(fromClose ? '/dashboard/finance/close-wizard' : '/dashboard/fixed-assets')}
                   className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all shadow-md"
                 >
                   Return to Dashboard

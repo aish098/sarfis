@@ -206,7 +206,7 @@ class PeriodCloseService {
           {
             type: 'RUN_DEPRECIATION',
             text: 'Run Depreciation',
-            route: '/dashboard/fixed-assets/wizard'
+            route: '/dashboard/fixed-assets/wizard?from=close'
           }
         ]
       });
