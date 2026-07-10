@@ -14,7 +14,7 @@ router.get('/stats', companyGuard, requirePermission('approval.view'), workflowC
 router.get('/seed-test-approval', companyGuard, workflowCtrl.seedTestApproval);
 
 // Reviewing step action
-router.post('/review/:instanceId', companyGuard, requirePermission('approval.approve'), workflowCtrl.reviewApprovalStage);
+router.post('/review/:instanceId', companyGuard, requirePermission('approval.manage'), workflowCtrl.reviewApprovalStage);
 
 // History logs
 router.get('/history', companyGuard, requirePermission('approval.view'), workflowCtrl.getApprovalHistory);
@@ -28,7 +28,7 @@ router.post('/definitions', companyGuard, requirePermission('settings.manage'), 
 
 // Delegations CRUD
 router.get('/delegations', companyGuard, requirePermission('approval.view'), workflowCtrl.getDelegations);
-router.post('/delegations', companyGuard, requirePermission('approval.approve'), workflowCtrl.createDelegation);
-router.post('/delegations/:id/cancel', companyGuard, requirePermission('approval.approve'), workflowCtrl.cancelDelegation);
+router.post('/delegations', companyGuard, requirePermission('approval.manage'), workflowCtrl.createDelegation);
+router.post('/delegations/:id/cancel', companyGuard, requirePermission('approval.manage'), workflowCtrl.cancelDelegation);
 
 module.exports = router;
