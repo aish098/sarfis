@@ -146,6 +146,15 @@ export default function NotificationCenterPage() {
       navigate('/dashboard/admin?tab=permissions');
     } else if (notif.entity_type === 'period') {
       navigate('/dashboard/admin?tab=periods');
+    } else if (notif.entity_type === 'admin') {
+      const titleLower = (notif.title || '').toLowerCase();
+      if (titleLower.includes('period') || titleLower.includes('fiscal') || titleLower.includes('close')) {
+        navigate('/dashboard/admin?tab=periods');
+      } else if (titleLower.includes('permission') || titleLower.includes('override')) {
+        navigate('/dashboard/admin?tab=permissions');
+      } else {
+        navigate('/dashboard/admin');
+      }
     }
   };
 
