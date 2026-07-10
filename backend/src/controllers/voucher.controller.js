@@ -202,6 +202,16 @@ exports.updatePeriodStatus = async (req, res) => {
       .update(updates)
       .returning('*');
 
+    if (status === 'OPEN') {
+      await db('period_close_sessions')
+        .where({ company_id: companyId, period_id: id })
+        .whereIn('status', ['CLOSED', 'PENDING_APPROVAL'])
+        .update({
+          status: 'REOPENED',
+          updated_at: db.fn.now()
+        });
+    }
+
     if (status) {
       try {
         const NotificationService = require('../services/notification.service');
