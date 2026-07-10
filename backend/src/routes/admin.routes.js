@@ -10,6 +10,7 @@ router.patch('/companies/:companyId', companyGuard, requirePermission('settings.
 router.post('/companies/:companyId/members', companyGuard, requirePermission('user.manage'), adminController.addMember);
 router.patch('/companies/:companyId/members/:userId', companyGuard, requirePermission('user.manage'), adminController.updateMemberRole);
 router.delete('/companies/:companyId/members/:userId', companyGuard, requirePermission('user.manage'), adminController.removeMember);
+router.get('/companies/:companyId/members', companyGuard, requirePermission('approval.view'), adminController.getCompanyMembers);
 
 // Backup, Restore & Purge Maintenance Utilities
 router.get('/companies/:companyId/backup', companyGuard, requirePermission('audit.manage'), adminController.exportCompanyBackup);

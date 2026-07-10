@@ -891,3 +891,20 @@ exports.getPendingApprovals = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.getCompanyMembers = async (req, res) => {
+  try {
+    const companyId = parseInt(req.params.companyId, 10);
+    await assertCompanyAdmin(req, companyId);
+
+    const members = await db('company_users as cu')
+      .join('users as u', 'u.id', 'cu.user_id')
+      .where('cu.company_id', companyId)
+      .select('u.id as user_id', 'u.name', 'u.email', 'cu.role')
+      .orderBy('u.name', 'asc');
+
+    res.json(members);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+};

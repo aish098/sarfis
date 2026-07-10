@@ -204,7 +204,7 @@ exports.saveWorkflowDefinition = async (req, res) => {
       return definition;
     });
 
-    res.json({ message: 'Workflow definition saved successfully', definition });
+    res.json({ message: 'Workflow definition saved successfully', definition: result });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
