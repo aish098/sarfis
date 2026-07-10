@@ -65,8 +65,13 @@ class PeriodCloseService {
     }
 
     // 3. Depreciation Runs
+    const runDateObj = new Date(period.start_date);
+    const yr = runDateObj.getFullYear();
+    const mo = String(runDateObj.getMonth() + 1).padStart(2, '0');
+    const periodCode = `${yr}-${mo}`;
+
     const depreciationRun = await db('depreciation_runs')
-      .where({ company_id: companyId, period: period.period_name })
+      .where({ company_id: companyId, period: periodCode })
       .first();
 
     const assetsCount = await db('assets')
