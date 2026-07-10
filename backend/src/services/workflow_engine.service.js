@@ -52,6 +52,80 @@ class WorkflowEngineService {
       this.evaluateConditions(stage.conditions, amount)
     );
 
+    // Dynamic Budget Block Override Injection
+    let budgetBlockBreach = false;
+    let docLines = [];
+    let docDate = new Date().toISOString().split('T')[0];
+    
+    try {
+      const BudgetService = require('./budget.service');
+      if (docTypeCode === 'JOURNAL') {
+        const j = await trx('journal_entries').where({ id: docId }).first();
+        if (j) {
+          docDate = j.entry_date;
+          const dbLines = await trx('journal_lines').where({ entry_id: docId });
+          docLines = dbLines.map(l => ({ 
+            accountId: l.account_id, 
+            debit: l.debit, 
+            credit: l.credit,
+            department: l.department,
+            project: l.project,
+            branch: l.branch
+          }));
+        }
+      } else if (docTypeCode === 'VOUCHER') {
+        const v = await trx('vouchers').where({ id: docId }).first();
+        if (v) {
+          docDate = v.date || v.created_at;
+          const payload = typeof v.payload === 'string' ? JSON.parse(v.payload) : v.payload || {};
+          const linesData = payload.lines || [];
+          docLines = linesData.map(l => ({ 
+            accountId: l.accountId || l.account_id, 
+            debit: l.amount || l.debit, 
+            credit: 0,
+            department: l.department || v.department,
+            project: l.project || v.project,
+            branch: l.branch || v.branch
+          }));
+        }
+      }
+
+      const budgetCheck = await BudgetService.checkTransactionBudget(companyId, docTypeCode, docId, docLines, trx);
+      if (budgetCheck.isExceeded) {
+        budgetBlockBreach = budgetCheck.breaches.some(b => b.controlLevel === 'BLOCK');
+      }
+
+      if (budgetBlockBreach) {
+        console.log(`[WORKFLOW] Document ${docTypeCode} #${docId} exceeds budget. Injecting CFO Budget Override stage...`);
+        let cfoStage = await trx('workflow_stages')
+          .where({ workflow_definition_id: def.id, required_role: 'CFO' })
+          .first();
+        
+        if (!cfoStage) {
+          const [inserted] = await trx('workflow_stages')
+            .insert({
+              workflow_definition_id: def.id,
+              stage_sequence: allStages.length + 1,
+              name: 'CFO Budget Override Approval',
+              required_role: 'CFO',
+              required_permission: 'journal.post',
+              conditions: null,
+              timeout_hours: 24,
+              approval_mode: 'SEQUENTIAL'
+            })
+            .returning('*');
+          cfoStage = inserted;
+        }
+        
+        // Push CFO override stage if not already active in current list
+        if (!activeStages.some(s => s.id === cfoStage.id)) {
+          activeStages.push(cfoStage);
+        }
+      }
+    } catch (budgetErr) {
+      console.error('[WORKFLOW BUDGET EVALUATION ERROR]', budgetErr);
+    }
+
     // If no stages apply, auto-approve
     if (activeStages.length === 0) {
       console.log(`[WORKFLOW] No stages matched conditions for ${docTypeCode} #${docId}. Auto-approving...`);
@@ -70,6 +144,14 @@ class WorkflowEngineService {
         created_by: userId
       })
       .returning('*');
+
+    // Register COMMITTED spend reservation
+    try {
+      const BudgetService = require('./budget.service');
+      await BudgetService.commitCommittedSpend(docTypeCode, docId, companyId, docDate, docLines, trx);
+    } catch (commitErr) {
+      console.error('[WORKFLOW COMMIT SPEND ERROR]', commitErr);
+    }
 
     const firstStage = activeStages[0];
 
@@ -226,6 +308,14 @@ class WorkflowEngineService {
       await trx('workflow_instances')
         .where({ id: instanceId })
         .update({ status: 'REJECTED', updated_at: trx.fn.now() });
+
+      // Release budget spend reservation
+      try {
+        const BudgetService = require('./budget.service');
+        await BudgetService.releaseSpend(instance.document_type_code, instance.document_id, trx);
+      } catch (relErr) {
+        console.error('[WORKFLOW BUDGET RELEASE ERROR]', relErr);
+      }
 
       // Reset document back to DRAFT
       if (instance.document_type_code === 'VOUCHER') {

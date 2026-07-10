@@ -101,6 +101,31 @@ class JournalValidationService {
       throw err;
     }
   }
+
+  static async validateBudget(companyId, entryId, journalData, conn) {
+    const BudgetService = require('./budget.service');
+    const budgetCheck = await BudgetService.checkTransactionBudget(companyId, 'JOURNAL', entryId, journalData.lines, conn);
+    
+    if (budgetCheck.isExceeded) {
+      const blockBreaches = budgetCheck.breaches.filter(b => b.controlLevel === 'BLOCK');
+      if (blockBreaches.length > 0) {
+        // Bypass block check if this specific document has been override-approved by a workflow instance
+        const approvedInst = await conn('workflow_instances as wi')
+          .join('workflow_definitions as wd', 'wi.workflow_definition_id', 'wd.id')
+          .where({
+            'wi.company_id': companyId,
+            'wd.document_type_code': 'JOURNAL',
+            'wi.document_id': entryId,
+            'wi.status': 'APPROVED'
+          })
+          .first();
+
+        if (!approvedInst) {
+          throw new Error(`Budget Exceeded: Account '${blockBreaches[0].accountCode} - ${blockBreaches[0].accountName}' exceeds budget allocation. CFO budget override approval required.`);
+        }
+      }
+    }
+  }
 }
 
 module.exports = JournalValidationService;

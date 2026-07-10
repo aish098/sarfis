@@ -155,7 +155,10 @@ class JournalPostingService {
           return {
             accountId: line.account_id,
             debit,
-            credit
+            credit,
+            department: line.department,
+            project: line.project,
+            branch: line.branch
           };
         });
 
@@ -179,7 +182,10 @@ class JournalPostingService {
             entryId: reversalEntryId,
             accountId: line.accountId,
             debit: line.debit,
-            credit: line.credit
+            credit: line.credit,
+            department: line.department,
+            project: line.project,
+            branch: line.branch
           }, trx);
         }
 
@@ -188,6 +194,10 @@ class JournalPostingService {
         for (const line of reversalLines) {
           await AccountModel.updateBalance(line.accountId, companyId, line.debit, line.credit, trx);
         }
+
+        // Commit budget reversal spend actuals (offsets the original budget consumption)
+        const BudgetService = require('./budget.service');
+        await BudgetService.commitActualSpend('JOURNAL', reversalEntryId, companyId, new Date(), reversalLines, trx);
 
         // Link original journal entry
         await trx('journal_entries')

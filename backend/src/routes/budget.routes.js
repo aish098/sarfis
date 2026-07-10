@@ -1,0 +1,22 @@
+const router = require('express').Router();
+const budgetCtrl = require('../controllers/budget.controller');
+const { authMiddleware, requirePermission, companyGuard } = require('../middleware/auth.middleware');
+
+router.use(authMiddleware);
+
+// Budgets list & details
+router.get('/', companyGuard, requirePermission('analytics.view'), budgetCtrl.getBudgets);
+router.get('/:id', companyGuard, requirePermission('analytics.view'), budgetCtrl.getBudgetDetails);
+
+// Save headers and lines
+router.post('/', companyGuard, requirePermission('settings.manage'), budgetCtrl.saveBudgetHeader);
+router.post('/:id/lines', companyGuard, requirePermission('settings.manage'), budgetCtrl.saveBudgetLines);
+
+// Copy & roll forward
+router.post('/copy', companyGuard, requirePermission('settings.manage'), budgetCtrl.copyBudget);
+
+// Dashboards and overrides log
+router.get('/reports/vs-actual', companyGuard, requirePermission('analytics.view'), budgetCtrl.getBudgetVsActualReport);
+router.get('/reports/overrides', companyGuard, requirePermission('analytics.view'), budgetCtrl.getBudgetOverrides);
+
+module.exports = router;

@@ -387,6 +387,41 @@ class PostingEngineService {
           throw new Error(`Unsupported posting transaction type: ${type}`);
       }
 
+      // Resolve classifications from voucher payload
+      const dept = payload.department || null;
+      const proj = payload.project || null;
+      const br = payload.branch || null;
+
+      const mappedLines = lines.map(l => ({
+        ...l,
+        department: l.department || dept,
+        project: l.project || proj,
+        branch: l.branch || br
+      }));
+
+      // Validate Budget availability
+      const BudgetService = require('./budget.service');
+      const budgetCheck = await BudgetService.checkTransactionBudget(companyId, 'VOUCHER', voucherId || 0, mappedLines, trx);
+      if (budgetCheck.isExceeded) {
+        const blockBreaches = budgetCheck.breaches.filter(b => b.controlLevel === 'BLOCK');
+        if (blockBreaches.length > 0) {
+          // Bypass block check if this specific document has been override-approved by a workflow instance
+          const approvedInst = await trx('workflow_instances as wi')
+            .join('workflow_definitions as wd', 'wi.workflow_definition_id', 'wd.id')
+            .where({
+              'wi.company_id': companyId,
+              'wd.document_type_code': 'VOUCHER',
+              'wi.document_id': voucherId || 0,
+              'wi.status': 'APPROVED'
+            })
+            .first();
+
+          if (!approvedInst) {
+            throw new Error(`Budget Exceeded: Account '${blockBreaches[0].accountCode} - ${blockBreaches[0].accountName}' exceeds budget allocation. CFO budget override approval required.`);
+          }
+        }
+      }
+
       // 3. Write Journal Entry Header using standard SCAFIS structures
       const entryId = await JournalModel.createEntry({
         companyId,
@@ -399,17 +434,23 @@ class PostingEngineService {
       journalEntryId = entryId;
 
       // 4. Write Journal Lines and update cached account balances
-      for (const line of lines) {
+      for (const line of mappedLines) {
         await JournalModel.createLine({
           entryId,
           accountId: line.accountId,
           debit: line.debit,
-          credit: line.credit
+          credit: line.credit,
+          department: line.department,
+          project: line.project,
+          branch: line.branch
         }, trx);
 
         // Update static account balance cache safely
         await AccountModel.updateBalance(line.accountId, companyId, line.debit, line.credit, trx);
       }
+
+      // Commit actual budget spend
+      await BudgetService.commitActualSpend('VOUCHER', voucherId || 0, companyId, txDate, mappedLines, trx);
 
       // 5. Add Transaction Audit Log
       await trx('transaction_audit_logs').insert({

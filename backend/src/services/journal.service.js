@@ -119,7 +119,14 @@ class JournalService {
           entryDate: header.entry_date,
           reference: header.reference,
           description: header.description,
-          lines: lines.map(l => ({ accountId: l.account_id, debit: l.debit, credit: l.credit }))
+          lines: lines.map(l => ({ 
+            accountId: l.account_id, 
+            debit: l.debit, 
+            credit: l.credit,
+            department: l.department,
+            project: l.project,
+            branch: l.branch
+          }))
         };
 
         await t('journal_posting_logs').where({ id: logId }).update({ status: 'VALIDATING_PERIOD' });
@@ -129,6 +136,9 @@ class JournalService {
         await JournalValidationService.validateAccounts(companyId, journalData.lines, t);
         await JournalValidationService.validateControlAccounts(companyId, journalData.lines, true, t);
         JournalValidationService.validateBalance(journalData.lines);
+        
+        // Budget Validation
+        await JournalValidationService.validateBudget(companyId, entryId, journalData, t);
         
         if (header.reference) {
           const exists = await t('journal_entries')
@@ -147,6 +157,10 @@ class JournalService {
         }
 
         await t('journal_entries').where({ id: entryId }).update({ status: 'POSTED' });
+
+        // Commit actual budget spend
+        const BudgetService = require('./budget.service');
+        await BudgetService.commitActualSpend('JOURNAL', entryId, companyId, journalData.entryDate, journalData.lines, t);
 
         // Audit Log
         await t('transaction_audit_logs').insert({
@@ -167,13 +181,17 @@ class JournalService {
         return true;
       } catch (err) {
         const duration = Date.now() - startTime;
-        await t('journal_posting_logs')
-          .where({ id: logId })
-          .update({
-            status: 'ROLLBACK',
-            error_message: err.message,
-            duration_ms: duration
-          });
+        try {
+          await db('journal_posting_logs')
+            .where({ id: logId })
+            .update({
+              status: 'ROLLBACK',
+              error_message: err.message,
+              duration_ms: duration
+            });
+        } catch (logErr) {
+          console.error('[LOG ERROR]', logErr.message);
+        }
         throw err;
       }
     };

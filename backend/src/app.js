@@ -41,6 +41,7 @@ app.use('/api', require('./routes/erp.routes'));
 app.use('/api', require('./routes/voucher.routes'));
 app.use('/api/fixed-assets', require('./routes/fixed_assets.routes'));
 app.use('/api/workflows', require('./routes/workflow.routes'));
+app.use('/api/budgets', require('./routes/budget.routes'));
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {

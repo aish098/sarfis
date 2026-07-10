@@ -30,7 +30,10 @@ class JournalModel {
       entry_id: lineData.entryId,
       account_id: lineData.accountId,
       debit: lineData.debit || 0,
-      credit: lineData.credit || 0
+      credit: lineData.credit || 0,
+      department: lineData.department || null,
+      project: lineData.project || null,
+      branch: lineData.branch || null
     });
   }
 
