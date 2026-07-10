@@ -337,3 +337,135 @@ exports.getWorkflowStats = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Dev route to seed a test approval entry dynamically
+exports.seedTestApproval = async (req, res) => {
+  const companyId = req.companyId;
+  const userId = req.user.id;
+  const userRole = req.user.role;
+  const WorkflowEngineService = require('../services/workflow_engine.service');
+
+  try {
+    const result = await db.transaction(async (trx) => {
+      // 1. Ensure Workflow Definition for VOUCHER exists
+      let def = await trx('workflow_definitions')
+        .where({ company_id: companyId, document_type_code: 'VOUCHER' })
+        .first();
+
+      if (!def) {
+        [def] = await trx('workflow_definitions')
+          .insert({
+            company_id: companyId,
+            document_type_code: 'VOUCHER',
+            name: 'Unified Voucher Approvals',
+            is_active: true
+          })
+          .returning('*');
+      }
+
+      // 2. Ensure Workflow Stage exists matching the current user's role
+      let stage = await trx('workflow_stages')
+        .where({ workflow_definition_id: def.id, stage_sequence: 1 })
+        .first();
+
+      if (!stage) {
+        [stage] = await trx('workflow_stages')
+          .insert({
+            workflow_definition_id: def.id,
+            stage_sequence: 1,
+            name: 'Manager Review Step',
+            required_role: userRole || 'Admin',
+            required_permission: 'approval.approve',
+            timeout_hours: 24,
+            approval_mode: 'SEQUENTIAL'
+          })
+          .returning('*');
+      } else {
+        // Update stage to match user's role so it routes to their inbox
+        await trx('workflow_stages')
+          .where({ id: stage.id })
+          .update({
+            required_role: userRole,
+            required_permission: 'approval.approve'
+          });
+      }
+
+      // 3. Ensure Vendor exists
+      let vendor = await trx('vendors').where({ company_id: companyId }).first();
+      if (!vendor) {
+        [vendor] = await trx('vendors')
+          .insert({
+            company_id: companyId,
+            name: 'Prime Stationery Supplies Ltd.',
+            email: 'sales@primestationery.com',
+            phone: '+92 300 1234567',
+            address: 'Main Commercial Area, Karachi, Pakistan'
+          })
+          .returning('*');
+      }
+
+      // 4. Create Draft Purchase Voucher
+      const payload = {
+        notes: "Office Stationeries and Supplies procurement for Q3 operations.",
+        vendorId: vendor.id,
+        warehouseId: 1,
+        items: [
+          {
+            description: "Premium Copier Paper Reams (A4)",
+            quantity: 100,
+            unitPrice: 500,
+            amount: 50000
+          },
+          {
+            description: "Executive Ergonomic Office Chairs",
+            quantity: 1,
+            unitPrice: 25000,
+            amount: 25000
+          }
+        ]
+      };
+
+      const [voucher] = await trx('vouchers')
+        .insert({
+          company_id: companyId,
+          voucher_number: `PV-UAT-${Date.now().toString().slice(-4)}`,
+          type: 'PURCHASE',
+          date: new Date().toISOString().split('T')[0],
+          status: 'DRAFT',
+          total_amount: 75000,
+          payload: JSON.stringify(payload),
+          created_by: userId
+        })
+        .returning('*');
+
+      // 5. Submit to Workflow Engine
+      await WorkflowEngineService.submitToWorkflow(
+        companyId,
+        'VOUCHER',
+        voucher.id,
+        75000,
+        userId,
+        trx
+      );
+
+      // Update voucher status to PENDING_APPROVAL
+      await trx('vouchers')
+        .where({ id: voucher.id })
+        .update({
+          status: 'PENDING_APPROVAL',
+          updated_at: trx.fn.now()
+        });
+
+      return voucher;
+    });
+
+    res.json({
+      success: true,
+      message: `Successfully seeded test approval voucher ${result.voucher_number} for company ${companyId}.`,
+      voucher: result
+    });
+  } catch (err) {
+    console.error('[SEED ERROR]', err);
+    res.status(500).json({ error: err.message });
+  }
+};

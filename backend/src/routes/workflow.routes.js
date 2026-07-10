@@ -10,6 +10,9 @@ router.get('/pending', companyGuard, requirePermission('approval.view'), workflo
 // Workflow stats
 router.get('/stats', companyGuard, requirePermission('approval.view'), workflowCtrl.getWorkflowStats);
 
+// Dev route to seed a test approval entry dynamically
+router.get('/seed-test-approval', companyGuard, workflowCtrl.seedTestApproval);
+
 // Reviewing step action
 router.post('/review/:instanceId', companyGuard, requirePermission('approval.approve'), workflowCtrl.reviewApprovalStage);
 
