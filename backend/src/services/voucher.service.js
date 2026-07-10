@@ -152,15 +152,33 @@ class VoucherService {
    * Submits a draft voucher for review/approval
    */
   static async submitForApproval(id, companyId, userId) {
-    const updated = await db.transaction(async (trx) => {
+    const WorkflowEngineService = require('./workflow_engine.service');
+    
+    return await db.transaction(async (trx) => {
       const voucher = await trx('vouchers').where({ id, company_id: companyId, deleted_at: null }).first();
       if (!voucher) throw new Error('Voucher not found.');
       if (voucher.status !== 'DRAFT') throw new Error('Only draft vouchers can be submitted for approval.');
 
+      // Route through Unified Workflow & Approval Engine
+      const res = await WorkflowEngineService.submitToWorkflow(
+        companyId,
+        'VOUCHER',
+        id,
+        parseFloat(voucher.total_amount || 0),
+        userId,
+        trx
+      );
+
+      let status = 'PENDING_APPROVAL';
+      if (res.status === 'APPROVED') {
+        // Already auto-approved and posted!
+        status = 'POSTED';
+      }
+
       const [up] = await trx('vouchers')
         .where({ id, company_id: companyId })
         .update({
-          status: 'PENDING_APPROVAL',
+          status: status,
           updated_at: trx.fn.now()
         })
         .returning('*');
@@ -170,53 +188,21 @@ class VoucherService {
         voucher_id: id,
         action: 'SUBMIT_APPROVAL',
         user_id: userId,
-        description: `Submitted voucher ${voucher.voucher_number} for manager approval.`
+        description: status === 'POSTED' 
+          ? `Submitted voucher ${voucher.voucher_number} (Auto-Approved & Posted).`
+          : `Submitted voucher ${voucher.voucher_number} for approval stages routing.`
       });
 
       return up;
     });
-
-    try {
-      const NotificationService = require('./notification.service');
-      const submitter = await db('users').where({ id: userId }).first();
-      const submitterName = submitter ? submitter.name : 'A user';
-
-      // 1. Notify users with voucher.post permission
-      await NotificationService.notifyUsersWithPermission({
-        companyId,
-        permissionCode: 'voucher.post',
-        title: 'Voucher Pending Approval',
-        message: `Voucher ${updated.voucher_number} (${updated.type}) of PKR ${parseFloat(updated.total_amount).toLocaleString()} submitted by ${submitterName} requires approval.`,
-        type: 'approval',
-        priority: 'HIGH',
-        entityType: 'voucher',
-        entityId: id
-      });
-
-      // 2. Notify users with voucher.approve permission
-      await NotificationService.notifyUsersWithPermission({
-        companyId,
-        permissionCode: 'voucher.approve',
-        title: 'Voucher Submitted for Review',
-        message: `Voucher ${updated.voucher_number} (${updated.type}) submitted by ${submitterName} is awaiting review.`,
-        type: 'approval',
-        priority: 'MEDIUM',
-        entityType: 'voucher',
-        entityId: id
-      });
-    } catch (err) {
-      console.error('Failed to dispatch notifications for voucher submission:', err);
-    }
-
-    return updated;
   }
 
   /**
    * Posts a voucher (DRAFT or PENDING_APPROVAL) to the General Ledger using PostingEngine
    */
-  static async postToLedger(id, companyId, userId) {
-    return await db.transaction(async (trx) => {
-      const voucher = await trx('vouchers').where({ id, company_id: companyId, deleted_at: null }).first();
+  static async postToLedger(id, companyId, userId, trx = db) {
+    const executePost = async (t) => {
+      const voucher = await t('vouchers').where({ id, company_id: companyId, deleted_at: null }).first();
       if (!voucher) throw new Error('Voucher not found.');
       if (voucher.status === 'POSTED') throw new Error('Voucher is already posted.');
 
@@ -227,9 +213,9 @@ class VoucherService {
         payload: voucher.payload,
         userId,
         voucherId: id
-      }, trx);
+      }, t);
 
-      const activeOverride = await trx('risk_approval_requests')
+      const activeOverride = await t('risk_approval_requests')
         .where({
           company_id: companyId,
           status: 'APPROVED',
@@ -238,7 +224,7 @@ class VoucherService {
         .where('expires_at', '>', new Date())
         .first();
 
-      const [updated] = await trx('vouchers')
+      const [updated] = await t('vouchers')
         .where({ id, company_id: companyId })
         .update({
           status: 'POSTED',
@@ -246,12 +232,18 @@ class VoucherService {
           total_amount: totalAmount,
           override_request_id: activeOverride ? activeOverride.id : voucher.override_request_id,
           approved_by: userId,
-          updated_at: trx.fn.now()
+          updated_at: t.fn.now()
         })
         .returning('*');
 
       return updated;
-    });
+    };
+
+    if (trx === db) {
+      return await db.transaction(executePost);
+    } else {
+      return await executePost(trx);
+    }
   }
 
   /**

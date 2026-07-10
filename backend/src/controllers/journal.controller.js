@@ -123,51 +123,43 @@ exports.submitJournalForApproval = async (req, res) => {
   const { id } = req.params;
   const companyId = req.companyId;
   const db = require('../config/db');
+  const WorkflowEngineService = require('../services/workflow_engine.service');
 
   try {
     const entry = await db('journal_entries').where({ id, company_id: companyId }).first();
     if (!entry) return res.status(404).json({ error: 'Journal entry not found' });
     if (entry.status !== 'DRAFT') return res.status(400).json({ error: 'Only draft journal entries can be submitted for approval.' });
 
-    await db('journal_entries').where({ id }).update({ status: 'PENDING_APPROVAL', updated_at: db.fn.now() });
+    // Get entry total amount for condition evaluations
+    const lines = await db('journal_lines').where({ entry_id: id });
+    const totalAmount = lines.reduce((sum, line) => sum + parseFloat(line.debit || 0), 0);
 
-    try {
-      const NotificationService = require('../services/notification.service');
-      const submitter = await db('users').where({ id: req.user.id }).first();
-      const submitterName = submitter ? submitter.name : 'A clerk';
-
-      // Get entry total amount for logging
-      const lines = await db('journal_lines').where({ entry_id: id });
-      const totalAmount = lines.reduce((sum, line) => sum + parseFloat(line.debit || 0), 0);
-
-      // 1. Notify users with journal.post
-      await NotificationService.notifyUsersWithPermission({
+    const result = await db.transaction(async (trx) => {
+      const resWorkflow = await WorkflowEngineService.submitToWorkflow(
         companyId,
-        permissionCode: 'journal.post',
-        title: 'Journal Pending Posting',
-        message: `Journal entry #${id} (${entry.description || 'Manual Journal'}) of PKR ${totalAmount.toLocaleString()} submitted by ${submitterName} requires posting.`,
-        type: 'approval',
-        priority: 'HIGH',
-        entityType: 'journal',
-        entityId: id
-      });
+        'JOURNAL',
+        id,
+        totalAmount,
+        req.user.id,
+        trx
+      );
 
-      // 2. Notify users with journal.approve
-      await NotificationService.notifyUsersWithPermission({
-        companyId,
-        permissionCode: 'journal.approve',
-        title: 'Journal Submitted for Review',
-        message: `Journal entry #${id} submitted by ${submitterName} requires review.`,
-        type: 'approval',
-        priority: 'MEDIUM',
-        entityType: 'journal',
-        entityId: id
-      });
-    } catch (notifErr) {
-      console.error('Failed to dispatch notifications for journal submission:', notifErr);
-    }
+      let status = 'PENDING_APPROVAL';
+      if (resWorkflow.status === 'APPROVED') {
+        status = 'POSTED';
+      }
 
-    res.json({ message: 'Journal entry submitted for approval' });
+      await trx('journal_entries').where({ id }).update({ status, updated_at: trx.fn.now() });
+
+      return { status, workflowInstanceId: resWorkflow.instanceId };
+    });
+
+    res.json({ 
+      message: result.status === 'POSTED' 
+        ? 'Journal entry auto-approved and posted successfully'
+        : 'Journal entry submitted for approval stages routing',
+      status: result.status
+    });
   } catch (err) {
     console.error('Submit Approval Error:', err);
     res.status(500).json({ error: err.message });

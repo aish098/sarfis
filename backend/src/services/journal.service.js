@@ -86,21 +86,21 @@ class JournalService {
   /**
    * Posts a drafted journal entry (Updates ledgers and writes detailed logs)
    */
-  static async postJournalEntry(entryId, companyId, userId) {
+  static async postJournalEntry(entryId, companyId, userId, trx = db) {
     const startTime = Date.now();
     const JournalValidationService = require('./journal_validation.service');
     
-    return await db.transaction(async (trx) => {
-      const header = await trx('journal_entries').where({ id: entryId, company_id: companyId }).first();
+    const executePost = async (t) => {
+      const header = await t('journal_entries').where({ id: entryId, company_id: companyId }).first();
       if (!header) throw new Error('Journal entry not found.');
       if (header.status === 'POSTED') throw new Error('Journal entry is already posted.');
       if (header.status === 'REVERSED') throw new Error('Cannot post a reversed journal entry.');
 
-      const lines = await trx('journal_lines').where('entry_id', entryId);
+      const lines = await t('journal_lines').where('entry_id', entryId);
       const totalDebit = lines.reduce((sum, l) => sum + (parseFloat(l.debit) || 0), 0);
 
       // Create initial posting log
-      const [log] = await trx('journal_posting_logs')
+      const [log] = await t('journal_posting_logs')
         .insert({
           company_id: companyId,
           journal_entry_id: entryId,
@@ -122,16 +122,16 @@ class JournalService {
           lines: lines.map(l => ({ accountId: l.account_id, debit: l.debit, credit: l.credit }))
         };
 
-        await trx('journal_posting_logs').where({ id: logId }).update({ status: 'VALIDATING_PERIOD' });
-        await JournalValidationService.validatePeriod(companyId, journalData.entryDate, trx);
+        await t('journal_posting_logs').where({ id: logId }).update({ status: 'VALIDATING_PERIOD' });
+        await JournalValidationService.validatePeriod(companyId, journalData.entryDate, t);
 
-        await trx('journal_posting_logs').where({ id: logId }).update({ status: 'VALIDATING_ACCOUNTS' });
-        await JournalValidationService.validateAccounts(companyId, journalData.lines, trx);
-        await JournalValidationService.validateControlAccounts(companyId, journalData.lines, true, trx);
+        await t('journal_posting_logs').where({ id: logId }).update({ status: 'VALIDATING_ACCOUNTS' });
+        await JournalValidationService.validateAccounts(companyId, journalData.lines, t);
+        await JournalValidationService.validateControlAccounts(companyId, journalData.lines, true, t);
         JournalValidationService.validateBalance(journalData.lines);
         
         if (header.reference) {
-          const exists = await trx('journal_entries')
+          const exists = await t('journal_entries')
             .where({ company_id: companyId })
             .andWhereRaw('LOWER(reference) = ?', [header.reference.trim().toLowerCase()])
             .andWhereNot({ id: entryId })
@@ -141,15 +141,15 @@ class JournalService {
           }
         }
 
-        await trx('journal_posting_logs').where({ id: logId }).update({ status: 'UPDATING_LEDGER' });
+        await t('journal_posting_logs').where({ id: logId }).update({ status: 'UPDATING_LEDGER' });
         for (const line of lines) {
-          await AccountModel.updateBalance(line.account_id, companyId, line.debit, line.credit, trx);
+          await AccountModel.updateBalance(line.account_id, companyId, line.debit, line.credit, t);
         }
 
-        await trx('journal_entries').where({ id: entryId }).update({ status: 'POSTED' });
+        await t('journal_entries').where({ id: entryId }).update({ status: 'POSTED' });
 
         // Audit Log
-        await trx('transaction_audit_logs').insert({
+        await t('transaction_audit_logs').insert({
           company_id: companyId,
           action: 'POST',
           user_id: userId,
@@ -157,7 +157,7 @@ class JournalService {
         });
 
         const duration = Date.now() - startTime;
-        await trx('journal_posting_logs')
+        await t('journal_posting_logs')
           .where({ id: logId })
           .update({
             status: 'POSTED',
@@ -167,7 +167,7 @@ class JournalService {
         return true;
       } catch (err) {
         const duration = Date.now() - startTime;
-        await trx('journal_posting_logs')
+        await t('journal_posting_logs')
           .where({ id: logId })
           .update({
             status: 'ROLLBACK',
@@ -176,7 +176,13 @@ class JournalService {
           });
         throw err;
       }
-    });
+    };
+
+    if (trx === db) {
+      return await db.transaction(executePost);
+    } else {
+      return await executePost(trx);
+    }
   }
 }
 

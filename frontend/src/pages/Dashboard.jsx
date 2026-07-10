@@ -44,6 +44,8 @@ import AssetRegister from './fixed-assets/AssetRegister.jsx';
 import AssetCategories from './fixed-assets/AssetCategories.jsx';
 import DepreciationWizard from './fixed-assets/DepreciationWizard.jsx';
 import MonthEndCloseWizard from './finance/MonthEndCloseWizard.jsx';
+import ApprovalsInboxPage from './admin/ApprovalsInboxPage.jsx';
+import WorkflowConfigPage from './admin/WorkflowConfigPage.jsx';
 
 function ModuleProtectedRoute({ moduleKey, fallbackDefault = true, children }) {
   const { settings } = useAuthStore();
@@ -379,6 +381,8 @@ export default function Dashboard() {
               <Route path="fixed-assets/categories" element={<AssetCategories />} />
               <Route path="fixed-assets/wizard" element={<DepreciationWizard />} />
               <Route path="finance/close-wizard" element={<MonthEndCloseWizard />} />
+              <Route path="admin/workflows" element={<WorkflowConfigPage />} />
+              <Route path="admin/approvals" element={<ApprovalsInboxPage />} />
             </Routes>
           </Motion.div>
         </AnimatePresence>

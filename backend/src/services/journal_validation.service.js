@@ -1,4 +1,5 @@
 const db = require('../config/db');
+const PeriodValidationService = require('./period_validation.service');
 
 class JournalValidationService {
   /**

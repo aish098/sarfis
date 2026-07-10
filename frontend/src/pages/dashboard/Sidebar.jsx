@@ -4,7 +4,7 @@ import {
   LayoutDashboard, BookOpen, FilePlus, BookMarked,
   BarChart2, TrendingUp, Target, Settings, LogOut,
   Home, ChevronLeft, ChevronRight, Zap, Building2, Activity,
-  Package, Truck, ShieldCheck, Briefcase, Mail
+  Package, Truck, ShieldCheck, Briefcase, Mail, CheckSquare
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
@@ -13,6 +13,7 @@ const NAV_SECTIONS = [
     label: 'Overview',
     items: [
       { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+      { to: '/dashboard/admin/approvals', icon: CheckSquare, label: 'Approvals Inbox', permission: 'approval.view' },
     ],
   },
   {
@@ -90,6 +91,7 @@ export default function Sidebar({ collapsed, isMobile, onToggle }) {
           label: 'Administration',
           items: [
             { to: '/dashboard/admin', icon: ShieldCheck, label: 'Admin & Roles' },
+            { to: '/dashboard/admin/workflows', icon: Settings, label: 'Workflow Config' },
           ],
         },
       ]
