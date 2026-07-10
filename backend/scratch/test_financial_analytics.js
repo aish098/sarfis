@@ -66,6 +66,16 @@ async function runTests() {
       const [p1] = await trx('accounting_periods').insert({ company_id: testCompanyId, period_name: 'Jan 2026', start_date: '2026-01-01', end_date: '2026-01-31', status: 'OPEN' }).returning('*');
       const [p2] = await trx('accounting_periods').insert({ company_id: testCompanyId, period_name: 'Feb 2026', start_date: '2026-02-01', end_date: '2026-02-28', status: 'OPEN' }).returning('*');
 
+      // Seed a budget limit for Office Rent Expense (5010) for Jan 2026
+      await trx('budgets').insert({
+        company_id: testCompanyId,
+        account_id: expAcc.id,
+        period_month: 1,
+        period_year: 2026,
+        budget_amount: 100000,
+        budget_type: 'account'
+      });
+
       // Seed opening balance journal entries on 2025-12-31
       const [jeOpen] = await trx('journal_entries').insert({ company_id: testCompanyId, entry_date: '2025-12-31', description: 'Opening Balances' }).returning('*');
       await trx('journal_lines').insert([
@@ -98,8 +108,8 @@ async function runTests() {
 
     let totalDr = 0, totalCr = 0;
     for (const r of tb) {
-      totalDr += parseFloat(r.debit || 0);
-      totalCr += parseFloat(r.credit || 0);
+      totalDr += parseFloat(r.total_debit || 0);
+      totalCr += parseFloat(r.total_credit || 0);
     }
     console.log(`[UAT-901] Trial Balance total: Debit PKR ${totalDr}, Credit PKR ${totalCr}`);
     if (Math.abs(totalDr - totalCr) > 0.01) {
@@ -140,7 +150,15 @@ async function runTests() {
 
     // UAT-908: Budget vs Actual Committed/Actual amounts
     const budgetCompare = await AnalyticsService.getBudgetVsActual(testCompanyId, 2026, 1);
-    console.log('[UAT-908] Budget comparison list size:', budgetCompare.detailItems.length);
+    console.log('[UAT-908] Budget comparison detail list:');
+    for (const b of budgetCompare.detailItems) {
+      console.log(`  Account: ${b.account_name} (${b.account_code})`);
+      console.log(`    Budget limit: PKR ${parseFloat(b.budget_amount || 0).toLocaleString()}`);
+      console.log(`    Committed:    PKR ${parseFloat(b.committed_amount || 0).toLocaleString()}`);
+      console.log(`    Actual:       PKR ${parseFloat(b.actual_amount || 0).toLocaleString()}`);
+      console.log(`    Remaining:    PKR ${parseFloat(b.remaining_amount || 0).toLocaleString()}`);
+      console.log(`    Variance:     ${parseFloat(b.variance_pct || 0).toFixed(1)}%`);
+    }
 
     // UAT-910 / UAT-911: Scheduled report format verification
     const schedulePayload = {
