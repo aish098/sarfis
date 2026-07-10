@@ -54,7 +54,7 @@ class ReconciliationService {
       .leftJoin('vouchers as v', 'je.id', 'v.journal_entry_id')
       .where('jl.account_id', account.id)
       .andWhere({ 'je.company_id': companyId })
-      .andWhereNull('v.id')
+      .whereNull('v.id')
       .select('je.id')
       .limit(1);
 
