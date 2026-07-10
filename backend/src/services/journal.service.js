@@ -25,7 +25,10 @@ class JournalService {
           entryId,
           accountId: line.accountId,
           debit: parseFloat(line.debit) || 0,
-          credit: parseFloat(line.credit) || 0
+          credit: parseFloat(line.credit) || 0,
+          department: line.department || null,
+          project: line.project || null,
+          branch: line.branch || null
         }, trx);
       }
       return entryId;
@@ -57,7 +60,10 @@ class JournalService {
           entryId,
           accountId: line.accountId,
           debit: parseFloat(line.debit) || 0,
-          credit: parseFloat(line.credit) || 0
+          credit: parseFloat(line.credit) || 0,
+          department: line.department || null,
+          project: line.project || null,
+          branch: line.branch || null
         }, trx);
       }
       return entryId;
@@ -86,7 +92,7 @@ class JournalService {
   /**
    * Posts a drafted journal entry (Updates ledgers and writes detailed logs)
    */
-  static async postJournalEntry(entryId, companyId, userId, trx = db) {
+  static async postJournalEntry(entryId, companyId, userId, overrideControlWarning = false, trx = db) {
     const startTime = Date.now();
     const JournalValidationService = require('./journal_validation.service');
     
@@ -134,7 +140,7 @@ class JournalService {
 
         await t('journal_posting_logs').where({ id: logId }).update({ status: 'VALIDATING_ACCOUNTS' });
         await JournalValidationService.validateAccounts(companyId, journalData.lines, t);
-        await JournalValidationService.validateControlAccounts(companyId, journalData.lines, true, t);
+        await JournalValidationService.validateControlAccounts(companyId, journalData.lines, overrideControlWarning, t);
         JournalValidationService.validateBalance(journalData.lines);
         
         // Budget Validation

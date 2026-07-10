@@ -107,15 +107,16 @@ exports.deleteJournalEntry = async (req, res) => {
  */
 exports.postJournalEntry = async (req, res) => {
   const { id } = req.params;
+  const { overrideControlWarning } = req.body;
   const companyId = req.companyId;
   const userId = req.user.id;
 
   try {
-    await JournalService.postJournalEntry(id, companyId, userId);
+    await JournalService.postJournalEntry(id, companyId, userId, !!overrideControlWarning);
     res.json({ message: 'Journal entry posted successfully' });
   } catch (err) {
     console.error('Post Error:', err);
-    res.status(err.message.includes('not found') || err.message.includes('already') ? 400 : 500).json({ error: err.message });
+    res.status(400).json({ error: err.message });
   }
 };
 
@@ -149,7 +150,7 @@ exports.submitJournalForApproval = async (req, res) => {
         status = 'POSTED';
       }
 
-      await trx('journal_entries').where({ id }).update({ status, updated_at: trx.fn.now() });
+      await trx('journal_entries').where({ id }).update({ status });
 
       return { status, workflowInstanceId: resWorkflow.instanceId };
     });
