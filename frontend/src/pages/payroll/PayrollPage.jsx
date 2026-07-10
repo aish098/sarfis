@@ -3,7 +3,7 @@ import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, DollarSign, Calendar, Landmark, CheckCircle, 
   ArrowRight, ShieldCheck, Download, Plus, Search, FileText,
-  AlertTriangle, RefreshCw, X, HelpCircle, Trash2, Link, Link2Off
+  AlertTriangle, RefreshCw, X, HelpCircle, Trash2, Link, Link2Off, Eye
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
