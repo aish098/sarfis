@@ -5,7 +5,7 @@ const WorkflowEngineService = require('../services/workflow_engine.service');
 exports.getPendingApprovals = async (req, res) => {
   const companyId = req.companyId;
   const userId = req.user.id;
-  const userRole = req.user.role;
+  const userRole = req.companyId ? (req.userCompanyRole || req.user.role) : req.user.role;
   const userPerms = req.userPermissions || [];
 
   try {
@@ -363,7 +363,7 @@ exports.seedTestApproval = async (req, res) => {
           .returning('*');
       }
 
-      // 2. Ensure Workflow Stage exists matching the current user's role
+      // 2. Ensure Workflow Stage exists with no strict role/perm gates (public to company) for UAT seeding
       let stage = await trx('workflow_stages')
         .where({ workflow_definition_id: def.id, stage_sequence: 1 })
         .first();
@@ -373,19 +373,19 @@ exports.seedTestApproval = async (req, res) => {
           .insert({
             workflow_definition_id: def.id,
             stage_sequence: 1,
-            name: 'Manager Review Step',
-            required_role: userRole || 'Admin',
+            name: 'UAT Board Review Step',
+            required_role: null,
             required_permission: null,
             timeout_hours: 24,
             approval_mode: 'SEQUENTIAL'
           })
           .returning('*');
       } else {
-        // Update stage to match user's role so it routes to their inbox
+        // Update stage to remove role/permission gates so any company member sees it
         await trx('workflow_stages')
           .where({ id: stage.id })
           .update({
-            required_role: userRole,
+            required_role: null,
             required_permission: null
           });
       }
