@@ -328,7 +328,32 @@ class FixedAssetsService {
       // 2. Perform calculations (Always runs Accounting book for GL)
       const calculations = await this.calculateDepreciationRun(companyId, period, 'Accounting');
       if (calculations.length === 0) {
-        throw new Error(`No depreciation allocations found to calculate for period ${period}.`);
+        if (!run) {
+          const insertResult = await trx('depreciation_runs')
+            .insert({
+              company_id: companyId,
+              run_date: runDate,
+              period,
+              method: 'AUTO',
+              voucher_id: null,
+              journal_entry_id: null,
+              status: 'POSTED',
+              created_by: userId
+            })
+            .returning('id');
+          const insertedId = extractId(insertResult);
+          run = { id: insertedId };
+        } else {
+          await trx('depreciation_runs')
+            .where({ id: run.id })
+            .update({
+              voucher_id: null,
+              journal_entry_id: null,
+              status: 'POSTED',
+              updated_at: trx.fn.now()
+            });
+        }
+        return { id: run.id, total_depreciation: 0.00, message: 'Depreciation run completed with zero allocations.' };
       }
 
       // 3. Compile summarized double-entry lines grouped by Asset Category accounts
