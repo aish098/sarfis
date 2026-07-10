@@ -112,7 +112,7 @@ exports.markAsRead = async (req, res) => {
   try {
     await db('notifications')
       .where({ id, user_id: req.user.id, company_id: companyId })
-      .update({ is_read: true, updated_at: db.fn.now() });
+      .update({ is_read: true });
 
     res.json({ success: true, message: 'Notification marked as read.' });
   } catch (err) {
@@ -127,7 +127,7 @@ exports.archiveNotification = async (req, res) => {
   try {
     await db('notifications')
       .where({ id, user_id: req.user.id, company_id: companyId })
-      .update({ is_archived: true, updated_at: db.fn.now() });
+      .update({ is_archived: true });
 
     res.json({ success: true, message: 'Notification archived.' });
   } catch (err) {
@@ -141,7 +141,7 @@ exports.markAllAsRead = async (req, res) => {
   try {
     await db('notifications')
       .where({ user_id: req.user.id, company_id: companyId, is_archived: false })
-      .update({ is_read: true, updated_at: db.fn.now() });
+      .update({ is_read: true });
 
     res.json({ success: true, message: 'All notifications marked as read.' });
   } catch (err) {
@@ -156,7 +156,7 @@ exports.unarchiveNotification = async (req, res) => {
   try {
     await db('notifications')
       .where({ id, user_id: req.user.id, company_id: companyId })
-      .update({ is_archived: false, updated_at: db.fn.now() });
+      .update({ is_archived: false });
 
     res.json({ success: true, message: 'Notification unarchived.' });
   } catch (err) {
@@ -211,8 +211,7 @@ exports.updatePreferences = async (req, res) => {
               app: !!p.app,
               sms: !!p.sms,
               push: !!p.push,
-              whatsapp: !!p.whatsapp,
-              updated_at: trx.fn.now()
+              whatsapp: !!p.whatsapp
             });
         } else {
           await trx('user_notification_preferences')
