@@ -30,6 +30,16 @@ class WorkflowRegistryService {
           })
           .returning('*');
         docType = newDoc;
+      } else if (docTypeCode === 'PERIOD_CLOSE') {
+        const [newDoc] = await trx('workflow_document_types')
+          .insert({
+            code: 'PERIOD_CLOSE',
+            name: 'Accounting Period Close',
+            callback_service: 'period_close.service',
+            callback_method: 'closePeriod'
+          })
+          .returning('*');
+        docType = newDoc;
       } else {
         throw new Error(`Document type '${docTypeCode}' is not registered in the workflow registry.`);
       }

@@ -28,10 +28,6 @@ router.delete('/vendors/:companyId/:id',      companyGuard, requirePermission('v
 router.get('/periods/:companyId',             companyGuard, requirePermission('period.view'), voucherCtrl.getPeriods);
 router.post('/periods/:companyId',            companyGuard, requirePermission('period.manage'), voucherCtrl.createPeriod);
 router.patch('/periods/:companyId/:id',       companyGuard, requirePermission('period.manage'), voucherCtrl.updatePeriodStatus);
-router.get('/periods/:companyId/:id/close-checklist', companyGuard, requirePermission('period.view'), voucherCtrl.getPeriodCloseChecklist);
-router.post('/periods/:companyId/:id/close',            companyGuard, requirePermission('period.manage'), voucherCtrl.closePeriod);
-router.post('/periods/:companyId/:id/reopen',           companyGuard, requirePermission('period.manage'), voucherCtrl.reopenPeriod);
-router.get('/periods/:companyId/:id/history',          companyGuard, requirePermission('period.view'), voucherCtrl.getPeriodHistory);
 
 // --- SETTINGS MAPPINGS ---
 router.get('/settings/:companyId',            companyGuard, requirePermission('settings.manage'), voucherCtrl.getSettings);

@@ -30,6 +30,16 @@ class PeriodValidationService {
       throw new Error(`Financial accounting period '${period.period_name}' is ${period.status} and locked for postings.`);
     }
 
+    // Check active close session status
+    const session = await trx('period_close_sessions')
+      .where({ company_id: companyId, period_id: period.id })
+      .orderBy('created_at', 'desc')
+      .first();
+
+    if (session && ['PENDING_APPROVAL', 'CLOSED'].includes(session.status)) {
+      throw new Error(`Financial accounting period '${period.period_name}' is locked in ${session.status} state.`);
+    }
+
     return period;
   }
 }
