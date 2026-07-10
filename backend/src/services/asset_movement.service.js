@@ -498,7 +498,7 @@ class AssetMovementService {
 
       await trx('vouchers')
         .where({ id: voucherId })
-        .update({ status: 'POSTED', updated_at: trx.fn.now() });
+        .update({ status: 'POSTED', journal_entry_id: journalEntryId, updated_at: trx.fn.now() });
 
       const newStatus = data.disposal_type === 'Sale' ? 'SOLD' : 'DISPOSED';
       await trx('assets')

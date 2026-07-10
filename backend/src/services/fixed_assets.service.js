@@ -427,7 +427,7 @@ class FixedAssetsService {
       // Update Voucher to POSTED
       await trx('vouchers')
         .where({ id: voucherId })
-        .update({ status: 'POSTED', updated_at: trx.fn.now() });
+        .update({ status: 'POSTED', journal_entry_id: journalEntryId, updated_at: trx.fn.now() });
 
       // 6. Record run headers
       if (!run) {
@@ -650,7 +650,7 @@ class FixedAssetsService {
       // Update Voucher status
       await trx('vouchers')
         .where({ id: voucherId })
-        .update({ status: 'POSTED', updated_at: trx.fn.now() });
+        .update({ status: 'POSTED', journal_entry_id: journalEntryId, updated_at: trx.fn.now() });
 
       // Update Asset Status to Retired/Sold
       const newStatus = proceeds > 0 ? 'SOLD' : 'DISPOSED';
