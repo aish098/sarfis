@@ -8,18 +8,41 @@ class NoteResolver {
 }
 
 // 1. Asset Resolver: Handles Accumulated Depreciation / Amortization note breakdowns
-class AssetResolver extends NoteResolver {
+// 1. Asset Note Resolver: Handles both Gross Asset Cost and Accumulated Depreciation note breakdowns
+class AssetNoteResolver extends NoteResolver {
   async resolve(companyId, account, targetDate) {
-    let breakdown = await db('assets as ast')
+    const nameLower = account.name.toLowerCase();
+    
+    // Check if the account represents an accumulated depreciation contra-account
+    const isAccumulated = nameLower.includes('depreciation') || nameLower.includes('amortization');
+
+    const breakdown = await db('assets as ast')
+      .join('asset_categories as cat', 'ast.category_id', 'cat.id')
       .join('asset_depreciation_books as book', 'ast.id', 'book.asset_id')
       .where('book.book_name', 'Accounting')
       .andWhere('ast.company_id', companyId)
-      .select('ast.id as asset_id', 'ast.asset_name as item', 'book.accumulated_depreciation as amount')
-      .orderBy('amount', 'desc');
+      .andWhere(builder => {
+        if (isAccumulated) {
+          builder.where('cat.accumulated_depreciation_account_id', account.id);
+        } else {
+          builder.where('cat.asset_account_id', account.id);
+        }
+      })
+      .select(
+        'ast.id as asset_id',
+        'ast.asset_name as item',
+        'ast.purchase_cost',
+        'book.accumulated_depreciation'
+      )
+      .orderBy('ast.id', 'asc');
 
-    const total = breakdown.reduce((sum, b) => sum + parseFloat(b.amount || 0), 0) || 1;
+    const total = breakdown.reduce((sum, b) => {
+      const val = isAccumulated ? parseFloat(b.accumulated_depreciation || 0) : parseFloat(b.purchase_cost || 0);
+      return sum + val;
+    }, 0) || 1;
+
     return breakdown.map(b => {
-      const amount = parseFloat(b.amount || 0);
+      const amount = isAccumulated ? parseFloat(b.accumulated_depreciation || 0) : parseFloat(b.purchase_cost || 0);
       return {
         id: `asset-${b.asset_id}`,
         item: b.item,
@@ -126,9 +149,10 @@ class InventoryResolver extends NoteResolver {
 class FinancialNotesService {
   static getResolver(account) {
     const nameLower = account.name.toLowerCase();
+    const group = this.getReportGroup(account);
     
-    if (nameLower.includes('depreciation') || nameLower.includes('amortization')) {
-      return new AssetResolver();
+    if (group === 'PPE' || nameLower.includes('depreciation') || nameLower.includes('amortization')) {
+      return new AssetNoteResolver();
     }
     if (nameLower.includes('bad debt') || nameLower.includes('allowance') || nameLower.includes('doubtful')) {
       return new BadDebtResolver();

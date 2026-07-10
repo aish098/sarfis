@@ -55,4 +55,9 @@ app.get('/api', (req, res) => {
   res.json({ message: 'Welcome to SARFIS API' });
 });
 
+// Global Error Handler
+app.use((err, req, res, next) => {
+  res.status(err.status || 400).json({ error: err.message || 'Internal Server Error' });
+});
+
 module.exports = app;

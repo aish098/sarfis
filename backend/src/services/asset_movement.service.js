@@ -416,11 +416,19 @@ class AssetMovementService {
 
       if (!book || !category) throw new Error('Asset mappings or books are missing.');
 
+      const isPartial = data.partial_disposal_percent && parseFloat(data.partial_disposal_percent) > 0 && parseFloat(data.partial_disposal_percent) < 100;
+      const p = isPartial ? parseFloat(data.partial_disposal_percent) / 100 : 1.0;
+
       const cost = parseFloat(asset.purchase_cost);
       const accDep = parseFloat(book.accumulated_depreciation);
       const bookValue = parseFloat(book.current_book_value);
+
+      const disposedCost = cost * p;
+      const disposedAccDep = accDep * p;
+      const disposedBookValue = bookValue * p;
+
       const proceeds = parseFloat(data.proceeds_amount || 0);
-      const gainLoss = proceeds - bookValue;
+      const gainLoss = proceeds - disposedBookValue;
 
       const companySettings = await db('company_accounting_settings')
         .where({ company_id: companyId })
@@ -434,11 +442,11 @@ class AssetMovementService {
       }
 
       const journalLines = [
-        { accountId: category.asset_account_id, debit: 0, credit: cost }
+        { accountId: category.asset_account_id, debit: 0, credit: disposedCost }
       ];
 
-      if (accDep > 0) {
-        journalLines.push({ accountId: category.accumulated_depreciation_account_id, debit: accDep, credit: 0 });
+      if (disposedAccDep > 0) {
+        journalLines.push({ accountId: category.accumulated_depreciation_account_id, debit: disposedAccDep, credit: 0 });
       }
 
       if (proceeds > 0) {
@@ -469,7 +477,9 @@ class AssetMovementService {
 
       const voucherPayload = {
         date: data.disposal_date,
-        notes: `Retirement (${data.disposal_type || 'Disposal'}) of Asset ${asset.asset_code}: ${data.disposal_reason}`,
+        notes: isPartial 
+          ? `Partial Retirement (${data.partial_disposal_percent}%) of Asset ${asset.asset_code}: ${data.disposal_reason}`
+          : `Retirement (${data.disposal_type || 'Disposal'}) of Asset ${asset.asset_code}: ${data.disposal_reason}`,
         lines: journalLines
       };
 
@@ -480,7 +490,7 @@ class AssetMovementService {
           type: 'JOURNAL',
           date: data.disposal_date,
           status: 'DRAFT',
-          total_amount: Math.max(proceeds, cost),
+          total_amount: Math.max(proceeds, disposedCost),
           tax_amount: 0,
           created_by: userId,
           payload: voucherPayload
@@ -500,21 +510,49 @@ class AssetMovementService {
         .where({ id: voucherId })
         .update({ status: 'POSTED', journal_entry_id: journalEntryId, updated_at: trx.fn.now() });
 
-      const newStatus = data.disposal_type === 'Sale' ? 'SOLD' : 'DISPOSED';
-      await trx('assets')
-        .where({ id: asset.id })
-        .update({ status: newStatus, updated_at: trx.fn.now() });
+      if (!isPartial) {
+        const newStatus = data.disposal_type === 'Sale' ? 'SOLD' : 'DISPOSED';
+        await trx('assets')
+          .where({ id: asset.id })
+          .update({ status: newStatus, updated_at: trx.fn.now() });
 
-      await trx('asset_depreciation_books')
-        .where({ asset_id: asset.id })
-        .update({ current_book_value: 0.00, updated_at: trx.fn.now() });
+        await trx('asset_depreciation_books')
+          .where({ asset_id: asset.id })
+          .update({ current_book_value: 0.00, updated_at: trx.fn.now() });
+      } else {
+        // Partial disposal: reduce asset values, status remains ACTIVE
+        const remainingCost = cost - disposedCost;
+        await trx('assets')
+          .where({ id: asset.id })
+          .update({ purchase_cost: remainingCost, updated_at: trx.fn.now() });
+
+        // Update all depreciation books for this asset
+        const allBooks = await trx('asset_depreciation_books').where({ asset_id: asset.id });
+        for (const bk of allBooks) {
+          const bkAcc = parseFloat(bk.accumulated_depreciation);
+          const bkVal = parseFloat(bk.current_book_value);
+          
+          const bkDisposedAcc = bkAcc * p;
+          const bkDisposedVal = bkVal * p;
+          
+          await trx('asset_depreciation_books')
+            .where({ id: bk.id })
+            .update({
+              accumulated_depreciation: bkAcc - bkDisposedAcc,
+              current_book_value: bkVal - bkDisposedVal,
+              updated_at: trx.fn.now()
+            });
+        }
+      }
 
       await trx('asset_ledger').insert({
         company_id: companyId,
         asset_id: asset.id,
-        event_type: data.disposal_type === 'Sale' ? 'SALE' : 'DISPOSAL',
+        event_type: isPartial ? 'PARTIAL_DISPOSAL' : (data.disposal_type === 'Sale' ? 'SALE' : 'DISPOSAL'),
         event_date: data.disposal_date,
-        description: `Disposal Type: ${data.disposal_type || 'Disposal'}. Reason: ${data.disposal_reason}. Cost: PKR ${cost.toLocaleString()}, Acc Dep: PKR ${accDep.toLocaleString()}, Proceeds: PKR ${proceeds.toLocaleString()}, Gain/Loss: PKR ${gainLoss.toLocaleString()}. Voucher: ${voucherNumber}`,
+        description: isPartial 
+          ? `Partial Disposal (${data.partial_disposal_percent}%). Disposed Cost: PKR ${disposedCost.toLocaleString()}, Disposed Acc Dep: PKR ${disposedAccDep.toLocaleString()}, Proceeds: PKR ${proceeds.toLocaleString()}, Gain/Loss: PKR ${gainLoss.toLocaleString()}. Voucher: ${voucherNumber}`
+          : `Disposal Type: ${data.disposal_type || 'Disposal'}. Reason: ${data.disposal_reason}. Cost: PKR ${cost.toLocaleString()}, Acc Dep: PKR ${accDep.toLocaleString()}, Proceeds: PKR ${proceeds.toLocaleString()}, Gain/Loss: PKR ${gainLoss.toLocaleString()}. Voucher: ${voucherNumber}`,
         amount: proceeds,
         voucher_id: voucherId,
         journal_entry_id: journalEntryId,

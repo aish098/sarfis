@@ -313,6 +313,9 @@ class FixedAssetsService {
 
   static async postDepreciationRun(companyId, period, userId) {
     return await db.transaction(async trx => {
+      const runDate = new Date(`${period}-28`);
+      await PostingEngineService.assertPeriodOpen(companyId, runDate, trx);
+
       // 1. Confirm run doesn't exist or is in preview
       let run = await trx('depreciation_runs')
         .where({ company_id: companyId, period })
@@ -330,7 +333,6 @@ class FixedAssetsService {
 
       // 3. Compile summarized double-entry lines grouped by Asset Category accounts
       const categoryGLSummary = {};
-      const runDate = new Date(`${period}-28`);
 
       for (const calc of calculations) {
         const asset = await trx('assets as a')
