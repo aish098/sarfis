@@ -3,6 +3,73 @@ const router = express.Router();
 const SettingsModel = require('../models/settings.model');
 const { authMiddleware, requirePermission, companyGuard } = require('../middleware/auth.middleware');
 
+// SYSTEM HEALTH MONITORING ENDPOINT (Public)
+router.get('/system/health', async (req, res) => {
+  try {
+    const db = require('../config/db');
+    const os = require('os');
+    
+    // 1. Check Database connection
+    let dbStatus = 'UP';
+    let dbError = null;
+    try {
+      await db.raw('SELECT 1');
+    } catch (err) {
+      dbStatus = 'DOWN';
+      dbError = err.message;
+    }
+
+    // 2. Query Knex Migration Version
+    let migrationVersion = 'Unknown';
+    try {
+      migrationVersion = await db.migrate.currentVersion();
+    } catch (err) {
+      console.error(err);
+    }
+
+    // 3. Count Pending/Failed Queue Items
+    let pendingQueueCount = 0;
+    let failedQueueCount = 0;
+    try {
+      const pending = await db('notification_queue').where({ status: 'PENDING' }).count('id as count').first();
+      const failed = await db('notification_queue').where({ status: 'FAILED' }).count('id as count').first();
+      pendingQueueCount = parseInt(pending?.count || 0);
+      failedQueueCount = parseInt(failed?.count || 0);
+    } catch (err) {
+      console.error(err);
+    }
+
+    // 4. Memory Metrics
+    const memory = process.memoryUsage();
+    const freeMem = os.freemem();
+    const totalMem = os.totalmem();
+
+    res.json({
+      status: dbStatus === 'UP' ? 'HEALTHY' : 'UNHEALTHY',
+      timestamp: new Date().toISOString(),
+      uptime: Math.round(process.uptime()),
+      database: {
+        status: dbStatus,
+        version: migrationVersion,
+        error: dbError
+      },
+      queue: {
+        pending: pendingQueueCount,
+        failed: failedQueueCount
+      },
+      system: {
+        platform: process.platform,
+        nodeVersion: process.version,
+        memoryUsageMB: Math.round(memory.rss / (1024 * 1024)),
+        freeMemoryGB: Math.round(freeMem / (1024 * 1024 * 1024) * 100) / 100,
+        totalMemoryGB: Math.round(totalMem / (1024 * 1024 * 1024) * 100) / 100
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 router.use(authMiddleware);
 
 // Get settings for a company
