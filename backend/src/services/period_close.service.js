@@ -65,10 +65,23 @@ class PeriodCloseService {
     }
 
     // 3. Depreciation Runs
-    const runDateObj = new Date(period.start_date);
-    const yr = runDateObj.getFullYear();
-    const mo = String(runDateObj.getMonth() + 1).padStart(2, '0');
-    const periodCode = `${yr}-${mo}`;
+    let periodCode;
+    const parts = (period.period_name || '').split(' ');
+    const monthName = parts[0];
+    const yearStr = parts[1];
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+    const monthIdx = monthNames.indexOf(monthName);
+    if (monthIdx !== -1 && yearStr) {
+      periodCode = `${yearStr}-${String(monthIdx + 1).padStart(2, '0')}`;
+    } else {
+      const runDateObj = new Date(period.start_date);
+      const yr = runDateObj.getFullYear();
+      const mo = String(runDateObj.getMonth() + 1).padStart(2, '0');
+      periodCode = `${yr}-${mo}`;
+    }
 
     const depreciationRun = await db('depreciation_runs')
       .where({ company_id: companyId, period: periodCode })

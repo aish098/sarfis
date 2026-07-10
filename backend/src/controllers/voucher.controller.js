@@ -200,10 +200,9 @@ exports.initializeFiscalYear = async (req, res) => {
         const monthName = monthNames[i];
         const pName = `${monthName} ${fiscalYear}`;
 
-        const startObj = new Date(fiscalYear, i, 1);
-        const endObj = new Date(fiscalYear, i + 1, 0);
-        const start = startObj.toISOString().split('T')[0];
-        const end = endObj.toISOString().split('T')[0];
+        const start = `${fiscalYear}-${String(i + 1).padStart(2, '0')}-01`;
+        const endDay = new Date(Date.UTC(fiscalYear, i + 1, 0)).getUTCDate();
+        const end = `${fiscalYear}-${String(i + 1).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
 
         // Check if period already exists
         const existing = await trx('accounting_periods')
@@ -256,10 +255,9 @@ exports.generateMissingPeriods = async (req, res) => {
         const monthName = monthNames[i];
         const pName = `${monthName} ${fiscalYear}`;
 
-        const startObj = new Date(fiscalYear, i, 1);
-        const endObj = new Date(fiscalYear, i + 1, 0);
-        const start = startObj.toISOString().split('T')[0];
-        const end = endObj.toISOString().split('T')[0];
+        const start = `${fiscalYear}-${String(i + 1).padStart(2, '0')}-01`;
+        const endDay = new Date(Date.UTC(fiscalYear, i + 1, 0)).getUTCDate();
+        const end = `${fiscalYear}-${String(i + 1).padStart(2, '0')}-${String(endDay).padStart(2, '0')}`;
 
         // Check if period already exists
         const existing = await trx('accounting_periods')
