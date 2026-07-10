@@ -265,8 +265,6 @@ const TABS = [
   { id:"vertical",    label:"🔢 Vertical"    },
   { id:"sectors",     label:"🏭 Sectors"     },
   { id:"operations",  label:"📦 Operations"  },
-  { id:"budget",      label:"🎯 Budget"      },
-  { id:"variance",    label:"📉 Variance"    },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
@@ -1468,8 +1466,6 @@ export default function AnalyticsDashboard({ companyId }) {
         {activeTab === "vertical"    && <VerticalTab    companyId={cid} />}
         {activeTab === "sectors"     && <SectorTab      companyId={cid} />}
         {activeTab === "operations"  && <OperationsTab  companyId={cid} />}
-        {activeTab === "budget"      && <BudgetTab      companyId={cid} />}
-        {activeTab === "variance"    && <VarianceTab     companyId={cid} />}
       </div>
     </div>
   );
