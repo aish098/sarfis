@@ -105,17 +105,17 @@ class ReportService {
     });
   }
 
-  static async getAPAging(companyId) {
-    const vendors = await db('vendors').where({ company_id: companyId, deleted_at: null });
+  static async getAPAging(companyId, trx = db) {
+    const vendors = await trx('vendors').where({ company_id: companyId, deleted_at: null });
     const agingReport = [];
 
     for (const vendor of vendors) {
-      const purchases = await db('vouchers')
+      const purchases = await trx('vouchers')
         .where({ company_id: companyId, type: 'PURCHASE', status: 'POSTED', is_reversed: false, deleted_at: null })
         .whereRaw("(payload->>'vendorId')::int = ?", [vendor.id])
         .orderBy('date', 'asc');
 
-      const payments = await db('vouchers')
+      const payments = await trx('vouchers')
         .where({ company_id: companyId, type: 'PAYMENT', status: 'POSTED', is_reversed: false, deleted_at: null })
         .whereRaw("(payload->>'vendorId')::int = ?", [vendor.id]);
 
@@ -176,16 +176,16 @@ class ReportService {
     return agingReport;
   }
 
-  static async getARAging(companyId) {
-    const clients = await db('clients').where({ company_id: companyId });
+  static async getARAging(companyId, trx = db) {
+    const clients = await trx('clients').where({ company_id: companyId });
     const agingReport = [];
 
     for (const client of clients) {
-      const salesVouchers = await db('vouchers')
+      const salesVouchers = await trx('vouchers')
         .where({ company_id: companyId, type: 'SALES', status: 'POSTED', is_reversed: false, deleted_at: null })
         .whereRaw("(payload->>'clientId')::int = ?", [client.id]);
 
-      const deliveries = await db('deliveries')
+      const deliveries = await trx('deliveries')
         .where({ company_id: companyId, client_id: client.id })
         .whereIn('status', ['CONFIRMED', 'DELIVERED']);
 
@@ -207,7 +207,7 @@ class ReportService {
 
       invoices.sort((a, b) => new Date(a.date) - new Date(b.date));
 
-      const receipts = await db('vouchers')
+      const receipts = await trx('vouchers')
         .where({ company_id: companyId, type: 'RECEIPT', status: 'POSTED', is_reversed: false, deleted_at: null })
         .whereRaw("(payload->>'clientId')::int = ?", [client.id]);
 

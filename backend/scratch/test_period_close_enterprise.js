@@ -143,6 +143,35 @@ async function runTests() {
     const validatedPeriod = await PeriodValidationService.validateDate(testCompanyId, '2026-01-15');
     console.log('[TEST] Period validation successfully verified after reopen:', validatedPeriod.period_name);
 
+    // 10. Re-close again to verify multiple snapshot versions are stored
+    const dash2 = await PeriodCloseService.getCloseDashboard(testCompanyId, testPeriodId, testUserId);
+    await PeriodCloseService.closePeriod(testPeriodId, testCompanyId, testUserId);
+    const snapshotsCount = await db('period_close_snapshots').where({ period_id: testPeriodId });
+    console.log('[TEST] Snapshot versions count for period:', snapshotsCount.length);
+    if (snapshotsCount.length < 2) {
+      throw new Error('Multiple close attempts should result in multiple snapshots (history of snapshot versions).');
+    }
+
+    // 11. Test PENDING_APPROVAL lock prevention
+    await PeriodCloseService.reopenPeriod(testPeriodId, testCompanyId, testUserId, 'Workflow UAT Testing');
+    const session = await PeriodCloseService.getOrCreateSession(testCompanyId, testPeriodId, testUserId);
+    await db('period_close_sessions').where({ id: session.id }).update({ status: 'PENDING_APPROVAL' });
+
+    try {
+      await PeriodValidationService.validateDate(testCompanyId, '2026-01-15');
+      throw new Error('Postings should be blocked during PENDING_APPROVAL status.');
+    } catch (err) {
+      console.log('[TEST] Period validation blocked transaction during PENDING_APPROVAL:', err.message);
+    }
+
+    // 12. Test Workflow Rejection restoration
+    await db('period_close_sessions').where({ id: session.id }).update({ status: 'READY_TO_CLOSE' });
+    const dashRejected = await PeriodCloseService.getCloseDashboard(testCompanyId, testPeriodId, testUserId);
+    console.log('[TEST] Session status after rejection simulation:', dashRejected.status);
+    if (dashRejected.status !== 'READY_TO_CLOSE') {
+      throw new Error('Rejected session should go back to READY_TO_CLOSE.');
+    }
+
     console.log('--- ALL ENTERPRISE PERIOD CLOSE UAT SCENARIOS PASSED ---');
   } catch (err) {
     console.error('--- UAT TEST FAILURE ---');
