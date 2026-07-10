@@ -181,6 +181,118 @@ exports.createPeriod = async (req, res) => {
   }
 };
 
+exports.initializeFiscalYear = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const { fiscalYear: bodyYear, year } = req.body || {};
+    const fiscalYear = parseInt(bodyYear || year) || new Date().getFullYear();
+
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    let createdCount = 0;
+    let skippedCount = 0;
+
+    await db.transaction(async (trx) => {
+      for (let i = 0; i < 12; i++) {
+        const monthName = monthNames[i];
+        const pName = `${monthName} ${fiscalYear}`;
+
+        const startObj = new Date(fiscalYear, i, 1);
+        const endObj = new Date(fiscalYear, i + 1, 0);
+        const start = startObj.toISOString().split('T')[0];
+        const end = endObj.toISOString().split('T')[0];
+
+        // Check if period already exists
+        const existing = await trx('accounting_periods')
+          .where({ company_id: companyId, period_name: pName })
+          .first();
+
+        if (existing) {
+          skippedCount++;
+        } else {
+          await trx('accounting_periods')
+            .insert({
+              company_id: companyId,
+              period_name: pName,
+              start_date: start,
+              end_date: end,
+              status: 'OPEN',
+              created_at: trx.fn.now(),
+              updated_at: trx.fn.now()
+            });
+          createdCount++;
+        }
+      }
+    });
+
+    res.status(201).json({
+      created: createdCount,
+      skipped: skippedCount
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.generateMissingPeriods = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const { fiscalYear: bodyYear, year } = req.body || {};
+    const fiscalYear = parseInt(bodyYear || year) || new Date().getFullYear();
+
+    const monthNames = [
+      'January', 'February', 'March', 'April', 'May', 'June',
+      'July', 'August', 'September', 'October', 'November', 'December'
+    ];
+
+    let createdCount = 0;
+    let existingCount = 0;
+
+    await db.transaction(async (trx) => {
+      for (let i = 0; i < 12; i++) {
+        const monthName = monthNames[i];
+        const pName = `${monthName} ${fiscalYear}`;
+
+        const startObj = new Date(fiscalYear, i, 1);
+        const endObj = new Date(fiscalYear, i + 1, 0);
+        const start = startObj.toISOString().split('T')[0];
+        const end = endObj.toISOString().split('T')[0];
+
+        // Check if period already exists
+        const existing = await trx('accounting_periods')
+          .where({ company_id: companyId, period_name: pName })
+          .first();
+
+        if (existing) {
+          existingCount++;
+        } else {
+          await trx('accounting_periods')
+            .insert({
+              company_id: companyId,
+              period_name: pName,
+              start_date: start,
+              end_date: end,
+              status: 'OPEN',
+              created_at: trx.fn.now(),
+              updated_at: trx.fn.now()
+            });
+          createdCount++;
+        }
+      }
+    });
+
+    res.status(200).json({
+      created: createdCount,
+      existing: existingCount
+    });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
 exports.updatePeriodStatus = async (req, res) => {
   try {
     const { companyId, id } = req.params;

@@ -269,41 +269,24 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
     }
   };
 
-  // Seed selected monthly period in database
-  const handleSeedPeriod = async () => {
+  // Seed all periods for selected fiscal year in database
+  const handleInitializeYear = async () => {
     if (!canAdmin || !activeCompany?.id) return;
     setActionSaving(true);
     setFeedback(null);
     try {
-      const durVal = parseInt(duration);
-      const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
-      const endDate = new Date(year, month + durVal - 1, 0).toISOString().split('T')[0];
-      
-      const endMonthIdx = (month - 1 + durVal - 1) % 12;
-      const endYear = year + Math.floor((month - 1 + durVal - 1) / 12);
-      const endMonthName = monthNames[endMonthIdx];
-      
-      let pName;
-      if (durVal === 1) {
-        pName = `${monthNames[month - 1]} ${year}`;
-      } else if (endYear !== year) {
-        pName = `${monthNames[month - 1]} ${year} – ${endMonthName} ${endYear}`;
-      } else {
-        pName = `${monthNames[month - 1]} – ${endMonthName} ${year}`;
-      }
-      
-      await api.post(`/periods/${activeCompany.id}`, {
-        periodName: pName,
-        startDate,
-        endDate,
-        status: 'OPEN'
+      const res = await api.post(`/accounting-periods/${activeCompany.id}/initialize`, {
+        fiscalYear: year
       }, {
         headers: { 'x-company-id': String(activeCompany.id) }
       });
       await fetchPeriods();
-      setFeedback({ type: 'success', text: `Period '${pName}' successfully initialized.` });
+      setFeedback({
+        type: 'success',
+        text: `Fiscal Year ${year} initialized: Created ${res.data.created} new periods, skipped ${res.data.skipped} existing.`
+      });
     } catch (err) {
-      setFeedback({ type: 'error', text: err.response?.data?.error || 'Failed to seed period.' });
+      setFeedback({ type: 'error', text: err.response?.data?.error || 'Failed to initialize fiscal year.' });
     } finally {
       setActionSaving(false);
     }
@@ -748,14 +731,14 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
                     </button>
                   ) : (
                     <button
-                      onClick={handleSeedPeriod}
+                      onClick={handleInitializeYear}
                       disabled={actionSaving}
                       className="w-full flex items-center justify-center gap-1.5 py-2 px-3 rounded-lg text-[11px] font-bold bg-[#EBFDF5] text-emerald-800 border border-[#C2F3DC] hover:bg-[#d5f7e6] transition-all"
                     >
                       {actionSaving ? (
                         <RefreshCw size={12} className="animate-spin" />
                       ) : (
-                        <><Plus size={12} /> Initialize Fiscal Period</>
+                        <><Plus size={12} /> Initialize Fiscal Year {year}</>
                       )}
                     </button>
                   )}

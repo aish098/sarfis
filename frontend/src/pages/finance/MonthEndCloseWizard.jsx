@@ -97,6 +97,26 @@ export default function MonthEndCloseWizard() {
     setDashboardData(null);
   };
 
+  const handleGenerateMissing = async () => {
+    if (!activeCompany || !selectedPeriod) return;
+    const targetYear = new Date(selectedPeriod.start_date).getFullYear();
+    setActionLoading(true);
+    setError(null);
+    setSuccessMsg(null);
+    try {
+      const res = await api.post(`/accounting-periods/${activeCompany.id}/generate-missing`, {
+        fiscalYear: targetYear
+      });
+      await fetchPeriods();
+      setSuccessMsg(`Generated ${res.data.created} missing periods for Fiscal Year ${targetYear}.`);
+    } catch (err) {
+      console.error(err);
+      setError(err.response?.data?.error || 'Failed to generate missing periods.');
+    } finally {
+      setActionLoading(false);
+    }
+  };
+
   const handleToggleSignoff = async (step, checked) => {
     if (!selectedPeriod) return;
     try {
@@ -256,6 +276,32 @@ export default function MonthEndCloseWizard() {
                     </div>
                   </div>
                 )}
+
+                {selectedPeriod && (() => {
+                  const targetYear = new Date(selectedPeriod.start_date).getFullYear();
+                  const yearPeriodsCount = periods.filter(p => new Date(p.start_date).getFullYear() === targetYear).length;
+                  if (yearPeriodsCount < 12) {
+                    return (
+                      <div className="p-4 rounded-2xl border border-amber-250 bg-amber-50/50 text-xs font-semibold text-amber-800 space-y-3">
+                        <div className="flex items-start gap-2">
+                          <AlertTriangle size={16} className="text-amber-600 flex-shrink-0 mt-0.5" />
+                          <div>
+                            <p className="font-extrabold uppercase text-[10px] tracking-wider text-amber-700">Missing Fiscal Periods</p>
+                            <p className="leading-relaxed mt-0.5">Only {yearPeriodsCount} of 12 periods are initialized for Fiscal Year {targetYear}.</p>
+                          </div>
+                        </div>
+                        <button
+                          disabled={actionLoading}
+                          onClick={handleGenerateMissing}
+                          className="w-full py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-xs shadow-sm transition-colors cursor-pointer border-none"
+                        >
+                          {actionLoading ? 'Generating...' : `Generate Missing Periods for ${targetYear}`}
+                        </button>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
 
                 <button
                   disabled={loading}

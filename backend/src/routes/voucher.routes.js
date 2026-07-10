@@ -27,6 +27,8 @@ router.delete('/vendors/:companyId/:id',      companyGuard, requirePermission('v
 // --- PERIOD LOCKS ---
 router.get('/periods/:companyId',             companyGuard, requirePermission('period.view'), voucherCtrl.getPeriods);
 router.post('/periods/:companyId',            companyGuard, requirePermission('period.manage'), voucherCtrl.createPeriod);
+router.post('/accounting-periods/:companyId/initialize', companyGuard, requirePermission('period.manage'), voucherCtrl.initializeFiscalYear);
+router.post('/accounting-periods/:companyId/generate-missing', companyGuard, requirePermission('period.manage'), voucherCtrl.generateMissingPeriods);
 router.patch('/periods/:companyId/:id',       companyGuard, requirePermission('period.manage'), voucherCtrl.updatePeriodStatus);
 
 // --- SETTINGS MAPPINGS ---
