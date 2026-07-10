@@ -353,19 +353,20 @@ export default function JournalEntryPage() {
     const cleanLines = lines.filter(l => l.accountId && (parseFloat(l.debit || 0) > 0 || parseFloat(l.credit || 0) > 0))
       .map(l => ({ accountId: l.accountId, description: l.description, debit: parseFloat(l.debit || 0), credit: parseFloat(l.credit || 0) }));
     try {
+      const isOverride = typeof overrideControl === 'boolean' ? overrideControl : false;
       let entryId;
       if (editingId) {
         await api.put(`/journal/${editingId}`, {
           company_id: activeCompany.id, entry_date: date, reference,
           description: cleanLines[0]?.description || 'Journal Entry', lines: cleanLines,
-          overrideControlWarning: overrideControl
+          overrideControlWarning: isOverride
         });
         entryId = editingId;
       } else {
         const response = await api.post('/journal', {
           company_id: activeCompany.id, entry_date: date, reference,
           description: cleanLines[0]?.description || 'Journal Entry', lines: cleanLines,
-          overrideControlWarning: overrideControl
+          overrideControlWarning: isOverride
         });
         entryId = response.data.id;
       }
@@ -384,6 +385,10 @@ export default function JournalEntryPage() {
       fetchRecent();
       handleNewEntry();
     } catch (err) {
+      console.error("Manual journal posting error details:", err);
+      if (err.response) {
+        console.log("Error response payload:", err.response.data);
+      }
       if (err.response?.status === 409 && err.response?.data?.warning === 'CONTROL_ACCOUNT_DIRECT_POST') {
         setControlWarningData({
           message: err.response.data.message,
@@ -933,7 +938,7 @@ export default function JournalEntryPage() {
               <div className="flex gap-3 px-7 pb-7">
                 <button onClick={() => setConfirmOpen(false)} className="btn btn-secondary flex-1">Back to Edit</button>
                 <button
-                  onClick={submit} 
+                  onClick={() => submit(false)} 
                   className="flex-1 inline-flex items-center justify-center gap-2 px-5 rounded-xl font-bold text-[14px] bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white shadow-lg transition-all active:scale-95 cursor-pointer"
                 >
                   <FileText size={14} /> {nextAction === 'post' ? 'Post to Ledger' : nextAction === 'submit' ? 'Submit for Approval' : 'Save Draft'}
