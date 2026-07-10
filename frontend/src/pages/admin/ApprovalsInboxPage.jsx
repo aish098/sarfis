@@ -3,7 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   CheckCircle2, XCircle, Clock, FileText, ChevronRight, RefreshCw, 
-  MessageSquare, User, Calendar, Shield, Inbox, CheckSquare, Search, Eye
+  MessageSquare, User, Calendar, Shield, Inbox, CheckSquare, Search, Eye, History
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
