@@ -1,13 +1,15 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Settings, Layers, Plus, Trash2, ShieldCheck, UserCheck, RefreshCw, 
   HelpCircle, AlertCircle, Save, Calendar, CheckSquare, PlusCircle, 
-  Copy, Edit, CheckCircle2, Sliders, PlayCircle
+  Copy, Edit, CheckCircle2, Sliders, PlayCircle, ArrowLeft
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 
 export default function BudgetRegisterPage() {
+  const navigate = useNavigate();
   const { activeCompany } = useAuthStore();
 
   const [budgets, setBudgets] = useState([]);
@@ -192,19 +194,33 @@ export default function BudgetRegisterPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* Header */}
-      <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-            <Sliders className="text-emerald-600" size={24} /> Budget Allocation Registry
-          </h1>
-          <p className="text-slate-500 text-sm font-semibold">Manage cost center spending allocations, multi-dimensional targets, and version controls.</p>
+      {/* Top Banner Toolbar */}
+      <div className="w-full bg-[#EEF2FF] border border-[#E0E7FF] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => navigate(-1)} 
+            className="p-2 text-indigo-800 hover:bg-indigo-100/50 rounded-xl transition-all cursor-pointer"
+          >
+            <ArrowLeft size={16} />
+          </button>
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-purple-600 flex items-center justify-center text-white shadow-md shadow-indigo-500/10">
+            <Sliders size={18} className="text-white fill-white/20" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-indigo-950 tracking-tight uppercase">Budget Registry</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-indigo-500/15 text-indigo-800 px-2 py-0.5 rounded-full border border-indigo-500/20">Allocation Rules</span>
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 flex items-center mt-0.5">
+              Manage cost center spending allocations, multi-dimensional targets, and version controls.
+            </p>
+          </div>
         </div>
 
-        <div className="flex gap-2">
+        <div className="flex gap-2 mt-3 md:mt-0">
           <button 
             onClick={handleCreateNew}
-            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer"
+            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer shadow-emerald-500/10"
           >
             <PlusCircle size={14} /> Create Budget
           </button>
@@ -212,7 +228,7 @@ export default function BudgetRegisterPage() {
           {selectedBudgetId && (
             <button 
               onClick={() => setShowCopyModal(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-indigo-50 border border-indigo-150 text-indigo-700 hover:bg-indigo-100 rounded-xl font-bold text-xs transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-bold text-xs shadow-sm transition-all cursor-pointer"
             >
               <Copy size={14} /> Roll Forward
             </button>
