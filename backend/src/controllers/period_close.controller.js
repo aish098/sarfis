@@ -224,3 +224,15 @@ exports.reopenPeriod = async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 };
+
+exports.getChecklist = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const companyId = req.companyId;
+    const checklist = await PeriodCloseService.getChecklist(companyId, parseInt(id));
+    res.json(checklist);
+  } catch (err) {
+    console.error('getChecklist error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
