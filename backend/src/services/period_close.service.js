@@ -170,7 +170,7 @@ class PeriodCloseService {
           type: 'OPEN_DOCUMENT',
           text: `Open ${v.voucher_number}`,
           id: v.id,
-          route: '/dashboard/purchasing'
+          route: '/dashboard/vouchers'
         }))
       });
     }
@@ -186,7 +186,7 @@ class PeriodCloseService {
           type: 'OPEN_DOCUMENT',
           text: `Open ${j.description || 'Journal'}`,
           id: j.id,
-          route: '/dashboard/journals'
+          route: '/dashboard/journal'
         }))
       });
     }
@@ -201,7 +201,7 @@ class PeriodCloseService {
           {
             type: 'RUN_DEPRECIATION',
             text: 'Run Depreciation',
-            route: '/dashboard/assets'
+            route: '/dashboard/fixed-assets/wizard'
           }
         ]
       });
@@ -253,7 +253,7 @@ class PeriodCloseService {
           {
             type: 'BANK_RECONCILIATION',
             text: 'Reconcile Bank Accounts',
-            route: '/dashboard/banking'
+            route: '/dashboard/ledger'
           }
         ]
       });
