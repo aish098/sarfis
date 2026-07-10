@@ -136,14 +136,27 @@ export default function MonthEndCloseWizard() {
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-        <button onClick={() => navigate(-1)} className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-all">
-          <ArrowLeft size={16} />
-        </button>
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Month-End Close Wizard</h1>
-          <p className="text-slate-500 text-sm font-semibold">Verify posting logs, inventory, bank balances, and lock accounting periods.</p>
+      {/* Top Banner Toolbar */}
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
+        <div className="flex items-center gap-3">
+          <button 
+            onClick={() => navigate(-1)} 
+            className="p-2 text-emerald-800 hover:bg-emerald-100/50 rounded-xl transition-all cursor-pointer"
+          >
+            <ArrowLeft size={16} />
+          </button>
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
+            <Calendar size={18} className="text-white fill-white/20" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Month-End Close</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Closing Wizard</span>
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 flex items-center mt-0.5">
+              Verify posting logs, inventory, bank balances, and lock accounting periods.
+            </p>
+          </div>
         </div>
       </div>
 
