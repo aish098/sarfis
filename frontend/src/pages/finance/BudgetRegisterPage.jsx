@@ -38,6 +38,16 @@ export default function BudgetRegisterPage() {
   const [copyYear, setCopyYear] = useState('2027');
   const [pctIncrease, setPctIncrease] = useState('5');
 
+  // Budget Revisions, Transfers & Monthly allocations State (Phase 16A)
+  const [showTransferModal, setShowTransferModal] = useState(false);
+  const [transferFromLineId, setTransferFromLineId] = useState('');
+  const [transferToLineId, setTransferToLineId] = useState('');
+  const [transferAmount, setTransferAmount] = useState('');
+  const [transferReason, setTransferReason] = useState('');
+
+  const [activeMonthlyLine, setActiveMonthlyLine] = useState(null);
+  const [monthlyAllocations, setMonthlyAllocations] = useState([]);
+
   useEffect(() => {
     if (activeCompany) {
       loadBudgets();
@@ -78,6 +88,7 @@ export default function BudgetRegisterPage() {
       const { data } = await api.get(`/budgets/${id}`);
       setSelectedBudget(data.header);
       setLines(data.lines.map(l => ({
+        id: l.id,
         accountId: l.account_id,
         department: l.department || '',
         project: l.project || '',
@@ -192,6 +203,99 @@ export default function BudgetRegisterPage() {
     setSaving(false);
   };
 
+  const handleCreateRevision = async () => {
+    if (!selectedBudgetId) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const { data } = await api.post(`/budgets/${selectedBudgetId}/revision`);
+      setSuccess(`New budget revision created successfully: ${data.version_name}`);
+      loadBudgets();
+      handleSelectBudget(data.id);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to create budget revision.');
+    }
+    setSaving(false);
+  };
+
+  const handleSubmitApproval = async () => {
+    if (!selectedBudgetId) return;
+    setSaving(true);
+    setError(null);
+    try {
+      const { data } = await api.post(`/budgets/${selectedBudgetId}/submit-approval`);
+      setSuccess('Budget plan submitted for workflow approval.');
+      loadBudgets();
+      handleSelectBudget(selectedBudgetId);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to submit budget for approval.');
+    }
+    setSaving(false);
+  };
+
+  const handleTransferBudget = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setError(null);
+    try {
+      await api.post('/budgets/transfers', {
+        fromLineId: transferFromLineId,
+        toLineId: transferToLineId,
+        amount: parseFloat(transferAmount),
+        reason: transferReason
+      });
+      setSuccess('Budget transfer posted successfully.');
+      setShowTransferModal(false);
+      setTransferAmount('');
+      setTransferReason('');
+      handleSelectBudget(selectedBudgetId);
+    } catch (err) {
+      setError(err.response?.data?.error || 'Failed to execute budget transfer.');
+    }
+    setSaving(false);
+  };
+
+  const openMonthlyModal = async (line, idx) => {
+    if (!line.id && selectedBudgetId) {
+      alert("Please save the budget lines first before setting monthly distributions.");
+      return;
+    }
+    setActiveMonthlyLine({ line, idx });
+    try {
+      const { data } = await api.get(`/budgets/lines/${line.id}/monthly`);
+      setMonthlyAllocations(data);
+    } catch (err) {
+      console.error(err);
+      const total = parseFloat(line.allocatedAmount || 0);
+      const equalSplit = (total / 12).toFixed(2);
+      const defaults = Array.from({ length: 12 }, (_, i) => ({
+        month: i + 1,
+        allocated_amount: equalSplit,
+        actual_amount: 0,
+        committed_amount: 0,
+        remaining_amount: equalSplit
+      }));
+      setMonthlyAllocations(defaults);
+    }
+  };
+
+  const saveMonthlyAllocations = async () => {
+    if (!activeMonthlyLine) return;
+    try {
+      await api.post(`/budgets/lines/${activeMonthlyLine.line.id}/monthly`, {
+        allocations: monthlyAllocations
+      });
+      const total = monthlyAllocations.reduce((sum, a) => sum + parseFloat(a.allocated_amount || 0), 0);
+      updateLineField(activeMonthlyLine.idx, 'allocatedAmount', total.toString());
+      setActiveMonthlyLine(null);
+      setSuccess("Monthly allocations updated successfully.");
+    } catch (err) {
+      setError("Failed to save monthly allocations.");
+    }
+  };
+
+  const isReadOnly = selectedBudget?.status === 'ACTIVE' || selectedBudget?.status === 'SUBMITTED';
+
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Top Banner Toolbar */}
@@ -217,20 +321,58 @@ export default function BudgetRegisterPage() {
           </div>
         </div>
 
-        <div className="flex gap-2 mt-3 md:mt-0">
+        <div className="flex flex-wrap gap-2 mt-3 md:mt-0">
+          <button 
+            onClick={() => navigate('/dashboard/finance/budgets/dashboard')}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-indigo-50 border border-indigo-150 text-indigo-700 hover:bg-indigo-100 rounded-xl font-bold text-xs transition-all cursor-pointer"
+          >
+            <BarChart2 size={13} /> Dashboard
+          </button>
+
           <button 
             onClick={handleCreateNew}
-            className="flex items-center gap-1.5 px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer shadow-emerald-500/10"
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer shadow-emerald-500/10"
           >
-            <PlusCircle size={14} /> Create Budget
+            <PlusCircle size={13} /> Create Draft
           </button>
           
+          {selectedBudget && selectedBudget.status === 'DRAFT' && (
+            <button 
+              onClick={handleSubmitApproval}
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer shadow-blue-500/10"
+            >
+              <CheckSquare size={13} /> Submit Approval
+            </button>
+          )}
+
+          {selectedBudget && selectedBudget.status === 'ACTIVE' && (
+            <>
+              <button 
+                onClick={handleCreateRevision}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer shadow-purple-500/10"
+              >
+                <RefreshCw size={13} /> Create Revision
+              </button>
+              
+              <button 
+                onClick={() => {
+                  setTransferFromLineId(lines[0]?.id || '');
+                  setTransferToLineId(lines[1]?.id || '');
+                  setShowTransferModal(true);
+                }}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-amber-500 hover:bg-amber-600 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer shadow-amber-500/10"
+              >
+                <Sliders size={13} /> Transfer Funds
+              </button>
+            </>
+          )}
+
           {selectedBudgetId && (
             <button 
               onClick={() => setShowCopyModal(true)}
-              className="flex items-center gap-1.5 px-4 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-bold text-xs shadow-sm transition-all cursor-pointer"
+              className="flex items-center gap-1.5 px-3.5 py-2 bg-white border border-slate-200 text-slate-700 hover:bg-slate-50 rounded-xl font-bold text-xs shadow-sm transition-all cursor-pointer"
             >
-              <Copy size={14} /> Roll Forward
+              <Copy size={13} /> Roll Forward
             </button>
           )}
         </div>
@@ -390,18 +532,21 @@ export default function BudgetRegisterPage() {
                 <div className="space-y-3.5 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
                   {lines.map((line, idx) => (
                     <div key={idx} className="p-4 border border-slate-100 bg-slate-50/50 rounded-2xl grid grid-cols-1 md:grid-cols-12 gap-3.5 items-end text-xs font-semibold relative pr-10">
-                      <button 
-                        onClick={() => removeLine(idx)}
-                        className="absolute right-3.5 top-1/2 -translate-y-1/2 text-rose-500 hover:text-rose-700 transition-all cursor-pointer"
-                      >
-                        <Trash2 size={15} />
-                      </button>
+                      {!isReadOnly && (
+                        <button 
+                          onClick={() => removeLine(idx)}
+                          className="absolute right-3.5 top-1/2 -translate-y-1/2 text-rose-500 hover:text-rose-700 transition-all cursor-pointer"
+                        >
+                          <Trash2 size={15} />
+                        </button>
+                      )}
 
                       {/* Account selection */}
                       <div className="md:col-span-4 space-y-1">
                         <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-bold">GL Account</label>
                         <select 
                           value={line.accountId}
+                          disabled={isReadOnly}
                           onChange={e => updateLineField(idx, 'accountId', e.target.value)}
                           className="w-full p-2 border border-slate-200 rounded bg-white font-bold"
                         >
@@ -416,6 +561,7 @@ export default function BudgetRegisterPage() {
                         <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-bold">Dept</label>
                         <select 
                           value={line.department}
+                          disabled={isReadOnly}
                           onChange={e => updateLineField(idx, 'department', e.target.value)}
                           className="w-full p-2 border border-slate-200 rounded bg-white font-bold"
                         >
@@ -433,6 +579,7 @@ export default function BudgetRegisterPage() {
                         <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-bold">Branch</label>
                         <select 
                           value={line.branch}
+                          disabled={isReadOnly}
                           onChange={e => updateLineField(idx, 'branch', e.target.value)}
                           className="w-full p-2 border border-slate-200 rounded bg-white font-bold"
                         >
@@ -446,12 +593,25 @@ export default function BudgetRegisterPage() {
                       {/* Amount */}
                       <div className="md:col-span-2 space-y-1">
                         <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-bold">Allocation (PKR)</label>
-                        <input 
-                          type="number" 
-                          value={line.allocatedAmount}
-                          onChange={e => updateLineField(idx, 'allocatedAmount', e.target.value)}
-                          className="w-full p-1.5 border border-slate-200 rounded text-right font-mono font-bold"
-                        />
+                        <div className="flex gap-1.5 items-center">
+                          <input 
+                            type="number" 
+                            disabled={isReadOnly}
+                            value={line.allocatedAmount}
+                            onChange={e => updateLineField(idx, 'allocatedAmount', e.target.value)}
+                            className="w-full p-1.5 border border-slate-200 rounded text-right font-mono font-bold"
+                          />
+                          {line.id && (
+                            <button
+                              type="button"
+                              onClick={() => openMonthlyModal(line, idx)}
+                              className="p-1.5 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 text-indigo-700 rounded transition-all cursor-pointer shrink-0"
+                              title="Configure Monthly Distribution Grid"
+                            >
+                              <Calendar size={13} />
+                            </button>
+                          )}
+                        </div>
                       </div>
 
                       {/* Control Level */}
@@ -459,6 +619,7 @@ export default function BudgetRegisterPage() {
                         <label className="block text-[9px] uppercase tracking-wider text-slate-400 font-bold">Control Policy</label>
                         <select 
                           value={line.controlLevel}
+                          disabled={isReadOnly}
                           onChange={e => updateLineField(idx, 'controlLevel', e.target.value)}
                           className="w-full p-2 border border-slate-200 rounded bg-white font-bold"
                         >
@@ -475,7 +636,7 @@ export default function BudgetRegisterPage() {
               {/* Action buttons */}
               <div className="pt-4 border-t border-slate-100 flex justify-end">
                 <button
-                  disabled={saving || lines.length === 0}
+                  disabled={saving || lines.length === 0 || isReadOnly}
                   onClick={saveLines}
                   className="flex items-center gap-2 px-6 py-3 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-md transition-all active:scale-95 cursor-pointer disabled:opacity-50"
                 >
@@ -533,6 +694,181 @@ export default function BudgetRegisterPage() {
               </button>
             </div>
           </div>
+        </div>
+      )}
+
+      {/* Monthly Distribution Spreadsheet Grid Modal (Phase 16A) */}
+      {activeMonthlyLine && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white p-6 rounded-3xl border border-slate-100 max-w-2xl w-full space-y-4 shadow-xl">
+            <div className="flex justify-between items-center pb-2 border-b border-slate-100">
+              <div>
+                <h3 className="font-extrabold text-slate-800 text-[14px]">Monthly Budget Spreadsheet</h3>
+                <p className="text-slate-400 text-[10px] font-semibold">
+                  Configure allocation overrides for account <span className="text-indigo-600">
+                    {accounts.find(a => a.id === activeMonthlyLine.line.accountId)?.code}
+                  </span>
+                </p>
+              </div>
+              <button 
+                onClick={() => setActiveMonthlyLine(null)}
+                className="text-slate-400 hover:text-slate-600 font-bold text-xs"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            <div className="overflow-x-auto max-h-[350px] border border-slate-150 rounded-xl">
+              <table className="w-full text-xs font-semibold text-slate-700 text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-200 text-[10px] uppercase font-black text-slate-400 tracking-wider">
+                    <th className="px-4 py-2">Month</th>
+                    <th className="px-4 py-2 text-right">Budget Limit</th>
+                    <th className="px-4 py-2 text-right">Actual Spent</th>
+                    <th className="px-4 py-2 text-right">Committed</th>
+                    <th className="px-4 py-2 text-right">Remaining</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100">
+                  {monthlyAllocations.map((item, i) => {
+                    const monthNames = [
+                      'January', 'February', 'March', 'April', 'May', 'June',
+                      'July', 'August', 'September', 'October', 'November', 'December'
+                    ];
+                    return (
+                      <tr key={i} className="hover:bg-slate-50/40 font-mono">
+                        <td className="px-4 py-2 font-sans text-slate-800 font-bold">{monthNames[item.month - 1]}</td>
+                        <td className="px-4 py-2 text-right">
+                          <input 
+                            type="number"
+                            disabled={isReadOnly}
+                            value={item.allocated_amount}
+                            onChange={(e) => {
+                              const updated = [...monthlyAllocations];
+                              updated[i].allocated_amount = e.target.value;
+                              updated[i].remaining_amount = parseFloat(e.target.value || 0) - (parseFloat(item.actual_amount || 0) + parseFloat(item.committed_amount || 0));
+                              setMonthlyAllocations(updated);
+                            }}
+                            className="w-24 p-1 border border-slate-200 rounded text-right font-bold"
+                          />
+                        </td>
+                        <td className="px-4 py-2 text-right text-slate-500">PKR {parseFloat(item.actual_amount || 0).toLocaleString()}</td>
+                        <td className="px-4 py-2 text-right text-indigo-600">PKR {parseFloat(item.committed_amount || 0).toLocaleString()}</td>
+                        <td className={`px-4 py-2 text-right font-bold ${item.remaining_amount < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                          PKR {parseFloat(item.remaining_amount || 0).toLocaleString()}
+                        </td>
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+
+            <div className="flex justify-between items-center pt-2">
+              <span className="text-[10px] font-bold text-slate-400">
+                Sum of Allocations: <span className="font-mono text-slate-700 font-extrabold text-xs">
+                  PKR {monthlyAllocations.reduce((sum, a) => sum + parseFloat(a.allocated_amount || 0), 0).toLocaleString()}
+                </span>
+              </span>
+              <div className="flex gap-2">
+                <button 
+                  type="button"
+                  onClick={() => setActiveMonthlyLine(null)}
+                  className="px-4 py-2 border border-slate-200 text-slate-600 rounded-xl font-bold text-xs"
+                >
+                  Cancel
+                </button>
+                <button 
+                  type="button"
+                  disabled={isReadOnly}
+                  onClick={saveMonthlyAllocations}
+                  className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs shadow-md"
+                >
+                  Save Split
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Budget Funds Transfer Modal (Phase 16A) */}
+      {showTransferModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <form onSubmit={handleTransferBudget} className="bg-white p-6 rounded-3xl border border-slate-100 max-w-md w-full space-y-4 shadow-xl">
+            <h3 className="font-extrabold text-slate-800 text-[14px]">Inter-Departmental Budget Transfer</h3>
+            <p className="text-xs text-slate-400 font-semibold">Move allocations between cost center registry items while preserving audit limits.</p>
+
+            <div className="space-y-3.5 text-xs font-semibold text-slate-600">
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Source Account (Transfer Out)</label>
+                <select 
+                  value={transferFromLineId}
+                  onChange={e => setTransferFromLineId(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 rounded-xl bg-white font-bold"
+                >
+                  {lines.map(l => {
+                    const acc = accounts.find(a => a.id === l.accountId);
+                    return <option key={l.id} value={l.id}>{acc?.code} - {acc?.name} ({l.department || 'No Dept'})</option>;
+                  })}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Target Account (Transfer In)</label>
+                <select 
+                  value={transferToLineId}
+                  onChange={e => setTransferToLineId(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 rounded-xl bg-white font-bold"
+                >
+                  {lines.map(l => {
+                    const acc = accounts.find(a => a.id === l.accountId);
+                    return <option key={l.id} value={l.id}>{acc?.code} - {acc?.name} ({l.department || 'No Dept'})</option>;
+                  })}
+                </select>
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Transfer Amount (PKR)</label>
+                <input 
+                  type="number"
+                  required
+                  value={transferAmount}
+                  onChange={e => setTransferAmount(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 rounded-xl font-mono font-bold"
+                  placeholder="e.g. 50000"
+                />
+              </div>
+
+              <div className="space-y-1">
+                <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-400">Reason / Justification</label>
+                <textarea 
+                  required
+                  value={transferReason}
+                  onChange={e => setTransferReason(e.target.value)}
+                  className="w-full p-2.5 border border-slate-200 rounded-xl font-semibold"
+                  placeholder="Enter adjustment reason..."
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-3 pt-2">
+              <button 
+                type="button" 
+                onClick={() => setShowTransferModal(false)}
+                className="w-1/2 py-2.5 border border-slate-200 text-slate-600 rounded-xl font-bold text-xs"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit"
+                disabled={saving}
+                className="w-1/2 py-2.5 bg-emerald-600 text-white hover:bg-emerald-700 rounded-xl font-bold text-xs shadow-md"
+              >
+                {saving ? 'Processing...' : 'Post Transfer'}
+              </button>
+            </div>
+          </form>
         </div>
       )}
     </div>

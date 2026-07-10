@@ -87,6 +87,11 @@ exports.getPendingApprovals = async (req, res) => {
         const lines = await db('journal_lines').where({ entry_id: p.document_id });
         docSummary = `Journal Entry #${j?.id}: ${j?.description || 'Manual Journal'}`;
         amount = lines.reduce((sum, l) => sum + parseFloat(l.debit || 0), 0);
+      } else if (p.document_type_code === 'BUDGET') {
+        const bh = await db('budget_headers').where({ id: p.document_id }).first();
+        const lines = await db('budget_control_lines').where({ budget_header_id: p.document_id });
+        docSummary = `Budget Plan: ${bh?.name || 'Annual Budget'} (${bh?.fiscal_year} - ${bh?.version_name})`;
+        amount = lines.reduce((sum, l) => sum + parseFloat(l.allocated_amount || 0), 0);
       }
       result.push({ ...p, docSummary, amount });
     }

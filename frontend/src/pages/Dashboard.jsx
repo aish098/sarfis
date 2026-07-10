@@ -48,6 +48,7 @@ import ApprovalsInboxPage from './admin/ApprovalsInboxPage.jsx';
 import WorkflowConfigPage from './admin/WorkflowConfigPage.jsx';
 import BudgetRegisterPage from './finance/BudgetRegisterPage.jsx';
 import BudgetVsActualReport from './finance/BudgetVsActualReport.jsx';
+import BudgetDashboard from './finance/BudgetDashboard.jsx';
 
 function ModuleProtectedRoute({ moduleKey, fallbackDefault = true, children }) {
   const { settings } = useAuthStore();
@@ -386,6 +387,7 @@ export default function Dashboard() {
               <Route path="admin/workflows" element={<WorkflowConfigPage />} />
               <Route path="admin/approvals" element={<ApprovalsInboxPage />} />
               <Route path="finance/budgets" element={<BudgetRegisterPage />} />
+              <Route path="finance/budgets/dashboard" element={<BudgetDashboard />} />
               <Route path="finance/budgets/vs-actual" element={<BudgetVsActualReport />} />
             </Routes>
           </Motion.div>

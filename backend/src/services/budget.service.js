@@ -40,22 +40,56 @@ class BudgetService {
 
       if (!budgetLine) continue;
 
-      // Sum actual spend
-      const actualRes = await trx('budget_control_transactions')
-        .where({ budget_control_line_id: budgetLine.id, status: 'ACTUAL' })
-        .sum('amount as total');
-      const actual = parseFloat(actualRes[0]?.total || 0);
+      const runDateObj = new Date(txDate);
+      const monthNum = runDateObj.getMonth() + 1; // 1 to 12
 
-      // Sum committed spend from other documents
-      const committedRes = await trx('budget_control_transactions')
-        .where({ budget_control_line_id: budgetLine.id, status: 'COMMITTED' })
-        .andWhereNot({ document_type: docTypeCode, document_id: docId })
-        .sum('amount as total');
-      const committed = parseFloat(committedRes[0]?.total || 0);
+      // Check if monthly override exists for this month
+      const monthlyAlloc = await trx('budget_monthly_allocations')
+        .where({ budget_control_line_id: budgetLine.id, month: monthNum })
+        .first();
 
-      const totalConsumed = actual + committed;
-      const allocated = parseFloat(budgetLine.allocated_amount);
-      const remaining = allocated - totalConsumed;
+      let allocated, consumed, remaining;
+
+      if (monthlyAlloc) {
+        // Sum actual & committed spend restricted to this month
+        const startOfMonth = `${fiscalYear}-${String(monthNum).padStart(2, '0')}-01`;
+        const lastDay = new Date(Date.UTC(parseInt(fiscalYear), monthNum, 0)).getUTCDate();
+        const endOfMonth = `${fiscalYear}-${String(monthNum).padStart(2, '0')}-${String(lastDay).padStart(2, '0')}`;
+
+        const actualRes = await trx('budget_control_transactions')
+          .where({ budget_control_line_id: budgetLine.id, status: 'ACTUAL' })
+          .andWhereBetween('posting_date', [startOfMonth, endOfMonth])
+          .sum('amount as total');
+        const actual = parseFloat(actualRes[0]?.total || 0);
+
+        const committedRes = await trx('budget_control_transactions')
+          .where({ budget_control_line_id: budgetLine.id, status: 'COMMITTED' })
+          .andWhereNot({ document_type: docTypeCode, document_id: docId })
+          .andWhereBetween('posting_date', [startOfMonth, endOfMonth])
+          .sum('amount as total');
+        const committed = parseFloat(committedRes[0]?.total || 0);
+
+        allocated = parseFloat(monthlyAlloc.allocated_amount);
+        consumed = actual + committed;
+        remaining = allocated - consumed;
+      } else {
+        // Sum actual spend (all-time/annual)
+        const actualRes = await trx('budget_control_transactions')
+          .where({ budget_control_line_id: budgetLine.id, status: 'ACTUAL' })
+          .sum('amount as total');
+        const actual = parseFloat(actualRes[0]?.total || 0);
+
+        // Sum committed spend (all-time/annual)
+        const committedRes = await trx('budget_control_transactions')
+          .where({ budget_control_line_id: budgetLine.id, status: 'COMMITTED' })
+          .andWhereNot({ document_type: docTypeCode, document_id: docId })
+          .sum('amount as total');
+        const committed = parseFloat(committedRes[0]?.total || 0);
+
+        allocated = parseFloat(budgetLine.current_budget_amount || budgetLine.allocated_amount);
+        consumed = actual + committed;
+        remaining = allocated - consumed;
+      }
 
       if (debitAmt > remaining) {
         breaches.push({
@@ -66,7 +100,7 @@ class BudgetService {
           project: line.project || null,
           branch: line.branch || null,
           allocated,
-          consumed: totalConsumed,
+          consumed,
           proposed: debitAmt,
           remaining,
           controlLevel: budgetLine.control_level
@@ -211,6 +245,34 @@ class BudgetService {
     }
 
     return newHeader;
+  }
+
+  /**
+   * Activates a budget revision/header and closes any previous active revisions for that year.
+   */
+  static async activateBudget(budgetHeaderId, companyId, userId = null, trx = db) {
+    const budget = await trx('budget_headers').where({ id: budgetHeaderId, company_id: companyId }).first();
+    if (!budget) throw new Error('Budget not found.');
+
+    // 1. Mark existing ACTIVE budgets for this fiscal year as CLOSED
+    await trx('budget_headers')
+      .where({ company_id: companyId, fiscal_year: budget.fiscal_year, status: 'ACTIVE' })
+      .update({
+        status: 'CLOSED',
+        updated_at: trx.fn.now()
+      });
+
+    // 2. Mark this budget as ACTIVE, setting approved/effective dates
+    await trx('budget_headers')
+      .where({ id: budgetHeaderId })
+      .update({
+        status: 'ACTIVE',
+        approved_date: trx.fn.now(),
+        effective_date: trx.fn.now(),
+        updated_at: trx.fn.now()
+      });
+
+    return { message: `Budget plan '${budget.name}' activated successfully.` };
   }
 }
 

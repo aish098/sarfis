@@ -84,6 +84,9 @@ export default function ApprovalsInboxPage() {
       } else if (item.document_type_code === 'JOURNAL') {
         const { data } = await api.get(`/journal/${item.document_id}`);
         setDocPayload(data);
+      } else if (item.document_type_code === 'BUDGET') {
+        const { data } = await api.get(`/budgets/${item.document_id}`);
+        setDocPayload(data);
       }
     } catch (err) {
       console.error(err);
@@ -338,6 +341,22 @@ export default function ApprovalsInboxPage() {
                                 <span className="truncate">{line.account_name}</span>
                                 <span className="font-mono font-bold shrink-0 text-slate-800">
                                   {parseFloat(line.debit) > 0 ? `DR ${fmt(line.debit)}` : `CR ${fmt(line.credit)}`}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      ) : selectedApproval.document_type_code === 'BUDGET' ? (
+                        <>
+                          <div className="flex justify-between"><span>Budget Plan:</span><span className="font-bold text-slate-800">{docPayload.header?.name}</span></div>
+                          <div className="flex justify-between"><span>Fiscal Year:</span><span className="font-bold text-slate-800">{docPayload.header?.fiscal_year}</span></div>
+                          <div className="flex justify-between"><span>Version:</span><span className="font-bold text-slate-800">{docPayload.header?.version_name}</span></div>
+                          <div className="border-t border-slate-200/50 pt-2 space-y-1">
+                            {docPayload.lines?.map((line, idx) => (
+                              <div key={idx} className="flex justify-between gap-2">
+                                <span className="truncate">{line.account_code} - {line.account_name}</span>
+                                <span className="font-mono font-bold shrink-0 text-slate-800">
+                                  PKR {fmt(line.allocated_amount)}
                                 </span>
                               </div>
                             ))}

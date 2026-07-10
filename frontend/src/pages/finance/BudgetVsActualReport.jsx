@@ -20,6 +20,11 @@ export default function BudgetVsActualReport() {
   const [department, setDepartment] = useState('');
   const [branch, setBranch] = useState('');
 
+  // Drill-down transaction state
+  const [activeDrillLine, setActiveDrillLine] = useState(null);
+  const [drillTransactions, setDrillTransactions] = useState([]);
+  const [loadingDrill, setLoadingDrill] = useState(false);
+
   // Selected override info modal
   const [activeTab, setActiveTab] = useState('comparison'); // 'comparison' | 'overrides'
 
@@ -54,6 +59,18 @@ export default function BudgetVsActualReport() {
     } catch (err) {
       console.error(err);
     }
+  };
+
+  const handleDrillDown = async (line) => {
+    setActiveDrillLine(line);
+    setLoadingDrill(true);
+    try {
+      const { data } = await api.get(`/budgets/lines/${line.id}/transactions`);
+      setDrillTransactions(data);
+    } catch (err) {
+      console.error(err);
+    }
+    setLoadingDrill(false);
   };
 
   // Compute overall stats
@@ -218,45 +235,66 @@ export default function BudgetVsActualReport() {
                 No budget allocation records found matching active filters.
               </div>
             ) : (
-              <table className="w-full text-xs font-semibold text-slate-700">
+              <table className="w-full text-xs font-semibold text-slate-700 border-collapse">
                 <thead>
                   <tr style={{ background: '#f8fafc', borderBottom: '1px solid #e2e8f0' }} className="text-[10px] uppercase font-bold text-slate-400 tracking-wider">
-                    <th className="px-5 py-3.5 text-left">GL Account</th>
-                    <th className="px-5 py-3.5 text-left">Department</th>
-                    <th className="px-5 py-3.5 text-left">Branch</th>
-                    <th className="px-5 py-3.5 text-right">Allocated</th>
-                    <th className="px-5 py-3.5 text-right">Committed</th>
-                    <th className="px-5 py-3.5 text-right">Actual</th>
-                    <th className="px-5 py-3.5 text-right">Consumed</th>
-                    <th className="px-5 py-3.5 text-center">Status</th>
-                    <th className="px-5 py-3.5 text-left w-36">Utilisation</th>
+                    <th className="px-4 py-3.5 text-left">GL Account</th>
+                    <th className="px-4 py-3.5 text-left">Dept/Branch</th>
+                    <th className="px-4 py-3.5 text-right">Original</th>
+                    <th className="px-4 py-3.5 text-right">Transfers</th>
+                    <th className="px-4 py-3.5 text-right">Current</th>
+                    <th className="px-4 py-3.5 text-right">Actual spent</th>
+                    <th className="px-4 py-3.5 text-right">Committed</th>
+                    <th className="px-4 py-3.5 text-right">Forecast Y/E</th>
+                    <th className="px-4 py-3.5 text-right">Remaining</th>
+                    <th className="px-4 py-3.5 text-right">Variance</th>
+                    <th className="px-4 py-3.5 text-center">% Used</th>
+                    <th className="px-4 py-3.5 text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody>
                   {reportData.lines.map(line => (
                     <tr key={line.id} className="border-b border-slate-50 hover:bg-slate-50/50">
-                      <td className="px-5 py-4">
+                      <td className="px-4 py-3">
                         <p className="text-slate-800 font-extrabold">{line.account_code}</p>
                         <p className="text-slate-400 text-[10px] mt-0.5">{line.account_name}</p>
                       </td>
-                      <td className="px-5 py-4 text-slate-500 font-bold">{line.department || '—'}</td>
-                      <td className="px-5 py-4 text-slate-500 font-bold">{line.branch || '—'}</td>
-                      <td className="px-5 py-4 text-right font-mono text-slate-700">PKR {fmt(line.allocated)}</td>
-                      <td className="px-5 py-4 text-right font-mono text-indigo-600">PKR {fmt(line.committed)}</td>
-                      <td className="px-5 py-4 text-right font-mono text-slate-800">PKR {fmt(line.actual)}</td>
-                      <td className="px-5 py-4 text-right font-mono text-slate-900 font-extrabold">PKR {fmt(line.consumed)}</td>
-                      <td className="px-5 py-4 text-center">
-                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase ${
-                          line.pctUsed >= 100 ? 'bg-rose-50 text-rose-700 border border-rose-100' :
-                          line.pctUsed >= 85 ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                          'bg-emerald-50 text-emerald-700 border border-emerald-100'
-                        }`}>
-                          {line.pctUsed >= 100 ? 'Breached' : line.pctUsed >= 85 ? 'Warning' : 'Healthy'}
-                        </span>
+                      <td className="px-4 py-3 text-slate-500 font-bold">
+                        <p>{line.department || '—'}</p>
+                        <p className="text-[10px] text-slate-400 font-normal">{line.branch || '—'}</p>
                       </td>
-                      <td className="px-5 py-4">
-                        <div className="space-y-1.5">
-                          <div className="w-full h-1.5 bg-slate-100 rounded-full overflow-hidden">
+                      <td className="px-4 py-3 text-right font-mono text-slate-700">PKR {fmt(line.allocated)}</td>
+                      <td className={`px-4 py-3 text-right font-mono font-bold ${line.transferIn - line.transferOut > 0 ? 'text-emerald-600' : line.transferIn - line.transferOut < 0 ? 'text-rose-600' : 'text-slate-400'}`}>
+                        PKR {fmt(line.transferIn - line.transferOut)}
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-slate-800 font-extrabold">PKR {fmt(line.currentBudget)}</td>
+                      <td className="px-4 py-3 text-right font-mono">
+                        <button 
+                          onClick={() => handleDrillDown(line)}
+                          className="text-indigo-600 hover:underline font-bold cursor-pointer"
+                        >
+                          PKR {fmt(line.actual)}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono">
+                        <button 
+                          onClick={() => handleDrillDown(line)}
+                          className="text-indigo-500 hover:underline font-bold cursor-pointer"
+                        >
+                          PKR {fmt(line.committed)}
+                        </button>
+                      </td>
+                      <td className="px-4 py-3 text-right font-mono text-slate-700">PKR {fmt(line.forecast)}</td>
+                      <td className={`px-4 py-3 text-right font-mono font-bold ${line.remaining < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                        PKR {fmt(line.remaining)}
+                      </td>
+                      <td className={`px-4 py-3 text-right font-mono font-bold ${line.variance < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                        PKR {fmt(line.variance)}
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <div className="space-y-1">
+                          <span className="font-mono text-slate-700 font-bold">{line.pctUsed}%</span>
+                          <div className="w-16 h-1 bg-slate-100 rounded-full overflow-hidden mx-auto">
                             <div 
                               style={{ width: `${Math.min(line.pctUsed, 100)}%` }} 
                               className={`h-full rounded-full ${
@@ -264,8 +302,16 @@ export default function BudgetVsActualReport() {
                               }`}
                             />
                           </div>
-                          <p className="text-[10px] text-slate-400 font-mono font-bold text-right">{line.pctUsed.toFixed(1)}%</p>
                         </div>
+                      </td>
+                      <td className="px-4 py-3 text-center">
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wide border ${
+                          line.status === 'Over Budget' ? 'bg-rose-50 text-rose-700 border-rose-100' :
+                          line.status === 'Warning' ? 'bg-amber-50 text-amber-700 border-amber-100' :
+                          'bg-emerald-50 text-emerald-700 border-emerald-100'
+                        }`}>
+                          {line.status}
+                        </span>
                       </td>
                     </tr>
                   ))}
@@ -309,6 +355,64 @@ export default function BudgetVsActualReport() {
               ))}
             </div>
           )}
+        </div>
+      )}
+
+      {/* Transaction Drill-down Side Drawer Modal (Phase 16A) */}
+      {activeDrillLine && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-sm z-50 flex justify-end">
+          <div className="bg-white max-w-lg w-full h-full shadow-2xl flex flex-col p-6 space-y-4 overflow-y-auto animate-slide-in">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+              <div>
+                <h3 className="font-extrabold text-slate-800 text-[14px]">Budget Transaction Drill-Down</h3>
+                <p className="text-slate-400 text-[10px] font-semibold">
+                  Source: {activeDrillLine.account_code} - {activeDrillLine.account_name} ({activeDrillLine.department || 'No Dept'})
+                </p>
+              </div>
+              <button 
+                onClick={() => setActiveDrillLine(null)}
+                className="p-1 text-slate-400 hover:text-slate-600 rounded-lg hover:bg-slate-100 transition-all font-bold text-xs"
+              >
+                ✕ Close
+              </button>
+            </div>
+
+            {loadingDrill ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-xs italic">
+                <RefreshCw className="animate-spin mb-2" size={16} /> Retrieving ledger entry details...
+              </div>
+            ) : drillTransactions.length === 0 ? (
+              <div className="flex-1 flex flex-col items-center justify-center text-slate-400 text-xs font-semibold">
+                No ledger transactions logged for this allocation line.
+              </div>
+            ) : (
+              <div className="flex-1 space-y-3.5 divide-y divide-slate-100 overflow-y-auto pr-1">
+                {drillTransactions.map((tx, idx) => (
+                  <div key={tx.id} className="pt-3.5 first:pt-0 flex justify-between items-start gap-4 text-xs font-semibold text-slate-600">
+                    <div className="space-y-1">
+                      <div className="flex items-center gap-1.5">
+                        <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
+                          tx.status === 'ACTUAL' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' : 'bg-indigo-50 text-indigo-700 border border-indigo-100'
+                        }`}>
+                          {tx.status}
+                        </span>
+                        <span className="text-slate-800 font-extrabold text-[12.5px] font-mono">{tx.refNumber}</span>
+                      </div>
+                      <p className="text-slate-700 font-bold">{tx.description || 'No description provided'}</p>
+                      <div className="flex items-center gap-2 text-[10px] text-slate-400">
+                        <span>Submitted by: {tx.creatorName || 'System'}</span>
+                        <span>•</span>
+                        <span>Date: {new Date(tx.posting_date).toLocaleDateString()}</span>
+                      </div>
+                    </div>
+                    <span className="font-mono text-slate-800 font-extrabold shrink-0 text-[13px]">
+                      PKR {fmt(tx.amount)}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
         </div>
       )}
     </div>

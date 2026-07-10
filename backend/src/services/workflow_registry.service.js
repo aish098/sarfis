@@ -40,6 +40,16 @@ class WorkflowRegistryService {
           })
           .returning('*');
         docType = newDoc;
+      } else if (docTypeCode === 'BUDGET') {
+        const [newDoc] = await trx('workflow_document_types')
+          .insert({
+            code: 'BUDGET',
+            name: 'Budget Plan Approval',
+            callback_service: 'budget.service',
+            callback_method: 'activateBudget'
+          })
+          .returning('*');
+        docType = newDoc;
       } else {
         throw new Error(`Document type '${docTypeCode}' is not registered in the workflow registry.`);
       }
