@@ -110,7 +110,7 @@ exports.reviewApprovalStage = async (req, res) => {
       action,
       comments,
       req.user.id,
-      req.user.role,
+      req.userCompanyRole || req.user.role,
       req.userPermissions
     );
     res.json({ message: 'Workflow review action completed successfully', outcome });
@@ -348,6 +348,23 @@ exports.seedTestApproval = async (req, res) => {
 
   try {
     const result = await db.transaction(async (trx) => {
+      // Elevate the user to Admin role in this company to allow them to test approvals
+      const adminRole = await trx('roles').where({ name: 'Admin' }).first();
+      if (adminRole) {
+        const hasRole = await trx('user_roles')
+          .where({ user_id: userId, company_id: companyId })
+          .first();
+
+        if (hasRole) {
+          await trx('user_roles')
+            .where({ user_id: userId, company_id: companyId })
+            .update({ role_id: adminRole.id });
+        } else {
+          await trx('user_roles')
+            .insert({ user_id: userId, company_id: companyId, role_id: adminRole.id });
+        }
+      }
+
       // 1. Ensure Workflow Definition for VOUCHER exists
       let def = await trx('workflow_definitions')
         .where({ company_id: companyId, document_type_code: 'VOUCHER' })
