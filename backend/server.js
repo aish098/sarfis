@@ -24,6 +24,12 @@ async function startServer() {
           name: 'Manual Journal Entry',
           callback_service: 'journal.service',
           callback_method: 'postJournalEntry'
+        },
+        {
+          code: 'PAYROLL',
+          name: 'Payroll Run',
+          callback_service: 'payroll.service',
+          callback_method: 'postPayrollRun'
         }
       ])
       .onConflict('code')
