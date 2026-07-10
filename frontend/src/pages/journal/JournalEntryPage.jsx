@@ -186,7 +186,7 @@ export default function JournalEntryPage() {
       const r = await api.get('/journal');
       setRecentEntries(r.data);
     } catch (err) {
-      console.error(err);
+      console.error("Fetch recent error:", err.message);
     }
     setLoadingRecent(false);
   };
@@ -385,7 +385,7 @@ export default function JournalEntryPage() {
       fetchRecent();
       handleNewEntry();
     } catch (err) {
-      console.error("Manual journal posting error details:", err);
+      console.error("Manual journal posting error details:", err.message);
       if (err.response) {
         console.log("Error response payload:", err.response.data);
       }
@@ -411,7 +411,7 @@ export default function JournalEntryPage() {
       const response = await api.get(`/journal/${entry.id}`);
       setDetailEntry(response.data);
     } catch (err) {
-      console.error(err);
+      console.error("Fetch detail error:", err.message);
       setError("Failed to fetch journal entry details.");
     }
     setDetailLoading(false);

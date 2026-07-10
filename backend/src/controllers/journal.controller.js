@@ -6,7 +6,7 @@ const JournalPostingService = require('../services/journal_posting.service');
  * Creates a new draft journal entry.
  */
 exports.createJournalEntry = async (req, res) => {
-  const { entry_date, description, reference, lines } = req.body;
+  const { entry_date, description, reference, lines } = req.body || {};
   const companyId = req.companyId;
   const userId = req.user.id;
 
@@ -107,7 +107,7 @@ exports.deleteJournalEntry = async (req, res) => {
  */
 exports.postJournalEntry = async (req, res) => {
   const { id } = req.params;
-  const { overrideControlWarning } = req.body;
+  const { overrideControlWarning } = req.body || {};
   const companyId = req.companyId;
   const userId = req.user.id;
 
@@ -155,8 +155,8 @@ exports.submitJournalForApproval = async (req, res) => {
       return { status, workflowInstanceId: resWorkflow.instanceId };
     });
 
-    res.json({ 
-      message: result.status === 'POSTED' 
+    res.json({
+      message: result.status === 'POSTED'
         ? 'Journal entry auto-approved and posted successfully'
         : 'Journal entry submitted for approval stages routing',
       status: result.status
