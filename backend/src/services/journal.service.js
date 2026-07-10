@@ -162,6 +162,26 @@ class JournalService {
         const BudgetService = require('./budget.service');
         await BudgetService.commitActualSpend('JOURNAL', entryId, companyId, journalData.entryDate, journalData.lines, t);
 
+        // Trigger notification
+        try {
+          const NotificationService = require('./notification.service');
+          const totalAmount = journalData.lines.reduce((sum, l) => sum + (parseFloat(l.debit) || 0), 0);
+          await NotificationService.notify({
+            eventCode: 'JOURNAL_POSTED',
+            companyId,
+            payload: {
+              id: entryId,
+              reference: header.reference || 'N/A',
+              amount: totalAmount
+            },
+            forceUserIds: userId ? [userId] : [],
+            entityType: 'journal',
+            entityId: entryId
+          });
+        } catch (notifErr) {
+          console.error('[NOTIFY JOURNAL POSTED ERROR]', notifErr);
+        }
+
         // Audit Log
         await t('transaction_audit_logs').insert({
           company_id: companyId,
