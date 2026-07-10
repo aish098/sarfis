@@ -162,9 +162,16 @@ function RatiosDashboard({ ratios, loading }) {
   const kpis = [
     { title: 'Current Ratio', val: ratios.currentRatio, desc: 'Current Assets / Current Liabilities', thresholds: { green: 1.5, red: 1.0 } },
     { title: 'Quick Ratio', val: ratios.quickRatio, desc: '(Current Assets − Inv) / Liabilities', thresholds: { green: 1.0, red: 0.8 } },
+    { title: 'Cash Ratio', val: ratios.cashRatio, desc: 'Cash & Equivalents / Current Liabilities', thresholds: { green: 0.8, red: 0.5 } },
+    { title: 'Gross Margin', val: (ratios.grossMargin || 0) + '%', desc: 'Gross Profit / Revenue', thresholds: { green: 30, red: 15 } },
+    { title: 'Operating Margin', val: (ratios.operatingMargin || 0) + '%', desc: 'Operating Income / Revenue', thresholds: { green: 15, red: 5 } },
     { title: 'Net Profit Margin', val: ratios.profitMargin + '%', desc: '(Net Income / Revenue) × 100', thresholds: { green: 10, red: 0 } },
+    { title: 'Inventory Turnover', val: ratios.inventoryTurnover || 0, desc: 'Cost of Goods Sold / Inventory', thresholds: { green: 6.0, red: 3.0 } },
+    { title: 'Receivable Days', val: (ratios.receivableDays || 0) + ' days', desc: '(AR / Revenue) × 365', thresholds: { green: 30, red: 45 } },
+    { title: 'Payable Days', val: (ratios.payableDays || 0) + ' days', desc: '(AP / COGS) × 365', thresholds: { green: 45, red: 30 } },
+    { title: 'Debt-to-Equity', val: (ratios.debtToEquity || 0) + '%', desc: 'Total Liabilities / Share Capital', thresholds: { green: 50, red: 100 } },
     { title: 'ROE', val: ratios.roe + '%', desc: '(Net Income / Equity) × 100', thresholds: { green: 15, red: 0 } },
-    { title: 'Asset Turnover', val: ratios.assetTurnover, desc: 'Revenue / Total Assets', thresholds: { green: 0.5, red: 0.1 } },
+    { title: 'Asset Turnover', val: ratios.assetTurnover || 0, desc: 'Revenue / Total Assets', thresholds: { green: 0.5, red: 0.1 } },
   ];
 
   return (

@@ -10,6 +10,8 @@ router.get('/adjusted-trial-balance/:companyId', companyGuard, requirePermission
 router.get('/income-statement/:companyId', companyGuard, requirePermission('report.view'), reportController.getIncomeStatement);
 router.get('/balance-sheet/:companyId', companyGuard, requirePermission('report.view'), reportController.getBalanceSheet);
 router.get('/cash-flow/:companyId', companyGuard, requirePermission('report.view'), reportController.getCashFlow);
+router.get('/equity/:companyId', companyGuard, requirePermission('report.view'), reportController.getChangesInEquity);
+router.get('/comparative/:companyId', companyGuard, requirePermission('report.view'), reportController.getComparativeReport);
 
 router.get('/ledger/:accountId', requirePermission('ledger.view'), reportController.getLedgerByAccount);
 router.get('/balance-sheet/note/:accountId', requirePermission('report.view'), reportController.getBalanceSheetNote);

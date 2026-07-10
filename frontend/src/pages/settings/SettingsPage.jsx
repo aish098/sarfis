@@ -5,7 +5,7 @@ import {
   UploadCloud, ShieldCheck, Save, AlertTriangle, RefreshCw,
   Plus, Trash2, Download, Eye, Check, CheckSquare,
   FileSpreadsheet, Play, ArrowRight, Lock, Key, FileText,
-  User, Computer, Info, ArrowLeftRight, Bell
+  User, Computer, Info, ArrowLeftRight, Bell, Calendar
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -20,6 +20,7 @@ const TABS = [
   { id: 'modules', label: 'Feature Toggles', icon: Settings },
   { id: 'email', label: 'Email & Reminders', icon: Mail },
   { id: 'notifications', label: 'Notification Preferences', icon: Bell },
+  { id: 'scheduled-reports', label: 'Scheduled Reports', icon: Calendar },
   { id: 'import', label: 'Data Import / Export', icon: UploadCloud },
   { id: 'security', label: 'Security & Audit', icon: ShieldCheck },
 ];
@@ -1386,6 +1387,9 @@ export default function SettingsPage() {
       case 'notifications':
         return <NotificationPreferencesTab />;
 
+      case 'scheduled-reports':
+        return <ScheduledReportsTab />;
+
       default:
         return null;
     }
@@ -1521,6 +1525,241 @@ export default function SettingsPage() {
           </div>
         )}
       </AnimatePresence>
+    </div>
+  );
+}
+
+function ScheduledReportsTab() {
+  const { activeCompany } = useAuthStore();
+  const [schedules, setSchedules] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [reportType, setReportType] = useState('BALANCE_SHEET');
+  const [frequency, setFrequency] = useState('MONTHLY');
+  const [format, setFormat] = useState('PDF');
+  const [emails, setEmails] = useState('');
+  const [creating, setCreating] = useState(false);
+  const [triggering, setTriggering] = useState(false);
+
+  const loadSchedules = useCallback(async () => {
+    if (!activeCompany?.id) return;
+    setLoading(true);
+    try {
+      const res = await api.get('/scheduled-reports', { headers: { 'x-company-id': String(activeCompany.id) } });
+      setSchedules(res.data || []);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setLoading(false);
+    }
+  }, [activeCompany?.id]);
+
+  useEffect(() => {
+    loadSchedules();
+  }, [loadSchedules]);
+
+  const handleCreate = async (e) => {
+    e.preventDefault();
+    if (!emails.trim()) return;
+    setCreating(true);
+    try {
+      const emailList = emails.split(',').map(em => em.trim()).filter(Boolean);
+      await api.post('/scheduled-reports', {
+        report_type: reportType,
+        frequency,
+        format,
+        emails: emailList
+      }, { headers: { 'x-company-id': String(activeCompany.id) } });
+      setEmails('');
+      loadSchedules();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setCreating(false);
+    }
+  };
+
+  const handleToggle = async (id, enabled) => {
+    try {
+      await api.put(`/scheduled-reports/${id}/toggle`, { enabled }, { headers: { 'x-company-id': String(activeCompany.id) } });
+      loadSchedules();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleDelete = async (id) => {
+    if (!confirm('Are you sure you want to delete this schedule?')) return;
+    try {
+      await api.delete(`/scheduled-reports/${id}`, { headers: { 'x-company-id': String(activeCompany.id) } });
+      loadSchedules();
+    } catch (err) {
+      console.error(err);
+    }
+  };
+
+  const handleTriggerNow = async () => {
+    setTriggering(true);
+    try {
+      await api.post('/scheduled-reports/run', {}, { headers: { 'x-company-id': String(activeCompany.id) } });
+      alert('Pending schedules executed successfully.');
+      loadSchedules();
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setTriggering(false);
+    }
+  };
+
+  return (
+    <div className="space-y-6">
+      <div className="flex justify-between items-center border-b border-slate-100 pb-3">
+        <h2 className="text-[18px] font-black text-slate-900 flex items-center gap-2">
+          <Mail size={20} className="text-emerald-500" /> Scheduled Financial Reports
+        </h2>
+        <button
+          onClick={handleTriggerNow}
+          disabled={triggering}
+          className="bg-emerald-50 text-emerald-700 hover:bg-emerald-100 px-4 py-2 rounded-xl text-[12px] font-bold border border-emerald-200 transition-colors"
+        >
+          {triggering ? 'Processing...' : 'Run Scheduled Workers Now'}
+        </button>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        <div className="card p-6 lg:col-span-2 space-y-4">
+          <h3 className="font-bold text-[14px] text-slate-800">Active Schedules</h3>
+          {loading ? (
+            <div className="skeleton h-32 rounded-xl" />
+          ) : schedules.length === 0 ? (
+            <p className="text-[13px] text-slate-500">No scheduled reports configured yet.</p>
+          ) : (
+            <div className="space-y-4">
+              {schedules.map(s => (
+                <div key={s.id} className="p-4 border border-slate-150 rounded-xl bg-slate-50/50 space-y-3">
+                  <div className="flex justify-between items-start">
+                    <div>
+                      <span className="text-[10px] font-black uppercase bg-emerald-100 text-emerald-800 px-2 py-0.5 rounded border border-emerald-200 mr-2">
+                        {s.report_type.replace(/_/g, ' ')}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase bg-slate-100 text-slate-700 px-2 py-0.5 rounded border border-slate-200">
+                        {s.frequency}
+                      </span>
+                      <span className="text-[10px] font-bold uppercase bg-blue-100 text-blue-800 px-2 py-0.5 rounded border border-blue-200 ml-2">
+                        {s.format}
+                      </span>
+                    </div>
+                    <div className="flex items-center gap-3">
+                      <input
+                        type="checkbox"
+                        checked={s.enabled}
+                        onChange={(e) => handleToggle(s.id, e.target.checked)}
+                        className="rounded border-slate-350 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                      />
+                      <button
+                        onClick={() => handleDelete(s.id)}
+                        className="text-[11px] font-bold text-red-600 hover:underline"
+                      >
+                        Delete
+                      </button>
+                    </div>
+                  </div>
+
+                  <div className="text-[12px] text-slate-600">
+                    <strong>Recipients:</strong> {s.emails.join(', ')}
+                  </div>
+
+                  {s.next_run && (
+                    <div className="text-[11px] text-slate-400">
+                      Next execution: {new Date(s.next_run).toLocaleString()}
+                    </div>
+                  )}
+
+                  {s.history && s.history.length > 0 && (
+                    <div className="border-t border-slate-200/65 pt-2">
+                      <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-450 mb-1">Delivery Logs</p>
+                      <div className="space-y-1 max-h-24 overflow-y-auto">
+                        {s.history.map((h, hi) => (
+                          <div key={hi} className="flex justify-between items-center text-[11px] text-slate-500">
+                            <span>{new Date(h.generated_at).toLocaleString()}</span>
+                            <span className={h.status === 'SUCCESS' ? 'text-emerald-600 font-semibold' : 'text-red-600 font-semibold'}>
+                              {h.status} {h.error ? `(${h.error})` : ''}
+                            </span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="card p-6 space-y-4 h-fit">
+          <h3 className="font-bold text-[14px] text-slate-800">Add New Schedule</h3>
+          <form onSubmit={handleCreate} className="space-y-4">
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Report Type</label>
+              <select
+                value={reportType}
+                onChange={e => setReportType(e.target.value)}
+                className="w-full h-10 px-3 border border-slate-350 rounded-xl text-[13px] bg-white outline-none focus:border-emerald-500"
+              >
+                <option value="BALANCE_SHEET">Balance Sheet</option>
+                <option value="INCOME_STATEMENT">Income Statement</option>
+                <option value="CASH_FLOW">Cash Flow Statement</option>
+                <option value="TRIAL_BALANCE">Trial Balance</option>
+                <option value="EQUITY">Changes in Equity</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Frequency</label>
+              <select
+                value={frequency}
+                onChange={e => setFrequency(e.target.value)}
+                className="w-full h-10 px-3 border border-slate-350 rounded-xl text-[13px] bg-white outline-none focus:border-emerald-500"
+              >
+                <option value="DAILY">Daily Close</option>
+                <option value="WEEKLY">Weekly Close</option>
+                <option value="MONTHLY">Monthly Close</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Format</label>
+              <select
+                value={format}
+                onChange={e => setFormat(e.target.value)}
+                className="w-full h-10 px-3 border border-slate-350 rounded-xl text-[13px] bg-white outline-none focus:border-emerald-500"
+              >
+                <option value="PDF">PDF Document</option>
+                <option value="EXCEL">Excel Spreadsheet</option>
+                <option value="CSV">CSV File</option>
+              </select>
+            </div>
+
+            <div>
+              <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1">Recipients (comma separated)</label>
+              <textarea
+                value={emails}
+                onChange={e => setEmails(e.target.value)}
+                placeholder="cfo@company.com, ceo@company.com"
+                rows={3}
+                className="w-full p-3 border border-slate-350 rounded-xl text-[13px] bg-white outline-none focus:border-emerald-500"
+              />
+            </div>
+
+            <button
+              type="submit"
+              disabled={creating || !emails.trim()}
+              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-[12.5px] font-bold transition-colors cursor-pointer"
+            >
+              {creating ? 'Saving...' : 'Create Scheduled Report'}
+            </button>
+          </form>
+        </div>
+      </div>
     </div>
   );
 }

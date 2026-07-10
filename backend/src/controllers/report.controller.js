@@ -94,12 +94,77 @@ exports.getBalanceSheet = async (req, res) => {
 
 exports.getCashFlow = async (req, res) => {
   const { companyId } = req.params;
-  const { startDate, endDate } = req.query;
+  const { startDate, endDate, method } = req.query;
   try {
-    const cashFlow = await ReportModel.getCashFlow(companyId, startDate, endDate);
+    const cashFlow = await ReportModel.getCashFlow(companyId, startDate, endDate, method);
     res.json(cashFlow);
   } catch(err) {
-     res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getChangesInEquity = async (req, res) => {
+  const { companyId } = req.params;
+  const { startDate, endDate } = req.query;
+  try {
+    const equity = await ReportModel.getStatementOfChangesInEquity(companyId, startDate, endDate);
+    res.json(equity);
+  } catch (err) {
+    console.error('getChangesInEquity error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getComparativeReport = async (req, res) => {
+  const { companyId } = req.params;
+  const { type, period1Id, period2Id } = req.query;
+
+  try {
+    const db = require('../config/db');
+    const p1 = await db('accounting_periods').where({ id: period1Id, company_id: companyId }).first();
+    const p2 = await db('accounting_periods').where({ id: period2Id, company_id: companyId }).first();
+
+    if (!p1 || !p2) {
+      return res.status(400).json({ error: 'Both accounting periods must be specified.' });
+    }
+
+    let report1, report2;
+    if (type === 'income') {
+      report1 = await ReportModel.getIncomeStatement(companyId, p1.start_date, p1.end_date);
+      report2 = await ReportModel.getIncomeStatement(companyId, p2.start_date, p2.end_date);
+    } else {
+      report1 = await ReportModel.getBalanceSheet(companyId, p1.end_date);
+      report2 = await ReportModel.getBalanceSheet(companyId, p2.end_date);
+    }
+
+    const map1 = {};
+    const items1 = type === 'income' ? report1.items : report1.items;
+    items1.forEach(item => { map1[item.code] = item; });
+
+    const items2 = type === 'income' ? report2.items : report2.items;
+    const comparativeItems = items2.map(item2 => {
+      const item1 = map1[item2.code] || { balance: 0 };
+      const diff = parseFloat(item2.balance) - parseFloat(item1.balance);
+      const pct = parseFloat(item1.balance) !== 0 ? (diff / parseFloat(item1.balance)) * 100 : 0;
+      return {
+        code: item2.code,
+        name: item2.name,
+        category: item2.category,
+        period1Balance: parseFloat(item1.balance),
+        period2Balance: parseFloat(item2.balance),
+        variance: diff,
+        variancePercent: pct
+      };
+    });
+
+    res.json({
+      period1: p1,
+      period2: p2,
+      items: comparativeItems
+    });
+  } catch (err) {
+    console.error('getComparativeReport error:', err);
+    res.status(500).json({ error: err.message });
   }
 };
 

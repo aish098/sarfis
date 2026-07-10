@@ -601,23 +601,41 @@ async function getBudgetVsActual(companyId, selectedYear = null, selectedMonth =
   }
 
   // Map budgets to actuals
-  const mappedBudgets = budgets.map((b) => {
+  const mappedBudgets = [];
+  for (const b of budgets) {
     const actual = b.budget_type === "sector"
       ? (sectorActualsMap[`${b.sector_id}-${b.period_year}-${b.period_month}`] || 0)
       : (actualsMap[`${b.account_id}-${b.period_year}-${b.period_month}`] || 0);
+
+    let committed = 0;
+    try {
+      const commRes = await db('budget_control_transactions as t')
+        .join('budget_control_lines as l', 't.budget_control_line_id', 'l.id')
+        .where('l.account_id', b.account_id)
+        .andWhere('t.status', 'COMMITTED')
+        .sum('t.amount as total')
+        .first();
+      committed = parseFloat(commRes?.total || 0);
+    } catch (e) {
+      // Fallback if table doesn't exist
+    }
+
     const budgetAmt = parseFloat(b.budget_amount || 0);
     const variance = parseFloat((actual - budgetAmt).toFixed(2));
     const variancePct = growthPercent(budgetAmt, actual);
 
-    return {
+    mappedBudgets.push({
       ...b,
       actual_amount: parseFloat(actual.toFixed(2)),
+      committed_amount: parseFloat(committed.toFixed(2)),
+      remaining_amount: parseFloat((budgetAmt - actual - committed).toFixed(2)),
+      available_amount: parseFloat((budgetAmt - actual - committed).toFixed(2)),
       budget_amount: budgetAmt,
       variance,
       variance_pct: variancePct,
       status: variance >= 0 ? "favorable" : "unfavorable"
-    };
-  });
+    });
+  }
 
   // Calculate unique budgeted accounts/sectors for all_periods mode
   const budgetedAccountIds = [...new Set(budgets.filter(b => b.budget_type === 'account' && b.account_id).map(b => b.account_id))];
@@ -812,58 +830,85 @@ async function getFinancialRatios(companyId, period = null) {
     }
   }
 
-  const rows = await getMonthlyAccountTotals(companyId, year, month, year, month);
+  const endDate = new Date(year, month, 0).toISOString().split('T')[0];
+  const startDate = `${year}-${String(month).padStart(2, '0')}-01`;
 
-  let revenue = 0;
-  let expenses = 0;
-  let assets = 0;
-  let liabilities = 0;
-  let equity = 0;
+  const ReportModel = require('../models/report.model');
+  const bs = await ReportModel.getBalanceSheet(companyId, endDate);
+  const isStatement = await ReportModel.getIncomeStatement(companyId, startDate, endDate);
+
+  const revenue = parseFloat(isStatement.revenue || 0);
+  const expenses = parseFloat(isStatement.expenses || 0);
+  const netIncome = parseFloat(isStatement.netProfit || 0);
+
+  const assets = parseFloat(bs.totalAssets || 0);
+  const liabilities = parseFloat(bs.totalLiabilities || 0);
+  const equity = parseFloat(bs.totalEquity || 0);
+
   let inventory = 0;
+  let receivables = 0;
+  let cash = 0;
   let currentAssets = 0;
   let currentLiabilities = 0;
+  let cogs = 0;
+  let interestExpense = 0;
+  let taxExpense = 0;
+  let payables = 0;
 
-  for (const r of rows) {
-    const net = parseFloat(r.total_credit || 0) - parseFloat(r.total_debit || 0);
-    const type = String(r.account_type || "").toLowerCase();
-    const accountName = String(r.account_name || "").toLowerCase();
+  // Extract from Balance Sheet items
+  (bs.items || []).forEach(item => {
+    const nameLower = item.name.toLowerCase();
+    const balance = parseFloat(item.balance || 0);
 
-    if (type === "revenue" || type === "income") revenue += net;
-    if (type === "expense" || type === "cost") expenses += Math.abs(net);
-    if (type === "asset") assets += net;
-    if (type === "liability") liabilities += Math.abs(net);
-    if (type === "equity") equity += net;
+    if (item.category === 'Asset') {
+      if (nameLower.includes('inventory') || nameLower.includes('stock')) inventory += balance;
+      if (nameLower.includes('receivable')) receivables += balance;
+      if (nameLower.includes('cash') || nameLower.includes('bank')) cash += balance;
 
-    if (type === "asset") {
-      if (accountName.includes("inventory") || accountName.includes("stock")) inventory += Math.abs(net);
       if (
-        accountName.includes("cash") ||
-        accountName.includes("bank") ||
-        accountName.includes("receivable") ||
-        accountName.includes("inventory") ||
-        accountName.includes("current")
+        nameLower.includes('cash') ||
+        nameLower.includes('bank') ||
+        nameLower.includes('receivable') ||
+        nameLower.includes('inventory') ||
+        nameLower.includes('current')
       ) {
-        currentAssets += Math.abs(net);
+        currentAssets += balance;
       }
     }
 
-    if (type === "liability") {
+    if (item.category === 'Liability') {
+      if (nameLower.includes('payable')) payables += balance;
+
       if (
-        accountName.includes("payable") ||
-        accountName.includes("accrued") ||
-        accountName.includes("short") ||
-        accountName.includes("current")
+        nameLower.includes('payable') ||
+        nameLower.includes('accrued') ||
+        nameLower.includes('short') ||
+        nameLower.includes('current')
       ) {
-        currentLiabilities += Math.abs(net);
+        currentLiabilities += balance;
       }
     }
-  }
+  });
 
-  // Fallback if account naming isn't standardized
-  if (currentAssets === 0) currentAssets = Math.abs(assets);
-  if (currentLiabilities === 0) currentLiabilities = Math.abs(liabilities);
+  // Extract from Income Statement items
+  (isStatement.items || []).forEach(item => {
+    const nameLower = item.name.toLowerCase();
+    const balance = parseFloat(item.balance || 0);
 
-  const netIncome = revenue - expenses;
+    if (nameLower.includes('cost of sales') || nameLower.includes('cogs') || nameLower.includes('cost of goods sold')) {
+      cogs += balance;
+    }
+    if (nameLower.includes('interest')) {
+      interestExpense += balance;
+    }
+    if (nameLower.includes('tax')) {
+      taxExpense += balance;
+    }
+  });
+
+  if (currentAssets === 0) currentAssets = assets;
+  if (currentLiabilities === 0) currentLiabilities = liabilities;
+
   const quickAssets = Math.max(currentAssets - inventory, 0);
 
   return {
@@ -873,11 +918,28 @@ async function getFinancialRatios(companyId, period = null) {
     inventory: parseFloat(inventory.toFixed(2)),
     currentAssets: parseFloat(currentAssets.toFixed(2)),
     currentLiabilities: parseFloat(currentLiabilities.toFixed(2)),
+    
+    // Liquidity
     currentRatio: currentLiabilities > 0 ? parseFloat((currentAssets / currentLiabilities).toFixed(2)) : 0,
     quickRatio: currentLiabilities > 0 ? parseFloat((quickAssets / currentLiabilities).toFixed(2)) : 0,
+    cashRatio: currentLiabilities > 0 ? parseFloat((cash / currentLiabilities).toFixed(2)) : 0,
+
+    // Profitability
+    grossMargin: revenue > 0 ? parseFloat(((revenue - cogs) / revenue * 100).toFixed(2)) : 0,
+    operatingMargin: revenue > 0 ? parseFloat(((revenue - expenses + interestExpense + taxExpense) / revenue * 100).toFixed(2)) : 0,
     profitMargin: revenue !== 0 ? parseFloat(((netIncome / revenue) * 100).toFixed(2)) : 0,
+    roa: assets !== 0 ? parseFloat(((netIncome / Math.abs(assets)) * 100).toFixed(2)) : 0,
     roe: equity !== 0 ? parseFloat(((netIncome / equity) * 100).toFixed(2)) : 0,
-    assetTurnover: assets !== 0 ? parseFloat((revenue / Math.abs(assets)).toFixed(2)) : 0,
+
+    // Efficiency
+    inventoryTurnover: inventory > 0 ? parseFloat((cogs / inventory).toFixed(2)) : 0,
+    receivableDays: revenue > 0 ? parseFloat(((receivables / revenue) * 365).toFixed(1)) : 0,
+    payableDays: cogs > 0 ? parseFloat(((payables / cogs) * 365).toFixed(1)) : 0,
+
+    // Leverage
+    debtRatio: assets !== 0 ? parseFloat((liabilities / Math.abs(assets) * 100).toFixed(2)) : 0,
+    debtToEquity: equity !== 0 ? parseFloat((liabilities / equity * 100).toFixed(2)) : 0,
+    interestCoverage: interestExpense > 0 ? parseFloat(((netIncome + interestExpense + taxExpense) / interestExpense).toFixed(2)) : 0
   };
 }
 

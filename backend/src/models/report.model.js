@@ -30,6 +30,20 @@ class ReportModel {
     return null;
   }
 
+  static async getAccountBalanceAsOf(companyId, accountId, asOfDate, trx = db) {
+    const res = await trx('journal_lines as l')
+      .join('journal_entries as je', 'l.entry_id', 'je.id')
+      .sum('l.debit as total_debit')
+      .sum('l.credit as total_credit')
+      .where('je.entry_date', '<=', asOfDate)
+      .andWhere('l.account_id', accountId)
+      .first();
+
+    const dr = parseFloat(res?.total_debit || 0);
+    const cr = parseFloat(res?.total_credit || 0);
+    return { debit: dr, credit: cr };
+  }
+
   static async getTrialBalance(companyId, startDate, endDate, trx = db) {
     const targetDate = endDate || startDate;
     if (targetDate) {
@@ -91,7 +105,6 @@ class ReportModel {
       .orderBy('a.category', 'desc')
       .orderBy('a.code', 'asc');
 
-    // Replicate model parsing (net profit formatting if required)
     let revenue = 0, expenses = 0;
     const items = rows.map(r => {
       const dr = parseFloat(r.total_debit || 0);
@@ -170,7 +183,7 @@ class ReportModel {
     };
   }
 
-  static async getCashFlow(companyId, startDate, endDate, trx = db) {
+  static async getCashFlow(companyId, startDate, endDate, method = 'indirect', trx = db) {
     const targetDate = endDate || startDate;
     if (targetDate) {
       const snapshot = await this.getClosedPeriodSnapshot(companyId, targetDate, trx);
@@ -179,10 +192,18 @@ class ReportModel {
       }
     }
 
+    if (method === 'direct') {
+      return this.getCashFlowDirect(companyId, startDate, endDate, trx);
+    }
+    return this.getCashFlowIndirect(companyId, startDate, endDate, trx);
+  }
+
+  static async getCashFlowDirect(companyId, startDate, endDate, trx = db) {
+    // 1. Fetch cash/bank journals
     const cashEntries = await trx('journal_lines as l')
       .join('accounts as a', 'l.account_id', 'a.id')
       .join('journal_entries as je', 'l.entry_id', 'je.id')
-      .select('l.entry_id', 'l.debit', 'l.credit', 'l.account_id', 'a.name as cash_account_name')
+      .select('l.entry_id', 'l.debit', 'l.credit', 'a.name as cash_account_name')
       .where('a.company_id', companyId)
       .andWhere(function() {
         this.where(trx.raw('LOWER(a.name)'), 'like', '%cash%')
@@ -195,36 +216,188 @@ class ReportModel {
 
     const entryIds = cashEntries.map(e => e.entry_id);
 
+    // 2. Fetch counterparts
     const counterparts = await trx('journal_lines as l')
       .join('accounts as a', 'l.account_id', 'a.id')
-      .select('l.entry_id', 'l.debit', 'l.credit', 'a.category as type', 'a.name')
+      .select('l.entry_id', 'l.debit', 'l.credit', 'a.category', 'a.name')
       .whereIn('l.entry_id', entryIds)
       .andWhereNot(function() {
         this.where(trx.raw('LOWER(a.name)'), 'like', '%cash%')
             .orWhere(trx.raw('LOWER(a.name)'), 'like', '%bank%');
       });
 
-    const results = [];
-    for (let cashLine of cashEntries) {
+    let operatingReceipts = 0;
+    let operatingPayments = 0;
+    let investingFlow = 0;
+    let financingFlow = 0;
+
+    for (const cashLine of cashEntries) {
       const entryCounterparts = counterparts.filter(c => c.entry_id === cashLine.entry_id);
-      const netCash = parseFloat(cashLine.debit || 0) - parseFloat(cashLine.credit || 0);
+      const magnitude = parseFloat(cashLine.debit || 0) - parseFloat(cashLine.credit || 0);
 
       if (entryCounterparts.length > 0) {
-        results.push({
-          type: entryCounterparts[0].type,
-          name: entryCounterparts[0].name,
-          magnitude: netCash
-        });
+        const c = entryCounterparts[0];
+        const category = c.category;
+        const nameLower = c.name.toLowerCase();
+
+        if (category === 'Revenue' || category === 'Income' || nameLower.includes('receivable')) {
+          operatingReceipts += magnitude;
+        } else if (category === 'Expense' || nameLower.includes('payable') || nameLower.includes('payroll')) {
+          operatingPayments += magnitude;
+        } else if (nameLower.includes('asset') || nameLower.includes('equipment') || nameLower.includes('property')) {
+          investingFlow += magnitude;
+        } else if (category === 'Equity' || nameLower.includes('loan') || nameLower.includes('borrowing')) {
+          financingFlow += magnitude;
+        } else {
+          operatingReceipts += magnitude; // Fallback
+        }
       } else {
-        results.push({
-          type: 'Transfer',
-          name: cashLine.cash_account_name,
-          magnitude: netCash
-        });
+        operatingReceipts += magnitude;
       }
     }
 
-    return results;
+    return [
+      { category: 'Operating Cash Receipts', amount: operatingReceipts },
+      { category: 'Operating Cash Payments', amount: operatingPayments },
+      { category: 'Investing Activities', amount: investingFlow },
+      { category: 'Financing Activities', amount: financingFlow },
+      { category: 'Net Increase in Cash', amount: operatingReceipts + operatingPayments + investingFlow + financingFlow }
+    ];
+  }
+
+  static async getCashFlowIndirect(companyId, startDate, endDate, trx = db) {
+    const incomeStatement = await this.getIncomeStatement(companyId, startDate, endDate, trx);
+    const netProfit = incomeStatement.netProfit || 0;
+
+    // Get non-cash depreciation sum
+    const depreciationRes = await trx('journal_lines as l')
+      .join('accounts as a', 'l.account_id', 'a.id')
+      .join('journal_entries as je', 'l.entry_id', 'je.id')
+      .sum('l.debit as total_debit')
+      .where('je.entry_date', '>=', startDate)
+      .andWhere('je.entry_date', '<=', endDate)
+      .andWhere('a.company_id', companyId)
+      .andWhereILike('a.name', '%depreciation%')
+      .first();
+    const depreciation = parseFloat(depreciationRes?.total_debit || 0);
+
+    // Prior Date
+    const priorDateObj = new Date(startDate);
+    priorDateObj.setDate(priorDateObj.getDate() - 1);
+    const priorDate = priorDateObj.toISOString().split('T')[0];
+
+    // Compute working capital differences
+    const accounts = await trx('accounts').where({ company_id: companyId });
+
+    let arChange = 0;
+    let apChange = 0;
+    let invChange = 0;
+
+    for (const acc of accounts) {
+      const priorBal = await this.getAccountBalanceAsOf(companyId, acc.id, priorDate, trx);
+      const closeBal = await this.getAccountBalanceAsOf(companyId, acc.id, endDate, trx);
+
+      const priorAmt = acc.normal_balance === 'Debit' ? priorBal.debit - priorBal.credit : priorBal.credit - priorBal.debit;
+      const closeAmt = acc.normal_balance === 'Debit' ? closeBal.debit - closeBal.credit : closeBal.credit - closeBal.debit;
+      const diff = closeAmt - priorAmt;
+
+      const nameLower = acc.name.toLowerCase();
+      if (acc.is_control || nameLower.includes('receivable')) {
+        arChange += diff;
+      } else if (nameLower.includes('payable')) {
+        apChange += diff;
+      } else if (nameLower.includes('inventory') || nameLower.includes('stock')) {
+        invChange += diff;
+      }
+    }
+
+    // Operating Flow = Profit + Depreciation - Increase in AR - Increase in Inventory + Increase in AP
+    const operatingFlow = netProfit + depreciation - arChange - invChange + apChange;
+
+    return [
+      { category: 'Net Income (Profit)', amount: netProfit },
+      { category: 'Adjustments for Non-Cash Items (Depreciation)', amount: depreciation },
+      { category: 'Decrease (Increase) in Accounts Receivable', amount: -arChange },
+      { category: 'Decrease (Increase) in Inventory', amount: -invChange },
+      { category: 'Increase (Decrease) in Accounts Payable', amount: apChange },
+      { category: 'Net Cash from Operating Activities', amount: operatingFlow }
+    ];
+  }
+
+  static async getStatementOfChangesInEquity(companyId, startDate, endDate, trx = db) {
+    const priorDateObj = new Date(startDate);
+    priorDateObj.setDate(priorDateObj.getDate() - 1);
+    const priorDate = priorDateObj.toISOString().split('T')[0];
+
+    const equityAccounts = await trx('accounts')
+      .where({ company_id: companyId, category: 'Equity' });
+
+    const rows = [];
+    let totalOpening = 0;
+    let totalAdditions = 0;
+    let totalReductions = 0;
+    let totalClosing = 0;
+
+    const incomeStatement = await this.getIncomeStatement(companyId, startDate, endDate, trx);
+    const netProfit = incomeStatement.netProfit || 0;
+
+    for (const acc of equityAccounts) {
+      const priorBal = await this.getAccountBalanceAsOf(companyId, acc.id, priorDate, trx);
+      const closeBal = await this.getAccountBalanceAsOf(companyId, acc.id, endDate, trx);
+
+      const opening = priorBal.credit - priorBal.debit;
+      const closing = closeBal.credit - closeBal.debit;
+
+      const periodTrans = await trx('journal_lines as l')
+        .join('journal_entries as je', 'l.entry_id', 'je.id')
+        .select('l.debit', 'l.credit', 'je.description')
+        .where('je.entry_date', '>=', startDate)
+        .andWhere('je.entry_date', '<=', endDate)
+        .andWhere('l.account_id', acc.id);
+
+      let additions = 0;
+      let reductions = 0;
+
+      if (acc.name.toLowerCase().includes('retained earnings')) {
+        if (netProfit > 0) additions += netProfit;
+        else reductions += Math.abs(netProfit);
+      }
+
+      for (const line of periodTrans) {
+        if (line.description && line.description.includes('Year-End Closing')) continue;
+
+        const credit = parseFloat(line.credit || 0);
+        const debit = parseFloat(line.debit || 0);
+
+        if (credit > debit) additions += (credit - debit);
+        else reductions += (debit - credit);
+      }
+
+      totalOpening += opening;
+      totalAdditions += additions;
+      totalReductions += reductions;
+      totalClosing += closing;
+
+      rows.push({
+        accountId: acc.id,
+        code: acc.code,
+        name: acc.name,
+        opening,
+        additions,
+        reductions,
+        closing
+      });
+    }
+
+    return {
+      rows,
+      summary: {
+        opening: totalOpening,
+        additions: totalAdditions,
+        reductions: totalReductions,
+        closing: totalClosing
+      }
+    };
   }
 
   static async getTemporaryAccountsBalances(companyId, endDate, trx = db) {
