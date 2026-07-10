@@ -126,8 +126,9 @@ exports.getApprovalHistory = async (req, res) => {
   try {
     const history = await db('workflow_history as wh')
       .join('workflow_instances as wi', 'wh.workflow_instance_id', 'wi.id')
+      .join('workflow_definitions as wd', 'wi.workflow_definition_id', 'wd.id')
       .leftJoin('users as u', 'wh.user_id', 'u.id')
-      .select('wh.*', 'u.name as actioned_name', 'wi.document_id', 'wi.document_type_code')
+      .select('wh.*', 'u.name as actioned_name', 'wi.document_id', 'wd.document_type_code')
       .where('wi.company_id', companyId)
       .orderBy('wh.created_at', 'desc')
       .limit(100);
