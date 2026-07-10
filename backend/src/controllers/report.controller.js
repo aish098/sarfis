@@ -60,7 +60,8 @@ exports.getBalanceSheet = async (req, res) => {
     };
 
     const FinancialNotesService = require('../services/financial_notes.service');
-    const enrichedBalanceSheet = await Promise.all(balanceSheet.map(async (acc) => {
+    const rawItems = Array.isArray(balanceSheet) ? balanceSheet : (balanceSheet.items || []);
+    const enrichedItems = await Promise.all(rawItems.map(async (acc) => {
       const reportGroup = getReportGroup(acc.code, acc.name);
       const template = reportGroup ? templateMap[reportGroup] : null;
       if (template) {
@@ -85,7 +86,14 @@ exports.getBalanceSheet = async (req, res) => {
       return acc;
     }));
 
-    res.json(enrichedBalanceSheet);
+    if (Array.isArray(balanceSheet)) {
+      res.json(enrichedItems);
+    } else {
+      res.json({
+        ...balanceSheet,
+        items: enrichedItems
+      });
+    }
   } catch (err) {
     console.error('getBalanceSheet error:', err);
     res.status(500).json({ error: err.message });
