@@ -127,19 +127,28 @@ export default function ApprovalsInboxPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
-      {/* Title */}
-      <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-            <CheckSquare className="text-emerald-600" size={24} /> Approvals & Workflows Inbox
-          </h1>
-          <p className="text-slate-500 text-sm font-semibold">Review, approve, and track workflows, document states, and delegations.</p>
+      {/* Top Banner Toolbar */}
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
+            <CheckSquare size={18} className="text-white fill-white/20" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Approvals & Workflows</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Control Center</span>
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 flex items-center mt-0.5">
+              Review, approve, and track workflows, document states, and delegations.
+            </p>
+          </div>
         </div>
         
-        {/* Navigation / Refresh */}
-        <button onClick={loadApprovals} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl border border-slate-100 shadow-sm transition-all">
-          <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
-        </button>
+        <div className="flex items-center gap-4 mt-3 md:mt-0">
+          <button onClick={loadApprovals} className="p-2 text-slate-400 hover:text-slate-600 hover:bg-slate-50 rounded-xl border border-slate-100 bg-white shadow-sm transition-all cursor-pointer">
+            <RefreshCw size={16} className={loading ? 'animate-spin' : ''} />
+          </button>
+        </div>
       </div>
 
       {/* Stats Cards */}
@@ -163,20 +172,20 @@ export default function ApprovalsInboxPage() {
       </div>
 
       {/* Tabs and Search */}
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm">
-        <div className="flex gap-2">
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
+        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-xl w-fit">
           <button 
             onClick={() => setActiveTab('pending')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeTab === 'pending' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
+            className={`px-4 py-2 text-[12.5px] font-bold rounded-lg transition-all ${
+              activeTab === 'pending' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             Pending Review ({pendingApprovals.length})
           </button>
           <button 
             onClick={() => setActiveTab('history')}
-            className={`px-4 py-2 rounded-xl text-xs font-bold transition-all ${
-              activeTab === 'history' ? 'bg-emerald-600 text-white shadow-md' : 'text-slate-500 hover:bg-slate-50'
+            className={`px-4 py-2 text-[12.5px] font-bold rounded-lg transition-all ${
+              activeTab === 'history' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             Approval History
@@ -184,13 +193,14 @@ export default function ApprovalsInboxPage() {
         </div>
 
         <div className="relative w-full sm:w-72">
-          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <Search size={14} className="absolute left-[14px] top-1/2 -translate-y-1/2 text-slate-400" />
           <input 
             type="text"
             placeholder="Search approvals..."
             value={search}
             onChange={e => setSearch(e.target.value)}
-            className="w-full pl-9 pr-4 py-2 rounded-xl border border-slate-200 text-xs font-semibold outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500/20"
+            className="input-enterprise text-[13px] w-full"
+            style={{ paddingLeft: '44px' }}
           />
         </div>
       </div>
