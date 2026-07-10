@@ -294,3 +294,55 @@ exports.addVoucherComment = async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 };
+
+const PeriodCloseService = require('../services/period_close.service');
+
+exports.getPeriodCloseChecklist = async (req, res) => {
+  try {
+    const { companyId, id } = req.params;
+    const checklist = await PeriodCloseService.getChecklist(companyId, id);
+    res.json(checklist);
+  } catch (err) {
+    console.error('Checklist compilation error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.closePeriod = async (req, res) => {
+  try {
+    const { companyId, id } = req.params;
+    const userId = req.user.id;
+    const closedPeriod = await PeriodCloseService.closePeriod(companyId, id, userId);
+    res.json({ message: 'Period closed and locked successfully', period: closedPeriod });
+  } catch (err) {
+    console.error('Period Close Error:', err);
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.reopenPeriod = async (req, res) => {
+  try {
+    const { companyId, id } = req.params;
+    const { reason } = req.body;
+    const userId = req.user.id;
+    const openedPeriod = await PeriodCloseService.reopenPeriod(companyId, id, userId, reason);
+    res.json({ message: 'Period reopened successfully', period: openedPeriod });
+  } catch (err) {
+    console.error('Period Reopen Error:', err);
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.getPeriodHistory = async (req, res) => {
+  try {
+    const { companyId, id } = req.params;
+    const history = await db('period_close_history as pch')
+      .join('users as u', 'pch.performed_by', 'u.id')
+      .select('pch.*', 'u.name as performed_name')
+      .where({ 'pch.company_id': companyId, 'pch.period_id': id })
+      .orderBy('pch.performed_at', 'desc');
+    res.json(history);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

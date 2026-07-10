@@ -4,6 +4,7 @@ const AccountModel = require('../models/account.model');
 const inventoryModel = require('../models/inventory.model');
 const VendorModel = require('../models/vendor.model');
 const distModel = require('../models/distribution.model');
+const PeriodValidationService = require('./period_validation.service');
 
 class PostingEngineService {
   /**
@@ -49,19 +50,7 @@ class PostingEngineService {
    * Asserts whether a transaction date falls into a locked/closed accounting period
    */
   static async assertPeriodOpen(companyId, date, trx) {
-    const checkDate = date ? new Date(date) : new Date();
-    
-    const query = db('accounting_periods')
-      .where('company_id', companyId)
-      .andWhere('start_date', '<=', checkDate)
-      .andWhere('end_date', '>=', checkDate);
-      
-    if (trx) query.transacting(trx);
-    const period = await query.first();
-
-    if (period && period.status === 'CLOSED') {
-      throw new Error(`Posting Rejected: Accounting period '${period.period_name}' is CLOSED. Transactions are locked.`);
-    }
+    await PeriodValidationService.validateDate(companyId, date, trx);
   }
 
   /**

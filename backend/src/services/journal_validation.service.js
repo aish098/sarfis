@@ -48,21 +48,7 @@ class JournalValidationService {
   }
 
   static async validatePeriod(companyId, entryDate, conn) {
-    if (!entryDate) throw new Error('Transaction date is required.');
-    const targetDate = new Date(entryDate).toISOString().split('T')[0];
-
-    const period = await conn('accounting_periods')
-      .where({ company_id: companyId })
-      .andWhere('start_date', '<=', targetDate)
-      .andWhere('end_date', '>=', targetDate)
-      .first();
-
-    if (!period) {
-      throw new Error(`No financial accounting period found for the date ${targetDate}.`);
-    }
-    if (period.status !== 'OPEN') {
-      throw new Error(`Accounting period '${period.period_name}' is CLOSED. Posting is locked.`);
-    }
+    await PeriodValidationService.validateDate(companyId, entryDate, conn);
   }
 
   static async validateReference(companyId, reference, conn) {

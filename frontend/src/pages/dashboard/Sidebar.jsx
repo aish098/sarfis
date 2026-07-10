@@ -23,6 +23,7 @@ const NAV_SECTIONS = [
       { to: '/dashboard/vendors', icon: Building2, label: 'Vendor Directory', permission: 'vendor.manage' },
       { to: '/dashboard/journal', icon: Activity, label: 'Manual Journals', permission: 'journal.view' },
       { to: '/dashboard/ledger', icon: BookMarked, label: 'General Ledger', permission: 'ledger.view' },
+      { to: '/dashboard/finance/close-wizard', icon: Target, label: 'Month-End Close', permission: 'period.manage' },
     ],
   },
   {
