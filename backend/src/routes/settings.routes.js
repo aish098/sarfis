@@ -31,4 +31,148 @@ router.put('/:companyId', companyGuard, requirePermission('settings.manage'), as
   }
 });
 
+// GET SMTP Mail Config
+router.get('/:companyId/mail-config', companyGuard, async (req, res) => {
+  try {
+    const db = require('../config/db');
+    const { companyId } = req.params;
+    const config = await db('mail_configurations').where({ company_id: companyId }).first();
+    
+    if (config) {
+      if (config.password) config.password = '********';
+      res.json(config);
+    } else {
+      res.json({ provider: 'MOCK', encryption: 'TLS', status: 'ACTIVE' });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// SAVE SMTP Mail Config
+router.put('/:companyId/mail-config', companyGuard, requirePermission('settings.manage'), async (req, res) => {
+  try {
+    const db = require('../config/db');
+    const { encrypt } = require('../utils/crypto');
+    const { companyId } = req.params;
+    const { provider, host, port, username, password, from_name, from_email, encryption, status } = req.body;
+
+    let finalPassword = password;
+    if (password === '********') {
+      const existing = await db('mail_configurations').where({ company_id: companyId }).first();
+      finalPassword = existing ? existing.password : '';
+    } else if (password) {
+      finalPassword = encrypt(password);
+    }
+
+    const existing = await db('mail_configurations').where({ company_id: companyId }).first();
+    if (existing) {
+      await db('mail_configurations')
+        .where({ company_id: companyId })
+        .update({
+          provider: provider || 'MOCK',
+          host: host || null,
+          port: port ? parseInt(port) : null,
+          username: username || null,
+          password: finalPassword || null,
+          from_name: from_name || null,
+          from_email: from_email || null,
+          encryption: encryption || 'TLS',
+          status: status || 'ACTIVE',
+          updated_at: db.fn.now()
+        });
+    } else {
+      await db('mail_configurations').insert({
+        company_id: companyId,
+        provider: provider || 'MOCK',
+        host: host || null,
+        port: port ? parseInt(port) : null,
+        username: username || null,
+        password: finalPassword || null,
+        from_name: from_name || null,
+        from_email: from_email || null,
+        encryption: encryption || 'TLS',
+        status: status || 'ACTIVE'
+      });
+    }
+
+    res.json({ message: 'Mail server configuration saved successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// TEST SMTP CONNECTION
+router.post('/:companyId/mail-config/test', companyGuard, requirePermission('settings.manage'), async (req, res) => {
+  try {
+    const db = require('../config/db');
+    const { decrypt } = require('../utils/crypto');
+    const SmtpProvider = require('../services/mail/providers/smtp.provider');
+    const { companyId } = req.params;
+    const { host, port, username, password, from_name, from_email, encryption, testEmail } = req.body;
+
+    let finalPassword = password;
+    if (password === '********') {
+      const existing = await db('mail_configurations').where({ company_id: companyId }).first();
+      finalPassword = existing ? decrypt(existing.password) : '';
+    }
+
+    const tester = new SmtpProvider({
+      host,
+      port: parseInt(port || '587'),
+      username,
+      password: finalPassword,
+      from_name,
+      from_email,
+      encryption
+    });
+
+    const dest = testEmail || req.user?.email || username;
+    const outcome = await tester.send({
+      to: dest,
+      subject: 'SARFIS Email Integration: Test Connection Success',
+      html: `<h3>Test Connection Succeeded</h3>
+             <p>This email confirms that your company SMTP mail server is correctly configured in SARFIS.</p>
+             <p>Timestamp: ${new Date().toISOString()}</p>`
+    });
+
+    if (outcome.success) {
+      res.json({ success: true, message: `SMTP test connection succeeded! Email sent to ${dest}.` });
+    } else {
+      res.status(400).json({ error: outcome.errorMessage });
+    }
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// GET MAIL DELIVERY LOGS & METRICS
+router.get('/:companyId/mail-logs', companyGuard, async (req, res) => {
+  try {
+    const db = require('../config/db');
+    const { companyId } = req.params;
+
+    const logs = await db('email_delivery_logs')
+      .where({ company_id: companyId })
+      .orderBy('id', 'desc')
+      .limit(50);
+
+    const stats = await db('email_delivery_logs')
+      .where({ company_id: companyId })
+      .select('status')
+      .count('id as count')
+      .groupBy('status');
+
+    const queueStats = await db('notification_queue')
+      .where({ company_id: companyId })
+      .select('status')
+      .count('id as count')
+      .groupBy('status');
+
+    res.json({ logs, stats, queueStats });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

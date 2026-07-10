@@ -254,12 +254,13 @@ class NotificationService {
           });
 
         try {
-          // Simulate mailer - will trigger simulated fail if recipient is 'fail@domain.com'
-          if (item.recipient_email === 'fail@domain.com') {
-            throw new Error('SMTP connection rejected: Timeout');
-          }
-
-          console.log(`[EMAIL CENTER] Dispatched SMTP to ${item.recipient_email} | Subject: "${item.subject}"`);
+          const MailProvider = require('./mail/mail.provider');
+          await MailProvider.send({
+            companyId: item.company_id,
+            to: item.recipient_email,
+            subject: item.subject,
+            html: item.body
+          });
           
           await db('notification_queue')
             .where({ id: item.id })
