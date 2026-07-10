@@ -375,7 +375,7 @@ exports.seedTestApproval = async (req, res) => {
             stage_sequence: 1,
             name: 'Manager Review Step',
             required_role: userRole || 'Admin',
-            required_permission: 'approval.approve',
+            required_permission: null,
             timeout_hours: 24,
             approval_mode: 'SEQUENTIAL'
           })
@@ -386,7 +386,7 @@ exports.seedTestApproval = async (req, res) => {
           .where({ id: stage.id })
           .update({
             required_role: userRole,
-            required_permission: 'approval.approve'
+            required_permission: null
           });
       }
 
