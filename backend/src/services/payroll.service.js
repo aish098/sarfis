@@ -4,7 +4,7 @@ const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 const PostingEngineService = require('./posting_engine.service');
 const JournalService = require('./journal.service');
 const NotificationService = require('./notification.service');
-const PDFDocument = require('d:/sarfis/backend/node_modules/pdfkit');
+const PDFDocument = require('pdfkit');
 
 class PayrollService {
   /**
@@ -538,7 +538,7 @@ class PayrollService {
   }
 
   static getInternalToken() {
-    const jwt = require('d:/sarfis/backend/node_modules/jsonwebtoken');
+    const jwt = require('jsonwebtoken');
     return jwt.sign(
       { id: 1, email: 'admin@sarfis.com', role: 'Super Admin' },
       JWT_SECRET,
