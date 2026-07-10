@@ -7,6 +7,9 @@ router.use(authMiddleware);
 // Pending approvals inbox listing
 router.get('/pending', companyGuard, requirePermission('approval.view'), workflowCtrl.getPendingApprovals);
 
+// Workflow stats
+router.get('/stats', companyGuard, requirePermission('approval.view'), workflowCtrl.getWorkflowStats);
+
 // Reviewing step action
 router.post('/review/:instanceId', companyGuard, requirePermission('approval.approve'), workflowCtrl.reviewApprovalStage);
 

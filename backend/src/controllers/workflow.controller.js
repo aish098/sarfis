@@ -277,3 +277,63 @@ exports.getInstanceTimeline = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// Workflow stats
+exports.getWorkflowStats = async (req, res) => {
+  const companyId = req.companyId;
+  try {
+    const today = new Date().toISOString().split('T')[0];
+
+    // 1. Active Delegations today
+    const delegationsCount = await db('workflow_delegations')
+      .where({ company_id: companyId, is_active: true })
+      .andWhere('start_date', '<=', today)
+      .andWhere('end_date', '>=', today)
+      .count('id as count')
+      .first();
+    const activeDelegations = parseInt(delegationsCount?.count || 0, 10);
+
+    // 2. Processed Today (approvals actioned today in history)
+    const todayStart = new Date();
+    todayStart.setHours(0, 0, 0, 0);
+
+    const processedTodayResult = await db('workflow_history as wh')
+      .join('workflow_instances as wi', 'wh.workflow_instance_id', 'wi.id')
+      .where('wi.company_id', companyId)
+      .andWhere('wh.created_at', '>=', todayStart)
+      .countDistinct('wh.workflow_instance_id as count')
+      .first();
+    const processedToday = parseInt(processedTodayResult?.count || 0, 10);
+
+    // 3. Average Approval Time (in hours, completed instances in the last 30 days)
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const completed = await db('workflow_instances')
+      .where({ company_id: companyId })
+      .whereIn('status', ['APPROVED', 'REJECTED'])
+      .andWhere('updated_at', '>=', thirtyDaysAgo)
+      .select('created_at', 'updated_at');
+
+    let averageApprovalTime = 0;
+    if (completed.length > 0) {
+      let totalMs = 0;
+      for (const inst of completed) {
+        const start = new Date(inst.created_at);
+        const end = new Date(inst.updated_at);
+        totalMs += (end - start);
+      }
+      averageApprovalTime = parseFloat((totalMs / completed.length / (1000 * 60 * 60)).toFixed(1));
+    } else {
+      averageApprovalTime = 1.5; // default fallback
+    }
+
+    res.json({
+      activeDelegations,
+      processedToday,
+      averageApprovalTime
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

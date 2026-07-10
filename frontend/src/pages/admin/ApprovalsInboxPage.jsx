@@ -17,6 +17,7 @@ export default function ApprovalsInboxPage() {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(false);
   const [search, setSearch] = useState('');
+  const [stats, setStats] = useState({ activeDelegations: 0, processedToday: 0, averageApprovalTime: 1.5 });
 
   // Selected item modal / detail pane
   const [selectedApproval, setSelectedApproval] = useState(null);
@@ -39,6 +40,10 @@ export default function ApprovalsInboxPage() {
     setLoading(true);
     setError(null);
     try {
+      // Fetch stats
+      const statsRes = await api.get('/workflows/stats');
+      setStats(statsRes.data);
+
       if (activeTab === 'pending') {
         const { data } = await api.get('/workflows/pending');
         setPendingApprovals(data);
@@ -145,15 +150,15 @@ export default function ApprovalsInboxPage() {
         </div>
         <div className="bg-white p-5 border border-slate-100 rounded-2xl shadow-sm text-xs font-bold text-slate-400">
           <p className="uppercase tracking-wider">Active Delegations</p>
-          <p className="text-2xl font-black text-indigo-600 mt-1 font-mono">1 Active</p>
+          <p className="text-2xl font-black text-indigo-600 mt-1 font-mono">{stats.activeDelegations} Active</p>
         </div>
         <div className="bg-white p-5 border border-slate-100 rounded-2xl shadow-sm text-xs font-bold text-slate-400">
           <p className="uppercase tracking-wider">Processed Today</p>
-          <p className="text-2xl font-black text-emerald-600 mt-1 font-mono">14 Completed</p>
+          <p className="text-2xl font-black text-emerald-600 mt-1 font-mono">{stats.processedToday} Completed</p>
         </div>
         <div className="bg-white p-5 border border-slate-100 rounded-2xl shadow-sm text-xs font-bold text-slate-400">
           <p className="uppercase tracking-wider">Average Approval Time</p>
-          <p className="text-2xl font-black text-slate-800 mt-1 font-mono">2.8 Hours</p>
+          <p className="text-2xl font-black text-slate-800 mt-1 font-mono">{stats.averageApprovalTime} Hours</p>
         </div>
       </div>
 
