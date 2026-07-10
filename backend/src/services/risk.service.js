@@ -454,12 +454,8 @@ class RiskService {
       .where({ company_id: companyId, entity_type: entityType, entity_id: entityId })
       .first();
 
-    if (!statusRecord) {
-      return { allowed: true };
-    }
-
     // Blacklist validation
-    if (statusRecord.status === 'BLACKLISTED') {
+    if (statusRecord && statusRecord.status === 'BLACKLISTED') {
       return {
         allowed: false,
         code: 'BLACKLISTED',
@@ -468,7 +464,7 @@ class RiskService {
     }
 
     // Cash-only enforcement
-    if (statusRecord.cash_only && !['RECEIPT', 'PAYMENT'].includes(type.toUpperCase())) {
+    if (statusRecord && statusRecord.cash_only && !['RECEIPT', 'PAYMENT'].includes(type.toUpperCase())) {
       if (type.toUpperCase() === 'SALES' && !payload.cashAccountId) {
         return {
           allowed: false,
@@ -485,15 +481,19 @@ class RiskService {
       }
     }
 
-    // Credit limit override enforcement
-    if (statusRecord.credit_limit_override && type.toUpperCase() === 'SALES') {
+    // Credit limit validation
+    if (type.toUpperCase() === 'SALES') {
       const client = await clientModel.getClientById(entityId, companyId);
       if (client) {
         const outstanding = parseFloat(client.current_balance || 0);
         const currentTotal = parseFloat(payload.totalAmount || payload.amount || 0);
-        const limit = parseFloat(statusRecord.credit_limit_override);
         
-        if (outstanding + currentTotal > limit) {
+        // Priority: credit_limit_override if set, else base credit_limit
+        const limit = statusRecord && statusRecord.credit_limit_override !== null && statusRecord.credit_limit_override !== undefined
+          ? parseFloat(statusRecord.credit_limit_override)
+          : parseFloat(client.credit_limit || 0);
+        
+        if (limit > 0 && (outstanding + currentTotal) > limit) {
           const voucherId = payload.voucherId || null;
           let override = null;
           if (voucherId) {

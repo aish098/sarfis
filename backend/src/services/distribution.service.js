@@ -21,6 +21,13 @@ const createDeliveryOrder = async ({
 
   const orderTotal = items.reduce((s, i) => s + (parseFloat(i.quantity) * parseFloat(i.unit_price)), 0);
 
+  // Enforce Credit Policy Check at Order creation
+  const RiskService = require('./risk.service');
+  const riskCheck = await RiskService.validateTransaction(companyId, 'SALES', { clientId, amount: orderTotal });
+  if (!riskCheck.allowed) {
+    throw new Error(riskCheck.message);
+  }
+
   // ── Transaction ─────────────────────────────────────────
   return db.transaction(async (trx) => {
     const deliveryNumber = await distModel.getNextDeliveryNumber(companyId);
@@ -63,6 +70,15 @@ const confirmDelivery = async (deliveryId, companyId, userId) => {
   if (!delivery) throw new Error('Delivery not found');
   if (delivery.status !== 'PENDING') throw new Error('Only pending orders can be confirmed');
 
+  const orderTotal = parseFloat(delivery.total_amount);
+
+  // Enforce Credit Policy Check again at Delivery confirmation
+  const RiskService = require('./risk.service');
+  const riskCheck = await RiskService.validateTransaction(companyId, 'SALES', { clientId: delivery.client_id, amount: orderTotal });
+  if (!riskCheck.allowed) {
+    throw new Error(riskCheck.message);
+  }
+
   const items = await distModel.getDeliveryItems(deliveryId);
 
   // 1. Stock availability check (Before we do anything)
@@ -87,7 +103,7 @@ const confirmDelivery = async (deliveryId, companyId, userId) => {
 
     // 4. Trigger inventory/accounting
     const saleItems = items.map(i => ({ ...i, warehouse_id: delivery.warehouse_id }));
-    await inventoryService.processSale({
+    const saleResult = await inventoryService.processSale({
       companyId, 
       deliveryId, 
       items: saleItems,
@@ -95,6 +111,10 @@ const confirmDelivery = async (deliveryId, companyId, userId) => {
       arAccountId: delivery.ar_account_id, // Ensure this was saved
       userId,
     });
+
+    if (saleResult && saleResult.journalEntry) {
+      await trx('deliveries').where('id', deliveryId).update({ journal_entry_id: saleResult.journalEntry.id });
+    }
 
     return { success: true };
   });

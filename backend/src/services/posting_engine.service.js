@@ -34,6 +34,8 @@ class PostingEngineService {
         default_cogs_account_id: findIdByCode('5') || findIdByCode('5010') || null,   // COGS/Expense
         default_cash_account_id: findIdByCode('10') || findIdByCode('1010') || null,  // Cash
         default_bad_debt_account_id: findIdByCode('5030') || findIdByCode('503') || null, // Bad Debt Expense
+        default_tax_payable_account_id: findIdByCode('2200') || findIdByCode('220') || null, // Output Tax Liability
+        default_tax_receivable_account_id: findIdByCode('1400') || findIdByCode('140') || null, // Input Tax Asset
         tax_rate: 0.00
       };
 
@@ -171,16 +173,34 @@ class PostingEngineService {
             });
           }
 
-          totalAmount = totalCost;
+          const taxRate = parseFloat(settings.tax_rate || 0);
+          const taxAmt = payload.taxAmount !== undefined 
+            ? parseFloat(payload.taxAmount) 
+            : (taxRate > 0 ? (totalCost * (taxRate / 100)) : 0);
 
-          // Double Entry lines: Dr Inventory, Cr AP
-          lines = [
-            { accountId: inventoryAccount, debit: totalCost, credit: 0 },
-            { accountId: apAccount, debit: 0, credit: totalCost }
-          ];
+          const grossTotal = totalCost + taxAmt;
+          totalAmount = grossTotal;
 
-          // Update vendor payable balance
-          await VendorModel.updateBalance(vendorId, companyId, totalCost, trx);
+          const taxReceivableAccount = settings.default_tax_receivable_account_id;
+
+          if (taxAmt > 0) {
+            if (!taxReceivableAccount) {
+              throw new Error('Default Sales Tax Receivable account mapping is missing for this company.');
+            }
+            lines = [
+              { accountId: inventoryAccount, debit: totalCost, credit: 0 },
+              { accountId: taxReceivableAccount, debit: taxAmt, credit: 0 },
+              { accountId: apAccount, debit: 0, credit: grossTotal }
+            ];
+          } else {
+            lines = [
+              { accountId: inventoryAccount, debit: totalCost, credit: 0 },
+              { accountId: apAccount, debit: 0, credit: totalCost }
+            ];
+          }
+
+          // Update vendor payable balance with gross total
+          await VendorModel.updateBalance(vendorId, companyId, grossTotal, trx);
           break;
         }
 
@@ -258,21 +278,36 @@ class PostingEngineService {
             );
           }
 
-          totalAmount = totalRevenue;
+          const taxRate = parseFloat(settings.tax_rate || 0);
+          const taxAmt = payload.taxAmount !== undefined 
+            ? parseFloat(payload.taxAmount) 
+            : (taxRate > 0 ? (totalRevenue * (taxRate / 100)) : 0);
 
-          // Standard balanced double entries
-          // Dr AR       (totalRevenue)
-          //   Cr Revenue   (totalRevenue)
-          // Dr COGS     (totalCOGS)
-          //   Cr Inventory (totalCOGS)
-          lines = [
-            { accountId: arAccount, debit: totalRevenue, credit: 0 },
-            { accountId: salesAccount, debit: 0, credit: totalRevenue },
-            ...cogsLines
-          ];
+          const grossTotal = totalRevenue + taxAmt;
+          totalAmount = grossTotal;
 
-          // Update customer AR balance
-          await distModel.updateClientBalance(trx, clientId, totalRevenue);
+          const taxPayableAccount = settings.default_tax_payable_account_id;
+
+          if (taxAmt > 0) {
+            if (!taxPayableAccount) {
+              throw new Error('Default Sales Tax Payable account mapping is missing for this company.');
+            }
+            lines = [
+              { accountId: arAccount, debit: grossTotal, credit: 0 },
+              { accountId: salesAccount, debit: 0, credit: totalRevenue },
+              { accountId: taxPayableAccount, debit: 0, credit: taxAmt },
+              ...cogsLines
+            ];
+          } else {
+            lines = [
+              { accountId: arAccount, debit: totalRevenue, credit: 0 },
+              { accountId: salesAccount, debit: 0, credit: totalRevenue },
+              ...cogsLines
+            ];
+          }
+
+          // Update customer AR balance with gross total
+          await distModel.updateClientBalance(trx, clientId, grossTotal);
           break;
         }
 

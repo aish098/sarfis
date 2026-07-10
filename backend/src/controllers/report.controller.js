@@ -151,4 +151,44 @@ exports.getBalanceSheetNote = async (req, res) => {
   }
 };
 
+exports.getAPAging = async (req, res) => {
+  const { companyId } = req.params;
+  try {
+    const result = await ReportService.getAPAging(companyId);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getARAging = async (req, res) => {
+  const { companyId } = req.params;
+  try {
+    const result = await ReportService.getARAging(companyId);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getVendorStatement = async (req, res) => {
+  const { companyId, vendorId } = req.params;
+  try {
+    const result = await ReportService.getVendorStatement(companyId, vendorId);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.getCustomerStatement = async (req, res) => {
+  const { companyId, clientId } = req.params;
+  try {
+    const result = await ReportService.getCustomerStatement(companyId, clientId);
+    res.json(result);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 
