@@ -5,12 +5,34 @@ class WorkflowRegistryService {
    * Invokes the registered callback for a completed workflow document.
    */
   static async executeCallback(docTypeCode, docId, companyId, action = 'APPROVE', userId = null, trx = db) {
-    const docType = await trx('workflow_document_types')
+    let docType = await trx('workflow_document_types')
       .where({ code: docTypeCode })
       .first();
 
     if (!docType) {
-      throw new Error(`Document type '${docTypeCode}' is not registered in the workflow registry.`);
+      if (docTypeCode === 'VOUCHER') {
+        const [newDoc] = await trx('workflow_document_types')
+          .insert({
+            code: 'VOUCHER',
+            name: 'ERP Voucher (Sales, Purchase, etc.)',
+            callback_service: 'voucher.service',
+            callback_method: 'postToLedger'
+          })
+          .returning('*');
+        docType = newDoc;
+      } else if (docTypeCode === 'JOURNAL') {
+        const [newDoc] = await trx('workflow_document_types')
+          .insert({
+            code: 'JOURNAL',
+            name: 'Manual Journal Entry',
+            callback_service: 'journal.service',
+            callback_method: 'postJournalEntry'
+          })
+          .returning('*');
+        docType = newDoc;
+      } else {
+        throw new Error(`Document type '${docTypeCode}' is not registered in the workflow registry.`);
+      }
     }
 
     const { callback_service, callback_method } = docType;
