@@ -418,9 +418,9 @@ class PeriodCloseService {
     }
 
     // 5. Budgets Health
-    const yearStr = new Date(period.start_date).getFullYear().toString();
+    const yearVal = new Date(period.start_date).getFullYear();
     const budgetsCount = await db('budgets')
-      .where({ company_id: companyId, fiscal_year: yearStr })
+      .where({ company_id: companyId, period_year: yearVal })
       .count('* as count')
       .first();
     const budgetStatus = parseInt(budgetsCount?.count || 0) > 0 ? 'PASS' : 'WARNING';
