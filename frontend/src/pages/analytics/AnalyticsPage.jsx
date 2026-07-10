@@ -112,16 +112,6 @@ export default function AnalyticsPage() {
         </div>
         
         <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap sm:ml-auto">
-          <div className="flex items-center gap-2 bg-white border border-slate-100 rounded-xl px-3 py-1">
-            <span className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Period</span>
-            <input
-              type="month"
-              value={budgets.period}
-              onChange={e => setBudgets(prev => ({ ...prev, period: e.target.value }))}
-              className="border-0 bg-transparent py-1 px-1 text-[12px] outline-none font-bold text-slate-700 cursor-pointer"
-            />
-          </div>
-
           <div className="tab-bar bg-white border border-slate-100 rounded-xl p-1 flex">
             {TABS.map(t => (
               <button key={t.id} onClick={() => setTab(t.id)}
@@ -254,6 +244,19 @@ function BudgetVariance({ budgets, setBudgets, budgetTarget, setBudgetTarget, sa
           <div>
             <h2 className="font-display font-bold text-[15px] text-slate-900">Budget vs. Actual Variance</h2>
             <p className="text-[11px] text-slate-400 uppercase tracking-wider font-semibold mt-0.5">Manage operational thresholds</p>
+          </div>
+          <div className="sm:ml-auto flex items-center gap-2">
+            <span className="text-[11px] font-bold text-slate-400 uppercase tracking-wider">Period</span>
+            <input type="month" value={budgets.period}
+              onChange={async e => {
+                const p = e.target.value;
+                setBudgets(prev => ({ ...prev, period: p }));
+                if (activeCompany) {
+                  const r = await api.get(`/analytics/budgets/${activeCompany.id}?period=${p}`);
+                  setBudgets({ data: r.data.data || [], period: p });
+                }
+              }}
+              className="input-enterprise py-2 px-3 text-[13px]" />
           </div>
         </div>
         <div className="overflow-x-auto">
