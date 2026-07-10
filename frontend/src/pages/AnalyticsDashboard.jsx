@@ -1434,8 +1434,8 @@ export default function AnalyticsDashboard({ companyId }) {
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase m-0">Financial Intelligence</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Analytics</span>
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase m-0">Analytics & Planning</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Intelligence</span>
             </div>
             <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5 mb-0">
               Overview of your financial performance & operations
