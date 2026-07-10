@@ -10,7 +10,7 @@
     "heroku-postbuild": "npm run install-all && npm run build-frontend",
     "build": "npm run install-all && npm run build-frontend",
     "migrate": "cd backend && npx knex migrate:latest --env production",
-    "start": "cross-env NODE_ENV=production node backend/server.js",
+    "start": "node backend/server.js",
     "dev": "concurrently \"cd backend && npm start\" \"cd frontend && npm run dev\""
   },
   "devDependencies": {
