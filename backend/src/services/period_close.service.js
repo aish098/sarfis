@@ -436,7 +436,7 @@ class PeriodCloseService {
 
     // 7. Notifications Health
     const notificationsCount = await db('notifications')
-      .where({ company_id: companyId, read: false })
+      .where({ company_id: companyId, is_read: false })
       .count('* as count')
       .first();
     const notifStatus = parseInt(notificationsCount?.count || 0) < 50 ? 'PASS' : 'WARNING';
