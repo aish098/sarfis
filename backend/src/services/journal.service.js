@@ -174,7 +174,6 @@ class JournalService {
               reference: header.reference || 'N/A',
               amount: totalAmount
             },
-            forceUserIds: userId ? [userId] : [],
             entityType: 'journal',
             entityId: entryId
           });
