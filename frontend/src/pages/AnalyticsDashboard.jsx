@@ -36,27 +36,27 @@ import { PowerBIDonut } from "../components/charts/PowerBIDonut";
 
 /* ═══ THEME — white/light like reference image ══════════════════════════════ */
 const W = {
-  bg:        "#f8fafc",
-  card:      "#ffffff",
-  border:    "#e2e8f0",
-  borderLo:  "#f1f5f9",
-  accent:    "#059669",    /* emerald — matches inventory */
-  accentDk:  "#047857",
-  accentGl:  "rgba(59,130,246,0.08)",
-  green:     "#16a34a",
-  greenBg:   "#f0fdf4",
-  red:       "#dc2626",
-  redBg:     "#fef2f2",
-  amber:     "#d97706",
-  amberBg:   "#fffbeb",
-  purple:    "#7c3aed",
-  cyan:      "#0891b2",
-  teal:      "#0d9488",
-  indigo:    "#4f46e5",
-  textPri:   "#0f172a",
-  textSec:   "#64748b",
-  textDim:   "#94a3b8",
-  gridLine:  "#e2e8f0",
+  bg: "#f8fafc",
+  card: "#ffffff",
+  border: "#e2e8f0",
+  borderLo: "#f1f5f9",
+  accent: "#059669",    /* emerald — matches inventory */
+  accentDk: "#047857",
+  accentGl: "rgba(59,130,246,0.08)",
+  green: "#16a34a",
+  greenBg: "#f0fdf4",
+  red: "#dc2626",
+  redBg: "#fef2f2",
+  amber: "#d97706",
+  amberBg: "#fffbeb",
+  purple: "#7c3aed",
+  cyan: "#0891b2",
+  teal: "#0d9488",
+  indigo: "#4f46e5",
+  textPri: "#0f172a",
+  textSec: "#64748b",
+  textDim: "#94a3b8",
+  gridLine: "#e2e8f0",
 };
 
 const PALETTE = [
@@ -70,7 +70,7 @@ const PALETTE = [
   "#ef4444", // Red
 ];
 
-const MONTHS = ["Jan","Feb","Mar","Apr","May","Jun","Jul","Aug","Sep","Oct","Nov","Dec"];
+const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /* ═══ GLOBAL STYLES ═══════════════════════════════════════════════════════════ */
 if (typeof document !== "undefined" && !document.getElementById("ad-white-css")) {
@@ -112,16 +112,16 @@ const fmt = fmtChart;
 
 function Badge({ val }) {
   if (val > 0) return (
-    <span style={{ display:"inline-flex", alignItems:"center", gap:2, padding:"2px 8px", borderRadius:20, fontSize:11, fontWeight:700, background:W.greenBg, color:W.green }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 2, padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: W.greenBg, color: W.green }}>
       ↑ {val}%
     </span>
   );
   if (val < 0) return (
-    <span style={{ display:"inline-flex", alignItems:"center", gap:2, padding:"2px 8px", borderRadius:20, fontSize:11, fontWeight:700, background:W.redBg, color:W.red }}>
+    <span style={{ display: "inline-flex", alignItems: "center", gap: 2, padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 700, background: W.redBg, color: W.red }}>
       ↓ {Math.abs(val)}%
     </span>
   );
-  return <span style={{ padding:"2px 8px", borderRadius:20, fontSize:11, fontWeight:600, background:"#f1f5f9", color:W.textDim }}>—</span>;
+  return <span style={{ padding: "2px 8px", borderRadius: 20, fontSize: 11, fontWeight: 600, background: "#f1f5f9", color: W.textDim }}>—</span>;
 }
 
 /* ═══ CHART PRIMITIVES ════════════════════════════════════════════════════════ */
@@ -152,14 +152,14 @@ function DataBar({ value, max, color = PBI.actual }) {
 /* ── Spinner ── */
 function Spinner() {
   return (
-    <div style={{ display:"flex", alignItems:"center", justifyContent:"center", padding:"56px 0" }}>
-      <div className="aw-spin" style={{ width:28, height:28, borderRadius:"50%", border:`2.5px solid ${W.border}`, borderTopColor:W.accent }} />
+    <div style={{ display: "flex", alignItems: "center", justifyContent: "center", padding: "56px 0" }}>
+      <div className="aw-spin" style={{ width: 28, height: 28, borderRadius: "50%", border: `2.5px solid ${W.border}`, borderTopColor: W.accent }} />
     </div>
   );
 }
 
 /* ── White Card ── */
-function Card({ title, subtitle, children, actions, style={} }) {
+function Card({ title, subtitle, children, actions, style = {} }) {
   return (
     <div style={{
       background: W.card, border: `1px solid ${W.border}`,
@@ -168,15 +168,15 @@ function Card({ title, subtitle, children, actions, style={} }) {
       ...style,
     }}>
       {(title || actions) && (
-        <div style={{ display:"flex", alignItems:"center", justifyContent:"space-between", marginBottom: subtitle ? 4 : 18 }}>
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: subtitle ? 4 : 18 }}>
           <div>
-            {title && <p style={{ fontSize:14, fontWeight:700, color:W.textPri, margin:0 }}>{title}</p>}
-            {subtitle && <p style={{ fontSize:12, color:W.textDim, margin:"2px 0 0" }}>{subtitle}</p>}
+            {title && <p style={{ fontSize: 14, fontWeight: 700, color: W.textPri, margin: 0 }}>{title}</p>}
+            {subtitle && <p style={{ fontSize: 12, color: W.textDim, margin: "2px 0 0" }}>{subtitle}</p>}
           </div>
           {actions}
         </div>
       )}
-      {subtitle && <div style={{ marginBottom:18 }} />}
+      {subtitle && <div style={{ marginBottom: 18 }} />}
       {children}
     </div>
   );
@@ -191,21 +191,21 @@ function KpiCard({ icon, label, value, growth, vsLabel, color = W.accent, bgColo
       borderRadius: 16, padding: "20px 22px",
       boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
     }}>
-      <div style={{ display:"flex", alignItems:"flex-start", justifyContent:"space-between", marginBottom:12 }}>
-        <p style={{ fontSize:13, fontWeight:600, color:W.textSec, margin:0 }}>{label}</p>
+      <div style={{ display: "flex", alignItems: "flex-start", justifyContent: "space-between", marginBottom: 12 }}>
+        <p style={{ fontSize: 13, fontWeight: 600, color: W.textSec, margin: 0 }}>{label}</p>
         {icon && (
-          <div style={{ width:36, height:36, borderRadius:10, background:bg, display:"flex", alignItems:"center", justifyContent:"center" }}>
-            <span style={{ fontSize:17, color }}>{icon}</span>
+          <div style={{ width: 36, height: 36, borderRadius: 10, background: bg, display: "flex", alignItems: "center", justifyContent: "center" }}>
+            <span style={{ fontSize: 17, color }}>{icon}</span>
           </div>
         )}
       </div>
-      <p style={{ fontFamily:"monospace", fontSize:26, fontWeight:800, color:W.textPri, margin:"0 0 8px", letterSpacing:"-0.02em" }}>
+      <p style={{ fontFamily: "monospace", fontSize: 26, fontWeight: 800, color: W.textPri, margin: "0 0 8px", letterSpacing: "-0.02em" }}>
         {value}
       </p>
       {growth !== undefined && (
-        <div style={{ display:"flex", alignItems:"center", gap:6 }}>
+        <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
           <Badge val={growth} />
-          {vsLabel && <span style={{ fontSize:11, color:W.textDim }}>{vsLabel}</span>}
+          {vsLabel && <span style={{ fontSize: 11, color: W.textDim }}>{vsLabel}</span>}
         </div>
       )}
     </div>
@@ -215,16 +215,16 @@ function KpiCard({ icon, label, value, growth, vsLabel, color = W.accent, bgColo
 /* ── Table ── */
 function DataTable({ headers, rows, emptyMsg = "No data available." }) {
   return (
-    <div style={{ overflowX:"auto" }}>
-      <table style={{ width:"100%", borderCollapse:"collapse", fontSize:13 }}>
+    <div style={{ overflowX: "auto" }}>
+      <table style={{ width: "100%", borderCollapse: "collapse", fontSize: 13 }}>
         <thead>
           <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
-            {headers.map((h,i) => (
+            {headers.map((h, i) => (
               <th key={i} style={{
-                padding:"10px 14px", textAlign: h.right?"right":"left",
+                padding: "10px 14px", textAlign: h.right ? "right" : "left",
                 fontWeight: 900, fontSize: 10, color: '#2E4D3F',
                 letterSpacing: "0.1em", textTransform: "uppercase",
-                whiteSpace:"nowrap",
+                whiteSpace: "nowrap",
               }}>
                 {h.label}
               </th>
@@ -234,16 +234,16 @@ function DataTable({ headers, rows, emptyMsg = "No data available." }) {
         <tbody>
           {!rows.length && (
             <tr>
-              <td colSpan={headers.length} style={{ textAlign:"center", padding:"32px", color:W.textDim, fontSize:13 }}>
+              <td colSpan={headers.length} style={{ textAlign: "center", padding: "32px", color: W.textDim, fontSize: 13 }}>
                 {emptyMsg}
               </td>
             </tr>
           )}
           {rows.map((row, ri) => (
-            <tr key={ri} className="aw-tr" style={{ borderBottom:`1px solid ${W.borderLo}` }}>
+            <tr key={ri} className="aw-tr" style={{ borderBottom: `1px solid ${W.borderLo}` }}>
               {row.map((cell, ci) => (
                 <td key={ci} style={{
-                  padding:"11px 14px",
+                  padding: "11px 14px",
                   textAlign: headers[ci]?.right ? "right" : "left",
                   ...cell?.style,
                 }}>
@@ -260,18 +260,18 @@ function DataTable({ headers, rows, emptyMsg = "No data available." }) {
 
 /* ═══ TABS ════════════════════════════════════════════════════════════════════ */
 const TABS = [
-  { id:"trends",      label:"📈 Trends"      },
-  { id:"comparative", label:"📊 Comparative" },
-  { id:"vertical",    label:"🔢 Vertical"    },
-  { id:"sectors",     label:"🏭 Sectors"     },
-  { id:"operations",  label:"📦 Operations"  },
+  { id: "trends", label: "📈 Trends" },
+  { id: "comparative", label: "📊 Comparative" },
+  { id: "vertical", label: "🔢 Vertical" },
+  { id: "sectors", label: "🏭 Sectors" },
+  { id: "operations", label: "📦 Operations" },
 ];
 
 /* ═══════════════════════════════════════════════════════════════════════════
    TREND TAB
 ═══════════════════════════════════════════════════════════════════════════ */
 function TrendTab({ companyId }) {
-  const [data, setData]     = useState([]);
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
   const [months, setMonths] = useState(12);
 
@@ -294,22 +294,22 @@ function TrendTab({ companyId }) {
   const latest = data[data.length - 1] || {};
 
   return (
-    <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
+    <div className="aw-fade" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
 
       {/* KPI row — matches reference image */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:14 }}>
-        <KpiCard icon="💰" label="Revenue"    value={`PKR ${fmt(latest.revenue)}`}  growth={latest.revenue_growth}  vsLabel="vs last period" color="#16a34a" />
-        <KpiCard icon="📊" label="Expenses"   value={`PKR ${fmt(latest.expenses)}`} growth={latest.expense_growth}  vsLabel="vs last period" color="#dc2626" />
-        <KpiCard icon="📈" label="Net Profit" value={`PKR ${fmt(latest.profit)}`}   growth={latest.profit_growth}   vsLabel="vs last period" color={W.accent} />
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 14 }}>
+        <KpiCard icon="💰" label="Revenue" value={`PKR ${fmt(latest.revenue)}`} growth={latest.revenue_growth} vsLabel="vs last period" color="#16a34a" />
+        <KpiCard icon="📊" label="Expenses" value={`PKR ${fmt(latest.expenses)}`} growth={latest.expense_growth} vsLabel="vs last period" color="#dc2626" />
+        <KpiCard icon="📈" label="Net Profit" value={`PKR ${fmt(latest.profit)}`} growth={latest.profit_growth} vsLabel="vs last period" color={W.accent} />
       </div>
 
       {/* Period toggle */}
-      <div style={{ display:"flex", gap:8, alignItems:"center" }}>
-        <span style={{ fontSize:12, color:W.textSec, fontWeight:600 }}>Period:</span>
+      <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
+        <span style={{ fontSize: 12, color: W.textSec, fontWeight: 600 }}>Period:</span>
         {[3, 6, 12].map(m => (
           <button key={m} onClick={() => setMonths(m)}
             className={`aw-tab${months === m ? " active" : ""}`}
-            style={{ padding:"6px 14px", fontSize:12 }}>
+            style={{ padding: "6px 14px", fontSize: 12 }}>
             {m} months
           </button>
         ))}
@@ -317,16 +317,16 @@ function TrendTab({ companyId }) {
 
       {/* Main area chart — like reference image */}
       <Card title="Revenue & Profit Trend"
-        actions={<span style={{ fontSize:11, color:W.textDim }}>Last {months} months · {trendLayout.orientation} layout</span>}>
+        actions={<span style={{ fontSize: 11, color: W.textDim }}>Last {months} months · {trendLayout.orientation} layout</span>}>
         <AdaptiveChartFrame layout={trendLayout}>
           <AreaChart data={data} margin={buildChartMargins(trendLayout)}>
             <defs>
               <linearGradient id="wgRev" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#118DFF" stopOpacity={0.18} />
+                <stop offset="5%" stopColor="#118DFF" stopOpacity={0.18} />
                 <stop offset="95%" stopColor="#118DFF" stopOpacity={0.01} />
               </linearGradient>
               <linearGradient id="wgExp" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%"  stopColor="#ef4444" stopOpacity={0.08} />
+                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.08} />
                 <stop offset="95%" stopColor="#ef4444" stopOpacity={0.01} />
               </linearGradient>
             </defs>
@@ -334,9 +334,9 @@ function TrendTab({ companyId }) {
             <XAxis dataKey="label" interval={trendLayout.tickInterval} height={trendLayout.bottomMargin}
               tick={(p) => <DynamicXTick {...p} layout={trendLayout} lookup={data.map(d => ({ name: d.label, fullName: d.label }))} />} axisLine={false} tickLine={false} />
             <YAxis {...yAxisProps(trendLayout)} />
-            <Tooltip content={<WhiteTooltip />} cursor={{ stroke:W.border, strokeWidth:1 }} />
-            <Legend iconType="circle" verticalAlign="top" align="right" wrapperStyle={{ paddingBottom:16, fontSize:11, fontWeight: "bold" }} />
-            <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#118DFF" strokeWidth={3} fill="url(#wgRev)" dot={false} activeDot={{ r:6, fill:"#118DFF", stroke:"#fff", strokeWidth:2 }} />
+            <Tooltip content={<WhiteTooltip />} cursor={{ stroke: W.border, strokeWidth: 1 }} />
+            <Legend iconType="circle" verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: 16, fontSize: 11, fontWeight: "bold" }} />
+            <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#118DFF" strokeWidth={3} fill="url(#wgRev)" dot={false} activeDot={{ r: 6, fill: "#118DFF", stroke: "#fff", strokeWidth: 2 }} />
             <Area type="monotone" dataKey="expenses" name="Expenses" stroke="#ef4444" strokeWidth={2} fill="url(#wgExp)" strokeDasharray="5 5" dot={false} />
             <Line type="monotone" dataKey="profit" name="Net Profit" stroke="#10b981" strokeWidth={2.5} dot={false} />
           </AreaChart>
@@ -350,8 +350,8 @@ function TrendTab({ companyId }) {
             <XAxis dataKey="label" interval={profitLayout.tickInterval} height={profitLayout.bottomMargin}
               tick={(p) => <DynamicXTick {...p} layout={profitLayout} lookup={data.map(d => ({ name: d.label, fullName: d.label }))} />} axisLine={false} tickLine={false} />
             <YAxis {...yAxisProps(profitLayout)} />
-            <Tooltip content={<WhiteTooltip />} cursor={{ fill:"#f8fafc", radius: 4 }} />
-            <Bar dataKey="profit" name="Profit" radius={[4,4,0,0]} maxBarSize={profitLayout.maxBarSize}>
+            <Tooltip content={<WhiteTooltip />} cursor={{ fill: "#f8fafc", radius: 4 }} />
+            <Bar dataKey="profit" name="Profit" radius={[4, 4, 0, 0]} maxBarSize={profitLayout.maxBarSize}>
               {data.map((d, i) => <Cell key={i} fill={d.profit >= 0 ? "#10b981" : "#ef4444"} style={{ outline: "none" }} />)}
             </Bar>
           </BarChart>
@@ -560,8 +560,8 @@ function ComparativeTab({ companyId }) {
 function VerticalTab({ companyId }) {
   const now = new Date();
   const [month, setMonth] = useState(now.getMonth() + 1);
-  const [year, setYear]   = useState(now.getFullYear());
-  const [data, setData]   = useState(null);
+  const [year, setYear] = useState(now.getFullYear());
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
 
   const load = useCallback(() => {
@@ -584,68 +584,68 @@ function VerticalTab({ companyId }) {
     const chartRows = normalizeChartRows(items || [], "account_name", layout);
 
     return (
-    <Card title={title} subtitle={`Total: PKR ${fmt(total)}`}>
-      {(items || []).length > 0 && (
-        <div style={{ marginBottom: 20 }}>
-          <AdaptiveChartFrame layout={layout}>
-            <BarChart layout={layout.orientation === "horizontal" ? "vertical" : "horizontal"} data={chartRows} margin={buildChartMargins(layout)}>
-              <CartesianGrid {...pbiGridProps} />
-              {layout.orientation === "horizontal" ? (
-                <>
-                  <XAxis type="number" tickFormatter={fmt} tick={{ fill: "#605e5c", fontSize: layout.tickFontSize }} axisLine={false} tickLine={false} />
-                  <YAxis type="category" dataKey="name" width={layout.yAxisWidth} tick={(p) => <DynamicYCategoryTick {...p} layout={layout} lookup={chartRows} />} axisLine={false} tickLine={false} />
-                </>
-              ) : (
-                <>
-                  <XAxis dataKey="name" interval={layout.tickInterval} height={layout.bottomMargin} tick={(p) => <DynamicXTick {...p} layout={layout} lookup={chartRows} />} axisLine={false} tickLine={false} />
-                  <YAxis {...yAxisProps(layout)} />
-                </>
-              )}
-              <Tooltip content={(p) => <ChartTooltip {...p} fullLabel={p.label} formatter={(v) => `PKR ${fmt(v)}`} />} />
-              <Bar dataKey="amount" name="Amount" radius={layout.orientation === "horizontal" ? [0, 4, 4, 0] : [4, 4, 0, 0]} maxBarSize={layout.maxBarSize}>
-                {chartRows.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
-              </Bar>
-            </BarChart>
-          </AdaptiveChartFrame>
-        </div>
-      )}
-      {items.map((item, i) => (
-        <div key={i} style={{ marginBottom:12 }}>
-          <div style={{ display:"flex", justifyContent:"space-between", marginBottom:5 }}>
-            <span style={{ fontSize:12, color:W.textPri, fontWeight:500, maxWidth:"65%", overflow:"hidden", textOverflow:"ellipsis", whiteSpace:"nowrap" }} title={item.account_name}>
-              {item.account_name}
-            </span>
-            <span style={{ fontSize:12, color:W.textSec, fontFamily:"monospace" }}>
-              {fmt(item.amount)} <span style={{ color:W.textDim }}>({item.percentage}%)</span>
-            </span>
+      <Card title={title} subtitle={`Total: PKR ${fmt(total)}`}>
+        {(items || []).length > 0 && (
+          <div style={{ marginBottom: 20 }}>
+            <AdaptiveChartFrame layout={layout}>
+              <BarChart layout={layout.orientation === "horizontal" ? "vertical" : "horizontal"} data={chartRows} margin={buildChartMargins(layout)}>
+                <CartesianGrid {...pbiGridProps} />
+                {layout.orientation === "horizontal" ? (
+                  <>
+                    <XAxis type="number" tickFormatter={fmt} tick={{ fill: "#605e5c", fontSize: layout.tickFontSize }} axisLine={false} tickLine={false} />
+                    <YAxis type="category" dataKey="name" width={layout.yAxisWidth} tick={(p) => <DynamicYCategoryTick {...p} layout={layout} lookup={chartRows} />} axisLine={false} tickLine={false} />
+                  </>
+                ) : (
+                  <>
+                    <XAxis dataKey="name" interval={layout.tickInterval} height={layout.bottomMargin} tick={(p) => <DynamicXTick {...p} layout={layout} lookup={chartRows} />} axisLine={false} tickLine={false} />
+                    <YAxis {...yAxisProps(layout)} />
+                  </>
+                )}
+                <Tooltip content={(p) => <ChartTooltip {...p} fullLabel={p.label} formatter={(v) => `PKR ${fmt(v)}`} />} />
+                <Bar dataKey="amount" name="Amount" radius={layout.orientation === "horizontal" ? [0, 4, 4, 0] : [4, 4, 0, 0]} maxBarSize={layout.maxBarSize}>
+                  {chartRows.map((_, i) => <Cell key={i} fill={PALETTE[i % PALETTE.length]} />)}
+                </Bar>
+              </BarChart>
+            </AdaptiveChartFrame>
           </div>
-          <div style={{ height:6, background:"#f1f5f9", borderRadius:4, overflow:"hidden" }}>
-            <div style={{ height:"100%", width:`${Math.min(item.percentage, 100)}%`, background:PALETTE[i % PALETTE.length], borderRadius:4, transition:"width .5s ease" }} />
+        )}
+        {items.map((item, i) => (
+          <div key={i} style={{ marginBottom: 12 }}>
+            <div style={{ display: "flex", justifyContent: "space-between", marginBottom: 5 }}>
+              <span style={{ fontSize: 12, color: W.textPri, fontWeight: 500, maxWidth: "65%", overflow: "hidden", textOverflow: "ellipsis", whiteSpace: "nowrap" }} title={item.account_name}>
+                {item.account_name}
+              </span>
+              <span style={{ fontSize: 12, color: W.textSec, fontFamily: "monospace" }}>
+                {fmt(item.amount)} <span style={{ color: W.textDim }}>({item.percentage}%)</span>
+              </span>
+            </div>
+            <div style={{ height: 6, background: "#f1f5f9", borderRadius: 4, overflow: "hidden" }}>
+              <div style={{ height: "100%", width: `${Math.min(item.percentage, 100)}%`, background: PALETTE[i % PALETTE.length], borderRadius: 4, transition: "width .5s ease" }} />
+            </div>
           </div>
-        </div>
-      ))}
-    </Card>
+        ))}
+      </Card>
     );
   };
 
   return (
-    <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
-      <div style={{ display:"flex", gap:10, alignItems:"flex-end", flexWrap:"wrap" }}>
+    <div className="aw-fade" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
         <div>
-          <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>Month</p>
+          <p style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 6 }}>Month</p>
           <select value={month} onChange={e => setMonth(+e.target.value)} className="aw-inp">
-            {MONTHS.map((m, i) => <option key={i} value={i+1}>{m}</option>)}
+            {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
           </select>
         </div>
         <div>
-          <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>Year</p>
-          <input type="number" value={year} onChange={e => setYear(+e.target.value)} className="aw-inp" style={{ width:90 }} />
+          <p style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 6 }}>Year</p>
+          <input type="number" value={year} onChange={e => setYear(+e.target.value)} className="aw-inp" style={{ width: 90 }} />
         </div>
         <button onClick={load} className="aw-btn-primary">Analyze</button>
       </div>
       {loading && <Spinner />}
       {!loading && data && (
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(280px,1fr))", gap:16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(280px,1fr))", gap: 16 }}>
           {renderSection("Income Statement (% of Revenue)", data.income_statement?.items || [], data.income_statement?.total_revenue)}
           {renderSection("Balance Sheet (% of Total Assets)", data.balance_sheet?.items || [], data.balance_sheet?.total_assets)}
         </div>
@@ -658,7 +658,7 @@ function VerticalTab({ companyId }) {
    SECTOR TAB
 ═══════════════════════════════════════════════════════════════════════════ */
 function SectorTab({ companyId }) {
-  const [data, setData]     = useState([]);
+  const [data, setData] = useState([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -686,15 +686,15 @@ function SectorTab({ companyId }) {
   if (loading && !data.length) return <Spinner />;
 
   return (
-    <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
-      {!data.length && <Card title="Sector Revenue"><p style={{ color:W.textSec, fontSize:13 }}>No sector data. Add delivered sector transactions to see data here.</p></Card>}
+    <div className="aw-fade" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      {!data.length && <Card title="Sector Revenue"><p style={{ color: W.textSec, fontSize: 13 }}>No sector data. Add delivered sector transactions to see data here.</p></Card>}
 
       {/* Mini trend cards */}
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(200px,1fr))", gap:12 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 12 }}>
         {data.map((sector, si) => (
-          <Card key={sector.sector} style={{ padding:"16px 18px" }}>
-            <div style={{ display:"flex", justifyContent:"space-between", alignItems:"center", marginBottom:10 }}>
-              <p style={{ fontSize:13, fontWeight:700, color:W.textPri, margin:0 }}>{sector.sector}</p>
+          <Card key={sector.sector} style={{ padding: "16px 18px" }}>
+            <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: 10 }}>
+              <p style={{ fontSize: 13, fontWeight: 700, color: W.textPri, margin: 0 }}>{sector.sector}</p>
               <Badge val={sector.overall_growth_pct} />
             </div>
             <ResponsiveContainer width="100%" height={50}>
@@ -703,16 +703,16 @@ function SectorTab({ companyId }) {
                 <Tooltip content={<WhiteTooltip />} />
               </LineChart>
             </ResponsiveContainer>
-            <p style={{ fontSize:11, color:W.textDim, marginTop:6 }}>
-              Latest: <span style={{ color:W.textPri, fontFamily:"monospace", fontWeight:700 }}>PKR {fmt(sector.periods[sector.periods.length-1]?.revenue)}</span>
+            <p style={{ fontSize: 11, color: W.textDim, marginTop: 6 }}>
+              Latest: <span style={{ color: W.textPri, fontFamily: "monospace", fontWeight: 700 }}>PKR {fmt(sector.periods[sector.periods.length - 1]?.revenue)}</span>
             </p>
           </Card>
         ))}
       </div>
 
       {data.length > 0 && (
-        <div style={{ display:"flex", flexWrap:"wrap", gap:16, alignItems:"stretch" }}>
-          <Card title="Sector Revenue Comparison" style={{ flex:"2 1 480px" }}>
+        <div style={{ display: "flex", flexWrap: "wrap", gap: 16, alignItems: "stretch" }}>
+          <Card title="Sector Revenue Comparison" style={{ flex: "2 1 480px" }}>
             <AdaptiveChartFrame layout={sectorLayout}>
               <DynamicBarSeries
                 chartRows={sectorChartRows}
@@ -726,7 +726,7 @@ function SectorTab({ companyId }) {
           </Card>
 
           {/* Donut — matches reference image "Traffic Sources" */}
-          <Card title="Revenue Distribution" style={{ flex:"1 1 300px" }}>
+          <Card title="Revenue Distribution" style={{ flex: "1 1 300px" }}>
             <PowerBIDonut
               data={barData.map(d => ({ name: d.name, value: d.revenue }))}
               colors={donutColors}
@@ -745,7 +745,7 @@ function SectorTab({ companyId }) {
    OPERATIONS TAB
 ═══════════════════════════════════════════════════════════════════════════ */
 function OperationsTab({ companyId }) {
-  const [data, setData]     = useState(null);
+  const [data, setData] = useState(null);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
@@ -759,21 +759,21 @@ function OperationsTab({ companyId }) {
 
   if (loading && !data) return <Spinner />;
 
-  const summary    = data?.summary || {};
-  const products   = data?.top_products || [];
+  const summary = data?.summary || {};
+  const products = data?.top_products || [];
   const warehouses = data?.warehouse_load || [];
-  const sectors    = data?.sector_profitability || [];
+  const sectors = data?.sector_profitability || [];
 
   return (
-    <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
-      <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:12 }}>
+    <div className="aw-fade" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12 }}>
         {[
-          { icon:"📦", label:"SKU Count",        value: String(summary.total_skus||0),        color:"#4f46e5" },
-          { icon:"⚠️", label:"Low Stock SKUs",   value: String(summary.low_stock_skus||0),    color:W.red   },
-          { icon:"💰", label:"Inventory Value",   value:`PKR ${fmt(summary.inventory_value)}`, color:W.green },
-          { icon:"🏭", label:"Warehouses",        value: String(summary.warehouse_count||0),   color:W.cyan  },
-          { icon:"🚚", label:"Delivered Revenue", value:`PKR ${fmt(summary.delivered_revenue)}`,color:W.accent},
-          { icon:"📋", label:"Delivered Orders",  value: String(summary.delivered_count||0),   color:W.amber },
+          { icon: "📦", label: "SKU Count", value: String(summary.total_skus || 0), color: "#4f46e5" },
+          { icon: "⚠️", label: "Low Stock SKUs", value: String(summary.low_stock_skus || 0), color: W.red },
+          { icon: "💰", label: "Inventory Value", value: `PKR ${fmt(summary.inventory_value)}`, color: W.green },
+          { icon: "🏭", label: "Warehouses", value: String(summary.warehouse_count || 0), color: W.cyan },
+          { icon: "🚚", label: "Delivered Revenue", value: `PKR ${fmt(summary.delivered_revenue)}`, color: W.accent },
+          { icon: "📋", label: "Delivered Orders", value: String(summary.delivered_count || 0), color: W.amber },
         ].map(k => (
           <KpiCard key={k.label} icon={k.icon} label={k.label} value={k.value} color={k.color} />
         ))}
@@ -784,15 +784,15 @@ function OperationsTab({ companyId }) {
           <Card title="Top Inventory Products">
             <DataTable
               headers={[
-                { label:"Product" }, { label:"SKU" },
-                { label:"Qty", right:true }, { label:"Value", right:true },
+                { label: "Product" }, { label: "SKU" },
+                { label: "Qty", right: true }, { label: "Value", right: true },
               ]}
               emptyMsg="No product inventory data."
               rows={products.map(p => [
-                { node: <span style={{ fontWeight:600, color:W.textPri }}>{p.product_name}</span> },
-                { node: <span style={{ fontFamily:"monospace", fontSize:11, color:W.textDim }}>{p.sku}</span> },
-                { node: <span style={{ fontFamily:"monospace" }}>{fmt(p.qty)}</span>, style:{textAlign:"right"} },
-                { node: <span style={{ fontFamily:"monospace", fontWeight:700, color:W.green }}>PKR {fmt(p.stock_value)}</span>, style:{textAlign:"right"} },
+                { node: <span style={{ fontWeight: 600, color: W.textPri }}>{p.product_name}</span> },
+                { node: <span style={{ fontFamily: "monospace", fontSize: 11, color: W.textDim }}>{p.sku}</span> },
+                { node: <span style={{ fontFamily: "monospace" }}>{fmt(p.qty)}</span>, style: { textAlign: "right" } },
+                { node: <span style={{ fontFamily: "monospace", fontWeight: 700, color: W.green }}>PKR {fmt(p.stock_value)}</span>, style: { textAlign: "right" } },
               ])}
             />
           </Card>
@@ -801,7 +801,7 @@ function OperationsTab({ companyId }) {
         <div className="lg:col-span-1">
           <Card title="Warehouse Load">
             {!warehouses.length
-              ? <p style={{ color:W.textDim, fontSize:13 }}>No warehouse data.</p>
+              ? <p style={{ color: W.textDim, fontSize: 13 }}>No warehouse data.</p>
               : (
                 <PowerBIDonut
                   data={warehouses.map((w) => ({ name: w.warehouse_name, value: w.estimated_value || 0 }))}
@@ -819,17 +819,17 @@ function OperationsTab({ companyId }) {
       <Card title="Sector Profitability">
         <DataTable
           headers={[
-            { label:"Sector" }, { label:"Deliveries", right:true },
-            { label:"Revenue", right:true }, { label:"Gross Profit", right:true },
-            { label:"Margin", right:true },
+            { label: "Sector" }, { label: "Deliveries", right: true },
+            { label: "Revenue", right: true }, { label: "Gross Profit", right: true },
+            { label: "Margin", right: true },
           ]}
           emptyMsg="No sector profitability data."
           rows={sectors.map(s => [
-            { node: <span style={{ fontWeight:600, color:W.textPri }}>{s.sector_name}</span> },
-            { node: <span style={{ fontFamily:"monospace" }}>{s.delivery_count}</span>, style:{textAlign:"right"} },
-            { node: <span style={{ fontFamily:"monospace" }}>PKR {fmt(s.total_revenue)}</span>, style:{textAlign:"right"} },
-            { node: <span style={{ fontFamily:"monospace", fontWeight:700, color:s.gross_profit>=0?W.green:W.red }}>PKR {fmt(s.gross_profit)}</span>, style:{textAlign:"right"} },
-            { node: <Badge val={s.margin_pct} />, style:{textAlign:"right"} },
+            { node: <span style={{ fontWeight: 600, color: W.textPri }}>{s.sector_name}</span> },
+            { node: <span style={{ fontFamily: "monospace" }}>{s.delivery_count}</span>, style: { textAlign: "right" } },
+            { node: <span style={{ fontFamily: "monospace" }}>PKR {fmt(s.total_revenue)}</span>, style: { textAlign: "right" } },
+            { node: <span style={{ fontFamily: "monospace", fontWeight: 700, color: s.gross_profit >= 0 ? W.green : W.red }}>PKR {fmt(s.gross_profit)}</span>, style: { textAlign: "right" } },
+            { node: <Badge val={s.margin_pct} />, style: { textAlign: "right" } },
           ])}
         />
       </Card>
@@ -839,7 +839,7 @@ function OperationsTab({ companyId }) {
 
 const F = ({ label, children }) => (
   <div>
-    <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>{label}</p>
+    <p style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 6 }}>{label}</p>
     {children}
   </div>
 );
@@ -849,12 +849,12 @@ const F = ({ label, children }) => (
 ═══════════════════════════════════════════════════════════════════════════ */
 function BudgetTab({ companyId }) {
   const now = new Date();
-  const [year,setYear]   = useState(now.getFullYear());
-  const [month,setMonth] = useState(now.getMonth()+1);
-  const [budgets,setBudgets] = useState([]);
-  const [loading,setLoading] = useState(false);
-  const [form,setForm] = useState({ budget_type:"account",account_id:"",sector_id:"",period_month:now.getMonth()+1,period_year:now.getFullYear(),budget_amount:"",notes:"" });
-  const [saving,setSaving] = useState(false);
+  const [year, setYear] = useState(now.getFullYear());
+  const [month, setMonth] = useState(now.getMonth() + 1);
+  const [budgets, setBudgets] = useState([]);
+  const [loading, setLoading] = useState(false);
+  const [form, setForm] = useState({ budget_type: "account", account_id: "", sector_id: "", period_month: now.getMonth() + 1, period_year: now.getFullYear(), budget_amount: "", notes: "" });
+  const [saving, setSaving] = useState(false);
   const [accounts, setAccounts] = useState([]);
   const [sectors, setSectors] = useState([]);
 
@@ -871,49 +871,49 @@ function BudgetTab({ companyId }) {
 
   const load = useCallback(() => {
     setLoading(true);
-    analyticsApi.getBudgets(companyId,year,month).then(setBudgets).catch(console.error).finally(() => setLoading(false));
-  }, [companyId,year,month]);
+    analyticsApi.getBudgets(companyId, year, month).then(setBudgets).catch(console.error).finally(() => setLoading(false));
+  }, [companyId, year, month]);
 
   useEffect(() => {
-    let ig=false; Promise.resolve().then(()=>{if(!ig)setLoading(true);});
-    analyticsApi.getBudgets(companyId,year,month).then(r=>{if(!ig)setBudgets(r)}).catch(console.error).finally(()=>{if(!ig)setLoading(false);});
-    return()=>{ig=true};
-  }, [companyId,year,month]);
+    let ig = false; Promise.resolve().then(() => { if (!ig) setLoading(true); });
+    analyticsApi.getBudgets(companyId, year, month).then(r => { if (!ig) setBudgets(r) }).catch(console.error).finally(() => { if (!ig) setLoading(false); });
+    return () => { ig = true };
+  }, [companyId, year, month]);
 
   const save = async () => {
     if (!form.budget_amount) return;
     setSaving(true);
-    try { await analyticsApi.createBudget(companyId,form); load(); setForm(f=>({...f,budget_amount:"",notes:""})); }
-    catch(e) { alert(e.message); }
+    try { await analyticsApi.createBudget(companyId, form); load(); setForm(f => ({ ...f, budget_amount: "", notes: "" })); }
+    catch (e) { alert(e.message); }
     finally { setSaving(false); }
   };
 
   const remove = async id => {
     if (!confirm("Delete this budget?")) return;
-    await analyticsApi.deleteBudget(companyId,id); load();
+    await analyticsApi.deleteBudget(companyId, id); load();
   };
 
   return (
-    <div className="aw-fade" style={{ display:"flex", flexDirection:"column", gap:18 }}>
+    <div className="aw-fade" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
       <Card title="Add / Update Budget">
-        <div style={{ display:"grid", gridTemplateColumns:"repeat(auto-fit,minmax(160px,1fr))", gap:12, marginBottom:16 }}>
+        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 16 }}>
           <F label="Type">
-            <select value={form.budget_type} onChange={e=>setForm(f=>({...f,budget_type:e.target.value}))} className="aw-inp" style={{ width:"100%" }}>
+            <select value={form.budget_type} onChange={e => setForm(f => ({ ...f, budget_type: e.target.value }))} className="aw-inp" style={{ width: "100%" }}>
               <option value="account">Account</option>
               <option value="sector">Sector</option>
             </select>
           </F>
-          {form.budget_type==="account"
+          {form.budget_type === "account"
             ? (
               <F label="Account">
-                <select value={form.account_id} onChange={e=>setForm(f=>({...f,account_id:e.target.value}))} className="aw-inp" style={{ width:"100%" }}>
+                <select value={form.account_id} onChange={e => setForm(f => ({ ...f, account_id: e.target.value }))} className="aw-inp" style={{ width: "100%" }}>
                   <option value="">— Select Account —</option>
                   {accounts.map(a => <option key={a.id} value={a.id}>{a.code} - {a.name}</option>)}
                 </select>
               </F>
             ) : (
               <F label="Sector">
-                <select value={form.sector_id} onChange={e=>setForm(f=>({...f,sector_id:e.target.value}))} className="aw-inp" style={{ width:"100%" }}>
+                <select value={form.sector_id} onChange={e => setForm(f => ({ ...f, sector_id: e.target.value }))} className="aw-inp" style={{ width: "100%" }}>
                   <option value="">— Select Sector —</option>
                   {sectors.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                 </select>
@@ -921,49 +921,49 @@ function BudgetTab({ companyId }) {
             )
           }
           <F label="Month">
-            <select value={form.period_month} onChange={e=>setForm(f=>({...f,period_month:+e.target.value}))} className="aw-inp" style={{ width:"100%" }}>
-              {MONTHS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}
+            <select value={form.period_month} onChange={e => setForm(f => ({ ...f, period_month: +e.target.value }))} className="aw-inp" style={{ width: "100%" }}>
+              {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
             </select>
           </F>
-          <F label="Year"><input type="number" value={form.period_year} onChange={e=>setForm(f=>({...f,period_year:+e.target.value}))} className="aw-inp" style={{ width:"100%" }} /></F>
-          <F label="Budget Amount (PKR)"><input type="number" value={form.budget_amount} onChange={e=>setForm(f=>({...f,budget_amount:e.target.value}))} placeholder="0" className="aw-inp" style={{ width:"100%" }} /></F>
-          <F label="Notes"><input value={form.notes} onChange={e=>setForm(f=>({...f,notes:e.target.value}))} placeholder="Optional" className="aw-inp" style={{ width:"100%" }} /></F>
+          <F label="Year"><input type="number" value={form.period_year} onChange={e => setForm(f => ({ ...f, period_year: +e.target.value }))} className="aw-inp" style={{ width: "100%" }} /></F>
+          <F label="Budget Amount (PKR)"><input type="number" value={form.budget_amount} onChange={e => setForm(f => ({ ...f, budget_amount: e.target.value }))} placeholder="0" className="aw-inp" style={{ width: "100%" }} /></F>
+          <F label="Notes"><input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Optional" className="aw-inp" style={{ width: "100%" }} /></F>
         </div>
-        <button onClick={save} disabled={saving} className="aw-btn-primary" style={{ opacity:saving?0.6:1 }}>
+        <button onClick={save} disabled={saving} className="aw-btn-primary" style={{ opacity: saving ? 0.6 : 1 }}>
           {saving ? "Saving…" : "Save Budget"}
         </button>
       </Card>
 
-      <div style={{ display:"flex", gap:10, alignItems:"flex-end", flexWrap:"wrap" }}>
+      <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
         <div>
-          <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>Filter Month</p>
-          <select value={month} onChange={e=>setMonth(+e.target.value)} className="aw-inp">
-            {MONTHS.map((m,i)=><option key={i} value={i+1}>{m}</option>)}
+          <p style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 6 }}>Filter Month</p>
+          <select value={month} onChange={e => setMonth(+e.target.value)} className="aw-inp">
+            {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
           </select>
         </div>
         <div>
-          <p style={{ fontSize:11, fontWeight:700, color:W.textSec, textTransform:"uppercase", letterSpacing:".1em", marginBottom:6 }}>Year</p>
-          <input type="number" value={year} onChange={e=>setYear(+e.target.value)} className="aw-inp" style={{ width:90 }} />
+          <p style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 6 }}>Year</p>
+          <input type="number" value={year} onChange={e => setYear(+e.target.value)} className="aw-inp" style={{ width: 90 }} />
         </div>
         <button onClick={load} className="aw-btn-ghost">Filter</button>
       </div>
 
       {loading && <Spinner />}
       {!loading && (
-        <Card title={`Budgets — ${MONTHS[month-1]} ${year}`}>
+        <Card title={`Budgets — ${MONTHS[month - 1]} ${year}`}>
           <DataTable
             headers={[
-              { label:"Account / Sector" }, { label:"Type" },
-              { label:"Budget", right:true }, { label:"Period", right:true },
-              { label:"Action", right:true },
+              { label: "Account / Sector" }, { label: "Type" },
+              { label: "Budget", right: true }, { label: "Period", right: true },
+              { label: "Action", right: true },
             ]}
             emptyMsg="No budgets for this period."
             rows={budgets.map(b => [
-              { node: <span style={{ fontWeight:600, color:W.textPri }}>{b.account_name||(b.account_id?`Account #${b.account_id}`:b.sector_id)||"—"}</span> },
-              { node: <span style={{ fontSize:12, color:W.textSec, background:"#f1f5f9", padding:"2px 8px", borderRadius:6 }}>{b.budget_type}</span> },
-              { node: <span style={{ fontFamily:"monospace", fontWeight:700, color:W.accent }}>PKR {fmt(b.budget_amount)}</span>, style:{textAlign:"right"} },
-              { node: <span style={{ color:W.textSec }}>{MONTHS[b.period_month-1]} {b.period_year}</span>, style:{textAlign:"right"} },
-              { node: <button onClick={()=>remove(b.id)} style={{ background:"none", border:"none", color:W.red, fontSize:12, fontWeight:700, cursor:"pointer" }}>Delete</button>, style:{textAlign:"right"} },
+              { node: <span style={{ fontWeight: 600, color: W.textPri }}>{b.account_name || (b.account_id ? `Account #${b.account_id}` : b.sector_id) || "—"}</span> },
+              { node: <span style={{ fontSize: 12, color: W.textSec, background: "#f1f5f9", padding: "2px 8px", borderRadius: 6 }}>{b.budget_type}</span> },
+              { node: <span style={{ fontFamily: "monospace", fontWeight: 700, color: W.accent }}>PKR {fmt(b.budget_amount)}</span>, style: { textAlign: "right" } },
+              { node: <span style={{ color: W.textSec }}>{MONTHS[b.period_month - 1]} {b.period_year}</span>, style: { textAlign: "right" } },
+              { node: <button onClick={() => remove(b.id)} style={{ background: "none", border: "none", color: W.red, fontSize: 12, fontWeight: 700, cursor: "pointer" }}>Delete</button>, style: { textAlign: "right" } },
             ])}
           />
         </Card>
@@ -1015,7 +1015,7 @@ function VarianceTab({ companyId }) {
         status: r.status,
       }))
       .sort((a, b) => Math.abs(b.variance) - Math.abs(a.variance)),
-  [items]);
+    [items]);
 
   const varianceLayout = useMemo(() => computeChartLayout(
     rawVarianceRows.map((r) => r.account_name),
@@ -1070,7 +1070,7 @@ function VarianceTab({ companyId }) {
               {m.label}
             </button>
           ))}
-          
+
           {mode === "month" && (
             <div style={{ display: "flex", alignItems: "center", gap: 8, marginLeft: "auto", flexWrap: "wrap" }}>
               <span style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em" }}>Select Month:</span>
@@ -1228,12 +1228,12 @@ function VarianceTab({ companyId }) {
                   ]}
                   rows={data.trend.map((t) => {
                     const util = t.budget_amount > 0 ? (t.actual_amount / t.budget_amount) * 100 : 0;
-                    
+
                     let statusColor = PBI.positive;
                     let statusBg = "#dff6dd";
                     let statusEmoji = "🟢";
                     let statusText = "On Track";
-                    
+
                     if (util > 100 || (t.budget_amount === 0 && t.actual_amount > 0)) {
                       statusColor = PBI.negative;
                       statusBg = "#fde7e9";
@@ -1443,16 +1443,15 @@ export default function AnalyticsDashboard({ companyId }) {
       </div>
 
       {/* Analytics Navigation Tabs */}
-      <div className="flex items-center gap-2 mb-6 overflow-x-auto pb-2 hide-scrollbar w-full">
+      <div className="flex items-center justify-center gap-2 mb-6 overflow-x-auto pb-2 hide-scrollbar w-full">
         {TABS.map(tab => (
-          <button 
-            key={tab.id} 
+          <button
+            key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex-shrink-0 px-4 py-2.5 text-[13px] font-extrabold rounded-xl border transition-all cursor-pointer ${
-              activeTab === tab.id 
-                ? 'bg-gradient-to-r from-[#10b981] to-[#06b6d4] text-white border-transparent shadow-md shadow-emerald-500/20' 
+            className={`flex-shrink-0 px-4 py-2.5 text-[13px] font-extrabold rounded-xl border transition-all cursor-pointer ${activeTab === tab.id
+                ? 'bg-gradient-to-r from-[#10b981] to-[#06b6d4] text-white border-transparent shadow-md shadow-emerald-500/20'
                 : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700'
-            }`}
+              }`}
           >
             {tab.label}
           </button>
@@ -1461,11 +1460,11 @@ export default function AnalyticsDashboard({ companyId }) {
 
       {/* Content */}
       <div>
-        {activeTab === "trends"      && <TrendTab      companyId={cid} />}
+        {activeTab === "trends" && <TrendTab companyId={cid} />}
         {activeTab === "comparative" && <ComparativeTab companyId={cid} />}
-        {activeTab === "vertical"    && <VerticalTab    companyId={cid} />}
-        {activeTab === "sectors"     && <SectorTab      companyId={cid} />}
-        {activeTab === "operations"  && <OperationsTab  companyId={cid} />}
+        {activeTab === "vertical" && <VerticalTab companyId={cid} />}
+        {activeTab === "sectors" && <SectorTab companyId={cid} />}
+        {activeTab === "operations" && <OperationsTab companyId={cid} />}
       </div>
     </div>
   );
