@@ -6,10 +6,12 @@ router.use(authMiddleware);
 
 // Daily Operational Logging
 router.post('/:companyId/attendance',               companyGuard, requirePermission('user.manage'), payrollCtrl.recordAttendance);
+router.get('/:companyId/attendance/:employeeId',     companyGuard, requirePermission('user.manage'), payrollCtrl.getEmployeeAttendance);
 router.post('/:companyId/leaves',                   companyGuard, requirePermission('user.manage'), payrollCtrl.submitLeaveRequest);
 router.post('/:companyId/leaves/:id/approve',       companyGuard, requirePermission('user.manage'), payrollCtrl.approveLeaveRequest);
 router.get('/:companyId/leaves/balances/:employeeId', companyGuard, requirePermission('user.manage'), payrollCtrl.getLeaveBalances);
 router.post('/:companyId/overtime',                 companyGuard, requirePermission('user.manage'), payrollCtrl.recordOvertime);
+router.get('/:companyId/overtime/:employeeId',       companyGuard, requirePermission('user.manage'), payrollCtrl.getEmployeeOvertime);
 
 // Payroll Run Lifecycles
 router.post('/:companyId/runs',                     companyGuard, requirePermission('user.manage'), payrollCtrl.generatePayrollRun);

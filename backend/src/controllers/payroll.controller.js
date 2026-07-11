@@ -248,4 +248,30 @@ exports.validateFormulaExpression = async (req, res) => {
   }
 };
 
+exports.getEmployeeAttendance = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const { employeeId } = req.params;
+    const logs = await db('attendance_logs')
+      .where({ company_id: companyId, employee_id: employeeId })
+      .orderBy('date', 'desc');
+    res.json(logs);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.getEmployeeOvertime = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const { employeeId } = req.params;
+    const records = await db('overtime_records')
+      .where({ company_id: companyId, employee_id: employeeId })
+      .orderBy('date', 'desc');
+    res.json(records);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
 

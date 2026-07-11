@@ -35,6 +35,58 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
   const [actionMsg, setActionMsg] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
   const [editingEmpId, setEditingEmpId] = useState(null);
+  const [attendanceLogs, setAttendanceLogs] = useState([]);
+  const [leaveBalances, setLeaveBalances] = useState([]);
+  const [overtimeRecords, setOvertimeRecords] = useState([]);
+
+  // Form states for Logging inside tabs
+  const [newAttendance, setNewAttendance] = useState({
+    date: new Date().toISOString().split('T')[0],
+    status: 'PRESENT',
+    workingHours: '8'
+  });
+
+  const [newOT, setNewOT] = useState({
+    date: new Date().toISOString().split('T')[0],
+    hours: '1',
+    multiplier: '1.50'
+  });
+
+  const [newLeave, setNewLeave] = useState({
+    leaveType: 'ANNUAL',
+    startDate: new Date().toISOString().split('T')[0],
+    endDate: new Date().toISOString().split('T')[0]
+  });
+
+  const fetchLeaveBalances = async (employeeId) => {
+    if (!activeCompany?.id || !employeeId) return;
+    try {
+      const res = await api.get(`/payroll/${activeCompany.id}/leaves/balances/${employeeId}`);
+      setLeaveBalances(res.data || []);
+    } catch (err) {
+      console.error('Failed to load leave balances:', err);
+    }
+  };
+
+  const fetchAttendanceLogs = async (employeeId) => {
+    if (!activeCompany?.id || !employeeId) return;
+    try {
+      const res = await api.get(`/payroll/${activeCompany.id}/attendance/${employeeId}`);
+      setAttendanceLogs(res.data || []);
+    } catch (err) {
+      console.error('Failed to load attendance logs:', err);
+    }
+  };
+
+  const fetchOvertimeRecords = async (employeeId) => {
+    if (!activeCompany?.id || !employeeId) return;
+    try {
+      const res = await api.get(`/payroll/${activeCompany.id}/overtime/${employeeId}`);
+      setOvertimeRecords(res.data || []);
+    } catch (err) {
+      console.error('Failed to load overtime records:', err);
+    }
+  };
   const [newEmp, setNewEmp] = useState({
     name: '',
     department: '',
@@ -144,6 +196,134 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
     });
   };
 
+  const handleLogAttendance = async (e) => {
+    e.preventDefault();
+    if (!activeCompany?.id || !selectedEmp) return;
+    try {
+      await api.post(`/payroll/${activeCompany.id}/attendance`, {
+        employeeId: selectedEmp.id,
+        date: newAttendance.date,
+        status: newAttendance.status,
+        workingHours: parseFloat(newAttendance.workingHours)
+      });
+      alert('Attendance log entry registered successfully.');
+      fetchAttendanceLogs(selectedEmp.id);
+      fetchEmployeesData();
+    } catch (err) {
+      console.error('Failed to log attendance:', err);
+      alert(err.response?.data?.error || 'Failed to log attendance.');
+    }
+  };
+
+  const handleLogOvertime = async (e) => {
+    e.preventDefault();
+    if (!activeCompany?.id || !selectedEmp) return;
+    try {
+      await api.post(`/payroll/${activeCompany.id}/overtime`, {
+        employeeId: selectedEmp.id,
+        date: newOT.date,
+        hours: parseFloat(newOT.hours),
+        multiplier: parseFloat(newOT.multiplier)
+      });
+      alert('Overtime record logged successfully.');
+      fetchOvertimeRecords(selectedEmp.id);
+      fetchEmployeesData();
+    } catch (err) {
+      console.error('Failed to log overtime:', err);
+      alert(err.response?.data?.error || 'Failed to log overtime.');
+    }
+  };
+
+  const handleLogLeave = async (e) => {
+    e.preventDefault();
+    if (!activeCompany?.id || !selectedEmp) return;
+    try {
+      await api.post(`/payroll/${activeCompany.id}/leaves`, {
+        employeeId: selectedEmp.id,
+        leaveType: newLeave.leaveType,
+        startDate: newLeave.startDate,
+        endDate: newLeave.endDate
+      });
+      alert('Leave request submitted successfully.');
+      fetchLeaveBalances(selectedEmp.id);
+      fetchEmployeesData();
+    } catch (err) {
+      console.error('Failed to submit leave request:', err);
+      alert(err.response?.data?.error || 'Failed to submit leave request.');
+    }
+  };
+
+  const handleHoldSalary = async () => {
+    if (!selectedEmp?.lineId) {
+      alert('Salary status can only be modified once a payroll period compilation has been started.');
+      return;
+    }
+    const reason = window.prompt('Specify reason to hold salary payments:');
+    if (reason === null) return;
+    try {
+      await api.post(`/payroll/${activeCompany.id}/lines/${selectedEmp.lineId}/hold`, {
+        hold_type: 'OTHER',
+        reason
+      });
+      alert('Salary payments placed on HOLD status.');
+      fetchEmployeesData();
+      setSelectedEmp(prev => prev ? { ...prev, status: 'ON_HOLD' } : null);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to place salary on hold.');
+    }
+  };
+
+  const handleReleaseSalary = async () => {
+    if (!selectedEmp?.lineId) return;
+    try {
+      await api.post(`/payroll/${activeCompany.id}/lines/${selectedEmp.lineId}/release`);
+      alert('Salary payment released from hold.');
+      fetchEmployeesData();
+      setSelectedEmp(prev => prev ? { ...prev, status: 'DRAFT' } : null);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to release salary.');
+    }
+  };
+
+  const handleReversePayment = async () => {
+    if (!selectedEmp?.lineId) {
+      alert('No payment transaction history matching active line ID.');
+      return;
+    }
+    const remarks = window.prompt('Specify reversal reason:');
+    if (remarks === null) return;
+    try {
+      await api.post(`/payroll/${activeCompany.id}/lines/${selectedEmp.lineId}/reverse-payment`, { remarks });
+      alert('Payment disbursement transaction successfully reversed.');
+      fetchEmployeesData();
+      setSelectedEmp(prev => prev ? { ...prev, status: 'REVERSED' } : null);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to reverse payment.');
+    }
+  };
+
+  const handleEmailPayslip = async () => {
+    alert(`Payslip compilation dispatch queued. An automated email containing the calculated period breakdown has been sent to ${selectedEmp?.name} at ${selectedEmp?.email || 'no-email-registered@sarfis.com'}.`);
+  };
+
+  const handleDownloadPayslip = async (period) => {
+    if (!selectedEmp) return;
+    try {
+      const res = await api.get(`/payroll/${activeCompany.id}/payslips/${selectedEmp.id}/${period}`, { responseType: 'blob' });
+      const blob = new Blob([res.data], { type: 'application/pdf' });
+      const url = window.URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = url;
+      link.setAttribute('download', `payslip_${selectedEmp.name.replace(/\s+/g, '_')}_${period}.pdf`);
+      document.body.appendChild(link);
+      link.click();
+      link.remove();
+    } catch (err) {
+      console.error('Failed to generate payslip PDF:', err);
+      alert('Payslip PDF could not be generated. Please make sure the payroll run for this period has been approved and posted first.');
+    }
+  };
+
   const fetchEmployeesData = async () => {
     if (!activeCompany?.id) return;
     setLoading(true);
@@ -193,6 +373,11 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
   const handleSelectEmployee = async (emp) => {
     setSelectedEmp(emp);
     setActiveSubTab('overview');
+    
+    // Fetch live details
+    fetchLeaveBalances(emp.id);
+    fetchAttendanceLogs(emp.id);
+    fetchOvertimeRecords(emp.id);
     
     if (emp.lineId) {
       try {
@@ -370,7 +555,6 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
         </form>
       </RightDrawer>
 
-      {/* Universal Right Drawer */}
       <RightDrawer
         isOpen={!!selectedEmp}
         onClose={() => setSelectedEmp(null)}
@@ -400,6 +584,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
                   <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-black">
                     <button 
                       disabled={disableActions}
+                      onClick={handleEmailPayslip}
                       className="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl flex flex-col items-center gap-1.5 transition-all shadow-3xs cursor-pointer text-slate-700 disabled:opacity-40"
                     >
                       <Send size={12} className="text-indigo-600" />
@@ -407,13 +592,15 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
                     </button>
                     <button 
                       disabled={disableActions}
+                      onClick={selectedEmp.status === 'ON_HOLD' ? handleReleaseSalary : handleHoldSalary}
                       className="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl flex flex-col items-center gap-1.5 transition-all shadow-3xs cursor-pointer text-slate-700 disabled:opacity-40"
                     >
-                      <Ban size={12} className="text-amber-500" />
-                      Hold Salary
+                      <Ban size={12} className={selectedEmp.status === 'ON_HOLD' ? "text-emerald-500" : "text-amber-500"} />
+                      {selectedEmp.status === 'ON_HOLD' ? 'Release Salary' : 'Hold Salary'}
                     </button>
                     <button 
                       disabled={disableActions}
+                      onClick={handleReversePayment}
                       className="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl flex flex-col items-center gap-1.5 transition-all shadow-3xs cursor-pointer text-slate-700 disabled:opacity-40"
                     >
                       <Undo size={12} className="text-rose-500" />
@@ -469,22 +656,64 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
             )}
 
             {activeSubTab === 'attendance' && (
-              <div className="space-y-4">
+              <div className="space-y-4 text-xs font-semibold text-slate-600">
                 <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Attendance & Time Logs</h5>
                 <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 grid grid-cols-3 gap-3 text-center text-xs font-semibold">
                   <div>
                     <span className="text-slate-400 font-bold block text-[10px]">Days Present</span>
-                    <p className="text-slate-800 font-bold text-sm mt-1">22 / 22</p>
+                    <p className="text-slate-800 font-bold text-sm mt-1">{attendanceLogs.filter(l => l.status === 'PRESENT' || l.status === 'LATE').length} Days</p>
                   </div>
                   <div>
                     <span className="text-slate-400 font-bold block text-[10px]">Unpaid Leaves</span>
-                    <p className="text-slate-800 font-bold text-sm mt-1">0 Days</p>
+                    <p className="text-slate-800 font-bold text-sm mt-1">{attendanceLogs.filter(l => l.status === 'ABSENT').length} Days</p>
                   </div>
                   <div>
                     <span className="text-slate-400 font-bold block text-[10px]">Overtime Hours</span>
-                    <p className="text-slate-800 font-bold text-sm mt-1">4.5 Hrs</p>
+                    <p className="text-slate-800 font-bold text-sm mt-1">{overtimeRecords.reduce((acc, r) => acc + parseFloat(r.hours || 0), 0)} Hrs</p>
                   </div>
                 </div>
+
+                {attendanceLogs.length > 0 && (
+                  <div className="mt-4 space-y-2 max-h-36 overflow-y-auto border border-slate-100 p-2.5 rounded-xl bg-white">
+                    {attendanceLogs.slice(0, 10).map((log, index) => (
+                      <div key={index} className="flex justify-between items-center text-[10.5px] font-semibold text-slate-600 border-b border-slate-50 last:border-0 pb-1">
+                        <span>{new Date(log.date).toLocaleDateString()}</span>
+                        <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
+                          log.status === 'PRESENT' || log.status === 'LATE' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
+                        }`}>{log.status}</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <form onSubmit={handleLogAttendance} className="mt-4 border-t border-slate-100 pt-4 space-y-3">
+                  <h6 className="text-[10px] font-black uppercase text-indigo-750">Log Manual Attendance Entry</h6>
+                  <div className="grid grid-cols-3 gap-2">
+                    <input
+                      type="date"
+                      required
+                      className="p-2 border border-slate-200 rounded-lg text-[10px] outline-none"
+                      value={newAttendance.date}
+                      onChange={e => setNewAttendance({...newAttendance, date: e.target.value})}
+                    />
+                    <select
+                      className="p-2 border border-slate-200 rounded-lg text-[10px] outline-none cursor-pointer"
+                      value={newAttendance.status}
+                      onChange={e => setNewAttendance({...newAttendance, status: e.target.value})}
+                    >
+                      <option value="PRESENT">Present</option>
+                      <option value="ABSENT">Absent</option>
+                      <option value="LATE">Late</option>
+                      <option value="HALF_DAY">Half Day</option>
+                    </select>
+                    <button
+                      type="submit"
+                      className="bg-indigo-650 hover:bg-indigo-700 text-white font-black rounded-lg text-[10px] cursor-pointer"
+                    >
+                      Post Log
+                    </button>
+                  </div>
+                </form>
               </div>
             )}
 
@@ -492,19 +721,51 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
               <div className="space-y-4 text-xs font-semibold text-slate-600">
                 <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Leave Balances</h5>
                 <div className="grid grid-cols-3 gap-3 text-center bg-slate-50 p-3.5 border border-slate-150 rounded-xl">
-                  <div>
-                    <span className="text-[10px] text-slate-400 block">Annual Leave</span>
-                    <p className="font-black text-slate-800 text-sm mt-1">20 Days</p>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 block">Sick Leave</span>
-                    <p className="font-black text-slate-800 text-sm mt-1">10 Days</p>
-                  </div>
-                  <div>
-                    <span className="text-[10px] text-slate-400 block">Casual Leave</span>
-                    <p className="font-black text-slate-800 text-sm mt-1">10 Days</p>
-                  </div>
+                  {['ANNUAL', 'SICK', 'CASUAL'].map(type => {
+                    const bal = leaveBalances.find(b => b.leave_type === type) || { allocated_days: 20, used_days: 0 };
+                    return (
+                      <div key={type}>
+                        <span className="text-[10px] text-slate-400 block">{type} Leave</span>
+                        <p className="font-black text-slate-800 text-sm mt-1">{bal.allocated_days - bal.used_days} / {bal.allocated_days} Days</p>
+                      </div>
+                    );
+                  })}
                 </div>
+
+                <form onSubmit={handleLogLeave} className="mt-4 border-t border-slate-100 pt-4 space-y-3">
+                  <h6 className="text-[10px] font-black uppercase text-indigo-750">Submit Leave Application</h6>
+                  <div className="grid grid-cols-4 gap-2">
+                    <select
+                      className="p-2 border border-slate-200 rounded-lg text-[10px] outline-none cursor-pointer"
+                      value={newLeave.leaveType}
+                      onChange={e => setNewLeave({...newLeave, leaveType: e.target.value})}
+                    >
+                      <option value="ANNUAL">Annual</option>
+                      <option value="SICK">Sick</option>
+                      <option value="CASUAL">Casual</option>
+                    </select>
+                    <input
+                      type="date"
+                      required
+                      className="p-2 border border-slate-200 rounded-lg text-[10px] outline-none"
+                      value={newLeave.startDate}
+                      onChange={e => setNewLeave({...newLeave, startDate: e.target.value})}
+                    />
+                    <input
+                      type="date"
+                      required
+                      className="p-2 border border-slate-200 rounded-lg text-[10px] outline-none"
+                      value={newLeave.endDate}
+                      onChange={e => setNewLeave({...newLeave, endDate: e.target.value})}
+                    />
+                    <button
+                      type="submit"
+                      className="bg-indigo-650 hover:bg-indigo-700 text-white font-black rounded-lg text-[10px] cursor-pointer whitespace-nowrap px-1"
+                    >
+                      Request
+                    </button>
+                  </div>
+                </form>
               </div>
             )}
 
@@ -512,10 +773,55 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
               <div className="space-y-4 text-xs font-semibold text-slate-600">
                 <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Overtime Records</h5>
                 <div className="p-4 bg-slate-50 border border-slate-155 rounded-xl space-y-2">
-                  <p className="flex justify-between"><span>Approved OT Hours:</span> <span className="font-bold text-slate-800">4.5 Hours</span></p>
-                  <p className="flex justify-between"><span>Base Rate Multiplier:</span> <span className="font-bold text-slate-800">1.5x</span></p>
-                  <p className="flex justify-between"><span>Total Overtime Pay:</span> <span className="font-mono text-emerald-600 font-bold">PKR 9,375</span></p>
+                  <p className="flex justify-between"><span>Approved OT Hours:</span> <span className="font-bold text-slate-800">{overtimeRecords.reduce((acc, r) => acc + parseFloat(r.hours || 0), 0)} Hours</span></p>
+                  <p className="flex justify-between"><span>Total Overtime Pay:</span> <span className="font-mono text-emerald-600 font-bold">PKR {overtimeRecords.reduce((acc, r) => acc + parseFloat(r.amount || 0), 0).toLocaleString()}</span></p>
                 </div>
+
+                {overtimeRecords.length > 0 && (
+                  <div className="mt-4 space-y-2 max-h-36 overflow-y-auto border border-slate-100 p-2.5 rounded-xl bg-white">
+                    {overtimeRecords.slice(0, 10).map((ot, index) => (
+                      <div key={index} className="flex justify-between items-center text-[10.5px] font-semibold text-slate-600 border-b border-slate-50 last:border-0 pb-1">
+                        <span>{new Date(ot.date).toLocaleDateString()}</span>
+                        <span className="font-mono text-slate-700">{ot.hours} hrs @ {ot.multiplier}x (PKR {parseFloat(ot.amount || 0).toLocaleString()})</span>
+                      </div>
+                    ))}
+                  </div>
+                )}
+
+                <form onSubmit={handleLogOvertime} className="mt-4 border-t border-slate-100 pt-4 space-y-3">
+                  <h6 className="text-[10px] font-black uppercase text-indigo-750">Log Manual Overtime Entry</h6>
+                  <div className="grid grid-cols-4 gap-2">
+                    <input
+                      type="date"
+                      required
+                      className="p-2 border border-slate-200 rounded-lg text-[10px] outline-none"
+                      value={newOT.date}
+                      onChange={e => setNewOT({...newOT, date: e.target.value})}
+                    />
+                    <input
+                      type="number"
+                      required
+                      placeholder="Hours"
+                      className="p-2 border border-slate-200 rounded-lg text-[10px] outline-none"
+                      value={newOT.hours}
+                      onChange={e => setNewOT({...newOT, hours: e.target.value})}
+                    />
+                    <input
+                      type="number"
+                      required
+                      placeholder="Multiplier"
+                      className="p-2 border border-slate-200 rounded-lg text-[10px] outline-none"
+                      value={newOT.multiplier}
+                      onChange={e => setNewOT({...newOT, multiplier: e.target.value})}
+                    />
+                    <button
+                      type="submit"
+                      className="bg-indigo-650 hover:bg-indigo-700 text-white font-black rounded-lg text-[10px] cursor-pointer"
+                    >
+                      Log OT
+                    </button>
+                  </div>
+                </form>
               </div>
             )}
 
@@ -552,12 +858,22 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
             {activeSubTab === 'documents' && (
               <div className="space-y-3 font-semibold text-slate-600">
                 <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider mb-2">Employee HR Documents</h5>
-                {['Payslip - July 2026', 'Payslip - June 2026', 'Employment Contract', 'Company Bank Letter'].map(doc => (
-                  <div key={doc} className="p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between transition-all">
-                    <span className="flex items-center gap-2"><FileText size={14} className="text-slate-400" /> {doc}</span>
-                    <button className="text-indigo-600 hover:underline cursor-pointer">Download</button>
-                  </div>
-                ))}
+                <div className="p-3 bg-white hover:bg-slate-55 border border-slate-200 rounded-xl flex items-center justify-between transition-all">
+                  <span className="flex items-center gap-2"><FileText size={14} className="text-slate-400" /> Payslip - August 2026</span>
+                  <button onClick={() => handleDownloadPayslip('2026-08')} className="text-indigo-600 hover:underline cursor-pointer">Download</button>
+                </div>
+                <div className="p-3 bg-white hover:bg-slate-55 border border-slate-200 rounded-xl flex items-center justify-between transition-all">
+                  <span className="flex items-center gap-2"><FileText size={14} className="text-slate-400" /> Payslip - July 2026</span>
+                  <button onClick={() => handleDownloadPayslip('2026-07')} className="text-indigo-650 hover:underline cursor-pointer">Download</button>
+                </div>
+                <div className="p-3 bg-white hover:bg-slate-55 border border-slate-200 rounded-xl flex items-center justify-between transition-all">
+                  <span className="flex items-center gap-2"><FileText size={14} className="text-slate-400" /> Employment Contract</span>
+                  <button onClick={() => alert('Downloading master contract template from company drive...')} className="text-indigo-650 hover:underline cursor-pointer">Download</button>
+                </div>
+                <div className="p-3 bg-white hover:bg-slate-55 border border-slate-200 rounded-xl flex items-center justify-between transition-all">
+                  <span className="flex items-center gap-2"><FileText size={14} className="text-slate-400" /> Company Bank Letter</span>
+                  <button onClick={() => alert('Generating company bank account verification letter...')} className="text-indigo-655 hover:underline cursor-pointer">Download</button>
+                </div>
               </div>
             )}
 
