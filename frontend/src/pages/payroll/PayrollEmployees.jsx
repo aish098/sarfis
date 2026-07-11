@@ -2,7 +2,8 @@ import React, { useState, useEffect } from 'react';
 import { 
   Plus, Search, Trash2, Edit2, Eye, Landmark, User, FileText, 
   MapPin, CheckCircle, X, ShieldAlert, Calendar, DollarSign, Wrench, 
-  Activity, Users, ClipboardList, Send, Ban, Undo
+  Activity, Users, ClipboardList, Send, Ban, Undo, Clock, CalendarDays,
+  ActivitySquare
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -24,18 +25,15 @@ export default function PayrollEmployees({ userRole }) {
     pastPayments: []
   });
   
-  const [activeSubTab, setActiveSubTab] = useState('overview'); // overview | salary | history | attendance | loans | adjustments | documents | audit
+  const [activeSubTab, setActiveSubTab] = useState('overview'); // overview | payroll | attendance | leave | overtime | loans | payments | documents | audit | timeline
 
   const fetchEmployeesData = async () => {
     if (!activeCompany?.id) return;
     setLoading(true);
     try {
-      // 1. Fetch base employees
       const baseRes = await api.get(`/employees/${activeCompany.id}`);
       const baseList = baseRes.data || [];
 
-      // 2. Fetch workspace payroll lines for latest run period
-      // Let's resolve latest run period from register first
       let currentPeriod = '2026-08';
       try {
         const runsRes = await api.get(`/payroll/${activeCompany.id}/reports/register`);
@@ -47,7 +45,6 @@ export default function PayrollEmployees({ userRole }) {
       const wsLinesRes = await api.get(`/payroll/${activeCompany.id}/employees?period=${currentPeriod}`);
       const wsLines = wsLinesRes.data || [];
 
-      // Combine lists
       const combined = baseList.map(emp => {
         const matchingLine = wsLines.find(line => line.employee_id === emp.id);
         return {
@@ -60,8 +57,7 @@ export default function PayrollEmployees({ userRole }) {
           bankAccount: emp.bank_account || 'PK12HABB0000123456789012',
           salary: parseFloat(emp.salary || 0),
           status: matchingLine ? matchingLine.payment_status : 'DRAFT',
-          lineId: matchingLine ? matchingLine.line_id : null,
-          notificationsCount: 0
+          lineId: matchingLine ? matchingLine.line_id : null
         };
       });
 
@@ -96,7 +92,6 @@ export default function PayrollEmployees({ userRole }) {
         console.error('Failed to fetch employee details payload:', err);
       }
     } else {
-      // Setup dynamic fallback for employees with no active period run generated yet
       setEmpDetails({
         line: { basic_salary: emp.salary * 0.6, house_rent: emp.salary * 0.25, medical_allowance: emp.salary * 0.10, transport_allowance: emp.salary * 0.05, gross_salary: emp.salary, net_salary: emp.salary },
         run: null,
@@ -119,22 +114,19 @@ export default function PayrollEmployees({ userRole }) {
     e.department.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
-  const salaryTimeline = [
-    { period: '2023-01', amount: selectedEmp ? selectedEmp.salary * 0.7 : 100000, event: 'Joining Base Salary' },
-    { period: '2024-01', amount: selectedEmp ? selectedEmp.salary * 0.8 : 120000, event: 'Annual Increment (Market Adjustment)' },
-    { period: '2025-01', amount: selectedEmp ? selectedEmp.salary * 0.9 : 150000, event: 'Promotion' },
-    { period: '2026-01', amount: selectedEmp ? selectedEmp.salary : 180000, event: 'Current Base Salary' },
-  ];
-
-  const projectAllocations = [
-    { project: 'Finance System Modules Development', share: '40%' },
-    { project: 'Distribution Operations Platform Support', share: '60%' },
+  const careerTimeline = [
+    { title: 'Joined Company', desc: 'Hired as Staff Associate', date: 'Jan 2023' },
+    { title: 'Promotion Evaluated', desc: 'Promoted to Senior Associate role', date: 'Jan 2024' },
+    { title: 'Salary Increase Approved', desc: 'Adjusted basic pay slab due to performance', date: 'Jan 2025' },
+    { title: 'Payroll Run Calculated', desc: 'Verified gross salary calculation metrics', date: 'Aug 2026' },
+    { title: 'Direct Deposit Paid', desc: 'Bank transfer cleared matching JV voucher', date: 'Aug 2026' }
   ];
 
   const disableActions = userRole === 'Auditor';
 
   return (
     <div className="space-y-6 text-xs font-semibold text-slate-600 relative">
+      
       {/* 360 Degree Employee Detail Profile Drawer */}
       {selectedEmp && (
         <div className="fixed inset-y-0 right-0 w-[550px] bg-white border-l border-slate-200 shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-200">
@@ -149,20 +141,20 @@ export default function PayrollEmployees({ userRole }) {
                 <p className="text-[10px] text-slate-400 font-semibold">{selectedEmp.role} — {selectedEmp.department}</p>
               </div>
             </div>
-            <button onClick={() => setSelectedEmp(null)} className="p-1 hover:bg-slate-100 rounded text-slate-400">
+            <button onClick={() => setSelectedEmp(null)} className="p-1 hover:bg-slate-100 rounded text-slate-400 cursor-pointer">
               <X size={16} />
             </button>
           </div>
 
           {/* Sub Tab Navigation */}
           <div className="flex border-b border-slate-100 bg-slate-50/50 px-4 text-[10px] font-black uppercase tracking-wider overflow-x-auto custom-scrollbar">
-            {['overview', 'salary', 'history', 'attendance', 'loans', 'adjustments', 'documents', 'audit'].map(tab => (
+            {['overview', 'payroll', 'attendance', 'leave', 'overtime', 'loans', 'payments', 'documents', 'audit', 'timeline'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveSubTab(tab)}
                 className={`px-3 py-3 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
                   activeSubTab === tab 
-                    ? 'border-indigo-600 text-indigo-700' 
+                    ? 'border-indigo-600 text-indigo-700 font-bold' 
                     : 'border-transparent text-slate-400 hover:text-slate-600'
                 }`}
               >
@@ -186,7 +178,6 @@ export default function PayrollEmployees({ userRole }) {
                   </div>
                 </div>
 
-                {/* Quick Actions Console */}
                 <div className="space-y-2">
                   <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Quick Actions</h5>
                   <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-black">
@@ -209,21 +200,8 @@ export default function PayrollEmployees({ userRole }) {
                       className="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl flex flex-col items-center gap-1.5 transition-all shadow-3xs cursor-pointer text-slate-700 disabled:opacity-40"
                     >
                       <Undo size={12} className="text-rose-500" />
-                      Reverse Payout
+                      Reverse Payment
                     </button>
-                  </div>
-                </div>
-
-                {/* Project Cost Allocation */}
-                <div className="space-y-2">
-                  <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">FP&A Project Cost Allocation</h5>
-                  <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2 font-semibold text-slate-600">
-                    {projectAllocations.map(alloc => (
-                      <div key={alloc.project} className="flex justify-between items-center gap-4">
-                        <span className="truncate">{alloc.project}</span>
-                        <span className="font-bold text-indigo-600 shrink-0 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">{alloc.share}</span>
-                      </div>
-                    ))}
                   </div>
                 </div>
 
@@ -238,7 +216,7 @@ export default function PayrollEmployees({ userRole }) {
               </div>
             )}
 
-            {activeSubTab === 'salary' && (
+            {activeSubTab === 'payroll' && (
               <div className="space-y-4">
                 <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Salary Components Breakdown</h5>
                 <div className="border border-slate-100 rounded-2xl overflow-hidden text-xs font-semibold text-slate-600">
@@ -273,21 +251,6 @@ export default function PayrollEmployees({ userRole }) {
               </div>
             )}
 
-            {activeSubTab === 'history' && (
-              <div className="space-y-4">
-                <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Salary History & Increments</h5>
-                <div className="relative border-l border-slate-100 pl-4 ml-2 space-y-5 text-xs font-semibold text-slate-600">
-                  {salaryTimeline.map(line => (
-                    <div key={line.period} className="relative">
-                      <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-indigo-500 ring-4 ring-white" />
-                      <p className="text-slate-800 font-bold">{line.period} — PKR {line.amount.toLocaleString()}</p>
-                      <p className="text-[10.5px] text-slate-400 mt-0.5 font-normal">{line.event}</p>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
             {activeSubTab === 'attendance' && (
               <div className="space-y-4">
                 <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Attendance & Time Logs</h5>
@@ -308,6 +271,37 @@ export default function PayrollEmployees({ userRole }) {
               </div>
             )}
 
+            {activeSubTab === 'leave' && (
+              <div className="space-y-4 text-xs font-semibold text-slate-600">
+                <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Leave Balances</h5>
+                <div className="grid grid-cols-3 gap-3 text-center bg-slate-50 p-3.5 border border-slate-150 rounded-xl">
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Annual Leave</span>
+                    <p className="font-black text-slate-800 text-sm mt-1">20 Days</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Sick Leave</span>
+                    <p className="font-black text-slate-800 text-sm mt-1">10 Days</p>
+                  </div>
+                  <div>
+                    <span className="text-[10px] text-slate-400 block">Casual Leave</span>
+                    <p className="font-black text-slate-800 text-sm mt-1">10 Days</p>
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {activeSubTab === 'overtime' && (
+              <div className="space-y-4 text-xs font-semibold text-slate-600">
+                <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Overtime Records</h5>
+                <div className="p-4 bg-slate-50 border border-slate-150 rounded-xl space-y-2">
+                  <p className="flex justify-between"><span>Approved OT Hours:</span> <span className="font-bold text-slate-800">4.5 Hours</span></p>
+                  <p className="flex justify-between"><span>Base Rate Multiplier:</span> <span className="font-bold text-slate-800">1.5x</span></p>
+                  <p className="flex justify-between"><span>Total Overtime Pay:</span> <span className="font-mono text-emerald-600 font-bold">PKR 9,375</span></p>
+                </div>
+              </div>
+            )}
+
             {activeSubTab === 'loans' && (
               <div className="space-y-4">
                 <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Corporate Loans & Advances</h5>
@@ -317,21 +311,22 @@ export default function PayrollEmployees({ userRole }) {
               </div>
             )}
 
-            {activeSubTab === 'adjustments' && (
-              <div className="space-y-4">
-                <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Salary Adjustments</h5>
-                {empDetails.adjustments.length > 0 ? (
-                  <div className="space-y-2">
-                    {empDetails.adjustments.map(adj => (
-                      <div key={adj.id} className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between font-semibold">
-                        <span>{adj.reason || 'Bonus Adjustment'}</span>
-                        <span className="font-mono text-slate-850">PKR {parseFloat(adj.amount || 0).toLocaleString()}</span>
+            {activeSubTab === 'payments' && (
+              <div className="space-y-3">
+                <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Disbursement Clearance History</h5>
+                {empDetails.pastPayments.length > 0 ? (
+                  empDetails.pastPayments.map(pay => (
+                    <div key={pay.id} className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center font-semibold text-xs text-slate-700">
+                      <div>
+                        <span className="font-bold">Period {pay.period}</span>
+                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">Ref: {pay.bank_reference || 'FT-001'}</p>
                       </div>
-                    ))}
-                  </div>
+                      <span className="font-mono font-black">PKR {parseFloat(pay.net_salary || 0).toLocaleString()}</span>
+                    </div>
+                  ))
                 ) : (
-                  <div className="p-8 bg-slate-50 border border-slate-200 border-dashed rounded-2xl text-center text-slate-400 text-xs font-bold">
-                    No payroll adjustments logged for the current active period.
+                  <div className="p-4 bg-slate-50 border border-slate-150 rounded-xl text-center text-slate-400">
+                    No historical disbursement clearings matched.
                   </div>
                 )}
               </div>
@@ -340,7 +335,7 @@ export default function PayrollEmployees({ userRole }) {
             {activeSubTab === 'documents' && (
               <div className="space-y-3 font-semibold text-slate-600">
                 <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider mb-2">Employee HR Documents</h5>
-                {['Payslip - July 2026', 'Payslip - June 2026', 'Employment Contract', 'Company Bank Letter', 'Tax Year 2026 Certificate'].map(doc => (
+                {['Payslip - July 2026', 'Payslip - June 2026', 'Employment Contract', 'Company Bank Letter'].map(doc => (
                   <div key={doc} className="p-3 bg-white hover:bg-slate-50 border border-slate-200 rounded-xl flex items-center justify-between transition-all">
                     <span className="flex items-center gap-2"><FileText size={14} className="text-slate-400" /> {doc}</span>
                     <button className="text-indigo-600 hover:underline cursor-pointer">Download</button>
@@ -375,6 +370,21 @@ export default function PayrollEmployees({ userRole }) {
                 </div>
               </div>
             )}
+
+            {activeSubTab === 'timeline' && (
+              <div className="space-y-4">
+                <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Employee Career & Payout Lifecycle</h5>
+                <div className="relative border-l border-slate-150 pl-4 ml-2 space-y-5 text-xs font-semibold text-slate-600">
+                  {careerTimeline.map((step, idx) => (
+                    <div key={idx} className="relative">
+                      <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-indigo-600 ring-4 ring-white" />
+                      <p className="text-slate-800 font-black flex justify-between"><span>{step.title}</span> <span className="text-[10px] text-slate-400 font-mono font-normal">{step.date}</span></p>
+                      <p className="text-[10.5px] text-slate-400 mt-0.5 font-normal leading-relaxed">{step.desc}</p>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
         </div>
       )}
@@ -398,8 +408,46 @@ export default function PayrollEmployees({ userRole }) {
         </button>
       </div>
 
-      {/* Directory Table */}
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden">
+      {/* Responsive Employee Directory: Grid of cards on Mobile, Table on Desktop */}
+      
+      {/* Mobile view cards */}
+      <div className="grid grid-cols-1 gap-4 md:hidden">
+        {filtered.map(emp => (
+          <div key={emp.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-3xs space-y-3 text-xs font-semibold text-slate-600">
+            <div className="flex justify-between items-start">
+              <div>
+                <h4 className="font-extrabold text-slate-800 text-sm">{emp.name}</h4>
+                <p className="text-[10.5px] text-slate-400 mt-0.5">{emp.role} • {emp.department}</p>
+              </div>
+              <span className={`px-2 py-0.5 rounded text-[8.5px] font-black border ${
+                emp.status === 'PAID' || emp.status === 'Paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                emp.status === 'PROCESSING' || emp.status === 'Processing' ? 'bg-blue-50 text-blue-700 border-blue-100' :
+                'bg-amber-50 text-amber-700 border-amber-100'
+              }`}>
+                {emp.status}
+              </span>
+            </div>
+            
+            <div className="border-t border-slate-50 pt-2 flex justify-between items-center">
+              <div>
+                <span className="text-[9.5px] text-slate-400 block font-normal">Monthly Base Pay</span>
+                <span className="font-mono font-bold text-slate-800">PKR {emp.salary.toLocaleString()}</span>
+              </div>
+              <div className="flex items-center gap-1.5">
+                <button 
+                  onClick={() => handleSelectEmployee(emp)}
+                  className="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 cursor-pointer"
+                >
+                  Open 360°
+                </button>
+              </div>
+            </div>
+          </div>
+        ))}
+      </div>
+
+      {/* Desktop view Table */}
+      <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden hidden md:block">
         <div className="overflow-x-auto">
           <table className="w-full text-left border-collapse">
             <thead>
