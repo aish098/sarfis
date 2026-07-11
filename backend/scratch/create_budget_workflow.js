@@ -39,13 +39,13 @@ async function run() {
       // Clean up old stages to rebuild cleanly
       await db('workflow_stages').where({ workflow_definition_id: definition.id }).delete();
 
-      // 3. Insert Stage: Finance Manager Review (requires analytics.view permission)
+      // 3. Insert Stage: Finance Manager Review (requires no role/permission locks for testing)
       await db('workflow_stages').insert({
         workflow_definition_id: definition.id,
         stage_sequence: 1,
         name: 'Finance Manager Budget Review',
-        required_role: 'Company Admin', // Matches the active logged-in role
-        required_permission: 'analytics.view',
+        required_role: null,
+        required_permission: null,
         approval_mode: 'SEQUENTIAL'
       });
 
