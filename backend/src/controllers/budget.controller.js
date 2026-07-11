@@ -440,7 +440,7 @@ exports.createRevision = async (req, res) => {
 // Execute budget transfer (Phase 16A)
 exports.transferBudget = async (req, res) => {
   const companyId = req.companyId;
-  const userId = req.userId;
+  const userId = req.user?.id || req.userId;
   const { fromLineId, toLineId, amount, reason } = req.body;
 
   if (!fromLineId || !toLineId || !amount || parseFloat(amount) <= 0) {
@@ -628,7 +628,7 @@ exports.getBudgetTransfers = async (req, res) => {
 // Submit a budget for workflow approval (Phase 16A)
 exports.submitBudgetApproval = async (req, res) => {
   const companyId = req.companyId;
-  const userId = req.userId;
+  const userId = req.user?.id || req.userId;
   const { id } = req.params; // budget_header_id
 
   try {
@@ -984,7 +984,7 @@ async function compileInteractiveDashboardDetails(companyId, headerId) {
 // Save forecast override (Phase 16B)
 exports.saveForecastOverride = async (req, res) => {
   const companyId = req.companyId;
-  const userId = req.userId;
+  const userId = req.user?.id || req.userId;
   const { lineId } = req.params;
   const { amount, reason } = req.body;
 
