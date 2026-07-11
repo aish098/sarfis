@@ -588,13 +588,13 @@ class PayrollService {
     await PostingEngineService.assertPeriodOpen(companyId, runDate, trx);
 
     // 2. Resolve accounts
-    const salaryExpAcc = await this.resolveAccount(companyId, '5110', 'Salary Expense', 'Expense', trx);
+    const salaryExpAcc = await this.resolveAccount(companyId, '5130', 'Salaries and Wages Expense', 'Expense', trx);
     const employerPFMatchAcc = await this.resolveAccount(companyId, '5115', 'Provident Fund Employer Match Expense', 'Expense', trx);
-    const salaryPayAcc = await this.resolveAccount(companyId, '2020', 'Salary Payable', 'Liability', trx);
-    const taxPayAcc = await this.resolveAccount(companyId, '2030', 'Tax Withholding Payable', 'Liability', trx);
-    const pfPayAcc = await this.resolveAccount(companyId, '2040', 'Provident Fund Payable', 'Liability', trx);
-    const eobiPayAcc = await this.resolveAccount(companyId, '2050', 'EOBI Payable', 'Liability', trx);
-    const ssPayAcc = await this.resolveAccount(companyId, '2060', 'Social Security Payable', 'Liability', trx);
+    const salaryPayAcc = await this.resolveAccount(companyId, '2040', 'Salaries and Wages Payable', 'Liability', trx);
+    const taxPayAcc = await this.resolveAccount(companyId, '2031', 'Tax Withholding Payable', 'Liability', trx);
+    const pfPayAcc = await this.resolveAccount(companyId, '2041', 'Provident Fund Payable', 'Liability', trx);
+    const eobiPayAcc = await this.resolveAccount(companyId, '2051', 'EOBI Payable', 'Liability', trx);
+    const ssPayAcc = await this.resolveAccount(companyId, '2061', 'Social Security Payable', 'Liability', trx);
 
     // 3. Summarize lines
     const lines = await trx('payroll_lines').where({ payroll_run_id: runId });
@@ -1005,8 +1005,8 @@ class PayrollService {
       const runDate = new Date(`${run.period}-28`);
       await PostingEngineService.assertPeriodOpen(companyId, runDate, trx);
 
-      const salaryPayAccId = await this.resolveAccount(companyId, '2020', 'Salary Payable', 'Liability', trx);
-      const bankAccId = await this.resolveAccount(companyId, '1010', 'Cash at Bank', 'Asset', trx);
+      const salaryPayAccId = await this.resolveAccount(companyId, '2040', 'Salaries and Wages Payable', 'Liability', trx);
+      const bankAccId = await this.resolveAccount(companyId, '1010', 'Bank', 'Asset', trx);
 
       const netSalary = parseFloat(line.net_salary);
       const referenceNo = `PAY-${lineId}-${Date.now()}`;
@@ -1593,8 +1593,8 @@ class PayrollService {
 
       const batchId = typeof batchIdObj === 'object' ? batchIdObj.id : batchIdObj;
 
-      const salaryPayAccId = await this.resolveAccount(companyId, '2020', 'Salary Payable', 'Liability', trx);
-      const bankAccId = await this.resolveAccount(companyId, '1010', 'Cash at Bank', 'Asset', trx);
+      const salaryPayAccId = await this.resolveAccount(companyId, '2040', 'Salaries and Wages Payable', 'Liability', trx);
+      const bankAccId = await this.resolveAccount(companyId, '1010', 'Bank', 'Asset', trx);
 
       for (const line of pendingLines) {
         const emp = await trx('employees').where({ id: line.employee_id }).first();
