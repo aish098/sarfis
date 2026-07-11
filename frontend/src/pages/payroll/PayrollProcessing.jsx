@@ -499,14 +499,14 @@ export default function PayrollProcessing({ userRole, onBackToDashboard, onNavig
                     <button 
                       onClick={handleSubmitApproval}
                       disabled={loading || userRole === 'Auditor'}
-                      className="px-4 py-2 bg-indigo-650 hover:bg-indigo-700 text-white rounded-xl font-black cursor-pointer shadow-sm disabled:opacity-40"
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black cursor-pointer shadow-sm disabled:opacity-40"
                     >
                       Authorize sign-off
                     </button>
                     <button 
                       onClick={() => setActiveStep(4)} 
                       disabled={userRole === 'Auditor'}
-                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black cursor-pointer shadow-sm"
+                      className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-xl font-black cursor-pointer"
                     >
                       Skip to Posting
                     </button>
