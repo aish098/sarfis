@@ -65,6 +65,8 @@ export default function BudgetRegisterPage() {
       setBudgets(data);
       if (data.length > 0) {
         handleSelectBudget(data[0].id);
+      } else {
+        setIsEditingHeader(true);
       }
     } catch (err) {
       console.error(err);
