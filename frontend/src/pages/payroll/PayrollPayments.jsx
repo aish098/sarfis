@@ -7,9 +7,14 @@ import {
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 
-export default function PayrollPayments({ userRole }) {
+export default function PayrollPayments({ userRole, initialTab = 'individual' }) {
   const { activeCompany } = useAuthStore();
-  const [activePaymentTab, setActivePaymentTab] = useState('individual'); // individual | bulk | batches | export | reversals | reconciliation
+  const [activePaymentTab, setActivePaymentTab] = useState(initialTab); // individual | bulk | batches | export | reversals | reconciliation
+
+  useEffect(() => {
+    setActivePaymentTab(initialTab);
+  }, [initialTab]);
+
   const [loading, setLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState(null);
 

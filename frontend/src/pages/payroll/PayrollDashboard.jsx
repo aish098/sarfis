@@ -366,7 +366,7 @@ export default function PayrollDashboard({ onNavigateToTab, userRole }) {
                   <span className="px-2 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-100 text-[9px] font-black uppercase">Unresolved</span>
                 </div>
                 <button 
-                  onClick={() => onNavigateToTab('payments')}
+                  onClick={() => onNavigateToTab('payments-reconciliation')}
                   className="w-full py-2 bg-slate-900 hover:bg-black text-white rounded-xl font-black transition-all shadow-3xs cursor-pointer text-center"
                 >
                   Review Reconciliation

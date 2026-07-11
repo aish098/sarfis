@@ -18,7 +18,18 @@ const PayrollReports = lazy(() => import('./PayrollReports'));
 export default function PayrollPage() {
   const { activeCompany } = useAuthStore();
   const [activeTab, setActiveTab] = useState('dashboard'); // dashboard | processing | employees | configuration | payments | reports
+  const [paymentsInitialTab, setPaymentsInitialTab] = useState('individual');
   const [userRole, setUserRole] = useState('HR Manager'); // HR Officer | HR Manager | Finance | Treasury | Auditor
+  
+  const handleNavigateToTab = (tabId) => {
+    if (tabId === 'payments-reconciliation') {
+      setPaymentsInitialTab('reconciliation');
+      setActiveTab('payments');
+    } else {
+      setPaymentsInitialTab('individual');
+      setActiveTab(tabId);
+    }
+  };
   
   // Notification state
   const [showNotifications, setShowNotifications] = useState(false);
@@ -285,7 +296,10 @@ export default function PayrollPage() {
               return (
                 <button
                   key={tab.id}
-                  onClick={() => setActiveTab(tab.id)}
+                  onClick={() => {
+                    setPaymentsInitialTab('individual');
+                    setActiveTab(tab.id);
+                  }}
                   className={`px-3 py-1.5 rounded-xl transition-all uppercase tracking-wider text-[10px] font-black flex items-center gap-1.5 cursor-pointer ${
                     activeTab === tab.id 
                       ? 'bg-white text-slate-800 shadow-sm' 
@@ -316,11 +330,11 @@ export default function PayrollPage() {
             <p className="text-slate-400 text-xs font-semibold">Loading payroll sub-workspace...</p>
           </div>
         }>
-          {activeTab === 'dashboard' && <PayrollDashboard onNavigateToTab={setActiveTab} userRole={userRole} />}
+          {activeTab === 'dashboard' && <PayrollDashboard onNavigateToTab={handleNavigateToTab} userRole={userRole} />}
           {activeTab === 'processing' && <PayrollProcessing userRole={userRole} />}
           {activeTab === 'employees' && <PayrollEmployees userRole={userRole} />}
           {activeTab === 'configuration' && <PayrollConfiguration userRole={userRole} />}
-          {activeTab === 'payments' && <PayrollPayments userRole={userRole} />}
+          {activeTab === 'payments' && <PayrollPayments userRole={userRole} initialTab={paymentsInitialTab} />}
           {activeTab === 'reports' && <PayrollReports userRole={userRole} />}
         </Suspense>
       </div>
