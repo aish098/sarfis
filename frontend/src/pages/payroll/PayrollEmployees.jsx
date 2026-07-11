@@ -2,7 +2,7 @@ import React, { useState } from 'react';
 import { 
   Plus, Search, Trash2, Edit2, Eye, Landmark, User, FileText, 
   MapPin, CheckCircle, X, ShieldAlert, Calendar, DollarSign, Wrench, 
-  Activity, Users, ClipboardList
+  Activity, Users, ClipboardList, Send, Ban, Undo
 } from 'lucide-react';
 
 export default function PayrollEmployees() {
@@ -17,13 +17,25 @@ export default function PayrollEmployees() {
   ]);
 
   const [selectedEmp, setSelectedEmp] = useState(null);
-  const [activeSubTab, setActiveSubTab] = useState('overview'); // overview | salary | attendance | loans | adjustments | documents | audit
+  const [activeSubTab, setActiveSubTab] = useState('overview'); // overview | salary | attendance | loans | adjustments | documents | audit | history
 
   const filtered = employees.filter(e => 
     e.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
     e.role.toLowerCase().includes(searchTerm.toLowerCase()) ||
     e.department.toLowerCase().includes(searchTerm.toLowerCase())
   );
+
+  const salaryTimeline = [
+    { period: '2023-01', amount: 100000, event: 'Joining Base Salary' },
+    { period: '2024-01', amount: 120000, event: 'Annual Increment (Market Adjustment)' },
+    { period: '2025-01', amount: 150000, event: 'Promotion to Mid Software Engineer' },
+    { period: '2026-01', amount: 180000, event: 'Promotion to Senior Specialist' },
+  ];
+
+  const projectAllocations = [
+    { project: 'Finance System Modules Development', share: '40%' },
+    { project: 'Distribution Operations Platform Support', share: '60%' },
+  ];
 
   return (
     <div className="space-y-6 text-xs font-semibold text-slate-600 relative">
@@ -33,7 +45,7 @@ export default function PayrollEmployees() {
           {/* Header */}
           <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 font-bold uppercase">
+              <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 font-bold uppercase text-sm">
                 {selectedEmp.name.charAt(0)}
               </div>
               <div>
@@ -48,7 +60,7 @@ export default function PayrollEmployees() {
 
           {/* Sub Tab Navigation */}
           <div className="flex border-b border-slate-100 bg-slate-50/50 px-4 text-[10px] font-black uppercase tracking-wider overflow-x-auto custom-scrollbar">
-            {['overview', 'salary', 'attendance', 'loans', 'adjustments', 'documents', 'audit'].map(tab => (
+            {['overview', 'salary', 'history', 'attendance', 'loans', 'adjustments', 'documents', 'audit'].map(tab => (
               <button
                 key={tab}
                 onClick={() => setActiveSubTab(tab)}
@@ -75,6 +87,38 @@ export default function PayrollEmployees() {
                   <div>
                     <span className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider">Base Salary</span>
                     <p className="text-slate-800 font-mono font-black mt-1 text-sm">PKR {selectedEmp.salary.toLocaleString()}</p>
+                  </div>
+                </div>
+
+                {/* Quick Actions Console */}
+                <div className="space-y-2">
+                  <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Quick Actions</h5>
+                  <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-black">
+                    <button className="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl flex flex-col items-center gap-1.5 transition-all shadow-3xs cursor-pointer text-slate-700">
+                      <Send size={12} className="text-indigo-600" />
+                      Email Payslip
+                    </button>
+                    <button className="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl flex flex-col items-center gap-1.5 transition-all shadow-3xs cursor-pointer text-slate-700">
+                      <Ban size={12} className="text-amber-500" />
+                      Hold Salary
+                    </button>
+                    <button className="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl flex flex-col items-center gap-1.5 transition-all shadow-3xs cursor-pointer text-slate-700">
+                      <Undo size={12} className="text-rose-500" />
+                      Reverse Payout
+                    </button>
+                  </div>
+                </div>
+
+                {/* Project Cost Allocation */}
+                <div className="space-y-2">
+                  <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">FP&A Project Cost Allocation</h5>
+                  <div className="p-3 bg-white border border-slate-200 rounded-xl space-y-2 font-semibold text-slate-600">
+                    {projectAllocations.map(alloc => (
+                      <div key={alloc.project} className="flex justify-between items-center gap-4">
+                        <span className="truncate">{alloc.project}</span>
+                        <span className="font-bold text-indigo-600 shrink-0 bg-indigo-50 px-2 py-0.5 rounded-lg border border-indigo-100">{alloc.share}</span>
+                      </div>
+                    ))}
                   </div>
                 </div>
 
@@ -109,6 +153,21 @@ export default function PayrollEmployees() {
                       <span className="font-mono">PKR {(selectedEmp.salary * 0.87).toLocaleString()}</span>
                     </div>
                   </div>
+                </div>
+              </div>
+            )}
+
+            {activeSubTab === 'history' && (
+              <div className="space-y-4">
+                <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Salary History & Increments</h5>
+                <div className="relative border-l border-slate-100 pl-4 ml-2 space-y-5 text-xs font-semibold text-slate-600">
+                  {salaryTimeline.map(line => (
+                    <div key={line.period} className="relative">
+                      <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-indigo-500 ring-4 ring-white" />
+                      <p className="text-slate-800 font-bold">{line.period} — PKR {line.amount.toLocaleString()}</p>
+                      <p className="text-[10.5px] text-slate-400 mt-0.5 font-normal">{line.event}</p>
+                    </div>
+                  ))}
                 </div>
               </div>
             )}

@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { 
   FileText, Download, CheckCircle, Search, Eye, Landmark, 
-  ArrowRight, ShieldCheck, DollarSign, RefreshCw, BarChart2
+  ArrowRight, ShieldCheck, DollarSign, RefreshCw, BarChart2,
+  X
 } from 'lucide-react';
 
 export default function PayrollReports() {
-  const [activeReportTab, setActiveReportTab] = useState('register'); // register | departments | tax | ledger | audit
+  const [activeReportTab, setActiveReportTab] = useState('register'); // register | cost | departments | tax | ledger
   
   // Payslip detail state
   const [selectedPayslip, setSelectedPayslip] = useState(null);
@@ -32,6 +33,12 @@ export default function PayrollReports() {
     }}
   ];
 
+  const employeeCosts = [
+    { name: 'Farhan Ali', gross: 180000, cost: 198000, tax: 14400, pf: 9000, overtime: 12000, bonus: 0 },
+    { name: 'Sana Khan', gross: 150000, cost: 165000, tax: 12000, pf: 7500, overtime: 0, bonus: 5000 },
+    { name: 'Hamza Sheikh', gross: 165000, cost: 181500, tax: 13200, pf: 8250, overtime: 8000, bonus: 0 },
+  ];
+
   const departmentVariance = [
     { department: 'Engineering', headcount: 8, budget: 1500000, actual: 1420000, variance: 80000 },
     { department: 'Product', headcount: 4, budget: 600000, actual: 640000, variance: -40000 },
@@ -55,7 +62,7 @@ export default function PayrollReports() {
                 <h4 className="font-black text-slate-800 text-sm">Payslip Invoice Summary</h4>
                 <p className="text-[10px] text-slate-400 font-semibold">{selectedPayslip.name} — Period {selectedPayslip.period}</p>
               </div>
-              <button onClick={() => { setSelectedPayslip(null); setShowTrace(false); }} className="text-slate-400 hover:text-slate-600">
+              <button onClick={() => { setSelectedPayslip(null); setShowTrace(false); }} className="text-slate-400 hover:text-slate-600 cursor-pointer">
                 <X size={15} />
               </button>
             </div>
@@ -118,6 +125,7 @@ export default function PayrollReports() {
       <div className="flex border-b border-slate-200 bg-white p-2 rounded-2xl shadow-3xs gap-1.5 w-fit">
         {[
           { id: 'register', label: 'Payslips & Register' },
+          { id: 'cost', label: 'Employee Cost Analysis' },
           { id: 'departments', label: 'Budget vs Actual FP&A' },
           { id: 'tax', label: 'Tax & Compliance' },
           { id: 'ledger', label: 'Ledger Postings' }
@@ -179,6 +187,50 @@ export default function PayrollReports() {
                         Inspect Calculations
                       </button>
                     </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </div>
+      )}
+
+      {/* Employee Cost Analysis Tab */}
+      {activeReportTab === 'cost' && (
+        <div className="space-y-4">
+          <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs flex justify-between items-center">
+            <div>
+              <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Employee Cost Analysis</h3>
+              <p className="text-[11px] text-slate-400 mt-1">Detailed breakdown of gross pay, benefit structures, and total employer liability cost.</p>
+            </div>
+            <button className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl transition-all shadow-3xs flex items-center gap-1.5 cursor-pointer">
+              <Download size={13} /> Export CSV
+            </button>
+          </div>
+
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  <th className="px-4 py-3.5">Employee Name</th>
+                  <th className="px-4 py-3.5 text-right">Gross Salary</th>
+                  <th className="px-4 py-3.5 text-right">Income Tax Withheld</th>
+                  <th className="px-4 py-3.5 text-right">Provident Fund (PF)</th>
+                  <th className="px-4 py-3.5 text-right">Overtime Pay</th>
+                  <th className="px-4 py-3.5 text-right">Bonuses</th>
+                  <th className="px-4 py-3.5 text-right">Total Employer Cost</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 font-semibold text-slate-600">
+                {employeeCosts.map(cost => (
+                  <tr key={cost.name} className="hover:bg-slate-50/50">
+                    <td className="px-4 py-3 font-bold text-slate-800">{cost.name}</td>
+                    <td className="px-4 py-3 text-right font-mono text-slate-700">PKR {cost.gross.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-mono text-rose-600">PKR {cost.tax.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-mono text-slate-700">PKR {cost.pf.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-mono text-emerald-600">PKR {cost.overtime.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-mono text-emerald-600">PKR {cost.bonus.toLocaleString()}</td>
+                    <td className="px-4 py-3 text-right font-mono font-black text-indigo-700">PKR {cost.cost.toLocaleString()}</td>
                   </tr>
                 ))}
               </tbody>
@@ -306,12 +358,5 @@ export default function PayrollReports() {
         </div>
       )}
     </div>
-  );
-}
-
-// Simple internal modal X icon
-function X({ size }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
   );
 }

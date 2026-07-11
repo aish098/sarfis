@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { 
   Landmark, Download, CheckCircle, ShieldAlert, X, 
-  RotateCcw, RefreshCw, Layers, DollarSign, ArrowRight
+  RotateCcw, RefreshCw, Layers, DollarSign, ArrowRight,
+  ChevronRight
 } from 'lucide-react';
 import api from '../../services/api';
 
@@ -19,8 +20,25 @@ export default function PayrollPayments() {
   ]);
 
   const [paymentBatches, setPaymentBatches] = useState([
-    { id: 'BAT-0021', period: '2026-07', headcount: 212, net: 32550000, portal: 'HBL Business', status: 'DISBURSED', date: '2026-07-28' },
-    { id: 'BAT-0020', period: '2026-06', headcount: 198, net: 29800000, portal: 'MCB Gateway', status: 'DISBURSED', date: '2026-06-29' },
+    { id: 'BAT-0021', period: '2026-07', headcount: 212, net: 32550000, portal: 'HBL Business', status: 'COMPLETED', date: '2026-07-28', steps: [
+      { name: 'Created', done: true },
+      { name: 'Exported', done: true },
+      { name: 'Sent to Bank', done: true },
+      { name: 'Accepted', done: true },
+      { name: 'Completed', done: true }
+    ], items: [
+      { emp: 'Farhan Ali', amount: 156600, status: 'PAID' },
+      { emp: 'Sana Khan', amount: 130500, status: 'PAID' },
+      { emp: 'Zainab Ahmed', amount: 95700, status: 'FAILED' },
+      { emp: 'Hamza Sheikh', amount: 143550, status: 'RETRIED' }
+    ]},
+    { id: 'BAT-0020', period: '2026-06', headcount: 198, net: 29800000, portal: 'MCB Gateway', status: 'COMPLETED', date: '2026-06-29', steps: [
+      { name: 'Created', done: true },
+      { name: 'Exported', done: true },
+      { name: 'Sent to Bank', done: true },
+      { name: 'Accepted', done: true },
+      { name: 'Completed', done: true }
+    ], items: []},
   ]);
 
   const [reversals, setReversals] = useState([
@@ -73,7 +91,7 @@ export default function PayrollPayments() {
         {[
           { id: 'individual', label: 'Individual Payments' },
           { id: 'bulk', label: 'Bulk Disbursements' },
-          { id: 'batches', label: 'Disbursement Batches' },
+          { id: 'batches', label: 'Batch Monitor' },
           { id: 'export', label: 'Bank Export Gateway' },
           { id: 'reversals', label: 'Reversals Registry' }
         ].map(tb => (
@@ -164,45 +182,78 @@ export default function PayrollPayments() {
         </div>
       )}
 
-      {/* Disbursement Batches Tab */}
+      {/* Batch Monitor Tab */}
       {activePaymentTab === 'batches' && (
-        <div className="space-y-4">
+        <div className="space-y-6">
           <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs">
-            <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Disbursement Batches Archive</h3>
+            <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Treasury Batch Payment Monitor</h3>
             <p className="text-[11px] text-slate-400 mt-1">Review compiled payroll transfer batches cleared via corporate channels.</p>
           </div>
 
-          <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  <th className="px-5 py-3.5">Batch ID</th>
-                  <th className="px-5 py-3.5">Disbursement Period</th>
-                  <th className="px-5 py-3.5 text-center">Headcount</th>
-                  <th className="px-5 py-3.5 text-right">Net Value</th>
-                  <th className="px-5 py-3.5">Settlement Gate</th>
-                  <th className="px-5 py-3.5 text-center">Disbursement Status</th>
-                  <th className="px-5 py-3.5">Cleared Date</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50 font-semibold text-slate-600">
-                {paymentBatches.map(b => (
-                  <tr key={b.id} className="hover:bg-slate-50/50">
-                    <td className="px-5 py-4 font-mono font-bold text-indigo-600">{b.id}</td>
-                    <td className="px-5 py-4 font-bold text-slate-800">Period {b.period}</td>
-                    <td className="px-5 py-4 text-center">{b.headcount} Employees</td>
-                    <td className="px-5 py-4 text-right font-mono font-bold text-slate-800">PKR {b.net.toLocaleString()}</td>
-                    <td className="px-5 py-4">{b.portal}</td>
-                    <td className="px-5 py-4 text-center">
-                      <span className="px-2 py-0.5 rounded text-[9.5px] font-black border bg-emerald-50 text-emerald-700 border-emerald-100 uppercase">
-                        {b.status}
+          <div className="grid grid-cols-1 gap-6">
+            {paymentBatches.map(b => (
+              <div key={b.id} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+                {/* Header */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-50 pb-3">
+                  <div>
+                    <h4 className="font-extrabold text-slate-800 text-sm flex items-center gap-1.5">
+                      <Landmark size={15} className="text-indigo-600" /> Batch ID: {b.id}
+                    </h4>
+                    <p className="text-[10.5px] text-slate-400 mt-0.5">Period {b.period} — {b.portal} — Cleared on {b.date}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-[10.5px] text-slate-400 block font-bold">Total Net Value</span>
+                    <span className="text-sm font-black font-mono text-slate-800">PKR {b.net.toLocaleString()}</span>
+                  </div>
+                </div>
+
+                {/* Batch Timeline */}
+                <div className="flex items-center justify-center gap-1 font-mono text-[9px]">
+                  {b.steps.map((step, idx) => (
+                    <React.Fragment key={step.name}>
+                      <span className={`px-1.5 py-0.5 rounded ${
+                        step.done ? 'bg-emerald-50 text-emerald-700 font-bold border border-emerald-100' : 'bg-slate-50 text-slate-400'
+                      }`}>
+                        {step.name}
                       </span>
-                    </td>
-                    <td className="px-5 py-4 font-mono">{b.date}</td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
+                      {idx < b.steps.length - 1 && <ChevronRight size={10} className="text-slate-300" />}
+                    </React.Fragment>
+                  ))}
+                </div>
+
+                {/* Employee Transaction Lines */}
+                {b.items.length > 0 && (
+                  <div className="border border-slate-100 rounded-2xl overflow-hidden mt-3">
+                    <table className="w-full text-left border-collapse text-[11px]">
+                      <thead>
+                        <tr className="bg-slate-50 border-b border-slate-100 text-[9px] font-black uppercase tracking-wider text-slate-400">
+                          <th className="px-4 py-2">Beneficiary Employee</th>
+                          <th className="px-4 py-2 text-right">Amount</th>
+                          <th className="px-4 py-2 text-center">Direct Transfer Status</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-50 font-semibold text-slate-600">
+                        {b.items.map((line, idx) => (
+                          <tr key={idx} className="hover:bg-slate-50/50">
+                            <td className="px-4 py-2 font-bold text-slate-700">{line.emp}</td>
+                            <td className="px-4 py-2 text-right font-mono font-bold text-slate-800">PKR {line.amount.toLocaleString()}</td>
+                            <td className="px-4 py-2 text-center">
+                              <span className={`px-2 py-0.5 rounded text-[8.5px] font-black border ${
+                                line.status === 'PAID' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                                line.status === 'FAILED' ? 'bg-rose-50 text-rose-700 border-rose-100 animate-pulse' :
+                                'bg-amber-50 text-amber-700 border-amber-100'
+                              }`}>
+                                {line.status}
+                              </span>
+                            </td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
+              </div>
+            ))}
           </div>
         </div>
       )}
