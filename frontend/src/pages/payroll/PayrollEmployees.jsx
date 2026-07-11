@@ -34,6 +34,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
   const [activeSubTab, setActiveSubTab] = useState('overview'); // overview | payroll | attendance | leave | overtime | loans | payments | documents | audit | timeline
   const [actionMsg, setActionMsg] = useState(null);
   const [isAdding, setIsAdding] = useState(false);
+  const [editingEmpId, setEditingEmpId] = useState(null);
   const [newEmp, setNewEmp] = useState({
     name: '',
     department: '',
@@ -50,17 +51,31 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
     setLoading(true);
     setActionMsg(null);
     try {
-      await api.post(`/employees/${activeCompany.id}`, {
-        name: newEmp.name,
-        department: newEmp.department || null,
-        role: newEmp.role || null,
-        salary: parseFloat(newEmp.salary),
-        bankName: newEmp.bankName || null,
-        accountNumber: newEmp.accountNumber || null,
-        status: newEmp.status
-      });
-      
-      setActionMsg({ type: 'success', text: `Successfully created payroll profile for ${newEmp.name}.` });
+      if (editingEmpId) {
+        // Edit Mode
+        await api.patch(`/employees/${activeCompany.id}/${editingEmpId}`, {
+          name: newEmp.name,
+          department: newEmp.department || null,
+          role: newEmp.role || null,
+          salary: parseFloat(newEmp.salary),
+          bankName: newEmp.bankName || null,
+          accountNumber: newEmp.accountNumber || null,
+          status: newEmp.status
+        });
+        setActionMsg({ type: 'success', text: `Successfully updated payroll profile for ${newEmp.name}.` });
+      } else {
+        // Create Mode
+        await api.post(`/employees/${activeCompany.id}`, {
+          name: newEmp.name,
+          department: newEmp.department || null,
+          role: newEmp.role || null,
+          salary: parseFloat(newEmp.salary),
+          bankName: newEmp.bankName || null,
+          accountNumber: newEmp.accountNumber || null,
+          status: newEmp.status
+        });
+        setActionMsg({ type: 'success', text: `Successfully created payroll profile for ${newEmp.name}.` });
+      }
       
       setNewEmp({
         name: '',
@@ -72,13 +87,61 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
         status: 'Active'
       });
       setIsAdding(false);
+      setEditingEmpId(null);
       fetchEmployeesData();
     } catch (err) {
-      console.error('Failed to create employee profile:', err);
-      setActionMsg({ type: 'error', text: err.response?.data?.error || 'Failed to create employee profile.' });
+      console.error('Failed to save employee profile:', err);
+      setActionMsg({ type: 'error', text: err.response?.data?.error || 'Failed to save employee profile.' });
     } finally {
       setLoading(false);
     }
+  };
+
+  const handleStartEdit = (emp) => {
+    setNewEmp({
+      name: emp.name,
+      department: emp.department || '',
+      role: emp.role || '',
+      salary: emp.salary,
+      bankName: emp.bankName || '',
+      accountNumber: emp.bankAccount || '',
+      status: emp.status || 'Active'
+    });
+    setEditingEmpId(emp.id);
+    setIsAdding(true);
+  };
+
+  const handleDeleteEmployee = async (id, name) => {
+    if (!window.confirm(`Are you sure you want to permanently delete employee "${name}"? This action is irreversible and will delete all associated payroll files.`)) {
+      return;
+    }
+    if (!activeCompany?.id) return;
+    setLoading(true);
+    setActionMsg(null);
+    try {
+      await api.delete(`/employees/${activeCompany.id}/${id}`);
+      setActionMsg({ type: 'success', text: `Successfully deleted employee "${name}" from directory.` });
+      fetchEmployeesData();
+    } catch (err) {
+      console.error('Failed to delete employee:', err);
+      setActionMsg({ type: 'error', text: err.response?.data?.error || 'Failed to delete employee.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleCloseDrawer = () => {
+    setIsAdding(false);
+    setEditingEmpId(null);
+    setNewEmp({
+      name: '',
+      department: '',
+      role: '',
+      salary: '',
+      bankName: '',
+      accountNumber: '',
+      status: 'Active'
+    });
   };
 
   const fetchEmployeesData = async () => {
@@ -208,12 +271,12 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
         </div>
       )}
 
-      {/* Add Employee Form Drawer */}
+      {/* Add/Edit Employee Form Drawer */}
       <RightDrawer
         isOpen={isAdding}
-        onClose={() => setIsAdding(false)}
-        title="Add New Employee Profile"
-        subtitle="Initialize a new employee record and payroll profile."
+        onClose={handleCloseDrawer}
+        title={editingEmpId ? "Edit Employee Profile" : "Add New Employee Profile"}
+        subtitle={editingEmpId ? "Update employee details in the active directory." : "Initialize a new employee record and payroll profile."}
       >
         <form onSubmit={handleCreateEmployee} className="space-y-4 font-semibold text-xs text-slate-600 pr-1">
           <div className="space-y-1">
@@ -302,7 +365,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
             type="submit"
             className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-center shadow-sm cursor-pointer"
           >
-            Create Profile & Post to Directory
+            {editingEmpId ? "Save Profile Changes" : "Create Profile & Post to Directory"}
           </button>
         </form>
       </RightDrawer>
@@ -591,6 +654,20 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
                 >
                   Open 360°
                 </button>
+                <button 
+                  disabled={disableActions}
+                  onClick={() => handleStartEdit(emp)}
+                  className="p-1.5 text-slate-400 hover:text-indigo-650 hover:bg-indigo-50 border border-slate-200 rounded-lg transition-all cursor-pointer disabled:opacity-30"
+                >
+                  <Edit2 size={13} />
+                </button>
+                <button 
+                  disabled={disableActions}
+                  onClick={() => handleDeleteEmployee(emp.id, emp.name)}
+                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 rounded-lg transition-all cursor-pointer disabled:opacity-30"
+                >
+                  <Trash2 size={13} />
+                </button>
               </div>
             </div>
           </div>
@@ -641,12 +718,14 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
                     </button>
                     <button 
                       disabled={disableActions}
+                      onClick={() => handleStartEdit(emp)}
                       className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-lg mr-1 transition-all cursor-pointer disabled:opacity-30 disabled:hover:bg-transparent"
                     >
                       <Edit2 size={13} />
                     </button>
                     <button 
                       disabled={disableActions}
+                      onClick={() => handleDeleteEmployee(emp.id, emp.name)}
                       className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-lg transition-all cursor-pointer disabled:opacity-30 disabled:hover:bg-transparent"
                     >
                       <Trash2 size={13} />
