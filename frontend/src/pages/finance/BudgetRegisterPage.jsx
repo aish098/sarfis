@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Settings, Layers, Plus, Trash2, ShieldCheck, UserCheck, RefreshCw, 
   HelpCircle, AlertCircle, Save, Calendar, CheckSquare, PlusCircle, 
-  Copy, Edit, CheckCircle2, Sliders, PlayCircle, ArrowLeft, BarChart2
+  Copy, Edit, CheckCircle2, Sliders, PlayCircle, ArrowLeft, BarChart2,
+  X, Check, CheckCircle, ShieldAlert, Upload
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -11,6 +12,7 @@ import useAuthStore from '../../store/authStore';
 export default function BudgetRegisterPage() {
   const navigate = useNavigate();
   const { activeCompany } = useAuthStore();
+  const fmt = (num) => new Intl.NumberFormat().format(parseFloat(num || 0));
 
   const [budgets, setBudgets] = useState([]);
   const [selectedBudgetId, setSelectedBudgetId] = useState('');
@@ -47,6 +49,15 @@ export default function BudgetRegisterPage() {
 
   // Workflow timeline logs (Phase 16B)
   const [timeline, setTimeline] = useState([]);
+
+  // Excel 4-step Import Wizard state (Phase 16B)
+  const [showImportWizard, setShowImportWizard] = useState(false);
+  const [wizardStep, setWizardStep] = useState(1);
+  const [importRowsJson, setImportRowsJson] = useState('');
+  const [importErrors, setImportErrors] = useState([]);
+  const [importPreview, setImportPreview] = useState([]);
+  const [committingImport, setCommittingImport] = useState(false);
+  const [validCount, setValidCount] = useState(0);
 
   const [activeMonthlyLine, setActiveMonthlyLine] = useState(null);
   const [monthlyAllocations, setMonthlyAllocations] = useState([]);
@@ -303,6 +314,45 @@ export default function BudgetRegisterPage() {
     }
   };
 
+  const handleValidateImport = async () => {
+    try {
+      let parsedRows = [];
+      try {
+        parsedRows = JSON.parse(importRowsJson);
+      } catch (e) {
+        alert('Invalid JSON formatting. Please paste valid array syntax e.g., [{"accountCode": "1000", "allocatedAmount": 50000}]');
+        return;
+      }
+
+      setLoading(true);
+      const res = await api.post(`/budgets/${selectedBudgetId}/validate-import`, { rows: parsedRows });
+      setImportErrors(res.data.errors || []);
+      setImportPreview(res.data.preview || []);
+      setValidCount(res.data.validCount || 0);
+
+      if (res.data.success) {
+        setWizardStep(3); // Proceed to preview
+      } else {
+        setWizardStep(2); // Show errors
+      }
+    } catch (err) {
+      alert(err.response?.data?.error || err.message);
+    }
+    setLoading(false);
+  };
+
+  const handleCommitImport = async () => {
+    setCommittingImport(true);
+    try {
+      await api.post(`/budgets/${selectedBudgetId}/commit-import`, { rows: importPreview });
+      setWizardStep(4);
+      handleSelectBudget(selectedBudgetId);
+    } catch (err) {
+      alert(err.response?.data?.error || err.message);
+    }
+    setCommittingImport(false);
+  };
+
   const isReadOnly = selectedBudget?.status === 'ACTIVE' || selectedBudget?.status === 'SUBMITTED';
 
   return (
@@ -346,12 +396,21 @@ export default function BudgetRegisterPage() {
           </button>
           
           {selectedBudget && selectedBudget.status === 'DRAFT' && (
-            <button 
-              onClick={handleSubmitApproval}
-              className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer shadow-blue-500/10"
-            >
-              <CheckSquare size={13} /> Submit Approval
-            </button>
+            <>
+              <button 
+                onClick={handleSubmitApproval}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer shadow-blue-500/10"
+              >
+                <CheckSquare size={13} /> Submit Approval
+              </button>
+
+              <button 
+                onClick={() => { setWizardStep(1); setShowImportWizard(true); }}
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs shadow-md transition-all cursor-pointer"
+              >
+                <Upload size={13} /> Import Allocations
+              </button>
+            </>
           )}
 
           {selectedBudget && selectedBudget.status === 'ACTIVE' && (
@@ -901,6 +960,156 @@ export default function BudgetRegisterPage() {
           </form>
         </div>
       )}
+      {/* 4-Step Excel Import Wizard Bottom Sheet */}
+      {showImportWizard ? (
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl max-w-2xl w-full p-6 shadow-2xl space-y-6 animate-in fade-in zoom-in-95 duration-200">
+            <div className="flex justify-between items-center">
+              <div>
+                <h3 className="font-display font-black text-slate-800 uppercase text-sm tracking-wider flex items-center gap-2">
+                  <Upload size={16} className="text-indigo-600" /> Spreadsheet Allocation Import Wizard
+                </h3>
+                <p className="text-[10px] text-slate-400 font-semibold mt-0.5">Wizard layout step-by-step validator (UAT-169, UAT-170).</p>
+              </div>
+              <button 
+                onClick={() => setShowImportWizard(false)}
+                className="p-1.5 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 transition-all cursor-pointer"
+              >
+                <X size={16} />
+              </button>
+            </div>
+
+            {/* Stepper Wizard Bar */}
+            <div className="flex items-center justify-between border-b border-slate-100 pb-4">
+              {['Upload', 'Validate', 'Preview', 'Complete'].map((step, idx) => {
+                const currentIdx = idx + 1;
+                const isActive = wizardStep === currentIdx;
+                const isPast = wizardStep > currentIdx;
+                return (
+                  <div key={idx} className="flex items-center gap-2">
+                    <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[10px] font-black uppercase ${
+                      isActive ? 'bg-indigo-600 text-white' : isPast ? 'bg-emerald-500 text-white' : 'bg-slate-100 text-slate-400'
+                    }`}>
+                      {isPast ? <Check size={11} /> : currentIdx}
+                    </span>
+                    <span className={`text-[10px] font-extrabold uppercase ${
+                      isActive ? 'text-indigo-600' : isPast ? 'text-emerald-600' : 'text-slate-400'
+                    }`}>
+                      {step}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+
+            {/* Step Content */}
+            <div className="space-y-4">
+              {wizardStep === 1 ? (
+                <div className="space-y-4">
+                  <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+                    Paste raw JSON allocation data parsed from your Excel/CSV budget registry template.
+                  </p>
+                  <textarea
+                    rows="6"
+                    placeholder='e.g., [
+  {"accountCode": "1000", "department": "Marketing", "allocatedAmount": 120000, "monthlySplits": [10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000, 10000]}
+]'
+                    value={importRowsJson}
+                    onChange={e => setImportRowsJson(e.target.value)}
+                    className="w-full bg-slate-50 border border-slate-200 rounded-2xl p-4 text-xs font-mono focus:border-indigo-500 outline-none"
+                  />
+                  <div className="flex justify-end">
+                    <button
+                      onClick={handleValidateImport}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl uppercase transition-all cursor-pointer"
+                    >
+                      Run Validation & Validate Sheets
+                    </button>
+                  </div>
+                </div>
+              ) : wizardStep === 2 ? (
+                <div className="space-y-4">
+                  <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-xs font-bold text-rose-800 space-y-2">
+                    <p className="flex items-center gap-1.5"><ShieldAlert size={16} /> Validation Errors Found</p>
+                    <ul className="list-disc pl-5 font-semibold space-y-1">
+                      {importErrors.map((err, idx) => (
+                        <li key={idx}>Row {err.rowNum}: {err.error}</li>
+                      ))}
+                    </ul>
+                  </div>
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => setWizardStep(1)}
+                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl uppercase transition-all cursor-pointer"
+                    >
+                      Back & Adjust File
+                    </button>
+                  </div>
+                </div>
+              ) : wizardStep === 3 ? (
+                <div className="space-y-4">
+                  <p className="text-xs text-slate-500 font-semibold leading-relaxed">
+                    Preview valid parsed rows. Click commit to import into the budget draft sheet.
+                  </p>
+                  <div className="border border-slate-150 rounded-2xl max-h-[160px] overflow-y-auto">
+                    <table className="w-full text-[10px] text-left">
+                      <thead className="bg-slate-50 border-b border-slate-150 text-slate-500 font-bold uppercase">
+                        <tr>
+                          <th className="p-2.5">Account Code</th>
+                          <th className="p-2.5">Name</th>
+                          <th className="p-2.5">Dept</th>
+                          <th className="p-2.5 text-right">Allocated Amount</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-slate-100 text-slate-700 font-semibold">
+                        {importPreview.map((row, idx) => (
+                          <tr key={idx}>
+                            <td className="p-2.5 font-mono">{row.accountCode}</td>
+                            <td className="p-2.5">{row.accountName}</td>
+                            <td className="p-2.5">{row.department}</td>
+                            <td className="p-2.5 text-right font-mono">PKR {fmt(row.allocatedAmount)}</td>
+                          </tr>
+                        ))}
+                      </tbody>
+                    </table>
+                  </div>
+                  <div className="flex justify-end gap-3">
+                    <button
+                      onClick={() => setWizardStep(1)}
+                      className="px-4 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold text-xs rounded-xl uppercase transition-all cursor-pointer"
+                    >
+                      Back
+                    </button>
+                    <button
+                      onClick={handleCommitImport}
+                      disabled={committingImport}
+                      className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-xs rounded-xl uppercase transition-all cursor-pointer"
+                    >
+                      {committingImport ? 'Importing...' : 'Commit Import'}
+                    </button>
+                  </div>
+                </div>
+              ) : (
+                <div className="space-y-4 text-center py-6">
+                  <div className="w-12 h-12 rounded-full bg-emerald-50 text-emerald-600 flex items-center justify-center mx-auto border border-emerald-100 shadow-sm mb-2">
+                    <CheckCircle size={24} />
+                  </div>
+                  <h4 className="font-extrabold text-slate-800 text-sm uppercase">Import Complete!</h4>
+                  <p className="text-xs text-slate-400 font-semibold">Budget allocations successfully written to registry database.</p>
+                  <div className="flex justify-center pt-2">
+                    <button
+                      onClick={() => setShowImportWizard(false)}
+                      className="px-4 py-2 bg-slate-800 hover:bg-slate-900 text-white font-bold text-xs rounded-xl uppercase transition-all cursor-pointer"
+                    >
+                      Close Wizard
+                    </button>
+                  </div>
+                </div>
+              )}
+            </div>
+          </div>
+        </div>
+      ) : null}
     </div>
   );
 }
