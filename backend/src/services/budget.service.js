@@ -27,8 +27,8 @@ class BudgetService {
 
       if (!header) continue;
 
-      // Find budget line matching account and dimensions
-      const budgetLine = await trx('budget_control_lines')
+      // Find budget line matching account and dimensions (exact match first)
+      let budgetLine = await trx('budget_control_lines')
         .where({
           budget_header_id: header.id,
           account_id: line.accountId,
@@ -37,6 +37,16 @@ class BudgetService {
           branch: line.branch || null
         })
         .first();
+
+      // Fallback: If no exact match (e.g. Journal Entry has no dimensions), check by GL Account alone
+      if (!budgetLine) {
+        budgetLine = await trx('budget_control_lines')
+          .where({
+            budget_header_id: header.id,
+            account_id: line.accountId
+          })
+          .first();
+      }
 
       if (!budgetLine) continue;
 

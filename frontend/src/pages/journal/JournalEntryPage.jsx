@@ -72,9 +72,8 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown }) {
             onKeyDown?.(e);
           }
         }}
-        className={`flex items-center justify-between w-full px-3 py-1.5 rounded-lg cursor-pointer transition-all text-[13px] bg-white border-2 border-slate-100 focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 outline-none text-left ${
-          disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50'
-        }`}
+        className={`flex items-center justify-between w-full px-3 py-1.5 rounded-lg cursor-pointer transition-all text-[13px] bg-white border-2 border-slate-100 focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 outline-none text-left ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50'
+          }`}
       >
         <span className={selected ? 'text-slate-900 font-semibold truncate' : 'text-slate-400'}>
           {selected ? `${selected.code} — ${selected.name}` : 'Select account...'}
@@ -83,24 +82,23 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown }) {
       </button>
       <AnimatePresence>
         {open && (
-          <motion.div 
-            initial={{ opacity: 0, y: openUpward ? -6 : 6, scale: 0.98 }} 
+          <motion.div
+            initial={{ opacity: 0, y: openUpward ? -6 : 6, scale: 0.98 }}
             animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: openUpward ? -6 : 6, scale: 0.98 }} 
+            exit={{ opacity: 0, y: openUpward ? -6 : 6, scale: 0.98 }}
             transition={{ duration: 0.12 }}
-            className={`absolute z-50 w-full bg-white rounded-xl shadow-card-lg overflow-hidden border border-slate-100 min-w-[280px] ${
-              openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
-            }`}
+            className={`absolute z-50 w-full bg-white rounded-xl shadow-card-lg overflow-hidden border border-slate-100 min-w-[280px] ${openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+              }`}
           >
             <div className="p-2 border-b border-slate-100">
               <div className="relative">
                 <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input 
-                  autoFocus 
+                <input
+                  autoFocus
                   className="w-full bg-white border border-slate-200 rounded-lg py-1.5 pl-8 pr-3 text-[13px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15"
-                  placeholder="Search accounts..." 
-                  value={q} 
-                  onChange={e => setQ(e.target.value)} 
+                  placeholder="Search accounts..."
+                  value={q}
+                  onChange={e => setQ(e.target.value)}
                 />
               </div>
             </div>
@@ -112,9 +110,8 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown }) {
                   key={acc.id}
                   type="button"
                   onClick={() => handleSelect(acc.id)}
-                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg cursor-pointer text-[13px] text-left transition-colors ${
-                    String(value) === String(acc.id) ? 'bg-emerald-50 text-emerald-800 font-semibold' : 'hover:bg-slate-50 text-slate-700'
-                  }`}
+                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg cursor-pointer text-[13px] text-left transition-colors ${String(value) === String(acc.id) ? 'bg-emerald-50 text-emerald-800 font-semibold' : 'hover:bg-slate-50 text-slate-700'
+                    }`}
                 >
                   <div className="flex items-center gap-2 min-w-0">
                     <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold">{acc.code}</span>
@@ -137,18 +134,18 @@ export default function JournalEntryPage() {
   const navigate = useNavigate();
   const { activeCompany, user, permissions } = useAuthStore();
   const [accounts, setAccounts] = useState([]);
-  
+
   const canPost = user?.role === 'Super Admin' || (permissions || []).includes('journal.post');
-  
+
   // Form State
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
   const [reference, setReference] = useState('JE-' + Math.floor(1000 + Math.random() * 9000));
   const [lines, setLines] = useState([genRow(), genRow()]);
   const [editingId, setEditingId] = useState(null);
-  
+
   // Ledger Settings
   const [postingMode, setPostingMode] = useState('REALTIME'); // REALTIME | BATCH (saves draft)
-  
+
   // UI States
   const [error, setError] = useState('');
   const [saving, setSaving] = useState(false);
@@ -162,7 +159,7 @@ export default function JournalEntryPage() {
   const [reversalModalOpen, setReversalModalOpen] = useState(false);
   const [reversalReason, setReversalReason] = useState('');
   const [reversingEntry, setReversingEntry] = useState(null);
-  
+
   // Recent transactions sidebar state
   const [recentDrawerOpen, setRecentDrawerOpen] = useState(false);
   const [recentEntries, setRecentEntries] = useState([]);
@@ -175,7 +172,7 @@ export default function JournalEntryPage() {
   // Fetch accounts on load
   useEffect(() => {
     if (!activeCompany) return;
-    api.get('/accounts').then(r => setAccounts(r.data)).catch(() => {});
+    api.get('/accounts').then(r => setAccounts(r.data)).catch(() => { });
   }, [activeCompany]);
 
   // Fetch recent journal entries when drawer is opened or entries are posted
@@ -370,7 +367,7 @@ export default function JournalEntryPage() {
         });
         entryId = response.data.id;
       }
-      
+
       if (nextAction === 'post') {
         await api.post(`/journal/${entryId}/post`);
         setToastMessage('Transaction posted to general ledger successfully.');
@@ -422,7 +419,7 @@ export default function JournalEntryPage() {
     if (!entryData) return;
     setDate(entryData.entry_date?.split('T')[0] || new Date().toISOString().split('T')[0]);
     setReference(entryData.reference || 'JE-LOADED');
-    
+
     // Map lines
     const mapped = entryData.lines.map(l => ({
       id: crypto.randomUUID(),
@@ -433,7 +430,7 @@ export default function JournalEntryPage() {
     }));
     // Append empty line
     mapped.push(genRow());
-    
+
     setLines(mapped);
     setEditingId(entryData.status === 'DRAFT' ? entryData.id : null);
     setSelectedRecentEntry(null);
@@ -470,7 +467,7 @@ export default function JournalEntryPage() {
   };
 
   const fmt = v => v.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
-  
+
   // Calculate relative balance scale offset (maximum 15 degrees tilt)
   const getScaleRotation = () => {
     if (totalDebit === 0 && totalCredit === 0) return 0;
@@ -481,7 +478,7 @@ export default function JournalEntryPage() {
     return Math.min(15, Math.max(-15, factor * 25));
   };
 
-  const filteredRecent = recentEntries.filter(entry => 
+  const filteredRecent = recentEntries.filter(entry =>
     entry.description.toLowerCase().includes(recentFilter.toLowerCase()) ||
     (entry.status || '').toLowerCase().includes(recentFilter.toLowerCase())
   );
@@ -544,23 +541,22 @@ export default function JournalEntryPage() {
             </p>
           </div>
         </div>
-        
+
         {/* Posting Mode & Transaction Drawer Toggle */}
         <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap">
           {/* Engine Mode Toggle Button */}
           <div className="flex items-center bg-white border border-[#C2F3DC] rounded-xl p-1.5 shadow-sm">
             <span className="text-[11px] font-bold uppercase text-slate-500 px-2.5">Engine Mode:</span>
-            <button 
+            <button
               type="button"
               onClick={() => {
                 console.log("Toggling posting mode from click");
                 setPostingMode(prev => prev === 'REALTIME' ? 'BATCH' : 'REALTIME');
               }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-extrabold uppercase transition-all cursor-pointer relative z-10 select-none ${
-                postingMode === 'REALTIME' 
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-100 shadow-sm' 
+              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-extrabold uppercase transition-all cursor-pointer relative z-10 select-none ${postingMode === 'REALTIME'
+                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-100 shadow-sm'
                   : 'bg-cyan-50 text-cyan-700 border border-cyan-100 shadow-sm'
-              }`}
+                }`}
             >
               {postingMode === 'REALTIME' ? (
                 <><Activity size={12} className="stroke-[2.5] animate-pulse" /> Real-time</>
@@ -590,16 +586,16 @@ export default function JournalEntryPage() {
         <div className="lg:col-span-3 space-y-5">
           {/* Main Action Bar */}
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 bg-white p-3 border border-slate-100 rounded-2xl shadow-sm">
-            <button 
-              onClick={() => navigate('/dashboard/ledger')} 
+            <button
+              onClick={() => navigate('/dashboard/ledger')}
               className="flex items-center gap-1.5 text-[11px] font-bold text-slate-400 hover:text-slate-600 transition-colors uppercase tracking-wider pl-2"
             >
               <ArrowLeft size={13} /> Back to Ledger
             </button>
             <div className="flex gap-2">
-              <button 
-                type="button" 
-                onClick={handleNewEntry} 
+              <button
+                type="button"
+                onClick={handleNewEntry}
                 className="flex items-center gap-1.5 bg-slate-50 text-slate-600 hover:bg-slate-100 px-3.5 py-2 text-[12px] font-bold rounded-xl border border-slate-200 transition-all active:scale-95"
               >
                 <Plus size={14} /> Clear / New
@@ -612,14 +608,14 @@ export default function JournalEntryPage() {
               >
                 <Scale size={14} /> Auto-Balance
               </button>
-              <button 
+              <button
                 type="button"
                 onClick={() => setKeyboardHelpOpen(true)}
                 className="flex items-center gap-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 px-3 py-2 text-[12px] font-bold rounded-xl border border-slate-200 transition-all active:scale-95"
               >
                 <Keyboard size={14} /> Keys
               </button>
-              
+
               <RequirePermission permission="journal.create">
                 <button
                   onClick={() => validate(postingMode === 'REALTIME' ? (canPost ? 'post' : 'submit') : 'draft')}
@@ -651,21 +647,21 @@ export default function JournalEntryPage() {
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-5 p-5 border-b border-slate-100 bg-[#FAF9F8]">
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Transaction Date</label>
-                <input 
-                  type="date" 
-                  className="input-enterprise font-semibold focus:border-emerald-500 focus:ring-emerald-500/5 bg-white" 
-                  value={date} 
-                  onChange={e => setDate(e.target.value)} 
+                <input
+                  type="date"
+                  className="input-enterprise font-semibold focus:border-emerald-500 focus:ring-emerald-500/5 bg-white"
+                  value={date}
+                  onChange={e => setDate(e.target.value)}
                 />
               </div>
               <div>
                 <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Document Reference</label>
                 <div className="relative">
-                  <input 
-                    type="text" 
-                    className="input-enterprise font-mono uppercase focus:border-emerald-500 focus:ring-emerald-500/5 bg-white tracking-wider font-semibold" 
-                    value={reference} 
-                    onChange={e => setReference(e.target.value)} 
+                  <input
+                    type="text"
+                    className="input-enterprise font-mono uppercase focus:border-emerald-500 focus:ring-emerald-500/5 bg-white tracking-wider font-semibold"
+                    value={reference}
+                    onChange={e => setReference(e.target.value)}
                   />
                   {editingId && (
                     <span className="absolute right-3 top-1/2 -translate-y-1/2 text-[9px] font-black uppercase tracking-wider bg-emerald-500 text-white px-2 py-0.5 rounded shadow-sm">Editing Draft</span>
@@ -680,10 +676,10 @@ export default function JournalEntryPage() {
                 <thead>
                   <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
                     {['#', 'General Ledger Account', 'Line Description', 'Debit Amount', 'Credit Amount', ''].map((h, i) => (
-                      <th key={i} 
-                        className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left" 
-                        style={{ 
-                          width: i === 0 ? 45 : i === 1 ? '35%' : i === 2 ? '30%' : i === 3 || i === 4 ? 165 : 45 
+                      <th key={i}
+                        className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left"
+                        style={{
+                          width: i === 0 ? 45 : i === 1 ? '35%' : i === 2 ? '30%' : i === 3 || i === 4 ? 165 : 45
                         }}
                       >
                         {h}
@@ -695,11 +691,10 @@ export default function JournalEntryPage() {
                   {lines.map((line, idx) => {
                     const isRowFilled = line.accountId && (parseFloat(line.debit) > 0 || parseFloat(line.credit) > 0);
                     return (
-                      <tr 
-                        key={line.id} 
-                        className={`group transition-colors ${
-                          idx % 2 === 0 ? 'bg-[#FFFDFB] hover:bg-emerald-50/15' : 'bg-[#FAFAF9] hover:bg-emerald-50/15'
-                        }`}
+                      <tr
+                        key={line.id}
+                        className={`group transition-colors ${idx % 2 === 0 ? 'bg-[#FFFDFB] hover:bg-emerald-50/15' : 'bg-[#FAFAF9] hover:bg-emerald-50/15'
+                          }`}
                       >
                         <td className="px-4 py-2 text-[11px] font-bold text-slate-400 text-center">
                           {isRowFilled ? (
@@ -711,42 +706,42 @@ export default function JournalEntryPage() {
                           )}
                         </td>
                         <td className="px-2 py-1.5">
-                          <AccountSelect 
+                          <AccountSelect
                             id={`je-input-${idx}-account`}
-                            accounts={accounts} 
+                            accounts={accounts}
                             value={line.accountId}
-                            onChange={v => setLine(idx, 'accountId', v)} 
-                            disabled={accounts.length === 0} 
+                            onChange={v => setLine(idx, 'accountId', v)}
+                            disabled={accounts.length === 0}
                             onKeyDown={e => handleKeyDown(e, idx, 'account')}
                           />
                         </td>
                         <td className="px-2 py-1.5">
-                          <input 
+                          <input
                             id={`je-input-${idx}-description`}
                             className="w-full bg-white border-2 border-slate-100 rounded-lg px-3 py-1.5 text-[13px] text-slate-800 placeholder:text-slate-400 font-semibold outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5"
-                            placeholder="Line Memo..." 
+                            placeholder="Line Memo..."
                             value={line.description}
-                            onChange={e => setLine(idx, 'description', e.target.value)} 
+                            onChange={e => setLine(idx, 'description', e.target.value)}
                             onKeyDown={e => handleKeyDown(e, idx, 'description')}
                           />
                         </td>
                         {['debit', 'credit'].map(field => (
                           <td key={field} className="px-2 py-1.5">
-                            <input 
+                            <input
                               id={`je-input-${idx}-${field}`}
-                              type="number" 
-                              step="0.01" 
+                              type="number"
+                              step="0.01"
                               placeholder="0.00"
                               disabled={field === 'debit' ? !!line.credit : !!line.debit}
                               className="w-full bg-white border-2 border-slate-100 rounded-lg px-2 py-1.5 text-right font-mono text-[13px] font-semibold outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 disabled:opacity-30 disabled:bg-slate-50"
-                              value={line[field]} 
-                              onChange={e => setLine(idx, field, e.target.value)} 
+                              value={line[field]}
+                              onChange={e => setLine(idx, field, e.target.value)}
                               onKeyDown={e => handleKeyDown(e, idx, field)}
                             />
                           </td>
                         ))}
                         <td className="px-2 py-1.5 text-center">
-                          <button 
+                          <button
                             type="button"
                             onClick={() => removeRow(line.id)}
                             className="w-7 h-7 rounded-lg flex items-center justify-center mx-auto text-slate-300 hover:text-rose-500 hover:bg-rose-50 transition-all opacity-0 group-hover:opacity-100 focus:opacity-100 cursor-pointer"
@@ -760,10 +755,10 @@ export default function JournalEntryPage() {
                 </tbody>
               </table>
             </div>
-            
+
             {/* Quick add line button */}
             <div className="px-5 py-3.5 bg-slate-50/50 border-t border-slate-100">
-              <button 
+              <button
                 type="button"
                 onClick={() => setLines([...lines, genRow()])}
                 className="flex items-center gap-1.5 text-[12px] font-bold text-slate-500 hover:text-emerald-600 transition-colors cursor-pointer"
@@ -785,7 +780,7 @@ export default function JournalEntryPage() {
 
             {/* SVG Interactive Scale Illustration */}
             <div className="flex justify-center py-4 relative">
-              <div 
+              <div
                 className="transition-transform duration-300 ease-out origin-bottom"
                 style={{ transform: `rotate(${getScaleRotation()}deg)` }}
               >
@@ -851,11 +846,11 @@ export default function JournalEntryPage() {
                 <span>Credits</span>
               </div>
               <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden flex">
-                <div 
+                <div
                   className="bg-[#10b981] h-full transition-all duration-300"
                   style={{ width: `${totalDebit === 0 && totalCredit === 0 ? 50 : (totalDebit / (totalDebit + totalCredit)) * 100}%` }}
                 />
-                <div 
+                <div
                   className="bg-[#06b6d4] h-full transition-all duration-300 flex-1"
                 />
               </div>
@@ -938,7 +933,7 @@ export default function JournalEntryPage() {
               <div className="flex gap-3 px-7 pb-7">
                 <button onClick={() => setConfirmOpen(false)} className="btn btn-secondary flex-1">Back to Edit</button>
                 <button
-                  onClick={() => submit(false)} 
+                  onClick={() => submit(false)}
                   className="flex-1 inline-flex items-center justify-center gap-2 px-5 rounded-xl font-bold text-[14px] bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white shadow-lg transition-all active:scale-95 cursor-pointer"
                 >
                   <FileText size={14} /> {nextAction === 'post' ? 'Post to Ledger' : nextAction === 'submit' ? 'Submit for Approval' : 'Save Draft'}
@@ -967,7 +962,7 @@ export default function JournalEntryPage() {
                 <p className="text-[12.5px] text-slate-600 font-semibold leading-relaxed">
                   You are attempting to post a manual journal entry directly to the following control accounts:
                 </p>
-                
+
                 <div className="bg-slate-50 border border-slate-100 rounded-xl p-3.5 space-y-1.5 font-mono text-[12px] font-bold text-slate-700">
                   {controlWarningData.accounts.map((name, i) => (
                     <div key={i} className="flex items-center gap-2">
@@ -982,8 +977,8 @@ export default function JournalEntryPage() {
                 </p>
               </div>
               <div className="flex gap-3 px-7 pb-7">
-                <button 
-                  onClick={() => { setControlWarningOpen(false); setSaving(false); }} 
+                <button
+                  onClick={() => { setControlWarningOpen(false); setSaving(false); }}
                   className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-600 px-4 py-2.5 text-[12.5px] font-bold rounded-xl border border-slate-200 transition-all active:scale-95 cursor-pointer"
                 >
                   Cancel
@@ -1021,12 +1016,12 @@ export default function JournalEntryPage() {
                 <p className="text-[12.5px] text-slate-600 font-semibold leading-relaxed">
                   Please select or enter the reason for reversing this journal entry. This creates an opposite balancing transaction and marks this entry as REVERSED.
                 </p>
-                
+
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Reversal Reason</label>
-                  <select 
-                    value={reversalReason} 
-                    onChange={e => setReversalReason(e.target.value)} 
+                  <select
+                    value={reversalReason}
+                    onChange={e => setReversalReason(e.target.value)}
                     className="w-full px-4 py-2.5 rounded-xl border border-slate-200 bg-white text-[13px] font-semibold outline-none focus:border-rose-500 focus:ring-1 focus:ring-rose-500/20"
                   >
                     <option value="">Select a reason...</option>
@@ -1040,7 +1035,7 @@ export default function JournalEntryPage() {
 
                 <div>
                   <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Detailed Notes (Required)</label>
-                  <textarea 
+                  <textarea
                     rows={3}
                     placeholder="Enter detailed description supporting this reversal..."
                     value={reversalReason === 'Other' || !['Wrong Account', 'Duplicate Entry', 'Wrong Amount/Value', 'Wrong Accounting Period'].includes(reversalReason) ? reversalReason : ''}
@@ -1050,8 +1045,8 @@ export default function JournalEntryPage() {
                 </div>
               </div>
               <div className="flex gap-3 px-7 pb-7">
-                <button 
-                  onClick={() => { setReversalModalOpen(false); setReversingEntry(null); setReversalReason(''); }} 
+                <button
+                  onClick={() => { setReversalModalOpen(false); setReversingEntry(null); setReversalReason(''); }}
                   className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-600 px-4 py-2.5 text-[12.5px] font-bold rounded-xl border border-slate-200 transition-all active:scale-95 cursor-pointer"
                 >
                   Cancel
@@ -1137,15 +1132,15 @@ export default function JournalEntryPage() {
         {recentDrawerOpen && (
           <>
             {/* Overlay */}
-            <motion.div 
-              className="fixed inset-0 bg-slate-900/20 backdrop-blur-xs z-[150]" 
-              initial={{ opacity: 0 }} 
-              animate={{ opacity: 1 }} 
+            <motion.div
+              className="fixed inset-0 bg-slate-900/20 backdrop-blur-xs z-[150]"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               onClick={() => setRecentDrawerOpen(false)}
             />
             {/* Drawer */}
-            <motion.div 
+            <motion.div
               className="fixed right-0 top-0 bottom-0 w-full max-w-sm bg-white shadow-2xl z-[160] border-l border-slate-100 flex flex-col"
               initial={{ x: '100%' }}
               animate={{ x: 0 }}
@@ -1157,8 +1152,8 @@ export default function JournalEntryPage() {
                   <h3 className="font-display font-extrabold text-[15px] text-slate-950">Journal Entries Feed</h3>
                   <p className="text-[11px] font-semibold text-slate-500 mt-0.5">Real-time ledger audit log</p>
                 </div>
-                <button 
-                  onClick={() => setRecentDrawerOpen(false)} 
+                <button
+                  onClick={() => setRecentDrawerOpen(false)}
                   className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <X size={15} />
@@ -1169,10 +1164,10 @@ export default function JournalEntryPage() {
               <div className="p-3 border-b border-slate-100">
                 <div className="relative">
                   <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                  <input 
-                    type="text" 
+                  <input
+                    type="text"
                     className="w-full bg-slate-50 border border-slate-200 rounded-lg py-1.5 pl-8 pr-3 text-[12px] font-semibold outline-none focus:bg-white focus:border-emerald-500"
-                    placeholder="Search recent entries..." 
+                    placeholder="Search recent entries..."
                     value={recentFilter}
                     onChange={e => setRecentFilter(e.target.value)}
                   />
@@ -1198,13 +1193,12 @@ export default function JournalEntryPage() {
                       <div className="min-w-0">
                         <div className="flex items-center gap-1.5">
                           <span className="text-[11px] font-bold text-slate-400 font-mono tracking-wider">#{String(entry.id)}</span>
-                          <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ${
-                            entry.status === 'POSTED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                            entry.status === 'REVERSED' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
-                            entry.status === 'PENDING_APPROVAL' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                            entry.status === 'DRAFT' ? 'bg-slate-50 text-slate-600 border border-slate-100' :
-                            'bg-cyan-50 text-cyan-700 border border-cyan-100'
-                          }`}>
+                          <span className={`text-[9px] font-black uppercase tracking-wider px-1.5 py-0.5 rounded ${entry.status === 'POSTED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                              entry.status === 'REVERSED' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
+                                entry.status === 'PENDING_APPROVAL' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                                  entry.status === 'DRAFT' ? 'bg-slate-50 text-slate-600 border border-slate-100' :
+                                    'bg-cyan-50 text-cyan-700 border border-cyan-100'
+                            }`}>
                             {entry.status}
                           </span>
                         </div>
@@ -1230,9 +1224,9 @@ export default function JournalEntryPage() {
       <AnimatePresence>
         {selectedRecentEntry && (
           <motion.div className="modal-overlay" style={{ zIndex: 200 }} initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
-            <motion.div 
+            <motion.div
               className="modal-box w-full max-w-xl"
-              initial={{ opacity: 0, scale: 0.95, y: 16 }} 
+              initial={{ opacity: 0, scale: 0.95, y: 16 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 16 }}
             >
@@ -1244,8 +1238,8 @@ export default function JournalEntryPage() {
                   </h3>
                   <p className="text-[11px] font-semibold text-slate-500 mt-0.5">Created by {selectedRecentEntry.created_name}</p>
                 </div>
-                <button 
-                  onClick={() => { setSelectedRecentEntry(null); setDetailEntry(null); }} 
+                <button
+                  onClick={() => { setSelectedRecentEntry(null); setDetailEntry(null); }}
                   className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-slate-600 hover:bg-slate-100 transition-colors cursor-pointer"
                 >
                   <X size={15} />
@@ -1268,13 +1262,12 @@ export default function JournalEntryPage() {
                       <div>
                         <span className="text-slate-400 font-semibold block">Status / Reference</span>
                         <div className="flex items-center gap-1.5 mt-0.5">
-                          <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${
-                            detailEntry.status === 'POSTED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                            detailEntry.status === 'REVERSED' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
-                            detailEntry.status === 'PENDING_APPROVAL' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                            detailEntry.status === 'DRAFT' ? 'bg-slate-50 text-slate-600 border border-slate-100' :
-                            'bg-cyan-50 text-cyan-700 border border-cyan-100'
-                          }`}>
+                          <span className={`text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded ${detailEntry.status === 'POSTED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
+                              detailEntry.status === 'REVERSED' ? 'bg-rose-50 text-rose-700 border border-rose-100' :
+                                detailEntry.status === 'PENDING_APPROVAL' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
+                                  detailEntry.status === 'DRAFT' ? 'bg-slate-50 text-slate-600 border border-slate-100' :
+                                    'bg-cyan-50 text-cyan-700 border border-cyan-100'
+                            }`}>
                             {detailEntry.status}
                           </span>
                           <span className="font-mono font-bold text-slate-600">{detailEntry.reference || 'N/A'}</span>
@@ -1327,13 +1320,13 @@ export default function JournalEntryPage() {
               <div className="flex gap-2.5 px-6 pb-6 pt-3 border-t border-slate-50 bg-slate-50/30 justify-end">
                 {detailEntry?.status === 'DRAFT' && (
                   <>
-                    <button 
+                    <button
                       onClick={() => handleSubmitDraft(detailEntry.id)}
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold text-amber-700 hover:bg-amber-50 transition-colors border border-amber-100 cursor-pointer"
                     >
                       <CheckSquare size={13} /> Submit Approval
                     </button>
-                    <button 
+                    <button
                       onClick={() => handleDeleteDraft(detailEntry.id)}
                       className="inline-flex items-center gap-1.5 px-4 py-2 rounded-xl text-[12px] font-bold text-rose-600 hover:bg-rose-50 transition-colors border border-rose-100 cursor-pointer"
                     >
@@ -1341,9 +1334,9 @@ export default function JournalEntryPage() {
                     </button>
                   </>
                 )}
-                
+
                 {detailEntry?.status === 'PENDING_APPROVAL' && canPost && (
-                  <button 
+                  <button
                     onClick={async () => {
                       try {
                         await api.post(`/journal/${detailEntry.id}/post`);
@@ -1363,7 +1356,7 @@ export default function JournalEntryPage() {
                 )}
 
                 {detailEntry?.status === 'POSTED' && (
-                  <button 
+                  <button
                     onClick={() => {
                       setReversingEntry(detailEntry);
                       setReversalModalOpen(true);
@@ -1374,15 +1367,15 @@ export default function JournalEntryPage() {
                   </button>
                 )}
 
-                <button 
-                  onClick={() => handleLoadDraft(detailEntry)} 
+                <button
+                  onClick={() => handleLoadDraft(detailEntry)}
                   className="inline-flex items-center gap-1.5 px-4.5 py-2 rounded-xl text-[12px] font-extrabold bg-emerald-50 hover:bg-emerald-100 text-emerald-800 transition-all border border-emerald-200 active:scale-95 cursor-pointer"
                 >
                   <Eye size={13} /> Load into Editor
                 </button>
 
-                <button 
-                  onClick={() => { setSelectedRecentEntry(null); setDetailEntry(null); }} 
+                <button
+                  onClick={() => { setSelectedRecentEntry(null); setDetailEntry(null); }}
                   className="px-4.5 py-2 text-[12px] font-bold text-slate-600 bg-white hover:bg-slate-100 border border-slate-200 rounded-xl transition-all cursor-pointer"
                 >
                   Close Detail
