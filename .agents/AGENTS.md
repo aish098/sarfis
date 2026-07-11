@@ -105,9 +105,7 @@ All modules must share the same design language:
 ### 18. Enterprise Scalability
 Every feature must support multi-company, multi-branch, multi-currency, multi-department, multi-fiscal-year, role-based permissions, and audit logging.
 
----
-
-## 🛠️ Development Validation Rule
+### 19. Development Validation Rule
 Before merging any feature, validate:
 1. Is it intuitive for first-time users?
 2. Can the primary task be completed in three clicks or fewer?
@@ -120,3 +118,40 @@ Before merging any feature, validate:
 9. Does it integrate correctly with related ERP modules?
 
 If any answer is **No**, revise the implementation before considering it complete.
+
+### 20. ERP Consistency Rule (Mandatory)
+Every module developed in SARFIS must follow the same lifecycle, mental model, and architecture:
+1. **Dashboard**: Show only what requires attention today (KPIs, Alerts, Approvals, Quick Actions, Activity).
+2. **Register**: Master list of records (Customers, Employees, Assets, Budgets, Purchase Orders, Vouchers).
+3. **Workspace**: Detailed record management (Employee 360°, Vendor Workspace, Asset Workspace).
+4. **Processing**: Perform business operations (Generate Payroll, Post Voucher, Issue Inventory).
+5. **Reports**: Business, financial, compliance, and analytics reports.
+6. **Configuration**: Master setup only (Rules, Templates, Routing, default accounts).
+
+### 21. No Dead-End Screens
+Every screen must answer: **"What should the user do next?"**
+* *Example (Payroll Posted)*: Render buttons for `Pay Employees`, `View Journal`, `Download Register`, `Close Month` instead of displaying a static success indicator.
+
+### 22. Explain Before Error
+Every error must include three components:
+1. **What happened**
+2. **Why it happened**
+3. **How to fix it**
+* *Example*: *"Payroll cannot be posted because Accounting Period August 2026 is closed. Open the September period or contact your Finance Administrator."*
+
+### 23. Dashboard Rule
+No operational dashboard should exceed:
+* **8 KPI cards**
+* **5 quick actions**
+* **10 recent activities**
+All other information belongs in sub-views or detail drawers.
+
+### 24. Search Everywhere
+One global workspace search should locate Employees, Customers, Vendors, Assets, Journal Entries, Invoices, Payments, Budgets, Projects, and Documents in one centralized registry.
+
+### 25. AI-Ready Architecture
+Every module should expose standard backend endpoints to enable semantic AI assistant queries:
+* `/summary`, `/timeline`, `/audit`, `/activity`, `/search`
+
+### 26. The "Grandmother Test"
+Before releasing any screen, confirm: **Could someone who understands accounting or HR—but not ERP software—figure out how to complete the primary task within five minutes without training?** If the answer is no, simplify the interface.
