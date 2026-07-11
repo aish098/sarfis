@@ -5,6 +5,49 @@ const PostingEngineService = require('./posting_engine.service');
 const JournalService = require('./journal.service');
 const NotificationService = require('./notification.service');
 const PDFDocument = require('pdfkit');
+function evaluateFormula(expression, context) {
+  let expr = expression;
+  const keys = Object.keys(context);
+  keys.sort((a, b) => b.length - a.length);
+  
+  for (const key of keys) {
+    const regex = new RegExp(`\\b${key}\\b`, 'g');
+    expr = expr.replace(regex, context[key]);
+  }
+  
+  if (expr.startsWith('if(') || expr.startsWith('if (')) {
+    const startIdx = expr.indexOf('(');
+    const content = expr.substring(startIdx + 1, expr.lastIndexOf(')'));
+    const parts = [];
+    let bracketCount = 0;
+    let currentPart = '';
+    
+    for (let i = 0; i < content.length; i++) {
+      const char = content[i];
+      if (char === '(') bracketCount++;
+      else if (char === ')') bracketCount--;
+      
+      if (char === ',' && bracketCount === 0) {
+        parts.push(currentPart.trim());
+        currentPart = '';
+      } else {
+        currentPart += char;
+      }
+    }
+    parts.push(currentPart.trim());
+    
+    if (parts.length === 3) {
+      expr = `(${parts[0]}) ? (${parts[1]}) : (${parts[2]})`;
+    }
+  }
+
+  try {
+    return new Function(`return (${expr});`)();
+  } catch (err) {
+    console.error(`[Formula Evaluator] Failed to evaluate expression "${expression}" (parsed as "${expr}"):`, err);
+    return 0;
+  }
+}
 
 class PayrollService {
   /**
@@ -243,12 +286,6 @@ class PayrollService {
       for (const emp of employees) {
         const salary = parseFloat(emp.salary);
 
-        // Apportionments
-        const basic = salary * 0.60;
-        const rent = salary * 0.25;
-        const med = salary * 0.10;
-        const trans = salary * 0.05;
-
         // Sum overtime approved for this period
         const otSum = await trx('overtime_records')
           .where({ employee_id: emp.id, company_id: companyId, status: 'APPROVED' })
@@ -257,15 +294,130 @@ class PayrollService {
           .first();
         const otAmt = parseFloat(otSum?.total || 0);
 
-        // Deductions
-        const tax = salary > 100000 ? salary * 0.10 : 0.00;
-        const pf = basic * 0.05; // 5% basic
-        const eobi = 1000.00;
-        const ss = 1200.00;
+        // Fetch salary structure components
+        let compMappings = [];
+        if (emp.salary_structure_id) {
+          compMappings = await trx('salary_structure_components as ssc')
+            .join('salary_components as sc', 'ssc.component_id', 'sc.id')
+            .where('ssc.structure_id', emp.salary_structure_id)
+            .where('sc.is_active', true)
+            .select('sc.*', 'ssc.value as template_value', trx.raw("'STRUCTURE' as source"));
+        }
 
-        const gross = salary + otAmt;
-        const deduct = tax + pf + eobi + ss;
-        const net = gross - deduct;
+        // Fetch employee direct overrides
+        const overrides = await trx('employee_salary_components as esc')
+          .join('salary_components as sc', 'esc.component_id', 'sc.id')
+          .where('esc.employee_id', emp.id)
+          .where('sc.is_active', true)
+          .select('sc.*', 'esc.value as override_value', trx.raw("'EMPLOYEE_OVERRIDE' as source"));
+
+        // Combine structure and overrides (overrides overwrite templates)
+        const componentMap = {};
+        for (const comp of compMappings) {
+          componentMap[comp.code] = {
+            ...comp,
+            value: parseFloat(comp.template_value),
+            source: 'STRUCTURE'
+          };
+        }
+        for (const comp of overrides) {
+          componentMap[comp.code] = {
+            ...comp,
+            value: parseFloat(comp.override_value),
+            source: 'EMPLOYEE_OVERRIDE'
+          };
+        }
+
+        const activeComponents = Object.values(componentMap);
+
+        let basic = 0;
+        let rent = 0;
+        let med = 0;
+        let trans = 0;
+        let tax = 0;
+        let pf = 0;
+        let eobi = 0;
+        let ss = 0;
+        let gross = 0;
+        let deduct = 0;
+        let net = 0;
+        const details = [];
+
+        if (activeComponents.length > 0) {
+          // Sort by sequence_no for deterministic calculations
+          activeComponents.sort((a, b) => a.sequence_no - b.sequence_no);
+
+          const context = {
+            salary: salary,
+            ot: otAmt,
+            basic: 0,
+            gross: salary + otAmt,
+            net: 0
+          };
+
+          for (const comp of activeComponents) {
+            let amount = 0;
+            if (comp.calculation_type === 'FIXED') {
+              amount = comp.value;
+            } else if (comp.calculation_type === 'PERCENTAGE') {
+              amount = context.salary * comp.value;
+            } else if (comp.calculation_type === 'FORMULA' && comp.formula_expression) {
+              amount = evaluateFormula(comp.formula_expression, context);
+            }
+
+            if (comp.code === 'BASIC') {
+              basic = amount;
+              context.basic = amount;
+            } else if (comp.code === 'HRA') {
+              rent = amount;
+            } else if (comp.code === 'MED') {
+              med = amount;
+            } else if (comp.code === 'TRANS') {
+              trans = amount;
+            } else if (comp.code === 'TAX') {
+              tax = amount;
+            } else if (comp.code === 'PF') {
+              pf = amount;
+            } else if (comp.code === 'EOBI') {
+              eobi = amount;
+            } else if (comp.code === 'SS') {
+              ss = amount;
+            }
+
+            details.push({
+              component_id: comp.id,
+              component_name: comp.name,
+              component_code: comp.code,
+              component_type: comp.type,
+              calculation_type: comp.calculation_type,
+              source: comp.source,
+              formula_used: comp.formula_expression,
+              rate: comp.calculation_type === 'PERCENTAGE' ? comp.value : null,
+              base_amount: comp.calculation_type === 'PERCENTAGE' ? context.salary : null,
+              amount: amount,
+              gl_account_id: comp.gl_account_id,
+              display_order: comp.display_order
+            });
+          }
+
+          gross = salary + otAmt;
+          deduct = tax + pf + eobi + ss;
+          net = gross - deduct;
+        } else {
+          // Legacy Fallback
+          basic = salary * 0.60;
+          rent = salary * 0.25;
+          med = salary * 0.10;
+          trans = salary * 0.05;
+          tax = salary > 100000 ? salary * 0.10 : 0.00;
+          pf = basic * 0.05;
+          eobi = 1000.00;
+          ss = 1200.00;
+
+          gross = salary + otAmt;
+          deduct = tax + pf + eobi + ss;
+          net = gross - deduct;
+        }
 
         totalGross += gross;
         totalDeductions += deduct;
@@ -283,7 +435,8 @@ class PayrollService {
           eobi_deduction: eobi,
           social_security_deduction: ss,
           gross_salary: gross,
-          net_salary: net
+          net_salary: net,
+          details
         });
       }
 
@@ -300,10 +453,24 @@ class PayrollService {
         .returning('*');
 
       for (const line of lines) {
-        await trx('payroll_lines').insert({
-          ...line,
-          payroll_run_id: run.id
-        });
+        const { details, ...lineData } = line;
+        const [insertedLine] = await trx('payroll_lines')
+          .insert({
+            ...lineData,
+            payroll_run_id: run.id
+          })
+          .returning('*');
+        
+        const lineId = typeof insertedLine === 'object' ? insertedLine.id : insertedLine;
+
+        if (details && details.length > 0) {
+          for (const d of details) {
+            await trx('payroll_line_details').insert({
+              ...d,
+              payroll_line_id: lineId
+            });
+          }
+        }
       }
 
       // Audit log
