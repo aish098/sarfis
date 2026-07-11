@@ -749,13 +749,41 @@ class PayrollService {
    * Helper to resolve/create accounts dynamically
    */
   static async resolveAccount(companyId, code, name, category, trx) {
-    const existing = await trx('accounts').where({ company_id: companyId, code }).first();
-    if (existing) return existing.id;
+    // 1. First try to find by name (case-insensitive) for this company
+    const existingByName = await trx('accounts')
+      .where({ company_id: companyId })
+      .whereILike('name', name)
+      .first();
+    if (existingByName) return existingByName.id;
+
+    // 2. If not found by name, check if the desired code is available
+    const existingByCode = await trx('accounts')
+      .where({ company_id: companyId, code })
+      .first();
+    
+    let targetCode = code;
+    if (existingByCode) {
+      // Code is taken! Find the next available numeric code
+      let counter = 1;
+      while (true) {
+        const numericCode = parseInt(code) + counter;
+        if (!isNaN(numericCode)) {
+          targetCode = String(numericCode);
+          const taken = await trx('accounts').where({ company_id: companyId, code: targetCode }).first();
+          if (!taken) break;
+        } else {
+          targetCode = `${code}_${counter}`;
+          const taken = await trx('accounts').where({ company_id: companyId, code: targetCode }).first();
+          if (!taken) break;
+        }
+        counter++;
+      }
+    }
 
     const [newAcc] = await trx('accounts')
       .insert({
         company_id: companyId,
-        code,
+        code: targetCode,
         name,
         category,
         normal_balance: category === 'Expense' ? 'Debit' : 'Credit',
