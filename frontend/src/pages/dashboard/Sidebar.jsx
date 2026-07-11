@@ -25,14 +25,12 @@ const NAV_SECTIONS = [
       { to: '/dashboard/journal', icon: Activity, label: 'Manual Journals', permission: 'journal.view' },
       { to: '/dashboard/ledger', icon: BookMarked, label: 'General Ledger', permission: 'ledger.view' },
       { to: '/dashboard/finance/close-wizard', icon: Target, label: 'Month-End Close', permission: 'period.manage' },
-      { to: '/dashboard/finance/budgets', icon: Sliders, label: 'Budget Registry', permission: 'settings.manage' },
     ],
   },
   {
     label: 'Reports',
     items: [
       { to: '/dashboard/reports', icon: BarChart2, label: 'Financial Reports', permission: 'report.view' },
-      { to: '/dashboard/finance/budgets/vs-actual', icon: BarChart2, label: 'Budget vs Actual', permission: 'report.view' },
     ],
   },
   {
