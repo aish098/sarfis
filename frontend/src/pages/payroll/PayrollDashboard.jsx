@@ -9,6 +9,16 @@ import useAuthStore from '../../store/authStore';
 
 export default function PayrollDashboard({ onNavigateToTab, userRole }) {
   const { activeCompany } = useAuthStore();
+  
+  const kpis = [
+    { label: 'Total Payroll', value: '0', change: '+4.2% vs last month', icon: DollarSign, color: 'text-indigo-600 bg-indigo-50' },
+    { label: 'Employer Cost', value: '0', change: 'Includes benefits & PF', icon: TrendingUp, color: 'text-emerald-600 bg-emerald-50' },
+    { label: 'Provident Fund (PF)', value: '0', change: 'Company matching: PKR 610k', icon: Landmark, color: 'text-cyan-600 bg-cyan-50' },
+    { label: 'Income Taxes Withheld', value: '0', change: 'Auto-calculated via FBR slabs', icon: ShieldCheck, color: 'text-purple-600 bg-purple-50' },
+    { label: 'Average Salary', value: '0', change: 'Active headcount: 245', icon: Users, color: 'text-blue-600 bg-blue-50' },
+    { label: 'Budget Variance', value: '0', change: 'Under budget limit by 0.8%', icon: BookOpen, color: 'text-amber-600 bg-amber-50' },
+  ];
+
   const [loading, setLoading] = useState(true);
   const [stats, setStats] = useState({
     totalPayroll: 32550000,
