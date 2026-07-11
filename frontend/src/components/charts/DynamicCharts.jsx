@@ -18,7 +18,7 @@ export function DynamicClusteredBarChart({ chartRows, layout, lookup, series }) 
     return (
       <BarChart layout="vertical" data={chartRows} margin={margins} barGap={layout.barGap} barCategoryGap={layout.categoryGap}>
         <CartesianGrid stroke={PBI.grid} horizontal={false} vertical strokeDasharray="0" />
-        <XAxis type="number" tick={{ fill: "#605e5c", fontSize: layout.tickFontSize, fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={fmtChart} />
+        <XAxis type="number" tick={{ fill: "#605e5c", fontSize: layout.tickFontSize, fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={fmtChart} domain={[0, 'auto']} />
         <YAxis type="category" dataKey="name" width={layout.yAxisWidth} tick={(p) => <DynamicYCategoryTick {...p} layout={layout} lookup={lookup} />} axisLine={false} tickLine={false} />
         <Tooltip content={tip} cursor={{ fill: "rgba(17,141,255,0.06)" }} />
         <Legend iconType="square" iconSize={10} verticalAlign="top" align="right" wrapperStyle={legendTop} />
@@ -92,8 +92,8 @@ export function DynamicComboChart({ chartRows, layout, lookup, barSeries, lineKe
     return (
       <ComposedChart layout="vertical" data={chartRows} margin={margins}>
         <CartesianGrid stroke={PBI.grid} horizontal={false} vertical strokeDasharray="0" />
-        <XAxis xAxisId="amount" type="number" tick={{ fill: "#605e5c", fontSize: layout.tickFontSize, fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={fmtChart} />
-        <XAxis xAxisId="pct" type="number" orientation="top" tick={{ fill: "#605e5c", fontSize: 9, fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} height={28} />
+        <XAxis xAxisId="amount" type="number" tick={{ fill: "#605e5c", fontSize: layout.tickFontSize, fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={fmtChart} domain={[0, 'auto']} />
+        <XAxis xAxisId="pct" type="number" orientation="top" tick={{ fill: "#605e5c", fontSize: 9, fontWeight: 500 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} height={28} domain={[0, 'auto']} />
         <YAxis type="category" dataKey="name" width={layout.yAxisWidth} tick={(p) => <DynamicYCategoryTick {...p} layout={layout} lookup={lookup} />} axisLine={false} tickLine={false} />
         <Tooltip content={tip} />
         <Legend iconType="square" iconSize={10} verticalAlign="top" align="right" wrapperStyle={legendTop} />
@@ -110,7 +110,7 @@ export function DynamicComboChart({ chartRows, layout, lookup, barSeries, lineKe
       <CartesianGrid {...pbiGridProps} />
       <XAxis dataKey="name" interval={layout.tickInterval} height={layout.bottomMargin + 8} tick={(p) => <DynamicXTick {...p} layout={layout} lookup={lookup} />} axisLine={false} tickLine={false} />
       <YAxis yAxisId="left" {...yAxisProps(layout)} />
-      <YAxis yAxisId="right" orientation="right" tick={{ fill: "#605e5c", fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} width={44} />
+      <YAxis yAxisId="right" orientation="right" tick={{ fill: "#605e5c", fontSize: 9 }} axisLine={false} tickLine={false} tickFormatter={(v) => `${v}%`} width={44} domain={[0, 'auto']} />
       <Tooltip content={tip} />
       <Legend verticalAlign="top" align="right" wrapperStyle={legendTop} />
       {barSeries.map((s) => (
@@ -129,7 +129,7 @@ export function DynamicBarSeries({ chartRows, layout, lookup, dataKey, name, fil
     return (
       <BarChart layout="vertical" data={chartRows} margin={margins}>
         <CartesianGrid stroke={PBI.grid} horizontal={false} vertical strokeDasharray="0" />
-        <XAxis type="number" tickFormatter={fmtChart} tick={{ fill: "#605e5c", fontSize: layout.tickFontSize }} axisLine={false} tickLine={false} />
+        <XAxis type="number" tickFormatter={fmtChart} tick={{ fill: "#605e5c", fontSize: layout.tickFontSize }} axisLine={false} tickLine={false} domain={[0, 'auto']} />
         <YAxis type="category" dataKey="name" width={layout.yAxisWidth} tick={(p) => <DynamicYCategoryTick {...p} layout={layout} lookup={lookup} />} axisLine={false} tickLine={false} />
         <Tooltip content={(p) => <ChartTooltip {...p} fullLabel={resolveFullName(p.label, lookup)} />} cursor={{ fill: "rgba(17,141,255,0.05)" }} />
         <Bar dataKey={dataKey} name={name} fill={gradientId ? `url(#${gradientId})` : fill} radius={[0, 4, 4, 0]} maxBarSize={layout.maxBarSize} />
