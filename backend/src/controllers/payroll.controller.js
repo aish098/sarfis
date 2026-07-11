@@ -329,4 +329,45 @@ exports.getEmployeeLeaves = async (req, res) => {
   }
 };
 
+exports.reversePayrollRun = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const userId = req.user?.id || 1;
+    const { id } = req.params;
+    const result = await PayrollService.reversePayrollRun(parseInt(id), parseInt(companyId), userId);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.reversePayrollPayment = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const userId = req.user?.id || 1;
+    const { id } = req.params;
+    const { remarks } = req.body;
+
+    const payment = await db('payroll_payments')
+      .where({ company_id: companyId, payroll_line_id: id, is_reversal: false })
+      .first();
+
+    if (!payment) {
+      const line = await db('payroll_lines').where({ id, company_id: companyId }).first();
+      if (!line) {
+        return res.status(404).json({ error: 'Payroll line not found.' });
+      }
+      await db('payroll_lines')
+        .where({ id, company_id: companyId })
+        .update({ payment_status: 'PENDING' });
+      return res.json({ id, payment_status: 'PENDING' });
+    }
+
+    const result = await PayrollService.reversePayrollPayment(parseInt(companyId), payment.id, remarks || 'Payment Reversal', userId);
+    res.json({ id, payment_status: 'PENDING', ...result });
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
 

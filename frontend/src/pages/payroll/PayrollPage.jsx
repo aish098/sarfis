@@ -331,7 +331,7 @@ export default function PayrollPage() {
           </div>
         }>
           {activeTab === 'dashboard' && <PayrollDashboard onNavigateToTab={handleNavigateToTab} userRole={userRole} />}
-          {activeTab === 'processing' && <PayrollProcessing userRole={userRole} onBackToDashboard={() => handleNavigateToTab('dashboard')} />}
+          {activeTab === 'processing' && <PayrollProcessing userRole={userRole} onBackToDashboard={() => handleNavigateToTab('dashboard')} onNavigateToTab={handleNavigateToTab} />}
           {activeTab === 'employees' && <PayrollEmployees userRole={userRole} onBackToDashboard={() => handleNavigateToTab('dashboard')} />}
           {activeTab === 'configuration' && <PayrollConfiguration userRole={userRole} />}
           {activeTab === 'payments' && <PayrollPayments userRole={userRole} initialTab={paymentsInitialTab} onBackToDashboard={() => handleNavigateToTab('dashboard')} />}

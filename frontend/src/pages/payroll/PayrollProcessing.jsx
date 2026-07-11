@@ -9,7 +9,7 @@ import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import WizardFlow from '../../components/ui/WizardFlow';
 
-export default function PayrollProcessing({ userRole, onBackToDashboard }) {
+export default function PayrollProcessing({ userRole, onBackToDashboard, onNavigateToTab }) {
   const { activeCompany } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState(null);
@@ -21,11 +21,53 @@ export default function PayrollProcessing({ userRole, onBackToDashboard }) {
   const [viewMode, setViewMode] = useState('wizard'); // wizard | archive
   
   const [period, setPeriod] = useState('2026-08');
-  const [exceptions, setExceptions] = useState([
-    { id: 1, name: 'Rana Talal', code: 'MISSING_BANK', detail: 'No active bank routing account number detected.', severity: 'CRITICAL' },
-    { id: 2, name: 'Rizwan Ali', code: 'SALARY_VARIANCE', detail: 'Monthly salary increment exceeds threshold (>30% variance).', severity: 'WARNING' },
-    { id: 3, name: 'Hamza Sheikh', code: 'MISSING_TAX_ID', detail: 'National Tax Number (NTN) missing. Defaulting to high withholding non-filer rate.', severity: 'WARNING' },
-  ]);
+  const [exceptions, setExceptions] = useState([]);
+
+  const fetchValidationExceptions = async () => {
+    if (!activeCompany?.id) return;
+    try {
+      const res = await api.get(`/employees/${activeCompany.id}`);
+      const list = res.data || [];
+      const realExceptions = [];
+      let idCounter = 1;
+
+      for (const emp of list) {
+        // Exception 1: Missing Bank info or placeholder bank account
+        if (!emp.bank_name || !emp.bank_account || emp.bank_account.trim() === '' || emp.bank_account.includes('123456789012')) {
+          realExceptions.push({
+            id: idCounter++,
+            employeeId: emp.id,
+            name: emp.name,
+            code: 'MISSING_BANK',
+            detail: `No active bank routing account number detected (Current: ${emp.bank_account || 'None'}).`,
+            severity: 'CRITICAL'
+          });
+        }
+
+        // Exception 2: Missing email
+        if (!emp.email || emp.email.trim() === '' || emp.email === '—') {
+          realExceptions.push({
+            id: idCounter++,
+            employeeId: emp.id,
+            name: emp.name,
+            code: 'MISSING_EMAIL',
+            detail: 'No registered corporate email address detected. Payslip email dispatch will fail.',
+            severity: 'WARNING'
+          });
+        }
+      }
+
+      setExceptions(realExceptions);
+    } catch (err) {
+      console.error('Failed to validate employees:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (activeStep === 1) {
+      fetchValidationExceptions();
+    }
+  }, [activeStep, activeCompany?.id]);
   
   // Simulation results
   const [simResults, setSimResults] = useState(null);
@@ -349,7 +391,10 @@ export default function PayrollProcessing({ userRole, onBackToDashboard }) {
                           <p className="text-[10px] text-slate-400 font-normal leading-normal">{exp.detail}</p>
                         </div>
                       </div>
-                      <button className="px-2.5 py-1.5 bg-white border border-slate-200 rounded-xl text-[10px] font-black text-slate-700 shadow-3xs cursor-pointer">
+                      <button
+                        onClick={() => onNavigateToTab && onNavigateToTab('employees')}
+                        className="px-2.5 py-1.5 bg-white border border-slate-200 hover:border-slate-300 rounded-xl text-[10px] font-black text-slate-700 shadow-3xs cursor-pointer transition-all"
+                      >
                         Resolve
                       </button>
                     </div>
