@@ -53,34 +53,52 @@ export default function PayrollDashboard({ onNavigateToTab, userRole }) {
 
   // Role-Based "My Work" Tasks
   const getMyWorkTasks = () => {
+    const tasks = [];
     switch (userRole) {
       case 'HR Officer':
-        return [
-          { text: '2 Payroll runs awaiting initial HR compiler', priority: 'HIGH' },
-          { text: '3 Employees missing active salary structure details', priority: 'MEDIUM' },
-          { text: '5 Attendance records marked absent without explanation', priority: 'LOW' }
-        ];
       case 'HR Manager':
-        return [
-          { text: 'Review Aug 2026 calculations and submit for sign-off', priority: 'HIGH' },
-          { text: '3 employee compliance exceptions require override validation', priority: 'HIGH' }
-        ];
+        if (stats.totalHeadcount === 0) {
+          tasks.push({ text: 'Employee master directory is empty. Add employee profiles.', priority: 'HIGH' });
+        }
+        if (stats.status === 'DRAFT' || stats.status === 'READY_TO_POST') {
+          tasks.push({ text: `Review ${stats.activePeriod} calculations and submit for sign-off`, priority: 'HIGH' });
+        }
+        if (stats.missingBank > 0) {
+          tasks.push({ text: `${stats.missingBank} employee compliance exception(s) require bank account info`, priority: 'HIGH' });
+        }
+        if (tasks.length === 0) {
+          tasks.push({ text: `No outstanding compliance validation actions for ${stats.activePeriod}`, priority: 'LOW' });
+        }
+        return tasks;
       case 'Finance':
-        return [
-          { text: '1 payroll run awaiting post to general ledger', priority: 'HIGH' },
-          { text: '2 department budget warnings require sign-off overrides', priority: 'MEDIUM' }
-        ];
+        if (stats.status === 'APPROVED' || stats.status === 'READY_TO_POST') {
+          tasks.push({ text: `1 payroll run awaiting post to general ledger (${stats.activePeriod})`, priority: 'HIGH' });
+        }
+        if (stats.budgetVariance > 0) {
+          tasks.push({ text: `Department budget variance detected: PKR ${stats.budgetVariance.toLocaleString()} over-limit`, priority: 'MEDIUM' });
+        }
+        if (tasks.length === 0) {
+          tasks.push({ text: 'All period journal entries posted successfully to Ledger', priority: 'LOW' });
+        }
+        return tasks;
       case 'Treasury':
-        return [
-          { text: 'Authorize bank disbursement batch file for Aug 2026', priority: 'HIGH' },
-          { text: '5 payment lines pending bank statement reconciliation', priority: 'MEDIUM' },
-          { text: '1 failed bank clearance line requires transaction review', priority: 'HIGH' }
-        ];
+        if (stats.status === 'POSTED') {
+          tasks.push({ text: `Authorize bank disbursement batch file for ${stats.activePeriod}`, priority: 'HIGH' });
+        }
+        if (stats.failedPayments > 0) {
+          tasks.push({ text: `${stats.failedPayments} failed bank clearance line(s) require transaction review`, priority: 'HIGH' });
+        }
+        if (stats.pending > 0) {
+          tasks.push({ text: `${stats.pending} payment line(s) pending bank statement reconciliation`, priority: 'MEDIUM' });
+        }
+        if (tasks.length === 0) {
+          tasks.push({ text: `All treasury disbursements cleared for ${stats.activePeriod}`, priority: 'LOW' });
+        }
+        return tasks;
       case 'Auditor':
-        return [
-          { text: 'Verify calculation traces for modified components', priority: 'MEDIUM' },
-          { text: 'Audit payment reversal logs for period Jul 2026', priority: 'MEDIUM' }
-        ];
+        tasks.push({ text: `Verify calculation traces for ${stats.activePeriod} components`, priority: 'MEDIUM' });
+        tasks.push({ text: 'Audit payment change logs and history trails', priority: 'MEDIUM' });
+        return tasks;
       default:
         return [];
     }

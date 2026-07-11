@@ -80,19 +80,19 @@ describe('PayrollDashboard UI Component', () => {
     expect(await screen.findByText(/1 payment clearance line\(s\) failed/i)).toBeInTheDocument();
   });
 
-  it('renders role-specific My Work tasks for HR Manager', () => {
+  it('renders role-specific My Work tasks for HR Manager dynamically', async () => {
     render(<PayrollDashboard userRole="HR Manager" onNavigateToTab={mockNavigate} />);
     
     // HR Manager tasks check
-    expect(screen.getByText(/Review Aug 2026 calculations and submit for sign-off/i)).toBeInTheDocument();
-    expect(screen.getByText(/3 employee compliance exceptions/i)).toBeInTheDocument();
+    expect(await screen.findByText(/Review 2026-08 calculations and submit for sign-off/i)).toBeInTheDocument();
+    expect(await screen.findByText(/1 employee compliance exception\(s\) require bank account/i)).toBeInTheDocument();
   });
 
-  it('renders role-specific My Work tasks for Treasury', () => {
+  it('renders role-specific My Work tasks for Treasury dynamically', async () => {
     render(<PayrollDashboard userRole="Treasury" onNavigateToTab={mockNavigate} />);
     
     // Treasury tasks check
-    expect(screen.getByText(/Authorize bank disbursement batch/i)).toBeInTheDocument();
-    expect(screen.getByText(/5 payment lines pending bank statement/i)).toBeInTheDocument();
+    expect(await screen.findByText(/1 failed bank clearance line\(s\) require transaction review/i)).toBeInTheDocument();
+    expect(await screen.findByText(/1 payment line\(s\) pending bank statement reconciliation/i)).toBeInTheDocument();
   });
 });
