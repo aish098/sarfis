@@ -32,6 +32,54 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
   });
   
   const [activeSubTab, setActiveSubTab] = useState('overview'); // overview | payroll | attendance | leave | overtime | loans | payments | documents | audit | timeline
+  const [actionMsg, setActionMsg] = useState(null);
+  const [isAdding, setIsAdding] = useState(false);
+  const [newEmp, setNewEmp] = useState({
+    name: '',
+    department: '',
+    role: '',
+    salary: '',
+    bankName: '',
+    accountNumber: '',
+    status: 'Active'
+  });
+
+  const handleCreateEmployee = async (e) => {
+    e.preventDefault();
+    if (!activeCompany?.id) return;
+    setLoading(true);
+    setActionMsg(null);
+    try {
+      await api.post(`/employees/${activeCompany.id}`, {
+        name: newEmp.name,
+        department: newEmp.department || null,
+        role: newEmp.role || null,
+        salary: parseFloat(newEmp.salary),
+        bankName: newEmp.bankName || null,
+        accountNumber: newEmp.accountNumber || null,
+        status: newEmp.status
+      });
+      
+      setActionMsg({ type: 'success', text: `Successfully created payroll profile for ${newEmp.name}.` });
+      
+      setNewEmp({
+        name: '',
+        department: '',
+        role: '',
+        salary: '',
+        bankName: '',
+        accountNumber: '',
+        status: 'Active'
+      });
+      setIsAdding(false);
+      fetchEmployeesData();
+    } catch (err) {
+      console.error('Failed to create employee profile:', err);
+      setActionMsg({ type: 'error', text: err.response?.data?.error || 'Failed to create employee profile.' });
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const fetchEmployeesData = async () => {
     if (!activeCompany?.id) return;
@@ -145,7 +193,120 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
 
   return (
     <div className="space-y-6 text-xs font-semibold text-slate-600 relative">
-      
+      {/* Alert Messaging */}
+      {actionMsg && (
+        <div className={`p-4 rounded-xl border text-[13px] font-bold flex items-center justify-between gap-3 ${
+          actionMsg.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
+        }`}>
+          <span className="flex items-center gap-2">
+            <CheckCircle size={16} />
+            {actionMsg.text}
+          </span>
+          <button onClick={() => setActionMsg(null)} className="text-slate-400 hover:text-slate-600">
+            <X size={15} />
+          </button>
+        </div>
+      )}
+
+      {/* Add Employee Form Drawer */}
+      <RightDrawer
+        isOpen={isAdding}
+        onClose={() => setIsAdding(false)}
+        title="Add New Employee Profile"
+        subtitle="Initialize a new employee record and payroll profile."
+      >
+        <form onSubmit={handleCreateEmployee} className="space-y-4 font-semibold text-xs text-slate-600 pr-1">
+          <div className="space-y-1">
+            <label className="text-[10px] uppercase font-extrabold text-slate-400">Full Name *</label>
+            <input
+              required
+              className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-semibold"
+              value={newEmp.name}
+              onChange={e => setNewEmp({...newEmp, name: e.target.value})}
+              placeholder="e.g. John Doe"
+            />
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase font-extrabold text-slate-400">Department</label>
+              <input
+                className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-semibold"
+                value={newEmp.department}
+                onChange={e => setNewEmp({...newEmp, department: e.target.value})}
+                placeholder="e.g. Engineering"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase font-extrabold text-slate-400">Job Role</label>
+              <input
+                className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-semibold"
+                value={newEmp.role}
+                onChange={e => setNewEmp({...newEmp, role: e.target.value})}
+                placeholder="e.g. UI/UX Designer"
+              />
+            </div>
+          </div>
+
+          <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase font-extrabold text-slate-400">Monthly Base Pay (PKR) *</label>
+              <input
+                required
+                type="number"
+                className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-semibold"
+                value={newEmp.salary}
+                onChange={e => setNewEmp({...newEmp, salary: e.target.value})}
+                placeholder="e.g. 150000"
+              />
+            </div>
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase font-extrabold text-slate-400">Status</label>
+              <select
+                className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-semibold cursor-pointer"
+                value={newEmp.status}
+                onChange={e => setNewEmp({...newEmp, status: e.target.value})}
+              >
+                <option value="Active">Active</option>
+                <option value="Processing">Processing</option>
+                <option value="On Hold">On Hold</option>
+              </select>
+            </div>
+          </div>
+
+          <div className="border-t border-slate-100 my-4 pt-4 space-y-4">
+            <h4 className="text-[10px] font-black uppercase text-slate-400">Bank Settlement Details</h4>
+            
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase font-extrabold text-slate-400">Bank Name</label>
+              <input
+                className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-semibold"
+                value={newEmp.bankName}
+                onChange={e => setNewEmp({...newEmp, bankName: e.target.value})}
+                placeholder="e.g. Habib Bank Limited"
+              />
+            </div>
+            
+            <div className="space-y-1">
+              <label className="text-[10px] uppercase font-extrabold text-slate-400">Account Number / IBAN</label>
+              <input
+                className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-semibold"
+                value={newEmp.accountNumber}
+                onChange={e => setNewEmp({...newEmp, accountNumber: e.target.value})}
+                placeholder="e.g. PK12HABB0000123456789012"
+              />
+            </div>
+          </div>
+
+          <button
+            type="submit"
+            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black text-center shadow-sm cursor-pointer"
+          >
+            Create Profile & Post to Directory
+          </button>
+        </form>
+      </RightDrawer>
+
       {/* Universal Right Drawer */}
       <RightDrawer
         isOpen={!!selectedEmp}
@@ -396,7 +557,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
           )}
           <button 
             disabled={disableActions}
-            onClick={() => console.log('Add')}
+            onClick={() => setIsAdding(true)}
             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer font-black"
           >
             <Plus size={12} /> Add Employee
@@ -506,7 +667,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
       {/* Floating Action Button */}
       {!disableActions && (
         <FloatingActionButton 
-          onClick={() => console.log('Floating action clicked')} 
+          onClick={() => setIsAdding(true)} 
           label="New Profile"
         />
       )}
