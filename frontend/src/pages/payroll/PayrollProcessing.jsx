@@ -9,7 +9,7 @@ import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import WizardFlow from '../../components/ui/WizardFlow';
 
-export default function PayrollProcessing({ userRole }) {
+export default function PayrollProcessing({ userRole, onBackToDashboard }) {
   const { activeCompany } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState(null);
@@ -245,24 +245,35 @@ export default function PayrollProcessing({ userRole }) {
         </div>
       )}
 
-      {/* Workspace Menu Bar */}
-      <div className="flex border-b border-slate-200 bg-white p-2 rounded-2xl shadow-3xs gap-1.5 w-fit">
-        <button
-          onClick={() => setViewMode('wizard')}
-          className={`px-4 py-2 rounded-xl transition-all uppercase tracking-wider text-[10px] font-black cursor-pointer ${
-            viewMode === 'wizard' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          Processing Wizard
-        </button>
-        <button
-          onClick={() => setViewMode('archive')}
-          className={`px-4 py-2 rounded-xl transition-all uppercase tracking-wider text-[10px] font-black cursor-pointer ${
-            viewMode === 'archive' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'
-          }`}
-        >
-          Runs Archive
-        </button>
+      {/* Workspace Menu Bar & Navigation Controls */}
+      <div className="flex justify-between items-center flex-wrap gap-4">
+        <div className="flex border-b border-slate-200 bg-white p-2 rounded-2xl shadow-3xs gap-1.5 w-fit">
+          <button
+            onClick={() => setViewMode('wizard')}
+            className={`px-4 py-2 rounded-xl transition-all uppercase tracking-wider text-[10px] font-black cursor-pointer ${
+              viewMode === 'wizard' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            Processing Wizard
+          </button>
+          <button
+            onClick={() => setViewMode('archive')}
+            className={`px-4 py-2 rounded-xl transition-all uppercase tracking-wider text-[10px] font-black cursor-pointer ${
+              viewMode === 'archive' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            Historical Archives
+          </button>
+        </div>
+
+        {onBackToDashboard && (
+          <button
+            onClick={onBackToDashboard}
+            className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl transition-all shadow-3xs flex items-center gap-1.5 cursor-pointer font-black text-[10px] uppercase animate-in fade-in duration-100"
+          >
+            <ChevronLeft size={14} className="text-slate-500" /> Back to Dashboard
+          </button>
+        )}
       </div>
 
       {viewMode === 'wizard' ? (

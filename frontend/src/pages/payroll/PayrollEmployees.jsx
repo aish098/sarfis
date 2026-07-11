@@ -3,7 +3,7 @@ import {
   Plus, Search, Trash2, Edit2, Eye, Landmark, User, FileText, 
   MapPin, CheckCircle, X, ShieldAlert, Calendar, DollarSign, Wrench, 
   Activity, Users, ClipboardList, Send, Ban, Undo, Clock, CalendarDays,
-  ActivitySquare
+  ActivitySquare, ChevronLeft
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -14,7 +14,7 @@ import RightDrawer from '../../components/ui/RightDrawer';
 import Timeline from '../../components/ui/Timeline';
 import FloatingActionButton from '../../components/ui/FloatingActionButton';
 
-export default function PayrollEmployees({ userRole }) {
+export default function PayrollEmployees({ userRole, onBackToDashboard }) {
   const { activeCompany } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
   const [employees, setEmployees] = useState([]);
@@ -385,13 +385,23 @@ export default function PayrollEmployees({ userRole }) {
             onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
-        <button 
-          disabled={disableActions}
-          onClick={() => console.log('Add')}
-          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer font-black"
-        >
-          <Plus size={12} /> Add Employee
-        </button>
+        <div className="flex items-center gap-2">
+          {onBackToDashboard && (
+            <button
+              onClick={onBackToDashboard}
+              className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl transition-all shadow-3xs flex items-center gap-1.5 cursor-pointer font-black"
+            >
+              <ChevronLeft size={12} /> Back
+            </button>
+          )}
+          <button 
+            disabled={disableActions}
+            onClick={() => console.log('Add')}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer font-black"
+          >
+            <Plus size={12} /> Add Employee
+          </button>
+        </div>
       </div>
 
       {/* Responsive Employee Directory: Grid of cards on Mobile, Table on Desktop */}
