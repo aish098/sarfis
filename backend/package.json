@@ -4,7 +4,7 @@
   "description": "",
   "main": "index.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
+    "test": "mocha test/*.js",
     "start": "npx knex migrate:latest && node server.js"
   },
   "keywords": [],
@@ -25,5 +25,9 @@
     "pdfkit-table": "^0.1.99",
     "pg": "^8.20.0",
     "zod": "^4.4.3"
+  },
+  "devDependencies": {
+    "mocha": "^11.7.6",
+    "supertest": "^7.2.2"
   }
 }
