@@ -413,4 +413,37 @@ exports.getPaymentReversals = async (req, res) => {
   }
 };
 
+exports.getEmployeeCostAnalysis = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const { period } = req.query;
+    const result = await PayrollService.getEmployeeCostAnalysis(parseInt(companyId), period);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.getDepartmentalCostVariance = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const { period } = req.query;
+    const result = await PayrollService.getDepartmentalCostVariance(parseInt(companyId), period);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.getPayrollAuditTrail = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const { period } = req.query;
+    const result = await PayrollService.getPayrollAuditTrail(parseInt(companyId), period);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
 

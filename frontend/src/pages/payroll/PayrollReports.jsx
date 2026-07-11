@@ -21,59 +21,110 @@ export default function PayrollReports({ userRole }) {
   const [ledgerPostings, setLedgerPostings] = useState([]);
   const [selectedVoucher, setSelectedVoucher] = useState(null);
 
+  // Dynamic report states
+  const [employeeCosts, setEmployeeCosts] = useState([]);
+  const [departmentVariance, setDepartmentVariance] = useState([]);
+  const [auditExplorerSteps, setAuditExplorerSteps] = useState([]);
+  const [selectedPeriod, setSelectedPeriod] = useState('');
+  const [availablePeriods, setAvailablePeriods] = useState([]);
+
   const fetchReportsData = async () => {
     if (!activeCompany?.id) return;
     setLoading(true);
     try {
-      // 1. Fetch runs
+      // 1. Fetch register/runs
       const runsRes = await api.get(`/payroll/${activeCompany.id}/reports/register`);
       const runs = runsRes.data || [];
+      setAvailablePeriods(runs);
 
-      if (runs.length > 0) {
-        const latestPeriod = runs[0].period;
-        
-        // Fetch payroll lines for this period
-        const linesRes = await api.get(`/payroll/${activeCompany.id}/employees?period=${latestPeriod}`);
-        const wsLines = linesRes.data || [];
-
-        // Map payslips
-        const mappedPayslips = wsLines.map(l => ({
-          id: l.line_id,
-          name: l.name,
-          email: l.email || '—',
-          period: latestPeriod,
-          gross: parseFloat(l.net_salary || 0) * 1.15, // rough gross estimation
-          net: parseFloat(l.net_salary || 0),
-          status: l.payment_status,
-          trace: {
-            formula: 'basic * 0.05',
-            variables: { basic: parseFloat(l.net_salary || 0) * 0.6 },
-            steps: [
-              { operation: 'Basic Salary Calculation', expression: 'Gross * 60%', result: String(Math.round(parseFloat(l.net_salary || 0) * 0.6)) },
-              { operation: 'PF Contribution Deducted', expression: 'Basic * 5%', result: String(Math.round(parseFloat(l.net_salary || 0) * 0.03)) }
-            ],
-            result: Math.round(parseFloat(l.net_salary || 0) * 0.03)
-          }
-        }));
-        setPayslips(mappedPayslips);
-
-        // Map ledger postings
-        const mappedPostings = runs.filter(r => r.journal_entry_id).map(r => ({
-          id: `JV-00${r.journal_entry_id}`,
-          date: new Date(r.updated_at).toLocaleDateString(),
-          period: r.period,
-          amount: parseFloat(r.total_net || 0),
-          description: `Payroll Run Period ${r.period}`,
-          status: 'POSTED',
-          entries: [
-            { account: 'Salary Expense (Operations)', debit: parseFloat(r.total_gross || 0), credit: 0 },
-            { account: 'Tax Withholding Liability Payable', debit: 0, credit: parseFloat(r.total_deductions || 0) * 0.7 },
-            { account: 'Salary Clearing Payable (HBL)', debit: 0, credit: parseFloat(r.total_net || 0) },
-            { account: 'PF Matching Contribution Liability', debit: 0, credit: parseFloat(r.total_deductions || 0) * 0.3 }
-          ]
-        }));
-        setLedgerPostings(mappedPostings);
+      let targetPeriod = selectedPeriod;
+      if (!targetPeriod && runs.length > 0) {
+        // Default to the latest POSTED/CLOSED run, or latest run
+        const latestValid = runs.find(r => r.status === 'POSTED' || r.status === 'CLOSED');
+        targetPeriod = latestValid ? latestValid.period : runs[0].period;
+        setSelectedPeriod(targetPeriod);
       }
+
+      if (!targetPeriod) {
+        setPayslips([]);
+        setEmployeeCosts([]);
+        setDepartmentVariance([]);
+        setLedgerPostings([]);
+        setAuditExplorerSteps([]);
+        setLoading(false);
+        return;
+      }
+
+      // 2. Fetch lines for targetPeriod
+      const linesRes = await api.get(`/payroll/${activeCompany.id}/employees?period=${targetPeriod}`);
+      const wsLines = linesRes.data || [];
+
+      // Map payslips
+      const mappedPayslips = wsLines.map(l => ({
+        id: l.line_id,
+        name: l.name,
+        email: l.email || '—',
+        period: targetPeriod,
+        gross: parseFloat(l.basic_salary || 0) + parseFloat(l.house_rent || 0) + parseFloat(l.medical_allowance || 0) + parseFloat(l.transport_allowance || 0) + parseFloat(l.overtime_amount || 0),
+        net: parseFloat(l.net_salary || 0),
+        status: l.payment_status,
+        trace: {
+          formula: 'basic * 0.05',
+          variables: { basic: parseFloat(l.basic_salary || 0) },
+          steps: [
+            { operation: 'Basic Salary Calculation', expression: 'Gross * 60%', result: String(Math.round(parseFloat(l.basic_salary || 0))) },
+            { operation: 'PF Contribution Deducted', expression: 'Basic * 5%', result: String(Math.round(parseFloat(l.pf_deduction || 0))) }
+          ],
+          result: Math.round(parseFloat(l.pf_deduction || 0))
+        }
+      }));
+      setPayslips(mappedPayslips);
+
+      // 3. Fetch cost-analysis
+      try {
+        const costRes = await api.get(`/payroll/${activeCompany.id}/reports/cost-analysis?period=${targetPeriod}`);
+        setEmployeeCosts(costRes.data || []);
+      } catch (costErr) {
+        console.error('Failed to load cost analysis:', costErr);
+      }
+
+      // 4. Fetch department variance
+      try {
+        const deptRes = await api.get(`/payroll/${activeCompany.id}/reports/dept-variance?period=${targetPeriod}`);
+        setDepartmentVariance(deptRes.data || []);
+      } catch (deptErr) {
+        console.error('Failed to load departmental variance:', deptErr);
+      }
+
+      // 5. Fetch audit trail timeline
+      try {
+        const auditRes = await api.get(`/payroll/${activeCompany.id}/reports/audit-trail?period=${targetPeriod}`);
+        setAuditExplorerSteps(auditRes.data || []);
+      } catch (auditErr) {
+        console.error('Failed to load audit trail:', auditErr);
+      }
+
+      // Map ledger postings (only for the selected period run if posted/closed)
+      const targetRun = runs.find(r => r.period === targetPeriod);
+      if (targetRun && targetRun.journal_entry_id) {
+        setLedgerPostings([{
+          id: `JV-00${targetRun.journal_entry_id}`,
+          date: new Date(targetRun.updated_at).toLocaleDateString(),
+          period: targetRun.period,
+          amount: parseFloat(targetRun.total_net || 0),
+          description: `Payroll Run Period ${targetRun.period}`,
+          status: targetRun.status,
+          entries: [
+            { account: 'Salary Expense (Operations)', debit: parseFloat(targetRun.total_gross || 0), credit: 0 },
+            { account: 'Tax Withholding Liability Payable', debit: 0, credit: parseFloat(targetRun.total_deductions || 0) * 0.7 },
+            { account: 'Salary Clearing Payable (HBL)', debit: 0, credit: parseFloat(targetRun.total_net || 0) },
+            { account: 'PF Matching Contribution Liability', debit: 0, credit: parseFloat(targetRun.total_deductions || 0) * 0.3 }
+          ]
+        }]);
+      } else {
+        setLedgerPostings([]);
+      }
+
     } catch (err) {
       console.error('Failed to load real-time reports databases:', err);
     } finally {
@@ -83,13 +134,12 @@ export default function PayrollReports({ userRole }) {
 
   useEffect(() => {
     fetchReportsData();
-  }, [activeCompany?.id]);
+  }, [activeCompany?.id, selectedPeriod]);
 
   const handleInspectPayslip = async (ps) => {
     setSelectedPayslip(ps);
     setShowTrace(false);
     
-    // Attempt to load detailed trace
     try {
       const detailsRes = await api.get(`/payroll/${activeCompany.id}/employee/${ps.id}`);
       if (detailsRes.data.line && detailsRes.data.line.formula_trace) {
@@ -105,26 +155,33 @@ export default function PayrollReports({ userRole }) {
     }
   };
 
-  const employeeCosts = [
-    { name: 'Farhan Ali', gross: 180000, cost: 198000, tax: 14400, pf: 9000, overtime: 12000, bonus: 0 },
-    { name: 'Sana Khan', gross: 150000, cost: 165000, tax: 12000, pf: 7500, overtime: 0, bonus: 5000 },
-    { name: 'Hamza Sheikh', gross: 165000, cost: 181500, tax: 13200, pf: 8250, overtime: 8000, bonus: 0 },
-  ];
+  const handleExportPayslipsCSV = () => {
+    let headers = 'Employee Name,Disbursement Period,Gross Salary,Net Salary,Status\n';
+    let content = '';
+    payslips.forEach(p => {
+      content += `"${p.name}","${p.period}",${p.gross},${p.net},"${p.status}"\n`;
+    });
+    const blob = new Blob([headers + content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `payroll_payslips_register_${selectedPeriod}.csv`);
+    link.click();
+  };
 
-  const departmentVariance = [
-    { department: 'Engineering', headcount: 8, budget: 1500000, actual: 1420000, variance: 80000 },
-    { department: 'Product', headcount: 4, budget: 600000, actual: 640000, variance: -40000 },
-    { department: 'Finance', headcount: 2, budget: 400000, actual: 350000, variance: 50000 },
-    { department: 'People Operations', headcount: 2, budget: 200000, actual: 190000, variance: 10000 },
-  ];
-
-  const auditExplorerSteps = [
-    { type: 'RUN', desc: 'Payroll calculation compiled (Rule Version 5A.1)', user: 'Rana Talal', time: 'Aug 10, 09:30 AM' },
-    { type: 'FORMULA', desc: 'Evaluated Component basic * 0.05 (Output: PKR 5,400)', user: 'Formula Parser Engine', time: 'Aug 10, 09:32 AM' },
-    { type: 'JOURNAL', desc: 'Generated & Posted GL Journal Entry JV-00431', user: 'Finance System', time: 'Aug 12, 11:35 AM' },
-    { type: 'PAYMENT', desc: 'Released HBL disbursement batch BAT-0021', user: 'Treasury Officer', time: 'Aug 15, 11:50 AM' },
-    { type: 'BANK', desc: 'Direct clearing confirmation response code: 00 (Success)', user: 'HBL API Gateway', time: 'Aug 15, 12:00 PM' }
-  ];
+  const handleExportCostCSV = () => {
+    let headers = 'Employee Name,Gross Salary,Income Tax Withheld,Provident Fund (PF),Overtime Pay,Bonuses,Total Employer Cost\n';
+    let content = '';
+    employeeCosts.forEach(c => {
+      content += `"${c.name}",${c.gross},${c.tax},${c.pf},${c.overtime},${c.bonus},${c.cost}\n`;
+    });
+    const blob = new Blob([headers + content], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a');
+    link.setAttribute('href', url);
+    link.setAttribute('download', `payroll_cost_analysis_${selectedPeriod}.csv`);
+    link.click();
+  };
 
   return (
     <div className="space-y-6 text-xs font-semibold text-slate-600 relative">
@@ -264,6 +321,24 @@ export default function PayrollReports({ userRole }) {
         ))}
       </div>
 
+      {/* Period Selection Workspace Header */}
+      {availablePeriods.length > 0 && (
+        <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border border-slate-100 shadow-3xs w-fit animate-in fade-in duration-100">
+          <span className="text-slate-400 font-extrabold text-[10px] uppercase">Active Period Run:</span>
+          <select
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value)}
+            className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-800 font-bold outline-none text-xs cursor-pointer focus:border-indigo-500"
+          >
+            {availablePeriods.map(run => (
+              <option key={run.id} value={run.period}>
+                Period {run.period} ({run.status})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
+
       {/* Payslips & Register Tab */}
       {activeReportTab === 'register' && (
         <div className="space-y-4">
@@ -272,7 +347,10 @@ export default function PayrollReports({ userRole }) {
               <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Historical Payslips Register</h3>
               <p className="text-[11px] text-slate-400 mt-1">Review active employee pay records with structural formulas verification.</p>
             </div>
-            <button className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl transition-all shadow-3xs flex items-center gap-1.5 cursor-pointer">
+            <button 
+              onClick={handleExportPayslipsCSV}
+              className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl transition-all shadow-3xs flex items-center gap-1.5 cursor-pointer"
+            >
               <Download size={13} /> Export Summary
             </button>
           </div>
@@ -330,7 +408,10 @@ export default function PayrollReports({ userRole }) {
               <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Employee Cost Analysis</h3>
               <p className="text-[11px] text-slate-400 mt-1">Detailed breakdown of gross pay, benefit structures, and total employer liability cost.</p>
             </div>
-            <button className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl transition-all shadow-3xs flex items-center gap-1.5 cursor-pointer">
+            <button 
+              onClick={handleExportCostCSV}
+              className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl transition-all shadow-3xs flex items-center gap-1.5 cursor-pointer"
+            >
               <Download size={13} /> Export CSV
             </button>
           </div>
@@ -360,6 +441,11 @@ export default function PayrollReports({ userRole }) {
                     <td className="px-4 py-3 text-right font-mono font-black text-indigo-700">PKR {cost.cost.toLocaleString()}</td>
                   </tr>
                 ))}
+                {employeeCosts.length === 0 && (
+                  <tr>
+                    <td colSpan={7} className="px-5 py-8 text-center text-slate-400 font-bold">No employee cost analysis metrics registered.</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -405,6 +491,11 @@ export default function PayrollReports({ userRole }) {
                     </td>
                   </tr>
                 ))}
+                {departmentVariance.length === 0 && (
+                  <tr>
+                    <td colSpan={6} className="px-5 py-8 text-center text-slate-400 font-bold">No departmental budget allocations recorded in database.</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>
@@ -467,6 +558,11 @@ export default function PayrollReports({ userRole }) {
         <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4">
           <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Payroll Lifecycle Audit Explorer</h3>
           <div className="relative border-l border-slate-100 pl-4 ml-2 space-y-6 text-xs font-semibold">
+            {auditExplorerSteps.length === 0 && (
+              <div className="text-center text-slate-400 font-bold py-4">
+                No audit explorer records found for the selected period run.
+              </div>
+            )}
             {auditExplorerSteps.map((step, idx) => (
               <div key={idx} className="relative">
                 <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-indigo-600 ring-4 ring-white" />
