@@ -31,4 +31,8 @@ router.post('/:companyId/lines/:id/pay',            companyGuard, requirePermiss
 router.post('/:companyId/lines/:id/reverse-payment',companyGuard, requirePermission('user.manage'), payrollCtrl.reversePayrollPayment);
 router.post('/:companyId/lines/:id/adjust',         companyGuard, requirePermission('user.manage'), payrollCtrl.addPayrollAdjustment);
 
+// Engine Maturity Endpoints
+router.post('/:companyId/simulate',                 companyGuard, requirePermission('user.manage'), payrollCtrl.simulatePayrollRun);
+router.post('/:companyId/formula/validate',         companyGuard, requirePermission('user.manage'), payrollCtrl.validateFormulaExpression);
+
 module.exports = router;

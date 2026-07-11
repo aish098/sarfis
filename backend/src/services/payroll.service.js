@@ -7,14 +7,28 @@ const NotificationService = require('./notification.service');
 const PDFDocument = require('pdfkit');
 function evaluateFormula(expression, context) {
   let expr = expression;
+  const variablesUsed = {};
   const keys = Object.keys(context);
   keys.sort((a, b) => b.length - a.length);
   
   for (const key of keys) {
     const regex = new RegExp(`\\b${key}\\b`, 'g');
-    expr = expr.replace(regex, context[key]);
+    if (regex.test(expr)) {
+      variablesUsed[key] = context[key];
+      expr = expr.replace(regex, context[key]);
+    }
   }
   
+  expr = expr.replace(/IF\s*\(/gi, 'if(');
+  expr = expr.replace(/MIN\s*\(/gi, 'Math.min(');
+  expr = expr.replace(/MAX\s*\(/gi, 'Math.max(');
+  expr = expr.replace(/ABS\s*\(/gi, 'Math.abs(');
+  expr = expr.replace(/CEIL\s*\(/gi, 'Math.ceil(');
+  expr = expr.replace(/FLOOR\s*\(/gi, 'Math.floor(');
+  expr = expr.replace(/ROUND\s*\(([^,]+),\s*([^)]+)\)/gi, '(Math.round(($1) * Math.pow(10, $2)) / Math.pow(10, $2))');
+
+  let parsedExpr = expr;
+
   if (expr.startsWith('if(') || expr.startsWith('if (')) {
     const startIdx = expr.indexOf('(');
     const content = expr.substring(startIdx + 1, expr.lastIndexOf(')'));
@@ -42,10 +56,41 @@ function evaluateFormula(expression, context) {
   }
 
   try {
-    return new Function(`return (${expr});`)();
+    const result = new Function(`return (${expr});`)();
+    const numResult = parseFloat(result) || 0;
+    return {
+      result: numResult,
+      trace: {
+        formula: expression,
+        variables: variablesUsed,
+        steps: [
+          {
+            operation: "Evaluate",
+            expression: parsedExpr,
+            result: numResult
+          }
+        ],
+        result: numResult
+      }
+    };
   } catch (err) {
-    console.error(`[Formula Evaluator] Failed to evaluate expression "${expression}" (parsed as "${expr}"):`, err);
-    return 0;
+    console.error(`[Formula Evaluator] Failed to evaluate: "${expression}" (parsed as "${expr}"):`, err);
+    return {
+      result: 0,
+      trace: {
+        formula: expression,
+        variables: variablesUsed,
+        steps: [
+          {
+            operation: "Error",
+            expression: expr,
+            result: 0,
+            error: err.message
+          }
+        ],
+        result: 0
+      }
+    };
   }
 }
 
@@ -357,12 +402,28 @@ class PayrollService {
 
           for (const comp of activeComponents) {
             let amount = 0;
+            let trace = null;
+
             if (comp.calculation_type === 'FIXED') {
               amount = comp.value;
+              trace = {
+                formula: null,
+                variables: {},
+                steps: [{ operation: "Fixed value", expression: String(comp.value), result: amount }],
+                result: amount
+              };
             } else if (comp.calculation_type === 'PERCENTAGE') {
               amount = context.salary * comp.value;
+              trace = {
+                formula: `salary * ${comp.value}`,
+                variables: { salary: context.salary },
+                steps: [{ operation: "Multiply percentage", expression: `${context.salary} * ${comp.value}`, result: amount }],
+                result: amount
+              };
             } else if (comp.calculation_type === 'FORMULA' && comp.formula_expression) {
-              amount = evaluateFormula(comp.formula_expression, context);
+              const evalRes = evaluateFormula(comp.formula_expression, context);
+              amount = evalRes.result;
+              trace = evalRes.trace;
             }
 
             if (comp.code === 'BASIC') {
@@ -391,7 +452,8 @@ class PayrollService {
               component_type: comp.type,
               calculation_type: comp.calculation_type,
               source: comp.source,
-              formula_used: comp.formula_expression,
+              formula_used: comp.calculation_type === 'FORMULA' ? comp.formula_expression : null,
+              formula_trace: trace,
               rate: comp.calculation_type === 'PERCENTAGE' ? comp.value : null,
               base_amount: comp.calculation_type === 'PERCENTAGE' ? context.salary : null,
               amount: amount,
@@ -1110,6 +1172,337 @@ class PayrollService {
 
       return { lineId, gross_salary: updatedGross, net_salary: updatedNet };
     });
+  }
+
+  /**
+   * DFS Cycle-detection graph checker
+   */
+  static detectCircularDependencies(components) {
+    const graph = {};
+    for (const c of components) {
+      if (c.calculation_type === 'FORMULA' && c.formula_expression) {
+        const variables = c.formula_expression.match(/[a-zA-Z_][a-zA-Z0-9_]*/g) || [];
+        const neighbors = variables.filter(v => components.some(tc => tc.code === v));
+        graph[c.code] = neighbors;
+      } else {
+        graph[c.code] = [];
+      }
+    }
+
+    const visited = {};
+    const recStack = {};
+
+    function dfs(node) {
+      if (!visited[node]) {
+        visited[node] = true;
+        recStack[node] = true;
+
+        const neighbors = graph[node] || [];
+        for (const neighbor of neighbors) {
+          if (!visited[neighbor] && dfs(neighbor)) return true;
+          else if (recStack[neighbor]) return true;
+        }
+      }
+      recStack[node] = false;
+      return false;
+    }
+
+    for (const node of Object.keys(graph)) {
+      if (dfs(node)) return true;
+    }
+    return false;
+  }
+
+  /**
+   * Payroll Validation Engine
+   */
+  static async validatePayrollRun(employees, lines, companyId, period, trx) {
+    const warnings = [];
+    const errors = [];
+
+    for (const line of lines) {
+      const emp = employees.find(e => e.id === line.employee_id);
+      
+      // 1. Negative Net Salary Check
+      if (parseFloat(line.net_salary) < 0) {
+        errors.push({
+          employee: emp?.name || `Employee #${line.employee_id}`,
+          message: `Net salary is negative (PKR ${line.net_salary})`
+        });
+      }
+
+      // 2. Missing Bank Accounts check
+      if (emp && !emp.account_number) {
+        warnings.push({
+          employee: emp.name,
+          message: 'Missing bank account number/IBAN. Defaulting to CASH.'
+        });
+      }
+
+      // 3. Overtime Limit Check
+      if (emp && parseFloat(line.overtime_amount) > parseFloat(emp.salary) * 0.5) {
+        warnings.push({
+          employee: emp.name,
+          message: `Overtime exceeds 50% of base salary.`
+        });
+      }
+
+      // 4. Comparison Check
+      const prevLine = await trx('payroll_lines as pl')
+        .join('payroll_runs as pr', 'pl.payroll_run_id', 'pr.id')
+        .where({
+          'pl.employee_id': line.employee_id,
+          'pr.company_id': companyId,
+          'pr.period': this.getPreviousPeriod(period),
+          'pr.status': 'POSTED'
+        })
+        .first();
+
+      if (prevLine) {
+        const diffPercent = ((parseFloat(line.net_salary) - parseFloat(prevLine.net_salary)) / parseFloat(prevLine.net_salary)) * 100;
+        if (Math.abs(diffPercent) > 25) {
+          warnings.push({
+            employee: emp?.name || `Employee #${line.employee_id}`,
+            message: `Net salary changed by ${diffPercent.toFixed(1)}% compared to previous month`
+          });
+        }
+      }
+    }
+
+    return { warnings, errors };
+  }
+
+  static getPreviousPeriod(period) {
+    const [year, month] = period.split('-').map(Number);
+    const date = new Date(year, month - 2, 1);
+    const pYear = date.getFullYear();
+    const pMonth = String(date.getMonth() + 1).padStart(2, '0');
+    return `${pYear}-${pMonth}`;
+  }
+
+  /**
+   * Payroll Simulation Engine (Database-Free)
+   */
+  static async simulatePayrollRun(companyId, period, userId) {
+    let resultPayload = null;
+    try {
+      await db.transaction(async (trx) => {
+        const employees = await trx('employees').where({ company_id: companyId, status: 'Active' });
+        if (employees.length === 0) {
+          throw new Error('No active employees found to process.');
+        }
+
+        const lines = [];
+        let totalGross = 0;
+        let totalDeductions = 0;
+        let totalNet = 0;
+
+        for (const emp of employees) {
+          const salary = parseFloat(emp.salary);
+          const otSum = await trx('overtime_records')
+            .where({ employee_id: emp.id, company_id: companyId, status: 'APPROVED' })
+            .andWhereRaw("to_char(date, 'YYYY-MM') = ?", [period])
+            .sum('amount as total')
+            .first();
+          const otAmt = parseFloat(otSum?.total || 0);
+
+          let compMappings = [];
+          if (emp.salary_structure_id) {
+            compMappings = await trx('salary_structure_components as ssc')
+              .join('salary_components as sc', 'ssc.component_id', 'sc.id')
+              .where('ssc.structure_id', emp.salary_structure_id)
+              .where('sc.is_active', true)
+              .select('sc.*', 'ssc.value as template_value', trx.raw("'STRUCTURE' as source"));
+          }
+
+          const overrides = await trx('employee_salary_components as esc')
+            .join('salary_components as sc', 'esc.component_id', 'sc.id')
+            .where('esc.employee_id', emp.id)
+            .where('sc.is_active', true)
+            .select('sc.*', 'esc.value as override_value', trx.raw("'EMPLOYEE_OVERRIDE' as source"));
+
+          const componentMap = {};
+          for (const comp of compMappings) {
+            componentMap[comp.code] = {
+              ...comp,
+              value: parseFloat(comp.template_value),
+              source: 'STRUCTURE'
+            };
+          }
+          for (const comp of overrides) {
+            componentMap[comp.code] = {
+              ...comp,
+              value: parseFloat(comp.override_value),
+              source: 'EMPLOYEE_OVERRIDE'
+            };
+          }
+
+          const activeComponents = Object.values(componentMap);
+
+          let basic = 0;
+          let rent = 0;
+          let med = 0;
+          let trans = 0;
+          let tax = 0;
+          let pf = 0;
+          let eobi = 0;
+          let ss = 0;
+          let gross = 0;
+          let deduct = 0;
+          let net = 0;
+
+          if (activeComponents.length > 0) {
+            activeComponents.sort((a, b) => a.sequence_no - b.sequence_no);
+
+            const context = {
+              salary: salary,
+              ot: otAmt,
+              basic: 0,
+              gross: salary + otAmt,
+              net: 0
+            };
+
+            for (const comp of activeComponents) {
+              let amount = 0;
+              if (comp.calculation_type === 'FIXED') {
+                amount = comp.value;
+              } else if (comp.calculation_type === 'PERCENTAGE') {
+                amount = context.salary * comp.value;
+              } else if (comp.calculation_type === 'FORMULA' && comp.formula_expression) {
+                const evalRes = evaluateFormula(comp.formula_expression, context);
+                amount = evalRes.result;
+              }
+
+              if (comp.code === 'BASIC') {
+                basic = amount;
+                context.basic = amount;
+              } else if (comp.code === 'HRA') {
+                rent = amount;
+              } else if (comp.code === 'MED') {
+                med = amount;
+              } else if (comp.code === 'TRANS') {
+                trans = amount;
+              } else if (comp.code === 'TAX') {
+                tax = amount;
+              } else if (comp.code === 'PF') {
+                pf = amount;
+              } else if (comp.code === 'EOBI') {
+                eobi = amount;
+              } else if (comp.code === 'SS') {
+                ss = amount;
+              }
+            }
+
+            gross = salary + otAmt;
+            deduct = tax + pf + eobi + ss;
+            net = gross - deduct;
+          } else {
+            basic = salary * 0.60;
+            rent = salary * 0.25;
+            med = salary * 0.10;
+            trans = salary * 0.05;
+            tax = salary > 100000 ? salary * 0.10 : 0.00;
+            pf = basic * 0.05;
+            eobi = 1000.00;
+            ss = 1200.00;
+
+            gross = salary + otAmt;
+            deduct = tax + pf + eobi + ss;
+            net = gross - deduct;
+          }
+
+          totalGross += gross;
+          totalDeductions += deduct;
+          totalNet += net;
+
+          lines.push({
+            employee_id: emp.id,
+            name: emp.name,
+            gross_salary: gross,
+            net_salary: net,
+            tax_deduction: tax,
+            pf_deduction: pf,
+            overtime_amount: otAmt
+          });
+        }
+
+        const { warnings, errors } = await this.validatePayrollRun(employees, lines, companyId, period, trx);
+        const status = errors.length > 0 ? 'FAILED' : warnings.length > 0 ? 'SUCCESS_WITH_WARNINGS' : 'SUCCESS';
+
+        resultPayload = {
+          status,
+          employees: lines,
+          warnings,
+          errors,
+          summary: {
+            employeesCount: lines.length,
+            totalGross,
+            totalNet,
+            warningsCount: warnings.length,
+            errorsCount: errors.length
+          }
+        };
+
+        throw new Error('ROLLBACK_INTENTIONAL');
+      });
+    } catch (err) {
+      if (err.message !== 'ROLLBACK_INTENTIONAL') {
+        throw err;
+      }
+    }
+    return resultPayload;
+  }
+
+  /**
+   * Validate formula syntax
+   */
+  static validateFormulaExpression(formula, variables = ['basic', 'gross', 'net', 'ot', 'salary']) {
+    let expr = formula;
+    for (const key of variables) {
+      const regex = new RegExp(`\\b${key}\\b`, 'g');
+      expr = expr.replace(regex, '1.0');
+    }
+    expr = expr.replace(/IF\s*\(/gi, 'if(');
+    expr = expr.replace(/MIN\s*\(/gi, 'Math.min(');
+    expr = expr.replace(/MAX\s*\(/gi, 'Math.max(');
+    expr = expr.replace(/ABS\s*\(/gi, 'Math.abs(');
+    expr = expr.replace(/CEIL\s*\(/gi, 'Math.ceil(');
+    expr = expr.replace(/FLOOR\s*\(/gi, 'Math.floor(');
+    expr = expr.replace(/ROUND\s*\(([^,]+),\s*([^)]+)\)/gi, '(Math.round(($1) * Math.pow(10, $2)) / Math.pow(10, $2))');
+
+    if (expr.startsWith('if(') || expr.startsWith('if (')) {
+      const startIdx = expr.indexOf('(');
+      const content = expr.substring(startIdx + 1, expr.lastIndexOf(')'));
+      const parts = [];
+      let bracketCount = 0;
+      let currentPart = '';
+      
+      for (let i = 0; i < content.length; i++) {
+        const char = content[i];
+        if (char === '(') bracketCount++;
+        else if (char === ')') bracketCount--;
+        
+        if (char === ',' && bracketCount === 0) {
+          parts.push(currentPart.trim());
+          currentPart = '';
+        } else {
+          currentPart += char;
+        }
+      }
+      parts.push(currentPart.trim());
+
+      if (parts.length === 3) {
+        expr = `(${parts[0]}) ? (${parts[1]}) : (${parts[2]})`;
+      }
+    }
+
+    try {
+      const result = new Function(`return (${expr});`)();
+      if (isNaN(result)) throw new Error('Formula evaluates to NaN.');
+      return { valid: true };
+    } catch (err) {
+      return { valid: false, error: err.message };
+    }
   }
 }
 

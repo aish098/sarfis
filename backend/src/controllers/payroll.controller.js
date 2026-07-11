@@ -226,3 +226,26 @@ exports.addPayrollAdjustment = async (req, res) => {
   }
 };
 
+exports.simulatePayrollRun = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const userId = req.user?.id || 1;
+    const { period } = req.body;
+    const result = await PayrollService.simulatePayrollRun(parseInt(companyId), period, userId);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.validateFormulaExpression = async (req, res) => {
+  try {
+    const { formula, variables } = req.body;
+    const result = PayrollService.validateFormulaExpression(formula, variables);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+
