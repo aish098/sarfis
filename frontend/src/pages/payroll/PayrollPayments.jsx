@@ -362,6 +362,11 @@ export default function PayrollPayments({ userRole, initialTab = 'individual', o
           </div>
 
           <div className="grid grid-cols-1 gap-6">
+            {paymentBatches.length === 0 && (
+              <div className="bg-white p-8 rounded-3xl border border-slate-100 shadow-xs text-center text-slate-400 font-bold">
+                No treasury transfer batches recorded. Complete a bulk salary release to compile a batch.
+              </div>
+            )}
             {paymentBatches.map(b => (
               <div key={b.id} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-50 pb-3">
