@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import Timeline from '../../components/ui/Timeline';
 
 export default function PayrollDashboard({ onNavigateToTab, userRole }) {
   const { activeCompany } = useAuthStore();
@@ -362,15 +363,7 @@ export default function PayrollDashboard({ onNavigateToTab, userRole }) {
               <Clock size={14} className="text-slate-400" />
             </h3>
 
-            <div className="relative border-l border-slate-150 pl-4 ml-2 space-y-5 text-xs font-semibold">
-              {todayActivities.map((act, idx) => (
-                <div key={idx} className="relative">
-                  <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-indigo-500 ring-4 ring-white" />
-                  <p className="text-[9.5px] text-slate-400 font-bold font-mono">{act.time}</p>
-                  <p className="text-slate-700 mt-0.5 font-bold leading-normal">{act.text}</p>
-                </div>
-              ))}
-            </div>
+            <Timeline items={todayActivities} />
           </div>
         </div>
       </div>

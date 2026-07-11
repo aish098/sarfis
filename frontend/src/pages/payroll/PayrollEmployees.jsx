@@ -8,6 +8,12 @@ import {
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 
+// Import reusable design system components
+import StatusBadge from '../../components/ui/StatusBadge';
+import RightDrawer from '../../components/ui/RightDrawer';
+import Timeline from '../../components/ui/Timeline';
+import FloatingActionButton from '../../components/ui/FloatingActionButton';
+
 export default function PayrollEmployees({ userRole }) {
   const { activeCompany } = useAuthStore();
   const [searchTerm, setSearchTerm] = useState('');
@@ -124,47 +130,34 @@ export default function PayrollEmployees({ userRole }) {
 
   const disableActions = userRole === 'Auditor';
 
+  const drawerTabs = [
+    { id: 'overview', label: 'Overview' },
+    { id: 'payroll', label: 'Payroll' },
+    { id: 'attendance', label: 'Attendance' },
+    { id: 'leave', label: 'Leave' },
+    { id: 'overtime', label: 'Overtime' },
+    { id: 'loans', label: 'Loans' },
+    { id: 'payments', label: 'Payments' },
+    { id: 'documents', label: 'Documents' },
+    { id: 'audit', label: 'Audit' },
+    { id: 'timeline', label: 'Timeline' }
+  ];
+
   return (
     <div className="space-y-6 text-xs font-semibold text-slate-600 relative">
       
-      {/* 360 Degree Employee Detail Profile Drawer */}
-      {selectedEmp && (
-        <div className="fixed inset-y-0 right-0 w-[550px] bg-white border-l border-slate-200 shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-200">
-          {/* Header */}
-          <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-2xl bg-indigo-50 flex items-center justify-center text-indigo-500 font-bold uppercase text-sm">
-                {selectedEmp.name.charAt(0)}
-              </div>
-              <div>
-                <h4 className="font-black text-slate-800 text-sm">{selectedEmp.name}</h4>
-                <p className="text-[10px] text-slate-400 font-semibold">{selectedEmp.role} — {selectedEmp.department}</p>
-              </div>
-            </div>
-            <button onClick={() => setSelectedEmp(null)} className="p-1 hover:bg-slate-100 rounded text-slate-400 cursor-pointer">
-              <X size={16} />
-            </button>
-          </div>
-
-          {/* Sub Tab Navigation */}
-          <div className="flex border-b border-slate-100 bg-slate-50/50 px-4 text-[10px] font-black uppercase tracking-wider overflow-x-auto custom-scrollbar">
-            {['overview', 'payroll', 'attendance', 'leave', 'overtime', 'loans', 'payments', 'documents', 'audit', 'timeline'].map(tab => (
-              <button
-                key={tab}
-                onClick={() => setActiveSubTab(tab)}
-                className={`px-3 py-3 border-b-2 transition-all cursor-pointer whitespace-nowrap ${
-                  activeSubTab === tab 
-                    ? 'border-indigo-600 text-indigo-700 font-bold' 
-                    : 'border-transparent text-slate-400 hover:text-slate-600'
-                }`}
-              >
-                {tab}
-              </button>
-            ))}
-          </div>
-
-          {/* Tab Content Panel */}
-          <div className="flex-1 overflow-y-auto p-5 space-y-5 custom-scrollbar font-normal text-slate-500 leading-relaxed">
+      {/* Universal Right Drawer */}
+      <RightDrawer
+        isOpen={!!selectedEmp}
+        onClose={() => setSelectedEmp(null)}
+        title={selectedEmp?.name}
+        subtitle={selectedEmp ? `${selectedEmp.role} — ${selectedEmp.department}` : ''}
+        tabs={drawerTabs}
+        activeTab={activeSubTab}
+        onTabChange={setActiveSubTab}
+      >
+        {selectedEmp && (
+          <div className="font-normal text-slate-550 leading-relaxed text-xs">
             {activeSubTab === 'overview' && (
               <div className="space-y-4 text-xs font-semibold">
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 grid grid-cols-2 gap-4">
@@ -294,7 +287,7 @@ export default function PayrollEmployees({ userRole }) {
             {activeSubTab === 'overtime' && (
               <div className="space-y-4 text-xs font-semibold text-slate-600">
                 <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Overtime Records</h5>
-                <div className="p-4 bg-slate-50 border border-slate-150 rounded-xl space-y-2">
+                <div className="p-4 bg-slate-50 border border-slate-155 rounded-xl space-y-2">
                   <p className="flex justify-between"><span>Approved OT Hours:</span> <span className="font-bold text-slate-800">4.5 Hours</span></p>
                   <p className="flex justify-between"><span>Base Rate Multiplier:</span> <span className="font-bold text-slate-800">1.5x</span></p>
                   <p className="flex justify-between"><span>Total Overtime Pay:</span> <span className="font-mono text-emerald-600 font-bold">PKR 9,375</span></p>
@@ -374,20 +367,12 @@ export default function PayrollEmployees({ userRole }) {
             {activeSubTab === 'timeline' && (
               <div className="space-y-4">
                 <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Employee Career & Payout Lifecycle</h5>
-                <div className="relative border-l border-slate-150 pl-4 ml-2 space-y-5 text-xs font-semibold text-slate-600">
-                  {careerTimeline.map((step, idx) => (
-                    <div key={idx} className="relative">
-                      <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-indigo-600 ring-4 ring-white" />
-                      <p className="text-slate-800 font-black flex justify-between"><span>{step.title}</span> <span className="text-[10px] text-slate-400 font-mono font-normal">{step.date}</span></p>
-                      <p className="text-[10.5px] text-slate-400 mt-0.5 font-normal leading-relaxed">{step.desc}</p>
-                    </div>
-                  ))}
-                </div>
+                <Timeline items={careerTimeline} />
               </div>
             )}
           </div>
-        </div>
-      )}
+        )}
+      </RightDrawer>
 
       {/* Main Employee Directory Toolbar */}
       <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
@@ -402,6 +387,7 @@ export default function PayrollEmployees({ userRole }) {
         </div>
         <button 
           disabled={disableActions}
+          onClick={() => console.log('Add')}
           className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer font-black"
         >
           <Plus size={12} /> Add Employee
@@ -419,13 +405,7 @@ export default function PayrollEmployees({ userRole }) {
                 <h4 className="font-extrabold text-slate-800 text-sm">{emp.name}</h4>
                 <p className="text-[10.5px] text-slate-400 mt-0.5">{emp.role} • {emp.department}</p>
               </div>
-              <span className={`px-2 py-0.5 rounded text-[8.5px] font-black border ${
-                emp.status === 'PAID' || emp.status === 'Paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                emp.status === 'PROCESSING' || emp.status === 'Processing' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                'bg-amber-50 text-amber-700 border-amber-100'
-              }`}>
-                {emp.status}
-              </span>
+              <StatusBadge status={emp.status} />
             </div>
             
             <div className="border-t border-slate-50 pt-2 flex justify-between items-center">
@@ -478,13 +458,7 @@ export default function PayrollEmployees({ userRole }) {
                     PKR {emp.salary.toLocaleString()}
                   </td>
                   <td className="px-5 py-4 text-center">
-                    <span className={`px-2.5 py-0.5 rounded text-[9.5px] font-black border ${
-                      emp.status === 'PAID' || emp.status === 'Paid' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                      emp.status === 'PROCESSING' || emp.status === 'Processing' ? 'bg-blue-50 text-blue-700 border-blue-100' :
-                      'bg-amber-50 text-amber-700 border-amber-100'
-                    }`}>
-                      {emp.status}
-                    </span>
+                    <StatusBadge status={emp.status} />
                   </td>
                   <td className="px-5 py-4 text-center whitespace-nowrap">
                     <button 
@@ -518,6 +492,14 @@ export default function PayrollEmployees({ userRole }) {
           </table>
         </div>
       </div>
+
+      {/* Floating Action Button */}
+      {!disableActions && (
+        <FloatingActionButton 
+          onClick={() => console.log('Floating action clicked')} 
+          label="New Profile"
+        />
+      )}
     </div>
   );
 }

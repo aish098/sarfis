@@ -7,6 +7,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import WizardFlow from '../../components/ui/WizardFlow';
 
 export default function PayrollProcessing({ userRole }) {
   const { activeCompany } = useAuthStore();
@@ -269,27 +270,7 @@ export default function PayrollProcessing({ userRole }) {
           {/* Left: Step Installer Sidebar */}
           <div className="lg:col-span-1 bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4">
             <h4 className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Guided Process Wizard</h4>
-            <div className="space-y-3 relative pl-2 ml-1">
-              {steps.map((st, idx) => {
-                const isCompleted = idx < activeStep;
-                const isActive = idx === activeStep;
-                return (
-                  <div key={idx} className="flex gap-3 items-start relative">
-                    <div className={`w-5 h-5 rounded-full shrink-0 flex items-center justify-center font-mono text-[10px] font-bold z-10 ${
-                      isCompleted ? 'bg-emerald-500 text-white' :
-                      isActive ? 'bg-indigo-600 text-white shadow-sm ring-4 ring-indigo-150' :
-                      'bg-slate-100 text-slate-400'
-                    }`}>
-                      {isCompleted ? '✓' : idx + 1}
-                    </div>
-                    <div>
-                      <p className={`font-black ${isActive ? 'text-slate-800' : 'text-slate-500'}`}>{st.label}</p>
-                      <p className="text-[9.5px] text-slate-400 font-normal leading-tight mt-0.5">{st.desc}</p>
-                    </div>
-                  </div>
-                );
-              })}
-            </div>
+            <WizardFlow steps={steps} activeStep={activeStep} />
 
             {/* Help desk section */}
             <div className="bg-slate-50 border border-slate-200 p-3.5 rounded-2xl space-y-2 mt-4">
