@@ -145,3 +145,84 @@ exports.getPayrollRegister = async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 };
+
+exports.getWorkspaceEmployees = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const { period } = req.query;
+    const list = await PayrollService.getWorkspaceEmployees(parseInt(companyId), period);
+    res.json(list);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.getWorkspaceEmployeeDetails = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const details = await PayrollService.getWorkspaceEmployeeDetails(parseInt(companyId), parseInt(req.params.lineId));
+    res.json(details);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.holdPayrollLine = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const userId = req.user?.id || 1;
+    const { hold_type, reason } = req.body;
+    const result = await PayrollService.holdPayrollLine(parseInt(companyId), parseInt(req.params.id), hold_type, reason, userId);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.releasePayrollLine = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const userId = req.user?.id || 1;
+    const result = await PayrollService.releasePayrollLine(parseInt(companyId), parseInt(req.params.id), userId);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.payPayrollLine = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const userId = req.user?.id || 1;
+    const { payment_method, remarks } = req.body;
+    const result = await PayrollService.payPayrollLine(parseInt(companyId), parseInt(req.params.id), payment_method, remarks, userId);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.reversePayrollPayment = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const userId = req.user?.id || 1;
+    const { remarks } = req.body;
+    const result = await PayrollService.reversePayrollPayment(parseInt(companyId), parseInt(req.params.id), remarks, userId);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.addPayrollAdjustment = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const userId = req.user?.id || 1;
+    const { type, amount, reason } = req.body;
+    const result = await PayrollService.addPayrollAdjustment(parseInt(companyId), parseInt(req.params.id), type, amount, reason, userId);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+

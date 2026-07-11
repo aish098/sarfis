@@ -22,4 +22,13 @@ router.get('/:companyId/runs/:id/bank-file',        companyGuard, requirePermiss
 router.get('/:companyId/payslips/:employeeId/:period', companyGuard, requirePermission('user.manage'), payrollCtrl.getPayslip);
 router.get('/:companyId/reports/register',          companyGuard, requirePermission('user.manage'), payrollCtrl.getPayrollRegister);
 
+// Workspace Endpoints
+router.get('/:companyId/employees',                 companyGuard, requirePermission('user.manage'), payrollCtrl.getWorkspaceEmployees);
+router.get('/:companyId/employee/:lineId',          companyGuard, requirePermission('user.manage'), payrollCtrl.getWorkspaceEmployeeDetails);
+router.post('/:companyId/lines/:id/hold',           companyGuard, requirePermission('user.manage'), payrollCtrl.holdPayrollLine);
+router.post('/:companyId/lines/:id/release',        companyGuard, requirePermission('user.manage'), payrollCtrl.releasePayrollLine);
+router.post('/:companyId/lines/:id/pay',            companyGuard, requirePermission('user.manage'), payrollCtrl.payPayrollLine);
+router.post('/:companyId/lines/:id/reverse-payment',companyGuard, requirePermission('user.manage'), payrollCtrl.reversePayrollPayment);
+router.post('/:companyId/lines/:id/adjust',         companyGuard, requirePermission('user.manage'), payrollCtrl.addPayrollAdjustment);
+
 module.exports = router;

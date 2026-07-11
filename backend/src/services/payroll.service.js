@@ -761,6 +761,356 @@ class PayrollService {
 
     doc.end();
   }
+
+  /**
+   * Get workspace list of employees with summaries
+   */
+  static async getWorkspaceEmployees(companyId, period) {
+    return await db('payroll_lines as pl')
+      .join('payroll_runs as pr', 'pl.payroll_run_id', 'pr.id')
+      .join('employees as e', 'pl.employee_id', 'e.id')
+      .where({ 'pr.company_id': companyId, 'pr.period': period })
+      .select(
+        'pl.id as line_id',
+        'pl.employee_id',
+        'e.name',
+        'e.role',
+        'e.department',
+        'pl.net_salary',
+        'pl.payment_status'
+      );
+  }
+
+  /**
+   * Get employee detailed workspace payload
+   */
+  static async getWorkspaceEmployeeDetails(companyId, lineId) {
+    const line = await db('payroll_lines').where({ id: lineId }).first();
+    if (!line) throw new Error('Payroll line not found.');
+
+    const run = await db('payroll_runs').where({ id: line.payroll_run_id, company_id: companyId }).first();
+    if (!run) throw new Error('Unauthorized or invalid payroll run.');
+
+    const emp = await db('employees').where({ id: line.employee_id }).first();
+    const components = await db('payroll_line_details').where({ payroll_line_id: lineId }).orderBy('display_order', 'asc');
+    const history = await db('payroll_status_history').where({ payroll_line_id: lineId }).orderBy('changed_at', 'desc');
+    const adjustments = await db('payroll_adjustments').where({ payroll_line_id: lineId }).orderBy('created_at', 'desc');
+
+    // Fetch other payments for this employee
+    const pastPayments = await db('payroll_payments as p')
+      .join('payroll_lines as pl', 'p.payroll_line_id', 'pl.id')
+      .join('payroll_runs as pr', 'pl.payroll_run_id', 'pr.id')
+      .where({ 'p.employee_id': line.employee_id })
+      .select('p.*', 'pr.period', 'pl.gross_salary', 'pl.net_salary')
+      .orderBy('pr.period', 'desc');
+
+    return {
+      line,
+      run,
+      employee: emp,
+      components,
+      history,
+      adjustments,
+      pastPayments
+    };
+  }
+
+  /**
+   * Hold employee salary
+   */
+  static async holdPayrollLine(companyId, lineId, holdType, reason, userId) {
+    return await db.transaction(async (trx) => {
+      const line = await trx('payroll_lines').where({ id: lineId }).first();
+      if (!line) throw new Error('Payroll line not found.');
+      
+      const run = await trx('payroll_runs').where({ id: line.payroll_run_id, company_id: companyId }).first();
+      if (!run) throw new Error('Unauthorized or invalid payroll run.');
+
+      const oldStatus = line.payment_status;
+      const newStatus = 'ON_HOLD';
+
+      await trx('payroll_lines')
+        .where({ id: lineId })
+        .update({
+          payment_status: newStatus,
+          hold_type: holdType || 'OTHER',
+          hold_reason: reason,
+          hold_by: userId,
+          hold_at: trx.fn.now()
+        });
+
+      await trx('payroll_status_history').insert({
+        payroll_line_id: lineId,
+        old_status: oldStatus,
+        new_status: newStatus,
+        reason: reason || 'Salary placed on hold',
+        changed_by: userId
+      });
+
+      return { lineId, payment_status: newStatus };
+    });
+  }
+
+  /**
+   * Release hold status
+   */
+  static async releasePayrollLine(companyId, lineId, userId) {
+    return await db.transaction(async (trx) => {
+      const line = await trx('payroll_lines').where({ id: lineId }).first();
+      if (!line) throw new Error('Payroll line not found.');
+      
+      const run = await trx('payroll_runs').where({ id: line.payroll_run_id, company_id: companyId }).first();
+      if (!run) throw new Error('Unauthorized or invalid payroll run.');
+
+      const oldStatus = line.payment_status;
+      const newStatus = 'PENDING';
+
+      await trx('payroll_lines')
+        .where({ id: lineId })
+        .update({
+          payment_status: newStatus,
+          hold_type: null,
+          hold_reason: null,
+          hold_by: null,
+          hold_at: null
+        });
+
+      await trx('payroll_status_history').insert({
+        payroll_line_id: lineId,
+        old_status: oldStatus,
+        new_status: newStatus,
+        reason: 'Salary hold released',
+        changed_by: userId
+      });
+
+      return { lineId, payment_status: newStatus };
+    });
+  }
+
+  /**
+   * Atomically process individual payout, post GL entry, and update status
+   */
+  static async payPayrollLine(companyId, lineId, paymentMethod, remarks, userId) {
+    return await db.transaction(async (trx) => {
+      const line = await trx('payroll_lines').where({ id: lineId }).first();
+      if (!line) throw new Error('Payroll line not found.');
+
+      const run = await trx('payroll_runs').where({ id: line.payroll_run_id, company_id: companyId }).first();
+      if (!run) throw new Error('Unauthorized or invalid payroll run.');
+
+      if (run.status !== 'POSTED') {
+        throw new Error('Salary payments can only be processed for posted payroll runs.');
+      }
+      if (line.payment_status === 'PAID') {
+        throw new Error('Salary has already been paid for this employee.');
+      }
+      if (line.payment_status === 'ON_HOLD') {
+        throw new Error('Salary is on hold. Release the hold status before paying.');
+      }
+
+      const runDate = new Date(`${run.period}-28`);
+      await PostingEngineService.assertPeriodOpen(companyId, runDate, trx);
+
+      const salaryPayAccId = await this.resolveAccount(companyId, '2020', 'Salary Payable', 'Liability', trx);
+      const bankAccId = await this.resolveAccount(companyId, '1010', 'Cash at Bank', 'Asset', trx);
+
+      const netSalary = parseFloat(line.net_salary);
+      const referenceNo = `PAY-${lineId}-${Date.now()}`;
+
+      const journalLines = [
+        { accountId: salaryPayAccId, debit: netSalary, credit: 0 },
+        { accountId: bankAccId, debit: 0, credit: netSalary }
+      ];
+
+      const jeId = await JournalService.createDraft({
+        companyId,
+        userId,
+        entryDate: `${run.period}-28`,
+        description: `Salary Payment - Period ${run.period} - Employee ID: ${line.employee_id}`,
+        lines: journalLines
+      });
+
+      await JournalService.postJournalEntry(jeId, companyId, userId, true, trx);
+
+      const emp = await trx('employees').where({ id: line.employee_id }).first();
+      const [paymentObj] = await trx('payroll_payments')
+        .insert({
+          company_id: companyId,
+          payroll_line_id: lineId,
+          employee_id: line.employee_id,
+          payment_batch_id: null,
+          journal_entry_id: jeId,
+          payment_method: paymentMethod || 'BANK',
+          bank_account: emp.account_number || 'CASH',
+          amount: netSalary,
+          currency: 'PKR',
+          exchange_rate: 1.0000,
+          payment_date: `${run.period}-28`,
+          payment_reference: referenceNo,
+          remarks: remarks || 'Salary disbursed',
+          created_by: userId
+        })
+        .returning('*');
+
+      const paymentId = typeof paymentObj === 'object' ? paymentObj.id : paymentObj;
+
+      const oldStatus = line.payment_status;
+      const newStatus = 'PAID';
+
+      await trx('payroll_lines')
+        .where({ id: lineId })
+        .update({
+          payment_status: newStatus,
+          payment_date: trx.fn.now()
+        });
+
+      await trx('payroll_status_history').insert({
+        payroll_line_id: lineId,
+        old_status: oldStatus,
+        new_status: newStatus,
+        reason: remarks || 'Salary payment processed',
+        changed_by: userId
+      });
+
+      return { paymentId, status: newStatus };
+    });
+  }
+
+  /**
+   * Reverse payout and GL entry
+   */
+  static async reversePayrollPayment(companyId, paymentId, remarks, userId) {
+    return await db.transaction(async (trx) => {
+      const payment = await trx('payroll_payments').where({ id: paymentId, company_id: companyId }).first();
+      if (!payment) throw new Error('Payment record not found.');
+      if (payment.is_reversal) throw new Error('Cannot reverse a reversal transaction.');
+
+      const line = await trx('payroll_lines').where({ id: payment.payroll_line_id }).first();
+      if (!line) throw new Error('Payroll line not found.');
+      if (line.payment_status !== 'PAID') {
+        throw new Error('Associated payroll line is not marked as PAID.');
+      }
+
+      const paymentDate = new Date(payment.payment_date);
+      await PostingEngineService.assertPeriodOpen(companyId, paymentDate, trx);
+
+      const res = await fetch(`http://localhost:${PORT}/api/journal/${payment.journal_entry_id}/reverse`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${this.getInternalToken()}`,
+          'x-company-id': companyId.toString()
+        },
+        body: JSON.stringify({ reason: remarks || 'Reversing Salary Payment' })
+      });
+
+      if (res.status !== 200) {
+        const errData = await res.json();
+        throw new Error(errData.error || 'Failed to reverse payroll payment journal entry.');
+      }
+
+      const referenceNo = `REV-${payment.payment_reference}`;
+
+      await trx('payroll_payments').insert({
+        company_id: companyId,
+        payroll_line_id: payment.payroll_line_id,
+        employee_id: payment.employee_id,
+        payment_method: payment.payment_method,
+        bank_account: payment.bank_account,
+        amount: -parseFloat(payment.amount),
+        currency: payment.currency,
+        exchange_rate: payment.exchange_rate,
+        payment_date: paymentDate,
+        payment_reference: referenceNo,
+        remarks: remarks || 'Salary payment reversed',
+        is_reversal: true,
+        reversal_payment_id: payment.id,
+        reversed_at: trx.fn.now(),
+        reversed_by: userId,
+        created_by: userId
+      });
+
+      await trx('payroll_payments')
+        .where({ id: payment.id })
+        .update({
+          is_reversal: true,
+          reversal_payment_id: payment.id,
+          reversed_at: trx.fn.now(),
+          reversed_by: userId
+        });
+
+      const oldStatus = line.payment_status;
+      const newStatus = 'PENDING';
+
+      await trx('payroll_lines')
+        .where({ id: payment.payroll_line_id })
+        .update({
+          payment_status: newStatus,
+          payment_date: null
+        });
+
+      await trx('payroll_status_history').insert({
+        payroll_line_id: payment.payroll_line_id,
+        old_status: oldStatus,
+        new_status: newStatus,
+        reason: remarks || 'Salary payment reversed',
+        changed_by: userId
+      });
+
+      return { paymentId, status: newStatus };
+    });
+  }
+
+  /**
+   * Save a manual adjustment
+   */
+  static async addPayrollAdjustment(companyId, lineId, type, amount, reason, userId) {
+    return await db.transaction(async (trx) => {
+      const line = await trx('payroll_lines').where({ id: lineId }).first();
+      if (!line) throw new Error('Payroll line not found.');
+
+      const run = await trx('payroll_runs').where({ id: line.payroll_run_id, company_id: companyId }).first();
+      if (!run) throw new Error('Unauthorized or invalid payroll run.');
+      if (run.status === 'POSTED') throw new Error('Cannot adjust payroll values for a posted period.');
+
+      const adjAmount = parseFloat(amount);
+      if (isNaN(adjAmount)) throw new Error('Invalid adjustment amount.');
+
+      await trx('payroll_adjustments').insert({
+        employee_id: line.employee_id,
+        payroll_line_id: lineId,
+        type,
+        amount: adjAmount,
+        reason,
+        created_by: userId
+      });
+
+      const isEarning = ['BONUS', 'LEAVE_ENCASHMENT', 'ARREARS', 'OVERTIME_CORRECTION', 'ONE_TIME_ALLOWANCE'].includes(type);
+      
+      let updatedGross = parseFloat(line.gross_salary);
+      let updatedDeduct = parseFloat(line.tax_deduction) + parseFloat(line.pf_deduction) + parseFloat(line.eobi_deduction) + parseFloat(line.social_security_deduction);
+
+      if (isEarning) {
+        updatedGross += adjAmount;
+      } else {
+        updatedDeduct += adjAmount;
+      }
+
+      const updatedNet = updatedGross - updatedDeduct;
+
+      await trx('payroll_lines')
+        .where({ id: lineId })
+        .update({
+          gross_salary: updatedGross,
+          net_salary: updatedNet,
+          tax_deduction: type === 'TAX_ADJUSTMENT' ? parseFloat(line.tax_deduction) + adjAmount : line.tax_deduction,
+          pf_deduction: type === 'PF_ADJUSTMENT' ? parseFloat(line.pf_deduction) + adjAmount : line.pf_deduction,
+          eobi_deduction: type === 'EOBI_ADJUSTMENT' ? parseFloat(line.eobi_deduction) + adjAmount : line.eobi_deduction
+        });
+
+      return { lineId, gross_salary: updatedGross, net_salary: updatedNet };
+    });
+  }
 }
 
 module.exports = PayrollService;

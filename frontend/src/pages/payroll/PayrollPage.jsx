@@ -3,1461 +3,788 @@ import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { 
   Users, DollarSign, Calendar, Landmark, CheckCircle, 
   ArrowRight, ShieldCheck, Download, Plus, Search, FileText,
-  AlertTriangle, RefreshCw, X, HelpCircle, Trash2, Link, Link2Off, Eye
+  AlertTriangle, RefreshCw, X, HelpCircle, Eye, Info, Play, RotateCcw, Ban
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 
 export default function PayrollPage() {
-  const { user, activeCompany, settings, setSettings } = useAuthStore();
+  const { user, activeCompany } = useAuthStore();
   const activeCompanyId = activeCompany?.id;
 
-  const [searchTerm, setSearchTerm] = useState('');
+  const [period, setPeriod] = useState('2026-08');
   const [employees, setEmployees] = useState([]);
-  const [accounts, setAccounts] = useState([]);
+  const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [details, setDetails] = useState(null);
+  
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
+  const [deptFilter, setDeptFilter] = useState('ALL');
   const [loading, setLoading] = useState(false);
-  const [actionMessage, setActionMessage] = useState(null); // { type: 'success' | 'error' | 'info', text: '' }
+  const [detailsLoading, setDetailsLoading] = useState(false);
+  const [actionMessage, setActionMessage] = useState(null);
 
-  // Bank connection state
-  const [bankConnection, setBankConnection] = useState({
-    status: 'Disconnected', // 'Disconnected' | 'Connecting' | 'Connected'
-    bankName: ''
-  });
-  const [showBankModal, setShowBankModal] = useState(false);
-  const [selectedBank, setSelectedBank] = useState('Habib Bank');
+  // Modals state
+  const [showHoldModal, setShowHoldModal] = useState(false);
+  const [holdType, setHoldType] = useState('DOCUMENT');
+  const [holdReason, setHoldReason] = useState('');
+  
+  const [showAdjustModal, setShowAdjustModal] = useState(false);
+  const [adjType, setAdjType] = useState('BONUS');
+  const [adjAmount, setAdjAmount] = useState('');
+  const [adjReason, setAdjReason] = useState('');
 
-  // Modal states
-  const [isAddModalOpen, setIsAddModalOpen] = useState(false);
-  const [newEmpName, setNewEmpName] = useState('');
-  const [newEmpRole, setNewEmpRole] = useState('');
-  const [newEmpDept, setNewEmpDept] = useState('Engineering');
-  const [newEmpSalary, setNewEmpSalary] = useState('');
-  const [newEmpStatus, setNewEmpStatus] = useState('Processing');
-  const [newEmpBankName, setNewEmpBankName] = useState('Habib Bank');
-  const [newEmpBankAccount, setNewEmpBankAccount] = useState('');
-  const [companyUsers, setCompanyUsers] = useState([]);
-  const [linkedUserId, setLinkedUserId] = useState('');
-
-  // Edit Modal states
-  const [isEditModalOpen, setIsEditModalOpen] = useState(false);
-  const [editingEmployee, setEditingEmployee] = useState(null);
-  const [editEmpName, setEditEmpName] = useState('');
-  const [editEmpRole, setEditEmpRole] = useState('');
-  const [editEmpDept, setEditEmpDept] = useState('Engineering');
-  const [editEmpSalary, setEditEmpSalary] = useState('');
-  const [editEmpStatus, setEditEmpStatus] = useState('Active');
-  const [editEmpBankName, setEditEmpBankName] = useState('Habib Bank');
-  const [editEmpBankAccount, setEditEmpBankAccount] = useState('');
-  const [editLinkedUserId, setEditLinkedUserId] = useState('');
-  const [editTab, setEditTab] = useState('details'); // 'details' | 'preferences'
-  const [subscriptions, setSubscriptions] = useState([]);
-  const [subLoading, setSubLoading] = useState(false);
-  const [subSearch, setSubSearch] = useState('');
-  const [subSaving, setSubSaving] = useState(false);
-  const [activePreviewEvent, setActivePreviewEvent] = useState(null);
+  const [activeTab, setActiveTab] = useState('breakdown');
 
   const requestConfig = useMemo(
     () => activeCompanyId ? { headers: { 'x-company-id': String(activeCompanyId) } } : undefined,
     [activeCompanyId]
   );
 
-  // Default initial mock employees if none saved in settings
-  const defaultEmployees = useMemo(() => [
-    { name: 'Farhan Ali', role: 'Senior Software Engineer', department: 'Engineering', salary: 180000, status: 'Processing', bankName: 'Habib Bank', bankAccount: 'PK12HABB0000123456789012' },
-    { name: 'Sana Khan', role: 'Product Manager', department: 'Product', salary: 150000, status: 'Processing', bankName: 'MCB Bank', bankAccount: 'PK24MCBB0000987654321098' },
-    { name: 'Zainab Ahmed', role: 'UI/UX Designer', department: 'Product', salary: 110000, status: 'Processing', bankName: 'Bank Alfalah', bankAccount: 'PK76ALFH0000345678901234' },
-    { name: 'Hamza Sheikh', role: 'DevOps Specialist', department: 'Engineering', salary: 165000, status: 'Processing', bankName: 'Habib Bank', bankAccount: 'PK12HABB0000987654321012' },
-    { name: 'Ayesha Malik', role: 'HR Manager', department: 'People Operations', salary: 95000, status: 'On Hold', bankName: 'National Bank', bankAccount: 'PK45NBPA0000765432109876' },
-  ], []);
-
-  // Map employee database row camelCase
-  const mapEmployeeRow = (row) => ({
-    id: row.id,
-    name: row.name,
-    role: row.role,
-    department: row.department,
-    salary: parseFloat(row.salary),
-    status: row.status,
-    bankName: row.bank_name,
-    bankAccount: row.account_number,
-    userId: row.user_id,
-    userName: row.user_name,
-    userEmail: row.user_email,
-    notificationCounts: row.notification_counts || {}
-  });
-
-  // Load Accounts, Employees & Company Members
-  const loadEmployeesAndUsers = async () => {
+  // Fetch employees list
+  const loadEmployees = async () => {
     if (!activeCompanyId) return;
     setLoading(true);
     try {
-      // Load accounts
-      const accRes = await api.get(`/accounts/company/${activeCompanyId}`, requestConfig);
-      setAccounts(accRes.data || []);
-
-      // Load DB employees
-      const empRes = await api.get(`/employees/${activeCompanyId}`, requestConfig);
-      let list = (empRes.data || []).map(mapEmployeeRow);
-
-      // Auto-seed default employees if DB is completely empty
-      if (list.length === 0) {
-        const seededList = [];
-        for (const emp of defaultEmployees) {
-          const res = await api.post(`/employees/${activeCompanyId}`, {
-            name: emp.name,
-            role: emp.role,
-            department: emp.department,
-            salary: emp.salary,
-            bankName: emp.bankName,
-            accountNumber: emp.bankAccount,
-            status: emp.status,
-            userId: null
-          }, requestConfig);
-          seededList.push(mapEmployeeRow(res.data));
-        }
-        list = seededList;
+      const res = await api.get(`/payroll/${activeCompanyId}/employees?period=${period}`, requestConfig);
+      setEmployees(res.data || []);
+      if (res.data && res.data.length > 0) {
+        // Auto-select first employee if none selected
+        const firstLine = res.data[0];
+        loadEmployeeDetails(firstLine.line_id);
+      } else {
+        setSelectedEmployee(null);
+        setDetails(null);
       }
-      setEmployees(list);
-
-      // Load bank connection status from company settings
-      if (settings && settings.bankConnection) {
-        setBankConnection(settings.bankConnection);
-      }
-
-      // Load company users to allow linking
-      const usersRes = await api.get(`/admin/overview?companyId=${activeCompanyId}`, requestConfig);
-      setCompanyUsers(usersRes.data.members || []);
     } catch (err) {
-      console.error('Failed to load employees, accounts, or members list', err);
+      console.error(err);
+      showToast('error', err.response?.data?.error || 'Failed to load employee payroll items.');
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
+  };
+
+  // Fetch detailed employee record
+  const loadEmployeeDetails = async (lineId) => {
+    setDetailsLoading(true);
+    try {
+      const res = await api.get(`/payroll/${activeCompanyId}/employee/${lineId}`, requestConfig);
+      setDetails(res.data);
+      const matched = employees.find(e => e.line_id === lineId);
+      if (matched) {
+        setSelectedEmployee(matched);
+      } else {
+        setSelectedEmployee(res.data.line);
+      }
+    } catch (err) {
+      console.error(err);
+      showToast('error', 'Failed to load workspace details.');
+    } finally {
+      setDetailsLoading(false);
+    }
   };
 
   useEffect(() => {
-    loadEmployeesAndUsers();
-  }, [activeCompanyId, requestConfig, settings?.bankConnection]);
+    loadEmployees();
+  }, [activeCompanyId, period]);
 
-  // Save bank connection helper
-  const saveBankConnection = async (updatedBankConnection) => {
-    if (!activeCompanyId) return false;
-    setLoading(true);
-    try {
-      const updatedSettings = { ...settings, bankConnection: updatedBankConnection };
-      const res = await api.put(`/settings/${activeCompanyId}`, updatedSettings, requestConfig);
-      setSettings(res.data);
-      setBankConnection(updatedBankConnection);
-      return true;
-    } catch (err) {
-      console.error(err);
-      setActionMessage({ type: 'error', text: 'Failed to update bank connection preferences.' });
-      return false;
-    } finally {
-      setLoading(false);
-    }
+  const showToast = (type, text) => {
+    setActionMessage({ type, text });
+    setTimeout(() => setActionMessage(null), 4000);
   };
 
-  // Add Employee submit handler
-  const handleAddEmployeeSubmit = async (e) => {
-    e.preventDefault();
-    if (!newEmpName || !newEmpRole || !newEmpSalary || !newEmpBankAccount) {
-      setActionMessage({ type: 'error', text: 'Please fill in all required fields including bank details.' });
-      return;
-    }
-
-    setLoading(true);
-    try {
-      await api.post(`/employees/${activeCompanyId}`, {
-        name: newEmpName,
-        role: newEmpRole,
-        department: newEmpDept,
-        salary: parseFloat(newEmpSalary),
-        bankName: newEmpBankName,
-        accountNumber: newEmpBankAccount,
-        status: newEmpStatus,
-        userId: linkedUserId || null
-      }, requestConfig);
-
-      setActionMessage({ type: 'success', text: `Employee ${newEmpName} successfully added to database profile!` });
-      setIsAddModalOpen(false);
-
-      // Reset fields
-      setNewEmpName('');
-      setNewEmpRole('');
-      setNewEmpSalary('');
-      setNewEmpBankAccount('');
-      setLinkedUserId('');
-      setNewEmpStatus('Processing');
-
-      await loadEmployeesAndUsers();
-    } catch (err) {
-      setActionMessage({ type: 'error', text: err.response?.data?.error || 'Failed to add employee profile.' });
-    }
-    setLoading(false);
-  };
-
-  // Delete employee helper
-  const handleDeleteEmployee = async (id) => {
-    if (!window.confirm('Are you sure you want to remove this employee from payroll?')) return;
-    setLoading(true);
-    try {
-      await api.delete(`/employees/${activeCompanyId}/${id}`, requestConfig);
-      setActionMessage({ type: 'success', text: 'Employee profile deleted.' });
-      await loadEmployeesAndUsers();
-    } catch (err) {
-      setActionMessage({ type: 'error', text: 'Failed to remove employee.' });
-    }
-    setLoading(false);
-  };
-
-  // Open edit modal and load subscriptions
-  const handleOpenEditModal = async (emp) => {
-    setEditingEmployee(emp);
-    setEditEmpName(emp.name);
-    setEditEmpRole(emp.role || '');
-    setEditEmpDept(emp.department || 'Engineering');
-    setEditEmpSalary(String(emp.salary || ''));
-    setEditEmpStatus(emp.status || 'Active');
-    setEditEmpBankName(emp.bankName || 'Habib Bank');
-    setEditEmpBankAccount(emp.bankAccount || '');
-    setEditLinkedUserId(String(emp.userId || ''));
-    setEditTab('details');
-    setIsEditModalOpen(true);
-
-    setSubLoading(true);
-    try {
-      const res = await api.get(`/employees/${activeCompanyId}/${emp.id}/notification-subscriptions`, requestConfig);
-      setSubscriptions(res.data || []);
-    } catch (err) {
-      console.error('Failed to load subscriptions', err);
-    }
-    setSubLoading(false);
-  };
-
-  // Save General details
-  const handleSaveGeneralDetails = async (e) => {
-    if (e) e.preventDefault();
-    if (!editingEmployee) return;
-    setLoading(true);
-    setActionMessage(null);
-    try {
-      await api.patch(`/employees/${activeCompanyId}/${editingEmployee.id}`, {
-        name: editEmpName,
-        role: editEmpRole,
-        department: editEmpDept,
-        salary: parseFloat(editEmpSalary || 0),
-        bankName: editEmpBankName,
-        accountNumber: editEmpBankAccount,
-        status: editEmpStatus,
-        userId: editLinkedUserId ? parseInt(editLinkedUserId) : null
-      }, requestConfig);
-
-      setActionMessage({ type: 'success', text: 'Employee details updated successfully!' });
-      setIsEditModalOpen(false);
-      await loadEmployeesAndUsers();
-    } catch (err) {
-      console.error(err);
-      setActionMessage({ type: 'error', text: err.response?.data?.error || 'Failed to update employee details.' });
-    }
-    setLoading(false);
-  };
-
-  // Save Subscriptions matrix
-  const handleSaveSubscriptions = async () => {
-    if (!editingEmployee) return;
-    setSubSaving(true);
-    setActionMessage(null);
-    try {
-      await api.put(`/employees/${activeCompanyId}/${editingEmployee.id}/notification-subscriptions`, {
-        subscriptions
-      }, requestConfig);
-
-      setActionMessage({ type: 'success', text: 'Communication preferences updated successfully!' });
-      setIsEditModalOpen(false);
-      await loadEmployeesAndUsers();
-    } catch (err) {
-      console.error(err);
-      setActionMessage({ type: 'error', text: err.response?.data?.error || 'Failed to update preferences.' });
-    }
-    setSubSaving(false);
-  };
-
-  const getEventPreview = (eventCode) => {
-    const previews = {
-      LOW_STOCK_ALERT: {
-        subject: "Low Stock Warning: Skin-101 Sheet Mask",
-        body: "Warning: Product Skin-101 — Glass Skin Sheet Mask in warehouse Ayesha Production has fallen to 5 units. Minimum threshold level is 10."
-      },
-      JOURNAL_POSTED: {
-        subject: "Manual Journal Entry Posted: JV-00123",
-        body: "Manual Journal Entry #123 has been posted to the General Ledger by Bisma Khan. Description: Salary adjustment for Q2. Total Amount: PKR 150,000."
-      },
-      RISK_OVERRIDE_REQUESTED: {
-        subject: "Manual Credit Override Approval Required: ayesha kashif",
-        body: "Customer ayesha kashif has exceeded their credit limits. An override approval request for PKR 10,000 has been submitted by salesperson Ali. Override Code: CR-9812."
-      },
-      RISK_OVERRIDE_APPROVED: {
-        subject: "Credit Override APPROVED: CR-9812",
-        body: "Override request CR-9812 for customer ayesha kashif has been APPROVED by Finance Manager Bisma Khan."
-      },
-      ASSET_TRANSFER_PENDING: {
-        subject: "Fixed Asset Transfer Approval Requested: AST-770",
-        body: "Asset Laptop Dell XPS (AST-770) is requested for location transfer from Head Office to Lahore Branch. Target Date: 2026-07-12."
-      },
-      DEPRECIATION_RUN_COMPLETE: {
-        subject: "Depreciation Wizard Session Completed - Period 2026-07",
-        body: "Depreciation run has completed successfully for period 2026-07. Total accumulated depreciation posted: PKR 45,000."
-      }
-    };
-    return previews[eventCode] || {
-      subject: `${eventCode.replace(/_/g, ' ')} Notification Alert`,
-      body: `This is a sample layout preview for the notification event: ${eventCode}. System variables will be resolved at runtime.`
-    };
-  };
-
-  // Export Payroll to CSV
-  const handleExportPayroll = () => {
-    let csv = 'Employee ID,Name,Role,Department,Monthly Salary,Bank Name,Account/IBAN,Status\n';
-    employees.forEach(emp => {
-      csv += `${emp.id},"${emp.name}","${emp.role}","${emp.department}",${emp.salary},"${emp.bankName || ''}","${emp.bankAccount || ''}","${emp.status}"\n`;
+  // Filtered employees list
+  const filteredEmployees = useMemo(() => {
+    return employees.filter(emp => {
+      const matchesSearch = emp.name.toLowerCase().includes(searchTerm.toLowerCase()) || 
+                            (emp.department && emp.department.toLowerCase().includes(searchTerm.toLowerCase()));
+      const matchesStatus = statusFilter === 'ALL' || emp.payment_status === statusFilter;
+      const matchesDept = deptFilter === 'ALL' || emp.department === deptFilter;
+      return matchesSearch && matchesStatus && matchesDept;
     });
-    
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `payroll_register_${new Date().toISOString().slice(0, 7)}.csv`);
-    link.click();
-    setActionMessage({ type: 'success', text: 'Payroll Register exported successfully!' });
-  };
+  }, [employees, searchTerm, statusFilter, deptFilter]);
 
-  // Download Bank disbursement template
-  const handleDownloadBankTemplate = () => {
-    let csv = 'Beneficiary Name,Beneficiary Bank Account,Bank Name,Salary Amount,Payment Reference,Disbursement Month\n';
-    employees.forEach(emp => {
-      csv += `"${emp.name}","${emp.bankAccount || ''}","${emp.bankName || ''}",${emp.salary},"Salary Settlement","June 2026"\n`;
-    });
+  // Departments list for filter
+  const departments = useMemo(() => {
+    const list = new Set(employees.map(e => e.department).filter(Boolean));
+    return ['ALL', ...Array.from(list)];
+  }, [employees]);
 
-    const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', 'bank_disbursement_template.csv');
-    link.click();
-    setActionMessage({ type: 'success', text: 'Bank disbursement template downloaded!' });
-  };
-
-  // Verify salaries register
-  const handleVerifyRegister = () => {
-    const salariesExpenseAcc = accounts.find(a => 
-      String(a.id) === String(settings.defaultSalariesAccountId) ||
-      String(a.code) === '6010' || 
-      a.name.toLowerCase().includes('salary') || 
-      a.name.toLowerCase().includes('wage')
-    );
-    const bankAssetAcc = accounts.find(a => 
-      String(a.id) === String(settings.defaultCashAccountId) || 
-      String(a.code) === '1030' || 
-      String(a.code) === '1010'
-    );
-
-    if (!salariesExpenseAcc) {
-      setActionMessage({ 
-        type: 'error', 
-        text: 'Missing General Ledger account matching "Salaries and Wages Expense". Please map or create it under settings preferences first.' 
-      });
-      return;
-    }
-    if (!bankAssetAcc) {
-      setActionMessage({ 
-        type: 'error', 
-        text: 'Missing mapped Cash/Bank Asset Account in settings. Define your Operating cash account under settings Accounting preferences tab.' 
-      });
-      return;
-    }
-
-    const processingSum = employees
-      .filter(e => e.status === 'Processing')
-      .reduce((sum, e) => sum + e.salary, 0);
-
-    setActionMessage({
-      type: 'success',
-      text: `✓ Verified: Salaries Expense mapped to "${salariesExpenseAcc.code} - ${salariesExpenseAcc.name}", settlement source mapped to "${bankAssetAcc.code} - ${bankAssetAcc.name}". Total outstanding payroll is ${formatPKR(processingSum)}.`
-    });
-  };
-
-  // Process and Disburse payments (Create Ledger posting & Direct Bank Transfer)
-  const handleProcessPayments = async () => {
-    const processingEmployees = employees.filter(e => e.status === 'Processing');
-    if (processingEmployees.length === 0) {
-      setActionMessage({ type: 'info', text: 'No pending salaries in "Processing" status to disburse.' });
-      return;
-    }
-
-    const salariesExpenseAcc = accounts.find(a => 
-      String(a.id) === String(settings.defaultSalariesAccountId) ||
-      String(a.code) === '6010' || 
-      a.name.toLowerCase().includes('salary') || 
-      a.name.toLowerCase().includes('wage')
-    );
-    const bankAssetAcc = accounts.find(a => 
-      String(a.id) === String(settings.defaultCashAccountId) || 
-      String(a.code) === '1030' || 
-      String(a.code) === '1010'
-    );
-
-    if (!salariesExpenseAcc || !bankAssetAcc) {
-      setActionMessage({ 
-        type: 'error', 
-        text: 'Verification failed. Mapped Salaries Expense or Cash/Bank account missing in Chart of Accounts.' 
-      });
-      return;
-    }
-
-    const totalSalarySum = processingEmployees.reduce((sum, e) => sum + e.salary, 0);
-
-    setLoading(true);
-    setActionMessage({ type: 'info', text: 'Connecting to General Ledger & Banking API...' });
+  // Hold salary payout
+  const handleHold = async () => {
+    if (!holdReason.trim()) return showToast('error', 'Hold reason is required.');
     try {
-      // 1. Post draft manual journal entry
-      const journalRes = await api.post('/journal', {
-        entry_date: new Date().toISOString().slice(0, 10),
-        description: `Salaries Disbursement Run - ${new Date().toLocaleString('default', { month: 'long', year: 'numeric' })}`,
-        lines: [
-          { account_id: salariesExpenseAcc.id, debit: totalSalarySum, credit: 0, description: 'Payroll Salaries & Wages Expense' },
-          { account_id: bankAssetAcc.id, debit: 0, credit: totalSalarySum, description: 'Salaries Bank Settlement Run' }
-        ]
+      await api.post(`/payroll/${activeCompanyId}/lines/${selectedEmployee.line_id}/hold`, {
+        hold_type: holdType,
+        reason: holdReason
       }, requestConfig);
-
-      // 2. Commit/Post to ledger
-      await api.post(`/journal/${journalRes.data.id}/post`, {}, requestConfig);      // 3. Update employees status in database
-      for (const emp of processingEmployees) {
-        await api.patch(`/employees/${activeCompanyId}/${emp.id}`, { status: 'Paid' }, requestConfig);
-      }
-
-      // Re-map list for audit logs
-      const updatedList = employees.map(emp => {
-        if (emp.status === 'Processing') {
-          return { ...emp, status: 'Paid' };
-        }
-        return emp;
-      });
-
-      // 4. Post audit log
-      await api.post(`/audit/${activeCompanyId}`, {
-        action: 'CREATE',
-        entityType: 'PAYROLL',
-        entityId: `PAYROLL_${journalRes.data.id}`,
-        beforeState: employees,
-        afterState: updatedList
-      }, requestConfig);
-
-      const bankTransferMsg = bankConnection.status === 'Connected' 
-        ? ` & disbursed directly via ${bankConnection.bankName} API` 
-        : '';
-
-      setActionMessage({
-        type: 'success',
-        text: `✓ Payroll run successful! Created journal entry #${journalRes.data.id} in GL for ${formatPKR(totalSalarySum)}${bankTransferMsg}.`
-      });
-
-      // Reload list
-      await loadEmployeesAndUsers();
+      showToast('success', 'Salary successfully placed on HOLD.');
+      setShowHoldModal(false);
+      setHoldReason('');
+      // Reload current employee and list
+      await loadEmployees();
+      if (selectedEmployee) loadEmployeeDetails(selectedEmployee.line_id);
     } catch (err) {
-      console.error(err);
-      setActionMessage({ type: 'error', text: err.response?.data?.error || 'Failed to complete payroll run.' });
-    } finally {
-      setLoading(false);
+      showToast('error', err.response?.data?.error || 'Failed to place salary on hold.');
     }
   };
 
-  // Mock bank link triggers
-  const handleLinkBankSubmit = async (e) => {
-    e.preventDefault();
-    setLoading(true);
-    
-    // Simulate API link handshakes
-    setTimeout(async () => {
-      const conn = { status: 'Connected', bankName: selectedBank };
-      const success = await saveBankConnection(conn);
-      if (success) {
-        setActionMessage({ type: 'success', text: `Successfully established secure connection with ${selectedBank} Business Portal!` });
-        setShowBankModal(false);
-      }
-      setLoading(false);
-    }, 1200);
-  };
-
-  const handleDisconnectBank = async () => {
-    if (!window.confirm('Disconnect your bank API connection? Payroll runs will fallback to manual settlement.')) return;
-    const conn = { status: 'Disconnected', bankName: '' };
-    const success = await saveBankConnection(conn);
-    if (success) {
-      setActionMessage({ type: 'success', text: 'Bank connection disconnected.' });
+  // Release hold
+  const handleRelease = async () => {
+    try {
+      await api.post(`/payroll/${activeCompanyId}/lines/${selectedEmployee.line_id}/release`, {}, requestConfig);
+      showToast('success', 'Salary hold successfully released.');
+      await loadEmployees();
+      if (selectedEmployee) loadEmployeeDetails(selectedEmployee.line_id);
+    } catch (err) {
+      showToast('error', err.response?.data?.error || 'Failed to release salary hold.');
     }
   };
 
-  const totalPayroll = employees.reduce((sum, emp) => sum + emp.salary, 0);
+  // Disburse Single Salary
+  const handlePay = async () => {
+    try {
+      const res = await api.post(`/payroll/${activeCompanyId}/lines/${selectedEmployee.line_id}/pay`, {
+        payment_method: 'BANK',
+        remarks: 'Salary payment executed via HBL Transfer API'
+      }, requestConfig);
+      showToast('success', 'Salary payment executed and posted to GL successfully.');
+      await loadEmployees();
+      if (selectedEmployee) loadEmployeeDetails(selectedEmployee.line_id);
+    } catch (err) {
+      showToast('error', err.response?.data?.error || 'Payment execution failed.');
+    }
+  };
 
-  const filteredEmployees = employees.filter(emp => 
-    emp.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
-    emp.department.toLowerCase().includes(searchTerm.toLowerCase())
-  );
+  // Reverse Payment
+  const handleReverse = async (paymentId) => {
+    try {
+      await api.post(`/payroll/${activeCompanyId}/lines/${paymentId}/reverse-payment`, {
+        remarks: 'Reversing duplicate bank processing'
+      }, requestConfig);
+      showToast('success', 'Salary payment successfully reversed in GL.');
+      await loadEmployees();
+      if (selectedEmployee) loadEmployeeDetails(selectedEmployee.line_id);
+    } catch (err) {
+      showToast('error', err.response?.data?.error || 'Reversal execution failed.');
+    }
+  };
 
-  const formatPKR = (val) => {
-    return 'PKR ' + val.toLocaleString('en-PK');
+  // Add adjustment
+  const handleAdjustment = async () => {
+    if (!adjAmount || isNaN(parseFloat(adjAmount))) return showToast('error', 'Valid adjustment amount is required.');
+    if (!adjReason.trim()) return showToast('error', 'Adjustment reason is required.');
+    try {
+      await api.post(`/payroll/${activeCompanyId}/lines/${selectedEmployee.line_id}/adjust`, {
+        type: adjType,
+        amount: parseFloat(adjAmount),
+        reason: adjReason
+      }, requestConfig);
+      showToast('success', 'Adjustment applied successfully.');
+      setShowAdjustModal(false);
+      setAdjAmount('');
+      setAdjReason('');
+      await loadEmployees();
+      if (selectedEmployee) loadEmployeeDetails(selectedEmployee.line_id);
+    } catch (err) {
+      showToast('error', err.response?.data?.error || 'Failed to apply adjustment.');
+    }
+  };
+
+  // Render Status Badge
+  const renderStatus = (status) => {
+    switch (status) {
+      case 'PAID':
+        return <span className="px-2 py-1 text-xs font-semibold rounded bg-emerald-950 text-emerald-400 border border-emerald-800">PAID</span>;
+      case 'ON_HOLD':
+        return <span className="px-2 py-1 text-xs font-semibold rounded bg-rose-950 text-rose-400 border border-rose-800">ON HOLD</span>;
+      case 'PENDING':
+        return <span className="px-2 py-1 text-xs font-semibold rounded bg-amber-950 text-amber-400 border border-amber-800">PENDING</span>;
+      default:
+        return <span className="px-2 py-1 text-xs font-semibold rounded bg-zinc-800 text-zinc-400">{status}</span>;
+    }
   };
 
   return (
-    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6] space-y-6">
-      {/* Top Banner Toolbar */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <Users size={18} className="text-white fill-white/20" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Payroll & Human Resources</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Operations</span>
-            </div>
-            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
-              Manage employee salaries, compliance, and monthly payroll disbursements.
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap">
-          <button onClick={handleExportPayroll} className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-4 py-2 text-[12.5px] font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer">
-            <Download size={14} /> Export Payroll
-          </button>
-          <button onClick={() => setIsAddModalOpen(true)} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer">
-            <Plus size={14} /> Add Employee
-          </button>
-        </div>
-      </div>
-
-      {/* Action Alerts */}
+    <div className="min-h-screen bg-zinc-950 text-zinc-100 p-6 font-sans">
+      {/* Toast Notification */}
       <AnimatePresence>
         {actionMessage && (
           <Motion.div 
-            initial={{ opacity: 0, y: -10 }}
+            initial={{ opacity: 0, y: -20 }}
             animate={{ opacity: 1, y: 0 }}
-            exit={{ opacity: 0 }}
-            className={`p-4 rounded-xl border text-[13px] font-bold flex items-center justify-between gap-3 ${
-              actionMessage.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' :
-              actionMessage.type === 'info' ? 'bg-blue-50 border-blue-200 text-blue-800' :
-              'bg-red-50 border-red-200 text-red-800'
+            exit={{ opacity: 0, y: -20 }}
+            className={`fixed top-6 right-6 z-50 px-4 py-3 rounded-lg shadow-xl border flex items-center gap-2 ${
+              actionMessage.type === 'success' 
+                ? 'bg-emerald-950 text-emerald-300 border-emerald-800' 
+                : 'bg-rose-950 text-rose-300 border-rose-800'
             }`}
           >
-            <span className="flex items-center gap-2">
-              {actionMessage.type === 'success' ? <CheckCircle size={16} /> : 
-               actionMessage.type === 'info' ? <HelpCircle size={16} /> : <AlertTriangle size={16} />}
-              {actionMessage.text}
-            </span>
-            <button onClick={() => setActionMessage(null)} className="text-current hover:opacity-75">
-              <X size={15} />
-            </button>
+            <Info size={16} />
+            <span className="text-sm font-medium">{actionMessage.text}</span>
           </Motion.div>
         )}
       </AnimatePresence>
 
-      {/* KPI Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-extrabold uppercase text-slate-400 tracking-wider">Total Payroll Budget</span>
-            <h3 className="text-xl font-black text-slate-900 mt-1">{formatPKR(totalPayroll)}</h3>
-            <span className="text-[10px] text-emerald-600 font-bold block mt-1">✓ Current Month Active</span>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-emerald-50 text-emerald-600 flex items-center justify-center">
-            <DollarSign size={20} />
-          </div>
+      {/* Header Panel */}
+      <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6">
+        <div>
+          <h1 className="text-2xl font-bold tracking-tight bg-gradient-to-r from-zinc-100 to-zinc-400 bg-clip-text text-transparent">
+            Employee Payroll Workspace
+          </h1>
+          <p className="text-sm text-zinc-400 mt-1">
+            Monitor computations, apply adjustments, manage holds, and process individual payments.
+          </p>
         </div>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-extrabold uppercase text-slate-400 tracking-wider">Active Employees</span>
-            <h3 className="text-xl font-black text-slate-900 mt-1">{employees.length}</h3>
-            <span className="text-[10px] text-slate-500 block mt-1">Full-time headcount</span>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-blue-50 text-blue-600 flex items-center justify-center">
-            <Users size={20} />
-          </div>
-        </div>
+        <div className="flex items-center gap-3">
+          <Calendar size={16} className="text-zinc-500" />
+          <select 
+            value={period} 
+            onChange={(e) => setPeriod(e.target.value)}
+            className="bg-zinc-900 border border-zinc-800 rounded px-3 py-1.5 text-sm text-zinc-300 focus:outline-none focus:border-zinc-700"
+          >
+            <option value="2026-07">July 2026</option>
+            <option value="2026-08">August 2026</option>
+            <option value="2026-09">September 2026</option>
+          </select>
 
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-extrabold uppercase text-slate-400 tracking-wider">Next Payday</span>
-            <h3 className="text-xl font-black text-slate-900 mt-1">June 30, 2026</h3>
-            <span className="text-[10px] text-slate-500 block mt-1">Auto-disbursement active</span>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-amber-50 text-amber-600 flex items-center justify-center">
-            <Calendar size={20} />
-          </div>
-        </div>
-
-        <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5 flex items-center justify-between">
-          <div>
-            <span className="text-[11px] font-extrabold uppercase text-slate-400 tracking-wider">Pending Processing</span>
-            <h3 className="text-xl font-black text-slate-900 mt-1">
-              {employees.filter(e => e.status === 'Processing').length} Employees
-            </h3>
-            <span className="text-[10px] text-slate-500 block mt-1">Need disbursement run</span>
-          </div>
-          <div className="w-10 h-10 rounded-lg bg-purple-50 text-purple-600 flex items-center justify-center">
-            <Landmark size={20} />
-          </div>
+          <button 
+            onClick={loadEmployees}
+            className="p-2 hover:bg-zinc-900 rounded border border-zinc-800 text-zinc-400 hover:text-zinc-200 transition-colors"
+          >
+            <RefreshCw size={16} />
+          </button>
         </div>
       </div>
 
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Employees Table List */}
-        <div className="lg:col-span-2 bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden">
-          <div className="p-5 border-b border-slate-100 flex flex-col sm:flex-row sm:items-center sm:justify-between gap-3 bg-slate-50/50">
-            <div>
-              <h3 className="font-bold text-[14px] text-slate-900">Active Employees Payroll</h3>
-              <p className="text-[12px] text-slate-500">Overview of employees and salary disbursement details.</p>
-            </div>
+      {/* KPI Cards Banner */}
+      <div className="grid grid-cols-2 md:grid-cols-5 gap-4 mb-6">
+        <div className="bg-zinc-900 border border-zinc-800/80 rounded-xl p-4">
+          <span className="text-xs text-zinc-500 font-medium block">TOTAL EMPLOYEES</span>
+          <span className="text-2xl font-semibold mt-1 block">{employees.length}</span>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800/80 rounded-xl p-4">
+          <span className="text-xs text-zinc-500 font-medium block">PAID SALARIES</span>
+          <span className="text-2xl font-semibold mt-1 text-emerald-400 block">
+            {employees.filter(e => e.payment_status === 'PAID').length}
+          </span>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800/80 rounded-xl p-4">
+          <span className="text-xs text-zinc-500 font-medium block">PENDING SALARIES</span>
+          <span className="text-2xl font-semibold mt-1 text-amber-400 block">
+            {employees.filter(e => e.payment_status === 'PENDING').length}
+          </span>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800/80 rounded-xl p-4">
+          <span className="text-xs text-zinc-500 font-medium block">HELD SALARIES</span>
+          <span className="text-2xl font-semibold mt-1 text-rose-400 block">
+            {employees.filter(e => e.payment_status === 'ON_HOLD').length}
+          </span>
+        </div>
+        <div className="bg-zinc-900 border border-zinc-800/80 rounded-xl p-4">
+          <span className="text-xs text-zinc-500 font-medium block">TOTAL NET PAYABLE</span>
+          <span className="text-lg font-semibold mt-2 text-zinc-300 block">
+            PKR {employees.reduce((acc, curr) => acc + parseFloat(curr.net_salary || 0), 0).toLocaleString()}
+          </span>
+        </div>
+      </div>
+
+      {/* Workspace Double-Panel Layout */}
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+        
+        {/* Left Side: Search & Employee List (5 columns) */}
+        <div className="lg:col-span-5 bg-zinc-900 border border-zinc-800/80 rounded-2xl overflow-hidden flex flex-col h-[700px]">
+          {/* List Toolbar */}
+          <div className="p-4 border-b border-zinc-850 flex flex-col gap-3">
             <div className="relative">
+              <Search className="absolute left-3 top-2.5 text-zinc-500" size={16} />
               <input 
-                type="text" 
-                placeholder="Search..."
+                type="text"
+                placeholder="Search employee or department..."
                 value={searchTerm}
-                onChange={e => setSearchTerm(e.target.value)}
-                className="w-full sm:w-60 h-9 pl-8 pr-3 bg-white border border-slate-300 rounded-lg text-[12px] focus:outline-none focus:border-emerald-500 focus:ring-1 focus:ring-emerald-500"
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full bg-zinc-950 border border-zinc-800 rounded-lg pl-9 pr-4 py-2 text-sm text-zinc-200 placeholder-zinc-500 focus:outline-none focus:border-zinc-700"
               />
-              <Search size={14} className="absolute left-2.5 top-2.5 text-slate-400" />
+            </div>
+
+            <div className="flex gap-2">
+              <select 
+                value={statusFilter} 
+                onChange={(e) => setStatusFilter(e.target.value)}
+                className="flex-1 bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1.5 text-xs text-zinc-400 focus:outline-none"
+              >
+                <option value="ALL">All Statuses</option>
+                <option value="PENDING">Pending</option>
+                <option value="PAID">Paid</option>
+                <option value="ON_HOLD">On Hold</option>
+              </select>
+
+              <select 
+                value={deptFilter} 
+                onChange={(e) => setDeptFilter(e.target.value)}
+                className="flex-1 bg-zinc-950 border border-zinc-800 rounded px-2.5 py-1.5 text-xs text-zinc-400 focus:outline-none"
+              >
+                {departments.map(d => (
+                  <option key={d} value={d}>{d === 'ALL' ? 'All Depts' : d}</option>
+                ))}
+              </select>
             </div>
           </div>
 
-          <div className="w-full overflow-x-auto custom-scrollbar">
-            {employees.length === 0 ? (
-              <div className="p-10 text-center text-slate-400 font-medium">No employees found. Click Add Employee to begin.</div>
+          {/* List View */}
+          <div className="flex-1 overflow-y-auto divide-y divide-zinc-850">
+            {loading ? (
+              <div className="flex justify-center items-center h-48 text-zinc-500 gap-2">
+                <RefreshCw size={16} className="animate-spin" />
+                <span className="text-sm">Loading employees...</span>
+              </div>
+            ) : filteredEmployees.length === 0 ? (
+              <div className="text-center py-20 text-zinc-500 text-sm">
+                No payroll entries match search filters.
+              </div>
             ) : (
-              <table className="w-full">
-                <thead>
-                  <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
-                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Employee</th>
-                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Department</th>
-                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Role</th>
-                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Notifications</th>
-                    <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Bank Details</th>
-                    <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Monthly Salary</th>
-                    <th className="text-center px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Status</th>
-                    <th className="text-center px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Actions</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#E6EBE8] text-[13px] text-slate-700">
-                  {filteredEmployees.map(emp => (
-                    <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
-                      <td className="px-4 py-3">
-                        <span className="font-bold text-slate-900 block">{emp.name}</span>
-                        {emp.userEmail && (
-                          <span className="block text-[10px] text-slate-400 font-mono mt-0.5">{emp.userEmail}</span>
-                        )}
-                        {emp.userName && (
-                          <span className="inline-flex items-center gap-1 mt-1 px-1.5 py-0.5 rounded bg-blue-50 text-blue-700 text-[9px] font-bold border border-blue-100">
-                            <Users size={8} /> {emp.userName}
-                          </span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">{emp.department}</td>
-                      <td className="px-4 py-3 text-slate-500">{emp.role}</td>
-                      <td className="px-4 py-3">
-                        {emp.notificationCounts && Object.keys(emp.notificationCounts).length > 0 ? (
-                          <div className="flex flex-wrap gap-1 max-w-[180px]">
-                            {Object.entries(emp.notificationCounts).map(([mod, count]) => (
-                              <span key={mod} className="inline-flex items-center px-1.5 py-0.5 rounded bg-emerald-50 text-[#064E3B] text-[9.5px] font-bold border border-emerald-100">
-                                {mod} ({count})
-                              </span>
-                            ))}
-                          </div>
-                        ) : (
-                          <span className="text-[11px] text-slate-400 italic">None</span>
-                        )}
-                      </td>
-                      <td className="px-4 py-3">
-                        <span className="block text-[12px] font-medium text-slate-700">{emp.bankName || '—'}</span>
-                        <span className="block text-[10px] font-mono text-slate-400">{emp.bankAccount || 'No account linked'}</span>
-                      </td>
-                      <td className="px-4 py-3 text-right font-mono font-bold text-slate-800">{formatPKR(emp.salary)}</td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${
-                          emp.status === 'Paid' ? 'bg-emerald-50 text-emerald-700 border border-emerald-200' :
-                          emp.status === 'Processing' ? 'bg-blue-50 text-blue-700 border border-blue-200' :
-                          'bg-amber-50 text-amber-700 border border-amber-200'
-                        }`}>
-                          {emp.status}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3 text-center whitespace-nowrap">
-                        <button 
-                          onClick={() => handleOpenEditModal(emp)}
-                          className="p-1.5 text-slate-400 hover:text-emerald-600 rounded transition-colors border border-transparent hover:border-emerald-200 mr-1"
-                        >
-                          <FileText size={13} />
-                        </button>
-                        <button 
-                          onClick={() => handleDeleteEmployee(emp.id)}
-                          className="p-1.5 text-slate-400 hover:text-red-600 rounded transition-colors border border-transparent hover:border-red-200"
-                        >
-                          <Trash2 size={13} />
-                        </button>
-                      </td>
-                    </tr>
-                  ))}
-                </tbody>
-              </table>
+              filteredEmployees.map(emp => (
+                <div 
+                  key={emp.line_id}
+                  onClick={() => loadEmployeeDetails(emp.line_id)}
+                  className={`p-4 cursor-pointer transition-colors flex justify-between items-center ${
+                    selectedEmployee?.line_id === emp.line_id 
+                      ? 'bg-zinc-850/60 border-l-4 border-amber-500' 
+                      : 'hover:bg-zinc-850/20'
+                  }`}
+                >
+                  <div>
+                    <h3 className="text-sm font-semibold text-zinc-200">{emp.name}</h3>
+                    <p className="text-xs text-zinc-500 mt-0.5">{emp.role} • {emp.department}</p>
+                  </div>
+                  <div className="text-right">
+                    <span className="text-sm font-bold text-zinc-300 block">PKR {parseFloat(emp.net_salary).toLocaleString()}</span>
+                    <span className="mt-1 inline-block">{renderStatus(emp.payment_status)}</span>
+                  </div>
+                </div>
+              ))
             )}
           </div>
         </div>
 
-        {/* Payroll Settings Summary & Quick Actions */}
-        <div className="space-y-6">
-          {/* Bank Link Panel */}
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-            <h3 className="font-bold text-[14px] text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
-              <Landmark size={16} className="text-emerald-600" /> Bank API Linkage
-            </h3>
-            
-            {bankConnection.status === 'Connected' ? (
-              <div className="mt-3 space-y-3">
-                <div className="p-3 bg-emerald-50 border border-emerald-200 rounded-lg flex items-center justify-between">
-                  <div className="min-w-0">
-                    <span className="text-[11px] font-bold text-emerald-800 block">✓ API Connected</span>
-                    <span className="text-[12px] text-emerald-700 font-medium block truncate">{bankConnection.bankName} Portal</span>
-                  </div>
+        {/* Right Side: Detailed Workspace view (7 columns) */}
+        <div className="lg:col-span-7 bg-zinc-900 border border-zinc-800/80 rounded-2xl p-6 min-h-[700px] flex flex-col">
+          {detailsLoading ? (
+            <div className="flex-1 flex justify-center items-center text-zinc-500 gap-2">
+              <RefreshCw size={16} className="animate-spin" />
+              <span className="text-sm">Loading workspace details...</span>
+            </div>
+          ) : !details ? (
+            <div className="flex-1 flex flex-col justify-center items-center text-zinc-500 text-center py-20">
+              <Users size={48} className="text-zinc-700 mb-4" />
+              <h3 className="text-lg font-semibold text-zinc-400">No Employee Selected</h3>
+              <p className="text-sm text-zinc-500 mt-1">Select an employee from the left panel to begin.</p>
+            </div>
+          ) : (
+            <div className="flex-1 flex flex-col">
+              {/* Header section */}
+              <div className="flex justify-between items-start border-b border-zinc-800 pb-4 mb-4">
+                <div>
+                  <h2 className="text-lg font-bold text-zinc-200">{details.employee.name}</h2>
+                  <p className="text-xs text-zinc-400 mt-0.5">
+                    {details.employee.role || 'N/A'} • {details.employee.department || 'N/A'}
+                  </p>
+                </div>
+                <div>
+                  {renderStatus(details.line.payment_status)}
+                </div>
+              </div>
+
+              {/* Toolbar Actions */}
+              <div className="flex flex-wrap gap-2 mb-6 bg-zinc-950 p-2.5 rounded-lg border border-zinc-850">
+                {details.line.payment_status === 'PENDING' && (
+                  <>
+                    <button 
+                      onClick={handlePay}
+                      className="px-3 py-1.5 bg-emerald-700 hover:bg-emerald-600 active:bg-emerald-800 text-zinc-100 font-semibold rounded text-xs transition-colors flex items-center gap-1"
+                    >
+                      <Play size={12} /> Pay Single
+                    </button>
+
+                    <button 
+                      onClick={() => setShowHoldModal(true)}
+                      className="px-3 py-1.5 bg-rose-700 hover:bg-rose-600 active:bg-rose-800 text-zinc-100 font-semibold rounded text-xs transition-colors flex items-center gap-1"
+                    >
+                      <Ban size={12} /> Place Hold
+                    </button>
+                  </>
+                )}
+
+                {details.line.payment_status === 'ON_HOLD' && (
                   <button 
-                    onClick={handleDisconnectBank}
-                    className="text-[10px] text-red-600 hover:underline font-bold shrink-0"
+                    onClick={handleRelease}
+                    className="px-3 py-1.5 bg-amber-700 hover:bg-amber-600 text-zinc-100 font-semibold rounded text-xs transition-colors flex items-center gap-1"
                   >
-                    Disconnect
+                    <CheckCircle size={12} /> Release Hold
                   </button>
-                </div>
-                <p className="text-[11px] text-slate-500 leading-relaxed">
-                  Salary payments will be transferred directly via the connected bank gateway on clicking process.
-                </p>
-              </div>
-            ) : (
-              <div className="mt-3 space-y-3">
-                <div className="p-3 bg-slate-50 border border-slate-200 rounded-lg flex items-center justify-between text-slate-600">
-                  <div>
-                    <span className="text-[11px] font-bold text-slate-700 block">Disconnected</span>
-                    <span className="text-[11px] text-slate-500 block">No banking portal linked</span>
-                  </div>
-                  <Landmark size={16} className="text-slate-300" />
-                </div>
-                <button
-                  onClick={() => setShowBankModal(true)}
-                  className="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white text-[12px] font-bold rounded-lg flex items-center justify-center gap-1.5 transition-colors"
-                >
-                  <Link size={13} /> Connect Bank Account
-                </button>
-              </div>
-            )}
-          </div>
+                )}
 
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-            <h3 className="font-bold text-[14px] text-slate-900 border-b border-slate-100 pb-3">Run Monthly Payroll</h3>
-            <p className="text-[12px] text-slate-500 mt-2 mb-4 leading-relaxed">
-              Disburse payments to your employee list according to the active bank templates and tax declarations.
-            </p>
-            <div className="space-y-3">
-              <div className="p-3 bg-slate-50 rounded-lg flex items-center justify-between border border-slate-100">
-                <div className="flex items-center gap-2 text-[12.5px] font-medium text-slate-700">
-                  <FileText size={15} className="text-slate-400" />
-                  <span>Salary Register (June)</span>
-                </div>
+                {details.line.payment_status === 'PENDING' && details.run.status === 'DRAFT' && (
+                  <button 
+                    onClick={() => setShowAdjustModal(true)}
+                    className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 font-semibold rounded text-xs border border-zinc-700 transition-colors flex items-center gap-1"
+                  >
+                    <Plus size={12} /> Add Adjustment
+                  </button>
+                )}
+
+                <span className="flex-1" />
+
+                <a 
+                  href={`/api/payroll/${activeCompanyId}/payslips/${details.employee.id}/${period}`}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="px-3 py-1.5 bg-zinc-800 hover:bg-zinc-700 text-zinc-300 rounded text-xs border border-zinc-700 transition-colors flex items-center gap-1"
+                >
+                  <Download size={12} /> Payslip PDF
+                </a>
+              </div>
+
+              {/* Tabs list */}
+              <div className="flex border-b border-zinc-800 mb-6 gap-6">
                 <button 
-                  onClick={handleVerifyRegister}
-                  className="text-[11px] font-bold text-emerald-600 hover:underline"
-                >
-                  Verify
-                </button>
-              </div>
-              <div className="p-3 bg-slate-50 rounded-lg flex items-center justify-between border border-slate-100">
-                <div className="flex items-center gap-2 text-[12.5px] font-medium text-slate-700">
-                  <Landmark size={15} className="text-slate-400" />
-                  <span>Bank Disbursement Template</span>
-                </div>
-                <button 
-                  onClick={handleDownloadBankTemplate}
-                  className="text-[11px] font-bold text-emerald-600 hover:underline"
-                >
-                  Download
-                </button>
-              </div>
-            </div>
-            <button 
-              onClick={handleProcessPayments}
-              disabled={loading}
-              className="w-full mt-5 py-3 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] disabled:opacity-50 transition-colors text-white text-[13px] font-black rounded-xl flex items-center justify-center gap-2 shadow-md shadow-emerald-500/10 active:scale-95 cursor-pointer"
-            >
-              {loading ? <RefreshCw size={15} className="animate-spin" /> : <ShieldCheck size={16} />}
-              Process & Disburse Payments
-            </button>
-          </div>
-
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 p-5">
-            <h3 className="font-bold text-[14px] text-slate-900 border-b border-slate-100 pb-3">Tax Compliance</h3>
-            <p className="text-[12px] text-slate-500 mt-2 mb-4 leading-relaxed font-medium">
-              Tax deductions are processed automatically using current FBR income tax slabs for tax year 2026.
-            </p>
-            <div className="flex items-center gap-3 p-3 bg-amber-50 rounded-lg border border-amber-200 text-amber-800 text-[12px] font-bold">
-              <CheckCircle size={16} className="shrink-0 text-amber-700" />
-              <span>All tax certificates up-to-date. Next submission due by July 15.</span>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      {/* Add Employee Modal */}
-      <AnimatePresence>
-        {isAddModalOpen && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <Motion.div 
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl border border-slate-200 shadow-xl max-w-md w-full overflow-hidden"
-            >
-              <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-                <h3 className="font-bold text-[14px] text-slate-900">Add Employee to Payroll</h3>
-                <button 
-                  onClick={() => setIsAddModalOpen(false)}
-                  className="text-slate-400 hover:text-slate-600"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              <form onSubmit={handleAddEmployeeSubmit} className="p-6 space-y-4">
-                <div>
-                  <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Full Employee Name *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newEmpName}
-                    onChange={e => setNewEmpName(e.target.value)}
-                    placeholder="e.g. Farhan Ali"
-                    className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Job Title / Role *</label>
-                  <input
-                    type="text"
-                    required
-                    value={newEmpRole}
-                    onChange={e => setNewEmpRole(e.target.value)}
-                    placeholder="e.g. Software Engineer"
-                    className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                  />
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Department</label>
-                    <select
-                      value={newEmpDept}
-                      onChange={e => setNewEmpDept(e.target.value)}
-                      className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                    >
-                      <option value="Engineering">Engineering</option>
-                      <option value="Product">Product</option>
-                      <option value="People Operations">People Ops</option>
-                      <option value="Finance">Finance</option>
-                      <option value="Marketing">Marketing</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Disbursement Status</label>
-                    <select
-                      value={newEmpStatus}
-                      onChange={e => setNewEmpStatus(e.target.value)}
-                      className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                    >
-                      <option value="Processing">Processing</option>
-                      <option value="Paid">Paid</option>
-                      <option value="On Hold">On Hold</option>
-                    </select>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4">
-                  <div>
-                    <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Bank Name *</label>
-                    <select
-                      value={newEmpBankName}
-                      onChange={e => setNewEmpBankName(e.target.value)}
-                      className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                    >
-                      <option value="Habib Bank">Habib Bank (HBL)</option>
-                      <option value="MCB Bank">MCB Bank</option>
-                      <option value="Bank Alfalah">Bank Alfalah</option>
-                      <option value="National Bank">National Bank</option>
-                      <option value="Meezan Bank">Meezan Bank</option>
-                    </select>
-                  </div>
-
-                  <div>
-                    <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Account Number / IBAN *</label>
-                    <input
-                      type="text"
-                      required
-                      value={newEmpBankAccount}
-                      onChange={e => setNewEmpBankAccount(e.target.value)}
-                      placeholder="e.g. PK12HABB0000..."
-                      className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                    />
-                  </div>
-                </div>
-
-                <div>
-                  <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Monthly Salary (PKR) *</label>
-                  <input
-                    type="number"
-                    required
-                    min="1"
-                    value={newEmpSalary}
-                    onChange={e => setNewEmpSalary(e.target.value)}
-                    placeholder="e.g. 150000"
-                    className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                  />
-                </div>
-
-                <div>
-                  <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Linked System User</label>
-                  <select
-                    value={linkedUserId}
-                    onChange={e => setLinkedUserId(e.target.value)}
-                    className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                  >
-                    <option value="">-- None (External Employee) --</option>
-                    {companyUsers.map(u => (
-                      <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
-                    ))}
-                  </select>
-                </div>
-
-                <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setIsAddModalOpen(false)}
-                    className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-[12px] font-bold rounded-lg text-slate-600 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold rounded-lg transition-colors shadow-sm"
-                  >
-                    Add Employee
-                  </button>
-                </div>
-              </form>
-            </Motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Link Bank Modal */}
-      <AnimatePresence>
-        {showBankModal && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <Motion.div 
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl border border-slate-200 shadow-xl max-w-sm w-full overflow-hidden"
-            >
-              <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-                <h3 className="font-bold text-[14px] text-slate-900">Link Corporate Banking Portal</h3>
-                <button onClick={() => setShowBankModal(false)} className="text-slate-400 hover:text-slate-600">
-                  <X size={16} />
-                </button>
-              </div>
-
-              <form onSubmit={handleLinkBankSubmit} className="p-6 space-y-4">
-                <p className="text-[12px] text-slate-500 leading-relaxed">
-                  Establish a secure encrypted webhook link with local commercial banking portals to process direct payroll disbursements.
-                </p>
-
-                <div>
-                  <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Select Financial Institution</label>
-                  <select
-                    value={selectedBank}
-                    onChange={e => setSelectedBank(e.target.value)}
-                    className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all"
-                  >
-                    <option value="Habib Bank">Habib Bank Limited (HBL)</option>
-                    <option value="MCB Bank">MCB Bank Limited</option>
-                    <option value="Bank Alfalah">Bank Alfalah</option>
-                    <option value="Meezan Bank">Meezan Bank</option>
-                  </select>
-                </div>
-
-                <div className="bg-amber-50 border border-amber-200 text-amber-800 p-3 rounded-lg text-[11px] leading-relaxed">
-                  ⚠️ This establishes a sandbox connection. Disbursement triggers will send mock transfer payloads.
-                </div>
-
-                <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-                  <button
-                    type="button"
-                    onClick={() => setShowBankModal(false)}
-                    className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-[12px] font-bold rounded-lg text-slate-600 transition-colors"
-                  >
-                    Cancel
-                  </button>
-                  <button
-                    type="submit"
-                    disabled={loading}
-                    className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold rounded-lg transition-colors shadow-sm flex items-center gap-1.5"
-                  >
-                    {loading && <RefreshCw size={12} className="animate-spin" />}
-                    Link Portal
-                  </button>
-                </div>
-              </form>
-            </Motion.div>
-          </div>
-        )}
-      </AnimatePresence>
-
-      {/* Edit Employee & Preferences Modal */}
-      <AnimatePresence>
-        {isEditModalOpen && (
-          <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-            <Motion.div 
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-white rounded-xl border border-slate-200 shadow-xl max-w-4xl w-full h-[85vh] flex flex-col overflow-hidden text-xs font-semibold text-slate-600"
-            >
-              {/* Modal Header */}
-              <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-                <div>
-                  <h3 className="font-bold text-[14px] text-slate-900">Edit Employee Profile</h3>
-                  <p className="text-[11px] text-slate-500 mt-0.5">Manage details and channel notification preferences for {editingEmployee?.name}.</p>
-                </div>
-                <button 
-                  onClick={() => setIsEditModalOpen(false)}
-                  className="text-slate-400 hover:text-slate-600 cursor-pointer"
-                >
-                  <X size={16} />
-                </button>
-              </div>
-
-              {/* Tabs Bar */}
-              <div className="flex border-b border-slate-100 bg-slate-50/50 px-4 text-[12px] font-bold">
-                <button
-                  onClick={() => setEditTab('details')}
-                  className={`px-4 py-3 border-b-2 transition-all cursor-pointer ${
-                    editTab === 'details' 
-                      ? 'border-emerald-600 text-emerald-700' 
-                      : 'border-transparent text-slate-500 hover:text-slate-700'
+                  onClick={() => setActiveTab('breakdown')}
+                  className={`pb-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                    activeTab === 'breakdown' ? 'text-amber-500 border-b-2 border-amber-500' : 'text-zinc-500 hover:text-zinc-300'
                   }`}
                 >
-                  General Details
+                  Breakdown
                 </button>
-                <button
-                  onClick={() => setEditTab('preferences')}
-                  className={`px-4 py-3 border-b-2 transition-all cursor-pointer ${
-                    editTab === 'preferences' 
-                      ? 'border-emerald-600 text-emerald-700' 
-                      : 'border-transparent text-slate-500 hover:text-slate-700'
+                <button 
+                  onClick={() => setActiveTab('overview')}
+                  className={`pb-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                    activeTab === 'overview' ? 'text-amber-500 border-b-2 border-amber-500' : 'text-zinc-500 hover:text-zinc-300'
                   }`}
                 >
-                  Communication Preferences
+                  Overview
+                </button>
+                <button 
+                  onClick={() => setActiveTab('history')}
+                  className={`pb-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                    activeTab === 'history' ? 'text-amber-500 border-b-2 border-amber-500' : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  Payments
+                </button>
+                <button 
+                  onClick={() => setActiveTab('audit')}
+                  className={`pb-2 text-xs font-semibold uppercase tracking-wider transition-colors ${
+                    activeTab === 'audit' ? 'text-amber-500 border-b-2 border-amber-500' : 'text-zinc-500 hover:text-zinc-300'
+                  }`}
+                >
+                  Audit timeline
                 </button>
               </div>
 
-              {/* Content Panel */}
-              <div className="flex-1 overflow-y-auto p-6 custom-scrollbar">
-                {editTab === 'details' ? (
-                  <form onSubmit={handleSaveGeneralDetails} className="space-y-4 max-w-lg">
+              {/* Tabs Content */}
+              <div className="flex-1">
+                {activeTab === 'breakdown' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                    {/* Allowances Column */}
                     <div>
-                      <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Employee Name *</label>
-                      <input
-                        type="text"
-                        required
-                        value={editEmpName}
-                        onChange={e => setEditEmpName(e.target.value)}
-                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-800"
-                      />
+                      <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-800 pb-2 mb-3">Gross Earnings</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">Basic Salary</span>
+                          <span className="font-semibold text-zinc-300">PKR {parseFloat(details.line.basic_salary).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">House Rent</span>
+                          <span className="font-semibold text-zinc-300">PKR {parseFloat(details.line.house_rent).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">Medical Allowance</span>
+                          <span className="font-semibold text-zinc-300">PKR {parseFloat(details.line.medical_allowance).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">Transport Allowance</span>
+                          <span className="font-semibold text-zinc-300">PKR {parseFloat(details.line.transport_allowance).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">Overtime Amount</span>
+                          <span className="font-semibold text-emerald-400">PKR {parseFloat(details.line.overtime_amount).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Deductions Column */}
+                    <div>
+                      <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-800 pb-2 mb-3">Deductions</h4>
+                      <div className="space-y-2 text-sm">
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">Income Tax</span>
+                          <span className="font-semibold text-rose-400">PKR {parseFloat(details.line.tax_deduction).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">Provident Fund</span>
+                          <span className="font-semibold text-rose-400">PKR {parseFloat(details.line.pf_deduction).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">EOBI contribution</span>
+                          <span className="font-semibold text-rose-400">PKR {parseFloat(details.line.eobi_deduction).toLocaleString()}</span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span className="text-zinc-400">Social Security</span>
+                          <span className="font-semibold text-rose-400">PKR {parseFloat(details.line.social_security_deduction).toLocaleString()}</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Summary row */}
+                    <div className="md:col-span-2 bg-zinc-950 p-4 rounded-xl border border-zinc-850 flex justify-between items-center mt-6">
+                      <div>
+                        <span className="text-xs text-zinc-500 uppercase font-semibold">Net Payout</span>
+                        <span className="text-sm text-zinc-400 mt-0.5 block">Net calculations computed by dynamic engine</span>
+                      </div>
+                      <span className="text-2xl font-bold text-zinc-100">PKR {parseFloat(details.line.net_salary).toLocaleString()}</span>
+                    </div>
+                  </div>
+                )}
+
+                {activeTab === 'overview' && (
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
+                    <div>
+                      <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-800 pb-2 mb-3">Bank Details</h4>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-xs text-zinc-500 block">BANK NAME</span>
+                          <span className="text-zinc-300 font-medium">{details.employee.bank_name || 'Habib Bank'}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-zinc-500 block">IBAN / ACCOUNT NUMBER</span>
+                          <span className="text-zinc-300 font-mono">{details.employee.account_number || 'PK12HABB0000123456789012'}</span>
+                        </div>
+                      </div>
                     </div>
 
                     <div>
-                      <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Job Title / Role *</label>
-                      <input
-                        type="text"
-                        required
-                        value={editEmpRole}
-                        onChange={e => setEditEmpRole(e.target.value)}
-                        className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-800"
-                      />
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Department</label>
-                        <select
-                          value={editEmpDept}
-                          onChange={e => setEditEmpDept(e.target.value)}
-                          className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-800"
-                        >
-                          <option value="Engineering">Engineering</option>
-                          <option value="Product">Product</option>
-                          <option value="People Operations">People Ops</option>
-                          <option value="Finance">Finance</option>
-                          <option value="Marketing">Marketing</option>
-                        </select>
-                      </div>
-
-                      <div>
-                        <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Status</label>
-                        <select
-                          value={editEmpStatus}
-                          onChange={e => setEditEmpStatus(e.target.value)}
-                          className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-800"
-                        >
-                          <option value="Active">Active</option>
-                          <option value="Processing">Processing</option>
-                          <option value="Paid">Paid</option>
-                          <option value="On Hold">On Hold</option>
-                        </select>
+                      <h4 className="text-xs font-bold text-zinc-500 uppercase tracking-wider border-b border-zinc-800 pb-2 mb-3">Workspace Context</h4>
+                      <div className="space-y-2">
+                        <div>
+                          <span className="text-xs text-zinc-500 block">PAY PERIOD</span>
+                          <span className="text-zinc-300 font-medium">{period}</span>
+                        </div>
+                        <div>
+                          <span className="text-xs text-zinc-500 block">MIGRATED FROM LEGACY</span>
+                          <span className="text-zinc-300 font-medium">{details.employee.salary_structure_id ? 'Yes (Salary structure template)' : 'No (Legacy formula)'}</span>
+                        </div>
                       </div>
                     </div>
+                  </div>
+                )}
 
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Bank Name</label>
-                        <select
-                          value={editEmpBankName}
-                          onChange={e => setEditEmpBankName(e.target.value)}
-                          className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-800"
-                        >
-                          <option value="Habib Bank">Habib Bank (HBL)</option>
-                          <option value="MCB Bank">MCB Bank</option>
-                          <option value="Bank Alfalah">Bank Alfalah</option>
-                          <option value="National Bank">National Bank</option>
-                          <option value="Meezan Bank">Meezan Bank</option>
-                        </select>
-                      </div>
+                {activeTab === 'history' && (
+                  <div className="overflow-x-auto">
+                    <table className="w-full text-sm text-left border-collapse">
+                      <thead>
+                        <tr className="border-b border-zinc-850 text-xs text-zinc-500 uppercase">
+                          <th className="py-2">Period</th>
+                          <th className="py-2">Gross Payout</th>
+                          <th className="py-2">Net Salary</th>
+                          <th className="py-2">Reference</th>
+                          <th className="py-2">Status</th>
+                          <th className="py-2">Actions</th>
+                        </tr>
+                      </thead>
+                      <tbody className="divide-y divide-zinc-850 text-zinc-300">
+                        {details.pastPayments.length === 0 ? (
+                          <tr>
+                            <td colSpan={6} className="py-8 text-center text-zinc-500 text-xs">
+                              No payment attempts logged for this employee.
+                            </td>
+                          </tr>
+                        ) : (
+                          details.pastPayments.map(p => (
+                            <tr key={p.id}>
+                              <td className="py-2.5 font-medium">{p.period}</td>
+                              <td className="py-2.5">PKR {parseFloat(p.gross_salary).toLocaleString()}</td>
+                              <td className="py-2.5">PKR {parseFloat(p.net_salary).toLocaleString()}</td>
+                              <td className="py-2.5 font-mono text-xs">{p.payment_reference}</td>
+                              <td className="py-2.5">
+                                {p.is_reversal ? (
+                                  <span className="px-1.5 py-0.5 text-2xs font-semibold bg-rose-950 text-rose-400 rounded">REVERSED</span>
+                                ) : (
+                                  <span className="px-1.5 py-0.5 text-2xs font-semibold bg-emerald-950 text-emerald-400 rounded">PAID</span>
+                                )}
+                              </td>
+                              <td className="py-2.5">
+                                {!p.is_reversal && (
+                                  <button 
+                                    onClick={() => handleReverse(p.id)}
+                                    className="text-xs text-rose-500 hover:text-rose-400 font-semibold flex items-center gap-0.5"
+                                  >
+                                    <RotateCcw size={10} /> Reverse
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          ))
+                        )}
+                      </tbody>
+                    </table>
+                  </div>
+                )}
 
-                      <div>
-                        <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Account / IBAN</label>
-                        <input
-                          type="text"
-                          value={editEmpBankAccount}
-                          onChange={e => setEditEmpBankAccount(e.target.value)}
-                          className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-800"
-                        />
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-4">
-                      <div>
-                        <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Monthly Salary (PKR) *</label>
-                        <input
-                          type="number"
-                          required
-                          value={editEmpSalary}
-                          onChange={e => setEditEmpSalary(e.target.value)}
-                          className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-800"
-                        />
-                      </div>
-
-                      <div>
-                        <label className="block text-[12px] font-bold text-slate-700 mb-1.5">Linked System User</label>
-                        <select
-                          value={editLinkedUserId}
-                          onChange={e => setEditLinkedUserId(e.target.value)}
-                          className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 transition-all text-slate-800"
-                        >
-                          <option value="">-- None (External Employee) --</option>
-                          {companyUsers.map(u => (
-                            <option key={u.id} value={u.id}>{u.name} ({u.email})</option>
-                          ))}
-                        </select>
-                      </div>
-                    </div>
-
-                    <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-                      <button
-                        type="button"
-                        onClick={() => setIsEditModalOpen(false)}
-                        className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-[12px] font-bold rounded-lg text-slate-600 cursor-pointer"
-                      >
-                        Cancel
-                      </button>
-                      <button
-                        type="submit"
-                        disabled={loading}
-                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-sm"
-                      >
-                        {loading && <RefreshCw size={12} className="animate-spin" />}
-                        Save Changes
-                      </button>
-                    </div>
-                  </form>
-                ) : (
-                  // Communication Preferences Tab
-                  <div className="space-y-6">
-                    {subLoading ? (
-                      <div className="p-16 text-center space-y-3">
-                        <RefreshCw size={24} className="animate-spin text-emerald-600 mx-auto" />
-                        <p className="text-slate-400 text-[12px]">Loading notification subscriptions...</p>
-                      </div>
+                {activeTab === 'audit' && (
+                  <div className="relative border-l border-zinc-800 pl-4 space-y-6 py-2">
+                    {details.history.length === 0 ? (
+                      <div className="text-xs text-zinc-500">No status transitions recorded.</div>
                     ) : (
-                      <>
-                        {/* Search & Bulk Actions Header */}
-                        <div className="flex flex-col md:flex-row md:items-center justify-between gap-3 bg-slate-50 p-4 rounded-xl border border-slate-200">
-                          <div className="relative flex-1 max-w-md">
-                            <input
-                              type="text"
-                              placeholder="Search events (e.g. journal)..."
-                              value={subSearch}
-                              onChange={e => setSubSearch(e.target.value)}
-                              className="w-full h-9 pl-8 pr-3 bg-white border border-slate-300 rounded-lg text-[12px] focus:outline-none focus:border-emerald-500 font-semibold"
-                            />
-                            <Search size={13} className="absolute left-2.5 top-3 text-slate-400" />
-                          </div>
-
-                          <div className="flex flex-wrap gap-2 text-[11px] font-bold">
-                            <button
-                              onClick={() => handleBulkToggleAll('EMAIL', true)}
-                              className="px-2.5 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-lg shadow-3xs cursor-pointer"
-                            >
-                              Enable All Emails
-                            </button>
-                            <button
-                              onClick={() => handleBulkToggleAll('EMAIL', false)}
-                              className="px-2.5 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-lg shadow-3xs cursor-pointer"
-                            >
-                              Disable All Emails
-                            </button>
-                            <button
-                              onClick={() => handleBulkToggleAll('APP', true)}
-                              className="px-2.5 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-lg shadow-3xs cursor-pointer"
-                            >
-                              Enable All App
-                            </button>
-                            <button
-                              onClick={() => handleBulkToggleAll('APP', false)}
-                              className="px-2.5 py-1.5 bg-white border border-slate-200 hover:border-slate-300 text-slate-700 rounded-lg shadow-3xs cursor-pointer"
-                            >
-                              Disable All App
-                            </button>
+                      details.history.map(h => (
+                        <div key={h.id} className="relative">
+                          <span className="absolute -left-[21px] top-1 bg-amber-500 w-2.5 h-2.5 rounded-full border border-zinc-900" />
+                          <div className="flex justify-between items-start gap-4">
+                            <div>
+                              <p className="text-xs text-zinc-400 font-semibold">
+                                Transitioned: {h.old_status} &rarr; {h.new_status}
+                              </p>
+                              <p className="text-xs text-zinc-500 mt-0.5">{h.reason}</p>
+                            </div>
+                            <span className="text-2xs text-zinc-600 whitespace-nowrap">{new Date(h.changed_at).toLocaleString()}</span>
                           </div>
                         </div>
-
-                        {/* Grouped Modules and Subscriptions */}
-                        <div className="space-y-6">
-                          {Object.entries(subscriptions.reduce((acc, sub) => {
-                            const q = subSearch.toLowerCase();
-                            if (sub.eventName.toLowerCase().includes(q) || sub.module.toLowerCase().includes(q) || sub.eventCode.toLowerCase().includes(q)) {
-                              if (!acc[sub.module]) acc[sub.module] = [];
-                              acc[sub.module].push(sub);
-                            }
-                            return acc;
-                          }, {})).length === 0 ? (
-                            <div className="p-10 text-center text-slate-400 italic">No events found matching your search.</div>
-                          ) : (
-                            Object.entries(subscriptions.reduce((acc, sub) => {
-                              const q = subSearch.toLowerCase();
-                              if (sub.eventName.toLowerCase().includes(q) || sub.module.toLowerCase().includes(q) || sub.eventCode.toLowerCase().includes(q)) {
-                                if (!acc[sub.module]) acc[sub.module] = [];
-                                acc[sub.module].push(sub);
-                              }
-                              return acc;
-                            }, {})).map(([moduleName, items]) => (
-                              <div key={moduleName} className="border border-slate-200 rounded-xl overflow-hidden shadow-3xs bg-white">
-                                <div className="p-3 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
-                                  <h4 className="font-extrabold text-[12px] text-emerald-800 uppercase tracking-tight">▼ {moduleName}</h4>
-                                  
-                                  {/* Module Level Bulk Toggles */}
-                                  <div className="flex items-center gap-3 text-[10.5px] font-bold text-slate-500">
-                                    <span>Bulk module action:</span>
-                                    <button 
-                                      onClick={() => handleBulkToggleModule(moduleName, 'EMAIL', true)}
-                                      className="text-emerald-700 hover:underline cursor-pointer"
-                                    >
-                                      All Email
-                                    </button>
-                                    <button 
-                                      onClick={() => handleBulkToggleModule(moduleName, 'APP', true)}
-                                      className="text-emerald-700 hover:underline cursor-pointer"
-                                    >
-                                      All App
-                                    </button>
-                                    <button 
-                                      onClick={() => {
-                                        handleBulkToggleModule(moduleName, 'EMAIL', false);
-                                        handleBulkToggleModule(moduleName, 'APP', false);
-                                      }}
-                                      className="text-slate-500 hover:underline cursor-pointer"
-                                    >
-                                      Clear All
-                                    </button>
-                                  </div>
-                                </div>
-
-                                <div className="divide-y divide-slate-100 p-4 space-y-4">
-                                  {items.map(item => (
-                                    <div key={item.eventId} className="flex flex-col sm:flex-row sm:items-center sm:justify-between py-2 gap-3">
-                                      <div className="space-y-1">
-                                        <div className="flex items-center gap-2">
-                                          <span className="font-bold text-slate-800 text-[13px]">{item.eventName}</span>
-                                          <span className="text-[10px] px-1.5 py-0.5 rounded bg-slate-100 font-mono text-slate-400 font-bold border border-slate-200">{item.eventCode}</span>
-                                        </div>
-                                        {item.description && (
-                                          <p className="text-[11.5px] text-slate-400 font-normal leading-relaxed">{item.description}</p>
-                                        )}
-                                      </div>
-
-                                      <div className="flex items-center gap-4 text-[12px] font-bold text-slate-600 whitespace-nowrap self-start sm:self-center">
-                                        <label className="flex items-center gap-1.5 cursor-pointer">
-                                          <input
-                                            type="checkbox"
-                                            checked={item.channels.EMAIL || false}
-                                            onChange={() => {
-                                              setSubscriptions(prev =>
-                                                prev.map(p => p.eventId === item.eventId ? {
-                                                  ...p,
-                                                  channels: { ...p.channels, EMAIL: !p.channels.EMAIL }
-                                                } : p)
-                                              );
-                                            }}
-                                            className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                                          />
-                                          <span>Email</span>
-                                        </label>
-
-                                        <label className="flex items-center gap-1.5 cursor-pointer">
-                                          <input
-                                            type="checkbox"
-                                            checked={item.channels.APP || false}
-                                            onChange={() => {
-                                              setSubscriptions(prev =>
-                                                prev.map(p => p.eventId === item.eventId ? {
-                                                  ...p,
-                                                  channels: { ...p.channels, APP: !p.channels.APP }
-                                                } : p)
-                                              );
-                                            }}
-                                            className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                                          />
-                                          <span>In-App</span>
-                                        </label>
-
-                                        <label className="flex items-center gap-1.5 cursor-pointer">
-                                          <input
-                                            type="checkbox"
-                                            checked={item.channels.SMS || false}
-                                            onChange={() => {
-                                              setSubscriptions(prev =>
-                                                prev.map(p => p.eventId === item.eventId ? {
-                                                  ...p,
-                                                  channels: { ...p.channels, SMS: !p.channels.SMS }
-                                                } : p)
-                                              );
-                                            }}
-                                            className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
-                                          />
-                                          <span>SMS</span>
-                                        </label>
-
-                                        <button
-                                          onClick={() => setActivePreviewEvent(item.eventCode)}
-                                          className="flex items-center gap-1 text-[11px] text-slate-400 hover:text-emerald-700 transition-colors cursor-pointer"
-                                        >
-                                          <Eye size={12} />
-                                          <span>Preview</span>
-                                        </button>
-                                      </div>
-                                    </div>
-                                  ))}
-                                </div>
-                              </div>
-                            ))
-                          )}
-                        </div>
-
-                        {/* Save Action Panel */}
-                        <div className="pt-4 border-t border-slate-100 flex justify-end gap-3">
-                          <button
-                            type="button"
-                            onClick={() => setIsEditModalOpen(false)}
-                            className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-[12px] font-bold rounded-lg text-slate-600 cursor-pointer"
-                          >
-                            Cancel
-                          </button>
-                          <button
-                            onClick={handleSaveSubscriptions}
-                            disabled={subSaving}
-                            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-sm"
-                          >
-                            {subSaving && <RefreshCw size={12} className="animate-spin" />}
-                            Save Preferences
-                          </button>
-                        </div>
-                      </>
+                      ))
                     )}
                   </div>
                 )}
               </div>
-            </Motion.div>
-          </div>
-        )}
-      </AnimatePresence>
+            </div>
+          )}
+        </div>
+      </div>
 
-      {/* Nested Preview Dialog */}
-      <AnimatePresence>
-        {activePreviewEvent && (
-          <div className="fixed inset-0 bg-black/50 backdrop-blur-xs z-[60] flex items-center justify-center p-4">
-            <Motion.div 
-              initial={{ scale: 0.95, opacity: 0 }}
-              animate={{ scale: 1, opacity: 1 }}
-              exit={{ scale: 0.95, opacity: 0 }}
-              className="bg-slate-900 text-white rounded-xl shadow-2xl max-w-md w-full border border-slate-700 overflow-hidden font-sans"
-            >
-              <div className="p-4 bg-slate-800 border-b border-slate-700 flex items-center justify-between">
-                <span className="text-[10px] font-extrabold tracking-widest text-slate-400 uppercase">Notification Layout Preview</span>
-                <button onClick={() => setActivePreviewEvent(null)} className="text-slate-400 hover:text-white cursor-pointer">
-                  <X size={15} />
-                </button>
-              </div>
-              <div className="p-6 space-y-4">
-                <div>
-                  <span className="block text-[10px] font-black text-slate-500 uppercase tracking-widest">Email Subject</span>
-                  <div className="text-[13px] font-bold mt-1 bg-slate-800 p-2.5 rounded border border-slate-750 font-mono text-emerald-400">
-                    {getEventPreview(activePreviewEvent).subject}
-                  </div>
-                </div>
-                <div>
-                  <span className="block text-[10px] font-black text-slate-500 uppercase tracking-widest">Email HTML Body Content</span>
-                  <div 
-                    className="text-[12.5px] leading-relaxed mt-1 bg-slate-800 p-3 rounded border border-slate-750 text-slate-300 font-sans"
-                    dangerouslySetInnerHTML={{ __html: getEventPreview(activePreviewEvent).body }}
-                  />
-                </div>
-              </div>
-              <div className="p-4 bg-slate-800 border-t border-slate-700 flex justify-end">
-                <button 
-                  onClick={() => setActivePreviewEvent(null)}
-                  className="px-4 py-1.5 bg-slate-700 hover:bg-slate-600 text-[12px] font-bold rounded-lg text-white cursor-pointer"
+      {/* Place Hold Modal */}
+      {showHoldModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6">
+            <div className="flex justify-between items-center border-b border-zinc-800 pb-3 mb-4">
+              <h3 className="font-bold text-zinc-200">Place Salary Payout on HOLD</h3>
+              <button onClick={() => setShowHoldModal(false)} className="text-zinc-500 hover:text-zinc-300">
+                <X size={16} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-zinc-400 block mb-1.5">Hold Classification</label>
+                <select 
+                  value={holdType} 
+                  onChange={(e) => setHoldType(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-300"
                 >
-                  Close Preview
+                  <option value="DOCUMENT">Missing Documents</option>
+                  <option value="BANK">Bank Account Error</option>
+                  <option value="HR">HR Verification Pending</option>
+                  <option value="DISCIPLINARY">Disciplinary Inquiry</option>
+                  <option value="OTHER">Other</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-zinc-400 block mb-1.5">Detailed Hold Reason</label>
+                <textarea 
+                  rows={3}
+                  value={holdReason}
+                  onChange={(e) => setHoldReason(e.target.value)}
+                  placeholder="Explain exactly why this salary payment is being held..."
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-300 placeholder-zinc-600 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
+                <button 
+                  onClick={() => setShowHoldModal(false)}
+                  className="px-4 py-2 bg-zinc-800 text-zinc-300 text-xs font-semibold rounded-lg hover:bg-zinc-700"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleHold}
+                  className="px-4 py-2 bg-rose-700 text-zinc-100 text-xs font-semibold rounded-lg hover:bg-rose-600"
+                >
+                  Apply Hold
                 </button>
               </div>
-            </Motion.div>
+            </div>
           </div>
-        )}
-      </AnimatePresence>
+        </div>
+      )}
+
+      {/* Add Adjustment Modal */}
+      {showAdjustModal && (
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-zinc-900 border border-zinc-800 rounded-2xl w-full max-w-md p-6">
+            <div className="flex justify-between items-center border-b border-zinc-800 pb-3 mb-4">
+              <h3 className="font-bold text-zinc-200">Apply Salary Adjustment</h3>
+              <button onClick={() => setShowAdjustModal(false)} className="text-zinc-500 hover:text-zinc-300">
+                <X size={16} />
+              </button>
+            </div>
+            
+            <div className="space-y-4">
+              <div>
+                <label className="text-xs text-zinc-400 block mb-1.5">Adjustment Type</label>
+                <select 
+                  value={adjType} 
+                  onChange={(e) => setAdjType(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-300"
+                >
+                  <option value="BONUS">Achievement Bonus</option>
+                  <option value="DEDUCTION">Late Penalty</option>
+                  <option value="LOAN_RECOVERY">Loan Recovery</option>
+                  <option value="ADVANCE_RECOVERY">Advance Recovery</option>
+                  <option value="LEAVE_ENCASHMENT">Leave Encashment</option>
+                  <option value="ARREARS">Salary Arrears</option>
+                  <option value="MANUAL_ADJUSTMENT">Manual adjustment correction</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="text-xs text-zinc-400 block mb-1.5">Adjustment Amount (PKR)</label>
+                <input 
+                  type="number"
+                  placeholder="e.g. 5000"
+                  value={adjAmount}
+                  onChange={(e) => setAdjAmount(e.target.value)}
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-300 focus:outline-none"
+                />
+              </div>
+
+              <div>
+                <label className="text-xs text-zinc-400 block mb-1.5">Reason / Justification</label>
+                <textarea 
+                  rows={2}
+                  value={adjReason}
+                  onChange={(e) => setAdjReason(e.target.value)}
+                  placeholder="Justification for adjustment..."
+                  className="w-full bg-zinc-950 border border-zinc-800 rounded-lg px-3 py-2 text-sm text-zinc-300 placeholder-zinc-600 focus:outline-none"
+                />
+              </div>
+
+              <div className="flex gap-2 justify-end pt-2">
+                <button 
+                  onClick={() => setShowAdjustModal(false)}
+                  className="px-4 py-2 bg-zinc-800 text-zinc-300 text-xs font-semibold rounded-lg hover:bg-zinc-700"
+                >
+                  Cancel
+                </button>
+                <button 
+                  onClick={handleAdjustment}
+                  className="px-4 py-2 bg-amber-600 hover:bg-amber-500 text-zinc-100 text-xs font-semibold rounded-lg"
+                >
+                  Apply Adjustment
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
