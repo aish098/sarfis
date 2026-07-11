@@ -34,6 +34,20 @@ exports.getEmployees = async (req, res) => {
   }
 };
 
+exports.getCompanyUsers = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const users = await db('company_users as cu')
+      .join('users as u', 'cu.user_id', 'u.id')
+      .where('cu.company_id', companyId)
+      .select('u.id', 'u.name', 'u.email')
+      .orderBy('u.name', 'asc');
+    res.json(users);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 exports.createEmployee = async (req, res) => {
   try {
     const { companyId } = req.params;

@@ -123,8 +123,27 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
     salary: '',
     bankName: '',
     accountNumber: '',
-    status: 'Active'
+    status: 'Active',
+    userId: ''
   });
+
+  const [companyUsers, setCompanyUsers] = useState([]);
+
+  const fetchCompanyUsers = async () => {
+    if (!activeCompany?.id) return;
+    try {
+      const res = await api.get(`/employees/${activeCompany.id}/users`);
+      setCompanyUsers(res.data || []);
+    } catch (err) {
+      console.error('Failed to load company users:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (isAdding) {
+      fetchCompanyUsers();
+    }
+  }, [isAdding, activeCompany?.id]);
 
   const handleCreateEmployee = async (e) => {
     e.preventDefault();
@@ -132,29 +151,24 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
     setLoading(true);
     setActionMsg(null);
     try {
+      const payload = {
+        name: newEmp.name,
+        department: newEmp.department || null,
+        role: newEmp.role || null,
+        salary: parseFloat(newEmp.salary),
+        bankName: newEmp.bankName || null,
+        accountNumber: newEmp.accountNumber || null,
+        status: newEmp.status,
+        userId: newEmp.userId ? parseInt(newEmp.userId) : null
+      };
+
       if (editingEmpId) {
         // Edit Mode
-        await api.patch(`/employees/${activeCompany.id}/${editingEmpId}`, {
-          name: newEmp.name,
-          department: newEmp.department || null,
-          role: newEmp.role || null,
-          salary: parseFloat(newEmp.salary),
-          bankName: newEmp.bankName || null,
-          accountNumber: newEmp.accountNumber || null,
-          status: newEmp.status
-        });
+        await api.patch(`/employees/${activeCompany.id}/${editingEmpId}`, payload);
         setActionMsg({ type: 'success', text: `Successfully updated payroll profile for ${newEmp.name}.` });
       } else {
         // Create Mode
-        await api.post(`/employees/${activeCompany.id}`, {
-          name: newEmp.name,
-          department: newEmp.department || null,
-          role: newEmp.role || null,
-          salary: parseFloat(newEmp.salary),
-          bankName: newEmp.bankName || null,
-          accountNumber: newEmp.accountNumber || null,
-          status: newEmp.status
-        });
+        await api.post(`/employees/${activeCompany.id}`, payload);
         setActionMsg({ type: 'success', text: `Successfully created payroll profile for ${newEmp.name}.` });
       }
       
@@ -165,7 +179,8 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
         salary: '',
         bankName: '',
         accountNumber: '',
-        status: 'Active'
+        status: 'Active',
+        userId: ''
       });
       setIsAdding(false);
       setEditingEmpId(null);
@@ -186,7 +201,8 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
       salary: emp.salary,
       bankName: emp.bankName || '',
       accountNumber: emp.bankAccount || '',
-      status: emp.status || 'Active'
+      status: emp.status || 'Active',
+      userId: emp.userId || ''
     });
     setEditingEmpId(emp.id);
     setIsAdding(true);
@@ -221,7 +237,8 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
       salary: '',
       bankName: '',
       accountNumber: '',
-      status: 'Active'
+      status: 'Active',
+      userId: ''
     });
   };
 
@@ -411,11 +428,12 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
         return {
           id: emp.id,
           name: emp.name,
-          email: emp.email || '—',
+          email: emp.user_email || '—',
+          userId: emp.user_id || '',
           department: emp.department || 'General',
           role: emp.role || 'Staff',
           bankName: emp.bank_name || 'Habib Bank',
-          bankAccount: emp.bank_account || 'PK12HABB0000123456789012',
+          bankAccount: emp.account_number || 'PK12HABB0000123456789012',
           salary: parseFloat(emp.salary || 0),
           status: matchingLine ? (matchingLine.payment_status === 'DRAFT' ? emp.status : matchingLine.payment_status) : emp.status,
           lineId: matchingLine ? matchingLine.line_id : null
@@ -539,6 +557,23 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
               onChange={e => setNewEmp({...newEmp, name: e.target.value})}
               placeholder="e.g. John Doe"
             />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] uppercase font-extrabold text-slate-400">Associated Corporate User / Email</label>
+            <select
+              className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-semibold cursor-pointer"
+              value={newEmp.userId}
+              onChange={e => setNewEmp({...newEmp, userId: e.target.value})}
+            >
+              <option value="">— Select Linked User Account (Optional) —</option>
+              {companyUsers.map(user => (
+                <option key={user.id} value={user.id}>
+                  {user.name} ({user.email})
+                </option>
+              ))}
+            </select>
+            <p className="text-[9.5px] text-slate-400 font-normal">Linking an employee to a corporate user account automatically registers their email address for payslip delivery.</p>
           </div>
 
           <div className="grid grid-cols-2 gap-4">

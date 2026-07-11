@@ -5,6 +5,7 @@ const { authMiddleware, requirePermission, companyGuard } = require('../middlewa
 router.use(authMiddleware);
 
 router.get('/employees/:companyId', companyGuard, employeeCtrl.getEmployees);
+router.get('/employees/:companyId/users', companyGuard, employeeCtrl.getCompanyUsers);
 router.post('/employees/:companyId', companyGuard, requirePermission('user.manage'), employeeCtrl.createEmployee);
 router.patch('/employees/:companyId/:id', companyGuard, requirePermission('user.manage'), employeeCtrl.updateEmployee);
 router.delete('/employees/:companyId/:id', companyGuard, requirePermission('user.manage'), employeeCtrl.deleteEmployee);
