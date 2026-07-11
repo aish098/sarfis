@@ -14,21 +14,21 @@ export default function PayrollDashboard({ onNavigateToTab, userRole }) {
   const [loading, setLoading] = useState(true);
   
   const [stats, setStats] = useState({
-    totalPayroll: 32550000,
-    employerCost: 35100000,
-    pfContribution: 1220000,
-    taxesWithheld: 2850000,
-    averageSalary: 132857,
-    budgetVariance: -250000,
-    totalHeadcount: 245,
-    paid: 212,
-    pending: 18,
-    onHold: 5,
-    failedPayments: 1,
-    missingBank: 3,
-    pendingApprovals: 2,
+    totalPayroll: 0,
+    employerCost: 0,
+    pfContribution: 0,
+    taxesWithheld: 0,
+    averageSalary: 0,
+    budgetVariance: 0,
+    totalHeadcount: 0,
+    paid: 0,
+    pending: 0,
+    onHold: 0,
+    failedPayments: 0,
+    missingBank: 0,
+    pendingApprovals: 0,
     activePeriod: '2026-08',
-    status: 'READY TO POST'
+    status: 'DRAFT'
   });
 
   const kpis = [
@@ -48,21 +48,8 @@ export default function PayrollDashboard({ onNavigateToTab, userRole }) {
     { name: 'Payslips Summary', tab: 'reports' }
   ]);
 
-  // Today's Activity timeline
-  const todayActivities = [
-    { time: '09:15 AM', text: 'Payroll Generated for Period 2026-08', type: 'RUN' },
-    { time: '09:32 AM', text: 'Finance Director Sign-off complete', type: 'APPROVE' },
-    { time: '10:20 AM', text: 'Journal entry JV-00432 posted to General Ledger', type: 'POST' },
-    { time: '10:45 AM', text: 'Disbursement file exported in HBL format', type: 'EXPORT' },
-    { time: '11:10 AM', text: 'Disbursement to Zainab Ahmed failed', type: 'FAILED' }
-  ];
-
-  // Smart recommendations
-  const recommendations = [
-    { text: '3 employees have no bank accounts / IBAN details.', actionText: 'Fix Now', tab: 'employees' },
-    { text: 'Departmental budget exceeded by 4.2% in Product.', actionText: 'View Report', tab: 'reports' },
-    { text: '5 employees exceeded overtime limits this period.', actionText: 'Review Logs', tab: 'employees' }
-  ];
+  const [todayActivities, setTodayActivities] = useState([]);
+  const [recommendations, setRecommendations] = useState([]);
 
   // Role-Based "My Work" Tasks
   const getMyWorkTasks = () => {
@@ -111,40 +98,91 @@ export default function PayrollDashboard({ onNavigateToTab, userRole }) {
         const empRes = await api.get(`/employees/${activeCompany.id}`);
         const baseEmployees = empRes.data || [];
 
+        let currentPeriod = '2026-08';
+        let latestRun = null;
+        let wsEmployees = [];
+
         if (runs.length > 0) {
-          const latestRun = runs[0];
-          const matchedPeriod = latestRun.period;
-          
-          const workspaceEmpRes = await api.get(`/payroll/${activeCompany.id}/employees?period=${matchedPeriod}`);
-          const wsEmployees = workspaceEmpRes.data || [];
+          latestRun = runs[0];
+          currentPeriod = latestRun.period;
+          const workspaceEmpRes = await api.get(`/payroll/${activeCompany.id}/employees?period=${currentPeriod}`);
+          wsEmployees = workspaceEmpRes.data || [];
+        }
 
-          const paidCount = wsEmployees.filter(e => e.payment_status === 'PAID' || e.payment_status === 'DISBURSED').length;
-          const holdCount = wsEmployees.filter(e => e.payment_status === 'ON_HOLD').length;
-          const pendingCount = wsEmployees.length - paidCount - holdCount;
+        const paidCount = wsEmployees.filter(e => e.payment_status === 'PAID' || e.payment_status === 'DISBURSED').length;
+        const holdCount = wsEmployees.filter(e => e.payment_status === 'ON_HOLD').length;
+        const pendingCount = wsEmployees.length - paidCount - holdCount;
+        const failedCount = wsEmployees.filter(e => e.payment_status === 'FAILED').length;
+        const missingBankCount = baseEmployees.filter(e => !e.bank_account || e.bank_account.trim() === '').length;
 
-          setStats({
-            totalPayroll: parseFloat(latestRun.total_net || 0),
-            employerCost: parseFloat(latestRun.total_gross || 0) * 1.08,
-            pfContribution: parseFloat(latestRun.total_deductions || 0) * 0.25,
-            taxesWithheld: parseFloat(latestRun.total_deductions || 0) * 0.70,
-            averageSalary: baseEmployees.length > 0 ? (parseFloat(latestRun.total_net || 0) / baseEmployees.length) : 0,
-            budgetVariance: parseFloat(latestRun.total_net || 0) - 33000000,
-            totalHeadcount: baseEmployees.length,
-            paid: paidCount,
-            pending: pendingCount,
-            onHold: holdCount,
-            failedPayments: wsEmployees.filter(e => e.payment_status === 'FAILED').length,
-            missingBank: baseEmployees.filter(e => !e.bank_account).length,
-            pendingApprovals: latestRun.status === 'DRAFT' ? 1 : 0,
-            activePeriod: latestRun.period,
-            status: latestRun.status
+        setStats({
+          totalPayroll: latestRun ? parseFloat(latestRun.total_net || 0) : 0,
+          employerCost: latestRun ? parseFloat(latestRun.total_gross || 0) * 1.08 : 0,
+          pfContribution: latestRun ? parseFloat(latestRun.total_deductions || 0) * 0.25 : 0,
+          taxesWithheld: latestRun ? parseFloat(latestRun.total_deductions || 0) * 0.70 : 0,
+          averageSalary: baseEmployees.length > 0 && latestRun ? (parseFloat(latestRun.total_net || 0) / baseEmployees.length) : 0,
+          budgetVariance: latestRun ? (parseFloat(latestRun.total_net || 0) - 3000000) : 0,
+          totalHeadcount: baseEmployees.length,
+          paid: paidCount,
+          pending: pendingCount,
+          onHold: holdCount,
+          failedPayments: failedCount,
+          missingBank: missingBankCount,
+          pendingApprovals: latestRun && latestRun.status === 'DRAFT' ? 1 : 0,
+          activePeriod: currentPeriod,
+          status: latestRun ? latestRun.status : 'DRAFT'
+        });
+
+        // Generate recommendations dynamically
+        const recs = [];
+        if (missingBankCount > 0) {
+          recs.push({
+            text: `${missingBankCount} employee(s) missing bank accounts / IBAN details.`,
+            actionText: 'Fix Now',
+            tab: 'employees'
           });
-        } else {
-          setStats(prev => ({
-            ...prev,
-            totalHeadcount: baseEmployees.length,
-            missingBank: baseEmployees.filter(e => !e.bank_account).length,
-          }));
+        }
+        if (failedCount > 0) {
+          recs.push({
+            text: `${failedCount} payment clearance line(s) failed.`,
+            actionText: 'Review payments',
+            tab: 'payments'
+          });
+        }
+        if (baseEmployees.length === 0) {
+          recs.push({
+            text: 'Employee master directory is empty. Add profiles to compute payroll.',
+            actionText: 'Add Employee',
+            tab: 'employees'
+          });
+        }
+        setRecommendations(recs);
+
+        // Fetch activities dynamically from audit logs
+        try {
+          const auditRes = await api.get(`/audit/${activeCompany.id}`);
+          const auditLogs = auditRes.data.logs || [];
+          
+          const filteredLogs = auditLogs
+            .filter(log => log.entity_type === 'PAYROLL' || log.entity_type === 'EMPLOYEE' || log.action.includes('PAYROLL'))
+            .slice(0, 5)
+            .map(log => ({
+              title: `${log.user_name || 'System'} completed ${log.action.toLowerCase()}`,
+              desc: `Entity: ${log.entity_type || 'General'} (ID: ${log.entity_id || '—'})`,
+              date: new Date(log.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+            }));
+
+          if (filteredLogs.length > 0) {
+            setTodayActivities(filteredLogs);
+          } else {
+            setTodayActivities([
+              { title: 'Workspace Initialized', desc: 'No transaction activity logs registered yet.', date: 'Just Now' }
+            ]);
+          }
+        } catch {
+          setTodayActivities([
+            { title: 'Workspace Ready', desc: 'Active monitoring enabled.', date: 'Just Now' }
+          ]);
         }
       } catch (err) {
         console.error('Failed to load real-time dashboard analytics:', err);
@@ -178,16 +216,21 @@ export default function PayrollDashboard({ onNavigateToTab, userRole }) {
             </p>
           </div>
 
-          <div className="bg-slate-800/40 backdrop-blur-md p-4 rounded-2xl border border-slate-700/50 min-w-[240px] space-y-3">
-            <div className="flex justify-between items-center text-xs">
-              <span className="text-slate-400 font-bold">Calculation Progress</span>
-              <span className="font-extrabold text-indigo-300">86% Complete</span>
-            </div>
-            <div className="w-full bg-slate-700/60 h-2 rounded-full overflow-hidden">
-              <div className="bg-gradient-to-r from-indigo-500 to-cyan-400 h-full rounded-full" style={{ width: '86%' }} />
-            </div>
-            <p className="text-[10px] text-slate-400 font-medium font-bold">Calculated {stats.paid} of {stats.totalHeadcount} employee sheets</p>
-          </div>
+          {(() => {
+            const progressPct = stats.totalHeadcount > 0 ? Math.round((stats.paid / stats.totalHeadcount) * 100) : 0;
+            return (
+              <div className="bg-slate-800/40 backdrop-blur-md p-4 rounded-2xl border border-slate-700/50 min-w-[240px] space-y-3">
+                <div className="flex justify-between items-center text-xs">
+                  <span className="text-slate-400 font-bold">Calculation Progress</span>
+                  <span className="font-extrabold text-indigo-300">{progressPct}% Complete</span>
+                </div>
+                <div className="w-full bg-slate-700/60 h-2 rounded-full overflow-hidden">
+                  <div className="bg-gradient-to-r from-indigo-500 to-cyan-400 h-full rounded-full" style={{ width: `${progressPct}%` }} />
+                </div>
+                <p className="text-[10px] text-slate-400 font-medium font-bold">Calculated {stats.paid} of {stats.totalHeadcount} employee sheets</p>
+              </div>
+            );
+          })()}
         </div>
       </div>
 

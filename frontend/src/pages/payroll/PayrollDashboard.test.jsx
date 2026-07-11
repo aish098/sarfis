@@ -2,11 +2,50 @@ import React from 'react';
 import { describe, it, expect, vi } from 'vitest';
 import { render, screen } from '@testing-library/react';
 import PayrollDashboard from './PayrollDashboard';
+import api from '../../services/api';
 
-// Mock the API service to prevent actual network calls during unit testing
+// Mock the API service to return database rows
 vi.mock('../../services/api', () => ({
   default: {
-    get: vi.fn(() => Promise.resolve({ data: [] }))
+    get: vi.fn((url) => {
+      if (url.includes('/reports/register')) {
+        return Promise.resolve({ 
+          data: [{ 
+            period: '2026-08', 
+            status: 'DRAFT', 
+            total_net: 100000, 
+            total_gross: 120000, 
+            total_deductions: 10000 
+          }] 
+        });
+      }
+      if (url.includes('/payroll/1/employees')) {
+        return Promise.resolve({ 
+          data: [
+            { employee_id: 1, payment_status: 'PAID' },
+            { employee_id: 2, payment_status: 'FAILED' }
+          ] 
+        });
+      }
+      if (url.includes('/employees')) {
+        return Promise.resolve({ 
+          data: [
+            { id: 1, name: 'Alice', bank_account: '' },
+            { id: 2, name: 'Bob', bank_account: 'PK12HABB001' }
+          ] 
+        });
+      }
+      if (url.includes('/audit')) {
+        return Promise.resolve({ 
+          data: {
+            logs: [
+              { id: 1, user_name: 'Ahmed', action: 'RUN_PAYROLL', entity_type: 'PAYROLL', created_at: '2026-07-11T12:00:00Z' }
+            ]
+          }
+        });
+      }
+      return Promise.resolve({ data: [] });
+    })
   }
 }));
 
@@ -33,12 +72,12 @@ describe('PayrollDashboard UI Component', () => {
     expect(screen.getByText('Bank Statement Reconciliation')).toBeInTheDocument();
   });
 
-  it('displays the correct smart recommendations list', () => {
+  it('displays the correct smart recommendations list dynamically', async () => {
     render(<PayrollDashboard userRole="HR Manager" onNavigateToTab={mockNavigate} />);
     
-    // Check recommendations text
-    expect(screen.getByText(/3 employees have no bank accounts/i)).toBeInTheDocument();
-    expect(screen.getByText(/budget exceeded by 4.2%/i)).toBeInTheDocument();
+    // Check recommendations text resolves async
+    expect(await screen.findByText(/1 employee\(s\) missing bank accounts/i)).toBeInTheDocument();
+    expect(await screen.findByText(/1 payment clearance line\(s\) failed/i)).toBeInTheDocument();
   });
 
   it('renders role-specific My Work tasks for HR Manager', () => {
