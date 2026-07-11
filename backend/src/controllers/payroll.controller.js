@@ -316,4 +316,17 @@ exports.getEmployeeLoans = async (req, res) => {
   }
 };
 
+exports.getEmployeeLeaves = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const { employeeId } = req.params;
+    const apps = await db('leave_applications')
+      .where({ company_id: companyId, employee_id: employeeId })
+      .orderBy('start_date', 'desc');
+    res.json(apps);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
 

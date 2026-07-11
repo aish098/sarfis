@@ -37,6 +37,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
   const [editingEmpId, setEditingEmpId] = useState(null);
   const [attendanceLogs, setAttendanceLogs] = useState([]);
   const [leaveBalances, setLeaveBalances] = useState([]);
+  const [leaveApplications, setLeaveApplications] = useState([]);
   const [overtimeRecords, setOvertimeRecords] = useState([]);
   const [loans, setLoans] = useState([]);
 
@@ -72,6 +73,16 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
       setLeaveBalances(res.data || []);
     } catch (err) {
       console.error('Failed to load leave balances:', err);
+    }
+  };
+
+  const fetchLeaveApplications = async (employeeId) => {
+    if (!activeCompany?.id || !employeeId) return;
+    try {
+      const res = await api.get(`/payroll/${activeCompany.id}/leaves/${employeeId}`);
+      setLeaveApplications(res.data || []);
+    } catch (err) {
+      console.error('Failed to load leave applications:', err);
     }
   };
 
@@ -264,10 +275,25 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
       });
       alert('Leave request submitted successfully.');
       fetchLeaveBalances(selectedEmp.id);
+      fetchLeaveApplications(selectedEmp.id);
       fetchEmployeesData();
     } catch (err) {
       console.error('Failed to submit leave request:', err);
       alert(err.response?.data?.error || 'Failed to submit leave request.');
+    }
+  };
+
+  const handleApproveLeave = async (leaveId) => {
+    if (!activeCompany?.id || !selectedEmp) return;
+    try {
+      await api.post(`/payroll/${activeCompany.id}/leaves/${leaveId}/approve`);
+      alert('Leave request approved and balance updated successfully.');
+      fetchLeaveBalances(selectedEmp.id);
+      fetchLeaveApplications(selectedEmp.id);
+      fetchEmployeesData();
+    } catch (err) {
+      console.error('Failed to approve leave:', err);
+      alert(err.response?.data?.error || 'Failed to approve leave request.');
     }
   };
 
@@ -414,6 +440,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
     
     // Fetch live details
     fetchLeaveBalances(emp.id);
+    fetchLeaveApplications(emp.id);
     fetchAttendanceLogs(emp.id);
     fetchOvertimeRecords(emp.id);
     fetchEmployeeLoans(emp.id);
@@ -765,10 +792,9 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
                       />
                     </div>
                   </div>
-
                   <button
                     type="submit"
-                    className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-700 text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
+                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
                   >
                     Post Attendance Log Record
                   </button>
@@ -790,6 +816,35 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
                     );
                   })}
                 </div>
+
+                {leaveApplications.length > 0 && (
+                  <div className="mt-4 space-y-2 max-h-48 overflow-y-auto border border-slate-100 p-2.5 rounded-xl bg-white">
+                    <h6 className="text-[9px] font-black uppercase text-slate-400 tracking-wider mb-1">Applications History</h6>
+                    {leaveApplications.map((app, index) => (
+                      <div key={app.id || index} className="flex justify-between items-center text-[10.5px] font-semibold text-slate-750 border-b border-slate-50 last:border-0 pb-2 pt-2 first:pt-0">
+                        <div>
+                          <span className="font-bold uppercase text-[9.5px] block text-indigo-700">{app.leave_type} Leave</span>
+                          <span className="text-slate-400 font-mono text-[9px]">
+                            {new Date(app.start_date).toLocaleDateString()} to {new Date(app.end_date).toLocaleDateString()} ({app.days} days)
+                          </span>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className={`px-2 py-0.5 rounded-full text-[9px] font-black border ${
+                            app.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-amber-50 text-amber-700 border-amber-100'
+                          }`}>{app.status}</span>
+                          {app.status === 'PENDING' && (
+                            <button
+                              onClick={() => handleApproveLeave(app.id)}
+                              className="px-2 py-0.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded text-[9px] font-black cursor-pointer shadow-3xs"
+                            >
+                              Approve
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                )}
 
                 <form onSubmit={handleLogLeave} className="mt-4 border-t border-slate-100 pt-4 space-y-3">
                   <h6 className="text-[10px] font-black uppercase text-indigo-750">Submit Leave Application</h6>
@@ -832,7 +887,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
 
                   <button
                     type="submit"
-                    className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-700 text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
+                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
                   >
                     Submit Leave Application Request
                   </button>
@@ -900,7 +955,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
 
                   <button
                     type="submit"
-                    className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-700 text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
+                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
                   >
                     Log Overtime Log Entry
                   </button>
@@ -975,7 +1030,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
 
                   <button
                     type="submit"
-                    className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-750 text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
+                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
                   >
                     Submit Loan Request
                   </button>
