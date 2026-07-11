@@ -868,6 +868,8 @@ class PayrollService {
         'e.name',
         'e.role',
         'e.department',
+        'e.bank_name',
+        'e.account_number',
         'pl.net_salary',
         'pl.payment_status'
       );

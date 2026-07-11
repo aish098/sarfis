@@ -39,31 +39,44 @@ export default function PayrollPayments({ userRole, initialTab = 'individual', o
 
   const [reconciliationItems, setReconciliationItems] = useState([]);
   const [reversals, setReversals] = useState([]);
+  const [selectedPeriod, setSelectedPeriod] = useState('');
+  const [availablePeriods, setAvailablePeriods] = useState([]);
 
   const fetchPaymentsData = async () => {
     if (!activeCompany?.id) return;
     setLoading(true);
     try {
-      // Fetch latest period run
-      let currentPeriod = '2026-08';
-      try {
-        const runsRes = await api.get(`/payroll/${activeCompany.id}/reports/register`);
-        if (runsRes.data && runsRes.data.length > 0) {
-          currentPeriod = runsRes.data[0].period;
-        }
-      } catch {}
+      // Fetch register/runs to populate available periods
+      const runsRes = await api.get(`/payroll/${activeCompany.id}/reports/register`);
+      const runs = runsRes.data || [];
+      setAvailablePeriods(runs);
 
-      const wsLinesRes = await api.get(`/payroll/${activeCompany.id}/employees?period=${currentPeriod}`);
+      let targetPeriod = selectedPeriod;
+      if (!targetPeriod && runs.length > 0) {
+        // Default to the latest POSTED run, or the latest run
+        const latestPosted = runs.find(r => r.status === 'POSTED');
+        targetPeriod = latestPosted ? latestPosted.period : runs[0].period;
+        setSelectedPeriod(targetPeriod);
+      }
+
+      if (!targetPeriod) {
+        setPendingPayments([]);
+        setReconciliationItems([]);
+        setLoading(false);
+        return;
+      }
+
+      const wsLinesRes = await api.get(`/payroll/${activeCompany.id}/employees?period=${targetPeriod}`);
       const wsLines = wsLinesRes.data || [];
 
-      // Map pending payments
-      const pending = wsLines.map((l, idx) => ({
+      // Map pending payments using real bank information from employees
+      const pending = wsLines.map((l) => ({
         id: l.line_id,
         name: l.name,
         department: l.department || 'General',
         net: parseFloat(l.net_salary || 0),
-        bankName: 'Habib Bank',
-        account: 'PK12HABB0000123456789012',
+        bankName: l.bank_name || 'N/A',
+        account: l.account_number || 'N/A',
         status: l.payment_status
       }));
 
@@ -87,7 +100,7 @@ export default function PayrollPayments({ userRole, initialTab = 'individual', o
 
   useEffect(() => {
     fetchPaymentsData();
-  }, [activeCompany?.id]);
+  }, [activeCompany?.id, selectedPeriod]);
 
   const handlePayIndividual = async (id, name) => {
     if (!activeCompany?.id) return;
@@ -110,7 +123,7 @@ export default function PayrollPayments({ userRole, initialTab = 'individual', o
     let headers = 'Beneficiary Name,Beneficiary Bank Account,Bank Name,Salary Amount,Payment Reference,Disbursement Month\n';
     let content = '';
     pendingPayments.forEach(p => {
-      content += `"${p.name}","${p.account}","${p.bankName}",${p.net},"Salary Settlement","August 2026"\n`;
+      content += `"${p.name}","${p.account}","${p.bankName}",${p.net},"Salary Settlement","${selectedPeriod}"\n`;
     });
     const blob = new Blob([headers + content], { type: 'text/csv;charset=utf-8;' });
     const url = URL.createObjectURL(blob);
@@ -172,6 +185,24 @@ export default function PayrollPayments({ userRole, initialTab = 'individual', o
           </button>
         )}
       </div>
+
+      {/* Period Selection Workspace Header */}
+      {availablePeriods.length > 0 && (
+        <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border border-slate-100 shadow-3xs w-fit animate-in fade-in duration-100">
+          <span className="text-slate-400 font-extrabold text-[10px] uppercase">Active Period Run:</span>
+          <select
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value)}
+            className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-800 font-bold outline-none text-xs cursor-pointer focus:border-indigo-500"
+          >
+            {availablePeriods.map(run => (
+              <option key={run.id} value={run.period}>
+                Period {run.period} ({run.status})
+              </option>
+            ))}
+          </select>
+        </div>
+      )}
 
       {/* Individual Payments Tab */}
       {activePaymentTab === 'individual' && (
