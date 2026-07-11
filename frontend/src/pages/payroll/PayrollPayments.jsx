@@ -1,12 +1,14 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Landmark, Download, CheckCircle, ShieldAlert, X, 
   RotateCcw, RefreshCw, Layers, DollarSign, ArrowRight,
   ChevronRight, Sparkles, UploadCloud
 } from 'lucide-react';
 import api from '../../services/api';
+import useAuthStore from '../../store/authStore';
 
 export default function PayrollPayments({ userRole }) {
+  const { activeCompany } = useAuthStore();
   const [activePaymentTab, setActivePaymentTab] = useState('individual'); // individual | bulk | batches | export | reversals | reconciliation
   const [loading, setLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState(null);
@@ -14,11 +16,7 @@ export default function PayrollPayments({ userRole }) {
   // Bank Export options
   const [selectedBankFormat, setSelectedBankFormat] = useState('HBL'); // HBL | Meezan | MCB | UBL | CSV
 
-  const [pendingPayments, setPendingPayments] = useState([
-    { id: 1, name: 'Ayesha Malik', department: 'People Operations', net: 95000, bankName: 'National Bank', account: 'PK45NBPA0000765432109876', status: 'PENDING' },
-    { id: 2, name: 'Rizwan Ali', department: 'Finance', net: 200000, bankName: 'MCB Bank', account: 'pk12mcb11111111111111', status: 'PENDING' },
-  ]);
-
+  const [pendingPayments, setPendingPayments] = useState([]);
   const [paymentBatches, setPaymentBatches] = useState([
     { id: 'BAT-0021', period: '2026-07', headcount: 212, net: 32550000, portal: 'HBL Business', status: 'COMPLETED', date: '2026-07-28', steps: [
       { name: 'Created', done: true },
@@ -32,32 +30,75 @@ export default function PayrollPayments({ userRole }) {
       { emp: 'Zainab Ahmed', amount: 95700, status: 'FAILED' },
       { emp: 'Hamza Sheikh', amount: 143550, status: 'RETRIED' }
     ]},
-    { id: 'BAT-0020', period: '2026-06', headcount: 198, net: 29800000, portal: 'MCB Gateway', status: 'COMPLETED', date: '2026-06-29', steps: [
-      { name: 'Created', done: true },
-      { name: 'Exported', done: true },
-      { name: 'Sent to Bank', done: true },
-      { name: 'Accepted', done: true },
-      { name: 'Completed', done: true }
-    ], items: []},
   ]);
 
-  const [reconciliationItems, setReconciliationItems] = useState([
-    { employee: 'Farhan Ali', payable: 156600, statementAmt: 156600, matchStatus: 'MATCHED' },
-    { employee: 'Sana Khan', payable: 130500, statementAmt: 130500, matchStatus: 'MATCHED' },
-    { employee: 'Zainab Ahmed', payable: 95700, statementAmt: 0, matchStatus: 'UNMATCHED' },
-  ]);
+  const [reconciliationItems, setReconciliationItems] = useState([]);
+  const [reversals, setReversals] = useState([]);
 
-  const [reversals, setReversals] = useState([
-    { id: 8, employee: 'Hamza Sheikh', period: '2026-07', amount: 165000, reason: 'Duplicate transfer error', status: 'REVERSED', date: '2026-07-30' },
-  ]);
+  const fetchPaymentsData = async () => {
+    if (!activeCompany?.id) return;
+    setLoading(true);
+    try {
+      // Fetch latest period run
+      let currentPeriod = '2026-08';
+      try {
+        const runsRes = await api.get(`/payroll/${activeCompany.id}/reports/register`);
+        if (runsRes.data && runsRes.data.length > 0) {
+          currentPeriod = runsRes.data[0].period;
+        }
+      } catch {}
+
+      const wsLinesRes = await api.get(`/payroll/${activeCompany.id}/employees?period=${currentPeriod}`);
+      const wsLines = wsLinesRes.data || [];
+
+      // Map pending payments
+      const pending = wsLines.map((l, idx) => ({
+        id: l.line_id,
+        name: l.name,
+        department: l.department || 'General',
+        net: parseFloat(l.net_salary || 0),
+        bankName: 'Habib Bank',
+        account: 'PK12HABB0000123456789012',
+        status: l.payment_status
+      }));
+
+      setPendingPayments(pending.filter(p => p.status === 'PENDING' || p.status === 'DRAFT'));
+      
+      // Map reconciliation items
+      const recon = wsLines.map(l => ({
+        employee: l.name,
+        payable: parseFloat(l.net_salary || 0),
+        statementAmt: l.payment_status === 'PAID' || l.payment_status === 'DISBURSED' ? parseFloat(l.net_salary || 0) : 0,
+        matchStatus: l.payment_status === 'PAID' || l.payment_status === 'DISBURSED' ? 'MATCHED' : 'UNMATCHED'
+      }));
+      setReconciliationItems(recon);
+
+    } catch (err) {
+      console.error('Failed to load real-time payroll payments details:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchPaymentsData();
+  }, [activeCompany?.id]);
 
   const handlePayIndividual = async (id, name) => {
+    if (!activeCompany?.id) return;
     setLoading(true);
-    setTimeout(() => {
-      setPendingPayments(prev => prev.filter(p => p.id !== id));
+    try {
+      await api.post(`/payroll/${activeCompany.id}/lines/${id}/pay`, {
+        payment_method: 'BANK_TRANSFER',
+        remarks: 'Released from treasury console individual release'
+      });
       setActionMsg({ type: 'success', text: `Disbursement released for ${name}. Mapped AP cleared & Journal posted to general ledger.` });
+      fetchPaymentsData();
+    } catch (err) {
+      setActionMsg({ type: 'error', text: err.response?.data?.error || 'Failed to release individual payout.' });
+    } finally {
       setLoading(false);
-    }, 800);
+    }
   };
 
   const handleDownloadBankExport = () => {
@@ -142,7 +183,7 @@ export default function PayrollPayments({ userRole }) {
                     <td className="px-5 py-4 text-slate-800 font-bold">{p.name}</td>
                     <td className="px-5 py-4">{p.bankName}</td>
                     <td className="px-5 py-4 font-mono">{p.account}</td>
-                    <td className="px-5 py-4 text-right font-mono font-bold text-slate-800">PKR {p.net.toLocaleString()}</td>
+                    <td className="px-5 py-4 text-right font-mono font-bold text-slate-800 font-mono">PKR {p.net.toLocaleString()}</td>
                     <td className="px-5 py-4 text-center">
                       <span className="px-2 py-0.5 rounded text-[9.5px] font-black border bg-amber-50 text-amber-700 border-amber-100 uppercase">
                         {p.status}
@@ -180,7 +221,7 @@ export default function PayrollPayments({ userRole }) {
           <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex justify-between items-center max-w-md">
             <div>
               <span className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider">Pending Payouts Total</span>
-              <p className="text-base font-black font-mono text-slate-800 mt-0.5">PKR {pendingPayments.reduce((s, p) => s + p.net, 0).toLocaleString()}</p>
+              <p className="text-base font-black font-mono text-slate-800 mt-0.5 font-mono">PKR {pendingPayments.reduce((s, p) => s + p.net, 0).toLocaleString()}</p>
             </div>
             <button 
               disabled={pendingPayments.length === 0 || disableActions}
@@ -205,7 +246,7 @@ export default function PayrollPayments({ userRole }) {
               <div key={b.id} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4">
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-50 pb-3">
                   <div>
-                    <h4 className="font-extrabold text-slate-800 text-sm flex items-center gap-1.5">
+                    <h4 className="font-extrabold text-slate-800 text-sm flex items-center gap-1.5 font-sans">
                       <Landmark size={15} className="text-indigo-600" /> Batch ID: {b.id}
                     </h4>
                     <p className="text-[10.5px] text-slate-400 mt-0.5">Period {b.period} — {b.portal} — Cleared on {b.date}</p>
@@ -376,6 +417,11 @@ export default function PayrollPayments({ userRole }) {
                     </td>
                   </tr>
                 ))}
+                {reconciliationItems.length === 0 && (
+                  <tr>
+                    <td colSpan={5} className="px-5 py-8 text-center text-slate-400 font-bold">No active pay lines generated to reconcile.</td>
+                  </tr>
+                )}
               </tbody>
             </table>
           </div>

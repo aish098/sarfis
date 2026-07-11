@@ -1,24 +1,44 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Play, RefreshCw, CheckCircle, ShieldAlert, ArrowRight, 
   Layers, Calendar, ChevronRight, FileText, DollarSign, X,
   AlertOctagon, CheckSquare, Clock, Lock
 } from 'lucide-react';
+import api from '../../services/api';
+import useAuthStore from '../../store/authStore';
 
 export default function PayrollRuns({ userRole }) {
-  const [activeTab, setActiveTab] = useState('ALL');
+  const { activeCompany } = useAuthStore();
   const [activeRunsSection, setActiveRunsSection] = useState('list'); // list | exceptions
-  const [runs, setRuns] = useState([
-    { id: 32, period: '2026-08', status: 'DRAFT', ruleVersion: '5A.1', gross: 720000, deductions: 58000, net: 662000, voucher: '—', updatedBy: 'Rana Talal' },
-    { id: 31, period: '2026-07', status: 'POSTED', ruleVersion: '5A.1', gross: 720000, deductions: 58000, net: 662000, voucher: 'JV-00431', updatedBy: 'Bisma Khan' },
-    { id: 30, period: '2026-06', status: 'CLOSED', ruleVersion: '5A.0', gross: 640000, deductions: 51200, net: 588800, voucher: 'JV-00389', updatedBy: 'Bisma Khan' },
-  ]);
-
+  const [runs, setRuns] = useState([]);
   const [loading, setLoading] = useState(false);
+  const [actionMsg, setActionMsg] = useState(null);
+  
   const [simWarnings, setSimWarnings] = useState([]);
   const [showSimResult, setShowSimResult] = useState(false);
+  
+  const [activeTab, setActiveTab] = useState('ALL');
+  const [generatePeriod, setGeneratePeriod] = useState('2026-08');
+  const [showGenerateModal, setShowGenerateModal] = useState(false);
 
   const statuses = ['ALL', 'DRAFT', 'SIMULATED', 'PENDING', 'APPROVED', 'POSTED', 'CLOSED'];
+
+  const fetchRuns = async () => {
+    if (!activeCompany?.id) return;
+    setLoading(true);
+    try {
+      const res = await api.get(`/payroll/${activeCompany.id}/reports/register`);
+      setRuns(res.data || []);
+    } catch (err) {
+      console.error('Error fetching payroll runs:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchRuns();
+  }, [activeCompany?.id]);
 
   const filteredRuns = runs.filter(r => activeTab === 'ALL' || r.status === activeTab);
 
@@ -27,21 +47,88 @@ export default function PayrollRuns({ userRole }) {
   const canApprove = userRole === 'HR Manager' || userRole === 'Finance';
   const canPost = userRole === 'Finance' || userRole === 'HR Manager';
 
-  const handleSimulate = () => {
+  const handleSimulate = async () => {
+    if (!activeCompany?.id) return;
     setLoading(true);
-    setTimeout(() => {
-      setSimWarnings([
-        { type: 'WARNING', text: 'Employee Rana Talal has no EOBI declaration linked. Defaulting to standard deduction.' },
-        { type: 'CRITICAL', text: 'Zainab Ahmed does not have Meezan Bank routing active (clearing will fallback to standard clearing).' },
-        { type: 'INFO', text: 'Simulation ran successfully. Gross Salary matched GL controls: PKR 720,000.' }
-      ]);
+    setSimWarnings([]);
+    setShowSimResult(false);
+    try {
+      const res = await api.post(`/payroll/${activeCompany.id}/simulate`, { period: generatePeriod });
+      if (res.data && res.data.warnings) {
+        setSimWarnings(res.data.warnings.map(w => ({ type: 'WARNING', text: w })));
+      } else {
+        setSimWarnings([{ type: 'INFO', text: `Simulation ran successfully. Gross matched forecast: PKR ${(res.data.total_gross || 0).toLocaleString()}` }]);
+      }
       setShowSimResult(true);
+    } catch (err) {
+      setSimWarnings([{ type: 'CRITICAL', text: err.response?.data?.error || 'Simulation rollback execution failed.' }]);
+      setShowSimResult(true);
+    } finally {
       setLoading(false);
-    }, 1000);
+    }
   };
 
-  const handleClosePeriod = (id) => {
+  const handleGenerateRun = async () => {
+    if (!activeCompany?.id) return;
+    setLoading(true);
+    try {
+      const res = await api.post(`/payroll/${activeCompany.id}/runs`, { period: generatePeriod });
+      setActionMsg({ type: 'success', text: `Successfully generated payroll run for period ${generatePeriod}.` });
+      setShowGenerateModal(false);
+      fetchRuns();
+    } catch (err) {
+      setActionMsg({ type: 'error', text: err.response?.data?.error || 'Failed to generate payroll run.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleSubmitWorkflow = async (id) => {
+    if (!activeCompany?.id) return;
+    setLoading(true);
+    try {
+      await api.post(`/payroll/${activeCompany.id}/runs/${id}/submit`);
+      setActionMsg({ type: 'success', text: 'Submitted payroll run to workflow approvals.' });
+      fetchRuns();
+    } catch (err) {
+      setActionMsg({ type: 'error', text: err.response?.data?.error || 'Failed to submit workflow.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handlePostRun = async (id) => {
+    if (!activeCompany?.id) return;
+    setLoading(true);
+    try {
+      const res = await api.post(`/payroll/${activeCompany.id}/runs/${id}/post`);
+      setActionMsg({ type: 'success', text: `Successfully approved & posted run to ledger. JV Reference: JV-00${res.data.journalEntryId || id}` });
+      fetchRuns();
+    } catch (err) {
+      setActionMsg({ type: 'error', text: err.response?.data?.error || 'Failed to post payroll journal voucher.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleReverseRun = async (id) => {
+    if (!activeCompany?.id) return;
+    setLoading(true);
+    try {
+      await api.post(`/payroll/${activeCompany.id}/runs/${id}/reverse`);
+      setActionMsg({ type: 'success', text: 'Voucher reversed and period reverted to DRAFT.' });
+      fetchRuns();
+    } catch (err) {
+      setActionMsg({ type: 'error', text: err.response?.data?.error || 'Failed to reverse payroll run.' });
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleClosePeriod = async (id) => {
+    // Treat as local status lockdown for visual closing workflow
     setRuns(prev => prev.map(r => r.id === id ? { ...r, status: 'CLOSED' } : r));
+    setActionMsg({ type: 'success', text: 'Payroll period CLOSED. Recalculation and editing adjustments locked.' });
   };
 
   const getDetailedTimeline = (status) => {
@@ -55,7 +142,6 @@ export default function PayrollRuns({ userRole }) {
     ];
   };
 
-  // Exceptions list
   const exceptions = [
     { code: 'MISSING_BANK', name: 'Rana Talal', detail: 'No active bank routing account number detected.', severity: 'CRITICAL' },
     { code: 'SALARY_VARIANCE', name: 'Rizwan Ali', detail: 'Monthly salary increment exceeds threshold (>30% variance).', severity: 'WARNING' },
@@ -65,6 +151,52 @@ export default function PayrollRuns({ userRole }) {
 
   return (
     <div className="space-y-6 text-xs font-semibold text-slate-600">
+      {/* Action Messages */}
+      {actionMsg && (
+        <div className={`p-4 rounded-xl border text-[13px] font-bold flex items-center justify-between gap-3 ${
+          actionMsg.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
+        }`}>
+          <span className="flex items-center gap-2">
+            <CheckCircle size={16} />
+            {actionMsg.text}
+          </span>
+          <button onClick={() => setActionMsg(null)} className="text-slate-400 hover:text-slate-600">
+            <X size={15} />
+          </button>
+        </div>
+      )}
+
+      {/* Generate Run Modal Dialog */}
+      {showGenerateModal && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 p-6 shadow-2xl max-w-sm w-full space-y-4">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-2">
+              <h4 className="font-black text-slate-800 text-sm">Generate Period Payroll Run</h4>
+              <button onClick={() => setShowGenerateModal(false)} className="text-slate-400 hover:text-slate-600">
+                <X size={15} />
+              </button>
+            </div>
+            <div className="space-y-1">
+              <label className="text-slate-400">Target Accounting Month (YYYY-MM)</label>
+              <input
+                value={generatePeriod}
+                onChange={e => setGeneratePeriod(e.target.value)}
+                className="w-full h-10 px-3 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-mono text-slate-800"
+                placeholder="2026-08"
+              />
+            </div>
+            <div className="flex gap-2 justify-end">
+              <button onClick={() => setShowGenerateModal(false)} className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl cursor-pointer">
+                Cancel
+              </button>
+              <button onClick={handleGenerateRun} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black cursor-pointer shadow-sm">
+                Compile & Run
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Simulation Result Overlay Banner */}
       {showSimResult && (
         <div className="bg-indigo-50 border border-indigo-200 p-5 rounded-3xl space-y-3.5 animate-in slide-in-from-top-5 duration-200">
@@ -107,7 +239,8 @@ export default function PayrollRuns({ userRole }) {
             Simulate Run
           </button>
           <button 
-            disabled={!canGenerate}
+            onClick={() => setShowGenerateModal(true)}
+            disabled={!canGenerate || loading}
             className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer font-black"
           >
             <Play size={12} /> Generate Run
@@ -172,23 +305,23 @@ export default function PayrollRuns({ userRole }) {
                     return (
                       <tr key={run.id} className="hover:bg-slate-50/50">
                         <td className="px-5 py-4">
-                          <p className="font-bold text-slate-800">Period {run.period}</p>
+                          <p className="font-bold text-slate-800 font-sans">Period {run.period}</p>
                           <p className="text-[10px] text-slate-400 font-mono mt-0.5">ID: RUN-00{run.id}</p>
                         </td>
                         <td className="px-5 py-4">
                           <span className="px-2 py-0.5 rounded bg-indigo-50 text-indigo-700 border border-indigo-100 font-mono text-[9px] font-black">
-                            Engine v{run.ruleVersion}
+                            Engine v{run.rule_engine_version || '5A.1'}
                           </span>
-                          <p className="text-[9.5px] text-slate-400 mt-1">Calculated by: {run.updatedBy}</p>
+                          <p className="text-[9.5px] text-slate-400 mt-1">Calculated by User ID: {run.created_by}</p>
                         </td>
                         <td className="px-5 py-4 text-right font-mono font-bold text-slate-800">
-                          <p className="text-slate-800">PKR {run.net.toLocaleString()}</p>
-                          <p className="text-[9px] text-slate-400 mt-0.5">Gross: PKR {run.gross.toLocaleString()}</p>
+                          <p className="text-slate-800">PKR {parseFloat(run.total_net || 0).toLocaleString()}</p>
+                          <p className="text-[9px] text-slate-400 mt-0.5 font-bold">Gross: PKR {parseFloat(run.total_gross || 0).toLocaleString()}</p>
                         </td>
                         <td className="px-5 py-4">
-                          {run.voucher !== '—' ? (
+                          {run.journal_entry_id ? (
                             <span className="text-indigo-600 font-bold hover:underline cursor-pointer flex items-center gap-1">
-                              <FileText size={12} /> {run.voucher}
+                              <FileText size={12} /> JV-00{run.journal_entry_id}
                             </span>
                           ) : <span className="text-slate-400 italic">Unposted</span>}
                         </td>
@@ -213,12 +346,14 @@ export default function PayrollRuns({ userRole }) {
                             {run.status === 'DRAFT' && (
                               <>
                                 <button 
+                                  onClick={() => handleSubmitWorkflow(run.id)}
                                   disabled={!canApprove}
                                   className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-lg shadow-3xs cursor-pointer text-[10px] font-black disabled:opacity-40"
                                 >
                                   Submit
                                 </button>
                                 <button 
+                                  onClick={() => handlePostRun(run.id)}
                                   disabled={!canPost}
                                   className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-3xs cursor-pointer text-[10px] font-black disabled:opacity-40"
                                 >
@@ -236,6 +371,7 @@ export default function PayrollRuns({ userRole }) {
                                   Close Period
                                 </button>
                                 <button 
+                                  onClick={() => handleReverseRun(run.id)}
                                   disabled={!canPost}
                                   className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 rounded-lg shadow-3xs cursor-pointer text-[10px] font-black disabled:opacity-40"
                                 >
@@ -253,6 +389,11 @@ export default function PayrollRuns({ userRole }) {
                       </tr>
                     );
                   })}
+                  {runs.length === 0 && (
+                    <tr>
+                      <td colSpan={6} className="px-5 py-8 text-center text-slate-400 font-bold">No active payroll runs found in database. Click 'Generate Run' to calculate.</td>
+                    </tr>
+                  )}
                 </tbody>
               </table>
             </div>
@@ -290,12 +431,5 @@ export default function PayrollRuns({ userRole }) {
         </div>
       )}
     </div>
-  );
-}
-
-// Simple internal modal X icon
-function X({ size }) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
   );
 }

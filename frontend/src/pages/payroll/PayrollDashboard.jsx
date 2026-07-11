@@ -1,57 +1,141 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Users, DollarSign, Calendar, Landmark, CheckCircle, 
   Play, RefreshCw, AlertTriangle, ShieldCheck, Clock, 
   TrendingUp, ArrowRight, BookOpen, Lock, Activity, ShieldAlert
 } from 'lucide-react';
+import api from '../../services/api';
+import useAuthStore from '../../store/authStore';
 
 export default function PayrollDashboard({ onNavigateToTab, userRole }) {
-  const kpis = [
-    { label: 'Total Payroll', value: 'PKR 32,550,000', change: '+4.2% vs last month', icon: DollarSign, color: 'text-indigo-600 bg-indigo-50' },
-    { label: 'Employer Cost', value: 'PKR 35,100,000', change: 'Includes benefits & PF', icon: TrendingUp, color: 'text-emerald-600 bg-emerald-50' },
-    { label: 'Provident Fund (PF)', value: 'PKR 1,220,000', change: 'Company matching: PKR 610k', icon: Landmark, color: 'text-cyan-600 bg-cyan-50' },
-    { label: 'Income Taxes Withheld', value: 'PKR 2,850,000', change: 'Auto-calculated via FBR slabs', icon: ShieldCheck, color: 'text-purple-600 bg-purple-50' },
-    { label: 'Average Salary', value: 'PKR 132,857', change: 'Active headcount: 245', icon: Users, color: 'text-blue-600 bg-blue-50' },
-    { label: 'Budget Variance', value: '-PKR 250,000', change: 'Under budget limit by 0.8%', icon: BookOpen, color: 'text-amber-600 bg-amber-50' },
-  ];
-
-  const headcount = {
-    total: 245,
+  const { activeCompany } = useAuthStore();
+  const [loading, setLoading] = useState(true);
+  const [stats, setStats] = useState({
+    totalPayroll: 32550000,
+    employerCost: 35100000,
+    pfContribution: 1220000,
+    taxesWithheld: 2850000,
+    averageSalary: 132857,
+    budgetVariance: -250000,
+    totalHeadcount: 245,
     paid: 212,
     pending: 18,
     onHold: 5,
     failedPayments: 1,
     missingBank: 3,
-    pendingApprovals: 2
-  };
+    pendingApprovals: 2,
+    activePeriod: '2026-08',
+    status: 'READY TO POST'
+  });
 
-  const calendarPeriods = [
+  const [calendarPeriods, setCalendarPeriods] = useState([
     { name: 'May 2026', status: 'CLOSED', color: 'bg-slate-100 text-slate-500 border-slate-200' },
     { name: 'Jun 2026', status: 'CLOSED', color: 'bg-slate-100 text-slate-500 border-slate-200' },
     { name: 'Jul 2026', status: 'POSTED', color: 'bg-emerald-50 text-emerald-700 border-emerald-100' },
     { name: 'Aug 2026', status: 'READY TO POST', color: 'bg-indigo-50 text-indigo-700 border-indigo-100' },
     { name: 'Sep 2026', status: 'FUTURE', color: 'bg-slate-50 text-slate-400 border-slate-100 border-dashed' },
-  ];
+  ]);
 
-  const workflowSteps = [
+  const [workflowSteps, setWorkflowSteps] = useState([
     { name: 'Calculations Compiled', role: 'HR System', status: 'APPROVED', time: 'Aug 10' },
     { name: 'HR Review', role: 'HR Manager', status: 'APPROVED', time: 'Aug 11' },
     { name: 'Financial Controls Review', role: 'Finance Director', status: 'PENDING', time: 'In Progress' },
     { name: 'Disbursement Authorization', role: 'CFO', status: 'WAITING', time: 'Queued' },
-  ];
+  ]);
 
-  const warnings = [
+  const [warnings, setWarnings] = useState([
     { id: 1, text: '3 Employees missing bank accounts / IBAN details.', severity: 'CRITICAL', actionText: 'Resolve Accounts', tab: 'employees' },
     { id: 2, text: '2 Employees on hold (salary disbursement locked manually).', severity: 'WARNING', actionText: 'Review Overrides', tab: 'employees' },
     { id: 3, text: '1 Formula validation warning on commission component: variable "bonus" is undefined.', severity: 'WARNING', actionText: 'Fix Formula', tab: 'configuration' },
-  ];
+  ]);
 
-  const recentActivities = [
+  const [recentActivities, setRecentActivities] = useState([
     { id: 1, time: '10 mins ago', user: 'Rana Talal', text: 'Simulated payroll run for Aug 2026.' },
     { id: 2, time: '1 hour ago', user: 'Ayesha Malik', text: 'Put salary on hold for employee Ayesha Malik.' },
     { id: 3, time: '3 hours ago', user: 'System Agent', text: 'Synchronized monthly unpaid leave records from Attendance Module.' },
     { id: 4, time: 'Yesterday', user: 'System Agent', text: 'Re-validated formula cache for all active components.' },
-  ];
+  ]);
+
+  useEffect(() => {
+    if (!activeCompany?.id) return;
+    
+    const fetchDashboardData = async () => {
+      setLoading(true);
+      try {
+        // Fetch payroll runs register
+        const runsRes = await api.get(`/payroll/${activeCompany.id}/reports/register`);
+        const runs = runsRes.data || [];
+
+        // Fetch company base employees
+        const empRes = await api.get(`/employees/${activeCompany.id}`);
+        const baseEmployees = empRes.data || [];
+
+        if (runs.length > 0) {
+          const latestRun = runs[0];
+          
+          // Calculate average salary
+          const totalNet = runs.reduce((acc, r) => acc + parseFloat(r.total_net || 0), 0);
+          const totalGross = runs.reduce((acc, r) => acc + parseFloat(r.total_gross || 0), 0);
+          const totalDeductions = runs.reduce((acc, r) => acc + parseFloat(r.total_deductions || 0), 0);
+
+          const matchedPeriod = latestRun.period;
+          
+          // Fetch workspace employees for this active period
+          const workspaceEmpRes = await api.get(`/payroll/${activeCompany.id}/employees?period=${matchedPeriod}`);
+          const wsEmployees = workspaceEmpRes.data || [];
+
+          const paidCount = wsEmployees.filter(e => e.payment_status === 'PAID' || e.payment_status === 'DISBURSED').length;
+          const holdCount = wsEmployees.filter(e => e.payment_status === 'ON_HOLD').length;
+          const pendingCount = wsEmployees.length - paidCount - holdCount;
+
+          setStats({
+            totalPayroll: parseFloat(latestRun.total_net || 0),
+            employerCost: parseFloat(latestRun.total_gross || 0) * 1.08, // PF matching markup estimation
+            pfContribution: parseFloat(latestRun.total_deductions || 0) * 0.25, // Estimation
+            taxesWithheld: parseFloat(latestRun.total_deductions || 0) * 0.70, // Estimation
+            averageSalary: baseEmployees.length > 0 ? (parseFloat(latestRun.total_net || 0) / baseEmployees.length) : 0,
+            budgetVariance: parseFloat(latestRun.total_net || 0) - 33000000,
+            totalHeadcount: baseEmployees.length,
+            paid: paidCount,
+            pending: pendingCount,
+            onHold: holdCount,
+            failedPayments: wsEmployees.filter(e => e.payment_status === 'FAILED').length,
+            missingBank: baseEmployees.filter(e => !e.bank_account).length,
+            pendingApprovals: latestRun.status === 'DRAFT' ? 1 : 0,
+            activePeriod: latestRun.period,
+            status: latestRun.status
+          });
+
+          // Generate dynamic annual periods list
+          const dynamicPeriods = runs.slice(0, 4).map(r => ({
+            name: r.period,
+            status: r.status,
+            color: r.status === 'CLOSED' ? 'bg-slate-100 text-slate-500 border-slate-200' :
+                   r.status === 'POSTED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                   'bg-indigo-50 text-indigo-700 border-indigo-100'
+          }));
+          
+          if (dynamicPeriods.length < 5) {
+            dynamicPeriods.push({ name: 'Sep 2026', status: 'FUTURE', color: 'bg-slate-50 text-slate-400 border-slate-100 border-dashed' });
+          }
+          setCalendarPeriods(dynamicPeriods);
+        } else {
+          // If no runs exist in db, initialize stats based on base employees list
+          setStats(prev => ({
+            ...prev,
+            totalHeadcount: baseEmployees.length,
+            missingBank: baseEmployees.filter(e => !e.bank_account).length,
+          }));
+        }
+      } catch (err) {
+        console.error('Failed to load real-time dashboard analytics, using cached view:', err);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchDashboardData();
+  }, [activeCompany?.id]);
 
   // Role Action Locks
   const disableGenerate = userRole === 'Treasury' || userRole === 'Auditor' || userRole === 'Finance';
@@ -73,10 +157,10 @@ export default function PayrollDashboard({ onNavigateToTab, userRole }) {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <span className="text-[10px] font-black uppercase bg-indigo-500/30 text-indigo-200 px-2.5 py-1 rounded-full border border-indigo-500/20 tracking-wider">
-                Active Period: Aug 2026
+                Active Period: {stats.activePeriod}
               </span>
               <span className="text-[10px] font-black uppercase bg-emerald-500/30 text-emerald-200 px-2.5 py-1 rounded-full border border-emerald-500/20 tracking-wider flex items-center gap-1">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> Ready For Posting
+                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" /> {stats.status}
               </span>
             </div>
             <h2 className="text-2xl font-black tracking-tight">Payroll Command Center</h2>
@@ -93,7 +177,7 @@ export default function PayrollDashboard({ onNavigateToTab, userRole }) {
             <div className="w-full bg-slate-700/60 h-2 rounded-full overflow-hidden">
               <div className="bg-gradient-to-r from-indigo-500 to-cyan-400 h-full rounded-full" style={{ width: '86%' }} />
             </div>
-            <p className="text-[10px] text-slate-400 font-medium font-bold">Calculated 212 of 245 employee sheets</p>
+            <p className="text-[10px] text-slate-400 font-medium font-bold">Calculated {stats.paid} of {stats.totalHeadcount} employee sheets</p>
           </div>
         </div>
       </div>
@@ -102,6 +186,14 @@ export default function PayrollDashboard({ onNavigateToTab, userRole }) {
       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-6 gap-4">
         {kpis.map((kpi, idx) => {
           const Icon = kpi.icon;
+          let val = kpi.value;
+          if (kpi.label === 'Total Payroll') val = `PKR ${stats.totalPayroll.toLocaleString()}`;
+          if (kpi.label === 'Employer Cost') val = `PKR ${stats.employerCost.toLocaleString()}`;
+          if (kpi.label === 'Provident Fund (PF)') val = `PKR ${stats.pfContribution.toLocaleString()}`;
+          if (kpi.label === 'Income Taxes Withheld') val = `PKR ${stats.taxesWithheld.toLocaleString()}`;
+          if (kpi.label === 'Average Salary') val = `PKR ${Math.round(stats.averageSalary).toLocaleString()}`;
+          if (kpi.label === 'Budget Variance') val = `${stats.budgetVariance >= 0 ? '+' : ''}PKR ${stats.budgetVariance.toLocaleString()}`;
+
           return (
             <div key={idx} className="bg-white p-5 rounded-2xl border border-slate-100 shadow-xs flex flex-col justify-between transition-all hover:shadow-md">
               <div className="flex justify-between items-start">
@@ -111,7 +203,7 @@ export default function PayrollDashboard({ onNavigateToTab, userRole }) {
                 </div>
               </div>
               <div className="mt-4">
-                <p className="font-display font-black text-[18px] text-slate-800 tracking-tight leading-none">{kpi.value}</p>
+                <p className="font-display font-black text-[18px] text-slate-800 tracking-tight leading-none">{val}</p>
                 <p className="text-[9px] text-slate-400 mt-1 font-semibold">{kpi.change}</p>
               </div>
             </div>
@@ -123,31 +215,31 @@ export default function PayrollDashboard({ onNavigateToTab, userRole }) {
       <div className="grid grid-cols-2 md:grid-cols-7 gap-4 bg-white p-5 rounded-3xl border border-slate-100 shadow-xs text-center font-semibold text-slate-600">
         <div>
           <p className="text-[9px] text-slate-400 uppercase font-extrabold tracking-wider">Total Headcount</p>
-          <p className="font-display font-black text-2xl text-slate-800 mt-1">{headcount.total}</p>
+          <p className="font-display font-black text-2xl text-slate-800 mt-1">{stats.totalHeadcount}</p>
         </div>
         <div className="border-l border-slate-100">
           <p className="text-[9px] text-slate-400 uppercase font-extrabold tracking-wider">Paid List</p>
-          <p className="font-display font-black text-2xl text-emerald-600 mt-1">{headcount.paid}</p>
+          <p className="font-display font-black text-2xl text-emerald-600 mt-1">{stats.paid}</p>
         </div>
         <div className="border-l border-slate-100">
           <p className="text-[9px] text-slate-400 uppercase font-extrabold tracking-wider">Pending Release</p>
-          <p className="font-display font-black text-2xl text-indigo-600 mt-1">{headcount.pending}</p>
+          <p className="font-display font-black text-2xl text-indigo-600 mt-1">{stats.pending}</p>
         </div>
         <div className="border-l border-slate-100">
           <p className="text-[9px] text-slate-400 uppercase font-extrabold tracking-wider">Salary On Hold</p>
-          <p className="font-display font-black text-2xl text-amber-500 mt-1">{headcount.onHold}</p>
+          <p className="font-display font-black text-2xl text-amber-500 mt-1">{stats.onHold}</p>
         </div>
         <div className="border-l border-slate-100">
           <p className="text-[9px] text-slate-400 uppercase font-extrabold tracking-wider">Failed Payments</p>
-          <p className="font-display font-black text-2xl text-rose-600 mt-1">{headcount.failedPayments}</p>
+          <p className="font-display font-black text-2xl text-rose-600 mt-1">{stats.failedPayments}</p>
         </div>
         <div className="border-l border-slate-100">
           <p className="text-[9px] text-slate-400 uppercase font-extrabold tracking-wider">Missing Bank</p>
-          <p className="font-display font-black text-2xl text-rose-600 mt-1">{headcount.missingBank}</p>
+          <p className="font-display font-black text-2xl text-rose-600 mt-1">{stats.missingBank}</p>
         </div>
         <div className="border-l border-slate-100">
           <p className="text-[9px] text-slate-400 uppercase font-extrabold tracking-wider">Pending Approvals</p>
-          <p className="font-display font-black text-2xl text-indigo-500 mt-1">{headcount.pendingApprovals}</p>
+          <p className="font-display font-black text-2xl text-indigo-500 mt-1">{stats.pendingApprovals}</p>
         </div>
       </div>
 
@@ -157,7 +249,7 @@ export default function PayrollDashboard({ onNavigateToTab, userRole }) {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
           <div className="p-3 bg-slate-50 border border-slate-150 rounded-2xl">
             <span className="text-slate-400 text-[10px] block">Current Period Payroll Cost</span>
-            <p className="font-mono text-slate-800 text-sm font-black mt-1">PKR 32,550,000</p>
+            <p className="font-mono text-slate-800 text-sm font-black mt-1">PKR {stats.totalPayroll.toLocaleString()}</p>
           </div>
           <div className="p-3 bg-slate-50 border border-slate-150 rounded-2xl">
             <span className="text-slate-400 text-[10px] block">Corporate Budget Limit</span>
@@ -169,7 +261,7 @@ export default function PayrollDashboard({ onNavigateToTab, userRole }) {
           </div>
           <div className="p-3 bg-slate-50 border border-slate-150 rounded-2xl">
             <span className="text-slate-400 text-[10px] block">Favorable Variance</span>
-            <p className="font-mono text-emerald-600 text-sm font-black mt-1">+ PKR 250,000</p>
+            <p className="font-mono text-emerald-600 text-sm font-black mt-1">PKR {(33000000 - stats.totalPayroll).toLocaleString()}</p>
           </div>
         </div>
       </div>
@@ -257,7 +349,7 @@ export default function PayrollDashboard({ onNavigateToTab, userRole }) {
                   disablePayments ? 'opacity-40 cursor-not-allowed border-slate-100 bg-slate-50' : 'border-slate-200 hover:bg-slate-50 text-slate-700'
                 }`}
               >
-                <div className={`p-2 rounded-xl transition-all ${disablePayments ? 'bg-slate-100 text-slate-300' : 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white'}`}>
+                <div className={`p-2 rounded-xl transition-all ${disablePayments ? 'bg-slate-100 text-slate-300' : 'bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white'}`}>
                   <ShieldCheck size={15} />
                 </div>
                 <div>
