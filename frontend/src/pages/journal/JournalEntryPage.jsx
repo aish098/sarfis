@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ArrowLeft, Plus, Trash2, Save, RefreshCw,
@@ -132,6 +132,7 @@ const genRow = () => ({ id: crypto.randomUUID(), accountId: '', description: '',
 
 export default function JournalEntryPage() {
   const navigate = useNavigate();
+  const location = useLocation();
   const { activeCompany, user, permissions } = useAuthStore();
   const [accounts, setAccounts] = useState([]);
 
@@ -191,6 +192,12 @@ export default function JournalEntryPage() {
   useEffect(() => {
     fetchRecent();
   }, [activeCompany]);
+
+  useEffect(() => {
+    if (location.state?.selectedEntryId) {
+      handleViewDetail({ id: location.state.selectedEntryId });
+    }
+  }, [location.state?.selectedEntryId]);
 
   const totalDebit = lines.reduce((s, l) => s + (parseFloat(l.debit) || 0), 0);
   const totalCredit = lines.reduce((s, l) => s + (parseFloat(l.credit) || 0), 0);

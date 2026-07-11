@@ -1,4 +1,5 @@
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { 
   Play, RefreshCw, CheckCircle, ShieldAlert, ArrowRight, 
   Layers, Calendar, ChevronRight, FileText, DollarSign, X,
@@ -10,6 +11,7 @@ import useAuthStore from '../../store/authStore';
 import WizardFlow from '../../components/ui/WizardFlow';
 
 export default function PayrollProcessing({ userRole, onBackToDashboard, onNavigateToTab }) {
+  const navigate = useNavigate();
   const { activeCompany } = useAuthStore();
   const [loading, setLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState(null);
@@ -704,7 +706,12 @@ export default function PayrollProcessing({ userRole, onBackToDashboard, onNavig
                     <td className="px-5 py-4 text-right font-mono font-bold text-slate-800">PKR {parseFloat(run.total_net || 0).toLocaleString()}</td>
                     <td className="px-5 py-4">
                       {run.journal_entry_id ? (
-                        <span className="text-indigo-600 font-bold hover:underline cursor-pointer">JV-00{run.journal_entry_id}</span>
+                        <button 
+                          onClick={() => navigate('/dashboard/journal', { state: { selectedEntryId: run.journal_entry_id } })}
+                          className="text-indigo-600 font-bold hover:underline cursor-pointer border-none bg-transparent p-0 outline-none text-left font-sans"
+                        >
+                          JV-00{run.journal_entry_id}
+                        </button>
                       ) : <span className="text-slate-400 italic">Unposted</span>}
                     </td>
                     <td className="px-5 py-4 text-center">
