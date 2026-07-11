@@ -12,6 +12,8 @@ router.post('/:companyId/leaves/:id/approve',       companyGuard, requirePermiss
 router.get('/:companyId/leaves/balances/:employeeId', companyGuard, requirePermission('user.manage'), payrollCtrl.getLeaveBalances);
 router.post('/:companyId/overtime',                 companyGuard, requirePermission('user.manage'), payrollCtrl.recordOvertime);
 router.get('/:companyId/overtime/:employeeId',       companyGuard, requirePermission('user.manage'), payrollCtrl.getEmployeeOvertime);
+router.post('/:companyId/loans',                     companyGuard, requirePermission('user.manage'), payrollCtrl.requestLoan);
+router.get('/:companyId/loans/:employeeId',           companyGuard, requirePermission('user.manage'), payrollCtrl.getEmployeeLoans);
 
 // Payroll Run Lifecycles
 router.post('/:companyId/runs',                     companyGuard, requirePermission('user.manage'), payrollCtrl.generatePayrollRun);

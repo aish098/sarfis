@@ -38,6 +38,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
   const [attendanceLogs, setAttendanceLogs] = useState([]);
   const [leaveBalances, setLeaveBalances] = useState([]);
   const [overtimeRecords, setOvertimeRecords] = useState([]);
+  const [loans, setLoans] = useState([]);
 
   // Form states for Logging inside tabs
   const [newAttendance, setNewAttendance] = useState({
@@ -56,6 +57,12 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
     leaveType: 'ANNUAL',
     startDate: new Date().toISOString().split('T')[0],
     endDate: new Date().toISOString().split('T')[0]
+  });
+
+  const [newLoan, setNewLoan] = useState({
+    amount: '',
+    purpose: '',
+    repaymentPeriod: '12'
   });
 
   const fetchLeaveBalances = async (employeeId) => {
@@ -87,6 +94,17 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
       console.error('Failed to load overtime records:', err);
     }
   };
+
+  const fetchEmployeeLoans = async (employeeId) => {
+    if (!activeCompany?.id || !employeeId) return;
+    try {
+      const res = await api.get(`/payroll/${activeCompany.id}/loans/${employeeId}`);
+      setLoans(res.data || []);
+    } catch (err) {
+      console.error('Failed to load employee loans:', err);
+    }
+  };
+
   const [newEmp, setNewEmp] = useState({
     name: '',
     department: '',
@@ -253,6 +271,26 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
     }
   };
 
+  const handleRequestLoan = async (e) => {
+    e.preventDefault();
+    if (!activeCompany?.id || !selectedEmp) return;
+    try {
+      await api.post(`/payroll/${activeCompany.id}/loans`, {
+        employeeId: selectedEmp.id,
+        amount: parseFloat(newLoan.amount),
+        purpose: newLoan.purpose,
+        repaymentPeriod: parseInt(newLoan.repaymentPeriod)
+      });
+      alert('Corporate loan request submitted and auto-approved successfully.');
+      setNewLoan({ amount: '', purpose: '', repaymentPeriod: '12' });
+      fetchEmployeeLoans(selectedEmp.id);
+      fetchEmployeesData();
+    } catch (err) {
+      console.error('Failed to request loan:', err);
+      alert(err.response?.data?.error || 'Failed to request corporate loan.');
+    }
+  };
+
   const handleHoldSalary = async () => {
     if (!selectedEmp?.lineId) {
       alert('Salary status can only be modified once a payroll period compilation has been started.');
@@ -353,7 +391,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
           bankName: emp.bank_name || 'Habib Bank',
           bankAccount: emp.bank_account || 'PK12HABB0000123456789012',
           salary: parseFloat(emp.salary || 0),
-          status: matchingLine ? matchingLine.payment_status : 'DRAFT',
+          status: matchingLine ? (matchingLine.payment_status === 'DRAFT' ? emp.status : matchingLine.payment_status) : emp.status,
           lineId: matchingLine ? matchingLine.line_id : null
         };
       });
@@ -378,6 +416,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
     fetchLeaveBalances(emp.id);
     fetchAttendanceLogs(emp.id);
     fetchOvertimeRecords(emp.id);
+    fetchEmployeeLoans(emp.id);
     
     if (emp.lineId) {
       try {
@@ -674,9 +713,9 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
                 </div>
 
                 {attendanceLogs.length > 0 && (
-                  <div className="mt-4 space-y-2 max-h-36 overflow-y-auto border border-slate-100 p-2.5 rounded-xl bg-white">
-                    {attendanceLogs.slice(0, 10).map((log, index) => (
-                      <div key={index} className="flex justify-between items-center text-[10.5px] font-semibold text-slate-600 border-b border-slate-50 last:border-0 pb-1">
+                  <div className="mt-4 space-y-2 max-h-48 overflow-y-auto border border-slate-100 p-2.5 rounded-xl bg-white">
+                    {attendanceLogs.map((log, index) => (
+                      <div key={index} className="flex justify-between items-center text-[10.5px] font-semibold text-slate-600 border-b border-slate-50 last:border-0 pb-1.5 pt-1.5 first:pt-0">
                         <span>{new Date(log.date).toLocaleDateString()}</span>
                         <span className={`px-2 py-0.5 rounded-full text-[9px] font-black ${
                           log.status === 'PRESENT' || log.status === 'LATE' ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'
@@ -688,31 +727,51 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
 
                 <form onSubmit={handleLogAttendance} className="mt-4 border-t border-slate-100 pt-4 space-y-3">
                   <h6 className="text-[10px] font-black uppercase text-indigo-750">Log Manual Attendance Entry</h6>
-                  <div className="grid grid-cols-3 gap-2">
+                  
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-extrabold text-slate-400">Attendance Work Date</label>
                     <input
                       type="date"
                       required
-                      className="p-2 border border-slate-200 rounded-lg text-[10px] outline-none"
+                      className="w-full p-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-500 font-semibold"
                       value={newAttendance.date}
                       onChange={e => setNewAttendance({...newAttendance, date: e.target.value})}
                     />
-                    <select
-                      className="p-2 border border-slate-200 rounded-lg text-[10px] outline-none cursor-pointer"
-                      value={newAttendance.status}
-                      onChange={e => setNewAttendance({...newAttendance, status: e.target.value})}
-                    >
-                      <option value="PRESENT">Present</option>
-                      <option value="ABSENT">Absent</option>
-                      <option value="LATE">Late</option>
-                      <option value="HALF_DAY">Half Day</option>
-                    </select>
-                    <button
-                      type="submit"
-                      className="bg-indigo-650 hover:bg-indigo-700 text-white font-black rounded-lg text-[10px] cursor-pointer"
-                    >
-                      Post Log
-                    </button>
+                    <p className="text-[9px] text-slate-400 font-normal">Date selection indicates the specific workday calendar date to record this attendance status log.</p>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-extrabold text-slate-400">Attendance Status</label>
+                      <select
+                        className="w-full p-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-500 font-semibold cursor-pointer"
+                        value={newAttendance.status}
+                        onChange={e => setNewAttendance({...newAttendance, status: e.target.value})}
+                      >
+                        <option value="PRESENT">Present</option>
+                        <option value="ABSENT">Absent</option>
+                        <option value="LATE">Late</option>
+                        <option value="HALF_DAY">Half Day</option>
+                      </select>
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-extrabold text-slate-400">Working Hours</label>
+                      <input
+                        type="number"
+                        required
+                        className="w-full p-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-500 font-semibold"
+                        value={newAttendance.workingHours}
+                        onChange={e => setNewAttendance({...newAttendance, workingHours: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-700 text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
+                  >
+                    Post Attendance Log Record
+                  </button>
                 </form>
               </div>
             )}
@@ -734,37 +793,49 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
 
                 <form onSubmit={handleLogLeave} className="mt-4 border-t border-slate-100 pt-4 space-y-3">
                   <h6 className="text-[10px] font-black uppercase text-indigo-750">Submit Leave Application</h6>
-                  <div className="grid grid-cols-4 gap-2">
+                  
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-extrabold text-slate-400">Leave Category</label>
                     <select
-                      className="p-2 border border-slate-200 rounded-lg text-[10px] outline-none cursor-pointer"
+                      className="w-full p-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-500 font-semibold cursor-pointer"
                       value={newLeave.leaveType}
                       onChange={e => setNewLeave({...newLeave, leaveType: e.target.value})}
                     >
-                      <option value="ANNUAL">Annual</option>
-                      <option value="SICK">Sick</option>
-                      <option value="CASUAL">Casual</option>
+                      <option value="ANNUAL">Annual Leave</option>
+                      <option value="SICK">Sick Leave</option>
+                      <option value="CASUAL">Casual Leave</option>
                     </select>
-                    <input
-                      type="date"
-                      required
-                      className="p-2 border border-slate-200 rounded-lg text-[10px] outline-none"
-                      value={newLeave.startDate}
-                      onChange={e => setNewLeave({...newLeave, startDate: e.target.value})}
-                    />
-                    <input
-                      type="date"
-                      required
-                      className="p-2 border border-slate-200 rounded-lg text-[10px] outline-none"
-                      value={newLeave.endDate}
-                      onChange={e => setNewLeave({...newLeave, endDate: e.target.value})}
-                    />
-                    <button
-                      type="submit"
-                      className="bg-indigo-650 hover:bg-indigo-700 text-white font-black rounded-lg text-[10px] cursor-pointer whitespace-nowrap px-1"
-                    >
-                      Request
-                    </button>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-extrabold text-slate-400">Start Date</label>
+                      <input
+                        type="date"
+                        required
+                        className="w-full p-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-500 font-semibold"
+                        value={newLeave.startDate}
+                        onChange={e => setNewLeave({...newLeave, startDate: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-extrabold text-slate-400">End Date</label>
+                      <input
+                        type="date"
+                        required
+                        className="w-full p-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-500 font-semibold"
+                        value={newLeave.endDate}
+                        onChange={e => setNewLeave({...newLeave, endDate: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-700 text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
+                  >
+                    Submit Leave Application Request
+                  </button>
                 </form>
               </div>
             )}
@@ -778,9 +849,9 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
                 </div>
 
                 {overtimeRecords.length > 0 && (
-                  <div className="mt-4 space-y-2 max-h-36 overflow-y-auto border border-slate-100 p-2.5 rounded-xl bg-white">
-                    {overtimeRecords.slice(0, 10).map((ot, index) => (
-                      <div key={index} className="flex justify-between items-center text-[10.5px] font-semibold text-slate-600 border-b border-slate-50 last:border-0 pb-1">
+                  <div className="mt-4 space-y-2 max-h-48 overflow-y-auto border border-slate-100 p-2.5 rounded-xl bg-white">
+                    {overtimeRecords.map((ot, index) => (
+                      <div key={index} className="flex justify-between items-center text-[10.5px] font-semibold text-slate-600 border-b border-slate-50 last:border-0 pb-1.5 pt-1.5 first:pt-0">
                         <span>{new Date(ot.date).toLocaleDateString()}</span>
                         <span className="font-mono text-slate-700">{ot.hours} hrs @ {ot.multiplier}x (PKR {parseFloat(ot.amount || 0).toLocaleString()})</span>
                       </div>
@@ -790,47 +861,125 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
 
                 <form onSubmit={handleLogOvertime} className="mt-4 border-t border-slate-100 pt-4 space-y-3">
                   <h6 className="text-[10px] font-black uppercase text-indigo-750">Log Manual Overtime Entry</h6>
-                  <div className="grid grid-cols-4 gap-2">
+                  
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-extrabold text-slate-400">Overtime Work Date</label>
                     <input
                       type="date"
                       required
-                      className="p-2 border border-slate-200 rounded-lg text-[10px] outline-none"
+                      className="w-full p-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-500 font-semibold"
                       value={newOT.date}
                       onChange={e => setNewOT({...newOT, date: e.target.value})}
                     />
-                    <input
-                      type="number"
-                      required
-                      placeholder="Hours"
-                      className="p-2 border border-slate-200 rounded-lg text-[10px] outline-none"
-                      value={newOT.hours}
-                      onChange={e => setNewOT({...newOT, hours: e.target.value})}
-                    />
-                    <input
-                      type="number"
-                      required
-                      placeholder="Multiplier"
-                      className="p-2 border border-slate-200 rounded-lg text-[10px] outline-none"
-                      value={newOT.multiplier}
-                      onChange={e => setNewOT({...newOT, multiplier: e.target.value})}
-                    />
-                    <button
-                      type="submit"
-                      className="bg-indigo-650 hover:bg-indigo-700 text-white font-black rounded-lg text-[10px] cursor-pointer"
-                    >
-                      Log OT
-                    </button>
+                    <p className="text-[9px] text-slate-400 font-normal">Select the specific calendar date on which the overtime work was performed.</p>
                   </div>
+
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-extrabold text-slate-400">Overtime Hours Worked</label>
+                      <input
+                        type="number"
+                        required
+                        className="w-full p-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-500 font-semibold"
+                        value={newOT.hours}
+                        onChange={e => setNewOT({...newOT, hours: e.target.value})}
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-extrabold text-slate-400">Hourly Rate Multiplier</label>
+                      <input
+                        type="number"
+                        step="0.01"
+                        required
+                        className="w-full p-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-500 font-semibold"
+                        value={newOT.multiplier}
+                        onChange={e => setNewOT({...newOT, multiplier: e.target.value})}
+                      />
+                    </div>
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-700 text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
+                  >
+                    Log Overtime Log Entry
+                  </button>
                 </form>
               </div>
             )}
 
             {activeSubTab === 'loans' && (
-              <div className="space-y-4">
+              <div className="space-y-4 text-xs font-semibold text-slate-600">
                 <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Corporate Loans & Advances</h5>
-                <div className="p-8 bg-slate-50 border border-slate-200 border-dashed rounded-2xl text-center text-slate-400 text-xs font-bold">
-                  No active loan or salary advance requests registered for this employee.
-                </div>
+                
+                {loans.length > 0 ? (
+                  <div className="space-y-3">
+                    {loans.map(loan => (
+                      <div key={loan.id} className="p-3 bg-slate-50 border border-slate-150 rounded-xl flex justify-between items-center font-semibold text-xs text-slate-700">
+                        <div>
+                          <span className="font-bold">PKR {parseFloat(loan.amount).toLocaleString()}</span>
+                          <p className="text-[10px] text-slate-400 mt-0.5">{loan.purpose} ({loan.repayment_period} months)</p>
+                        </div>
+                        <span className="px-2 py-0.5 rounded-full text-[9px] font-black bg-emerald-50 text-emerald-700 border border-emerald-100">
+                          {loan.status}
+                        </span>
+                      </div>
+                    ))}
+                  </div>
+                ) : (
+                  <div className="p-6 bg-slate-50 border border-slate-200 border-dashed rounded-2xl text-center text-slate-400 text-xs font-bold">
+                    No active loan or salary advance requests registered for this employee.
+                  </div>
+                )}
+
+                <form onSubmit={handleRequestLoan} className="mt-4 border-t border-slate-100 pt-4 space-y-3">
+                  <h6 className="text-[10px] font-black uppercase text-indigo-750">Request Corporate Loan / Advance</h6>
+                  
+                  <div className="grid grid-cols-2 gap-4">
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-extrabold text-slate-400">Loan Amount (PKR) *</label>
+                      <input
+                        type="number"
+                        required
+                        className="w-full p-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-500 font-semibold"
+                        value={newLoan.amount}
+                        onChange={e => setNewLoan({...newLoan, amount: e.target.value})}
+                        placeholder="e.g. 50000"
+                      />
+                    </div>
+                    <div className="space-y-1">
+                      <label className="text-[10px] uppercase font-extrabold text-slate-400">Repayment Period (Months)</label>
+                      <select
+                        className="w-full p-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-500 font-semibold cursor-pointer"
+                        value={newLoan.repaymentPeriod}
+                        onChange={e => setNewLoan({...newLoan, repaymentPeriod: e.target.value})}
+                      >
+                        <option value="3">3 Months</option>
+                        <option value="6">6 Months</option>
+                        <option value="12">12 Months</option>
+                        <option value="24">24 Months</option>
+                      </select>
+                    </div>
+                  </div>
+
+                  <div className="space-y-1">
+                    <label className="text-[10px] uppercase font-extrabold text-slate-400">Purpose / Reason *</label>
+                    <input
+                      required
+                      className="w-full p-2.5 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-500 font-semibold"
+                      value={newLoan.purpose}
+                      onChange={e => setNewLoan({...newLoan, purpose: e.target.value})}
+                      placeholder="e.g. Medical emergency, salary advance"
+                    />
+                  </div>
+
+                  <button
+                    type="submit"
+                    className="w-full py-2.5 bg-indigo-650 hover:bg-indigo-750 text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
+                  >
+                    Submit Loan Request
+                  </button>
+                </form>
               </div>
             )}
 

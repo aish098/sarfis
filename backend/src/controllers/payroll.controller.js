@@ -274,4 +274,46 @@ exports.getEmployeeOvertime = async (req, res) => {
   }
 };
 
+exports.requestLoan = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const { employeeId, amount, purpose, repaymentPeriod = 12 } = req.body;
+    
+    if (!employeeId || !amount || !purpose) {
+      return res.status(400).json({ error: 'Employee ID, amount, and purpose are required.' });
+    }
+
+    const monthlyInstallment = parseFloat(amount) / parseInt(repaymentPeriod);
+
+    const [loan] = await db('employee_loans')
+      .insert({
+        company_id: companyId,
+        employee_id: employeeId,
+        amount: parseFloat(amount),
+        purpose,
+        repayment_period: parseInt(repaymentPeriod),
+        monthly_installment: monthlyInstallment,
+        status: 'APPROVED'
+      })
+      .returning('*');
+
+    res.status(201).json(loan);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.getEmployeeLoans = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const { employeeId } = req.params;
+    const loans = await db('employee_loans')
+      .where({ company_id: companyId, employee_id: employeeId })
+      .orderBy('created_at', 'desc');
+    res.json(loans);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
 
