@@ -77,7 +77,7 @@ export default function BudgetRegisterPage() {
   const loadAccounts = async () => {
     try {
       // Fetch postable accounts
-      const { data } = await api.get(`/erp/accounts/${activeCompany.id}`);
+      const { data } = await api.get(`/accounts/company/${activeCompany.id}`);
       setAccounts(data.filter(a => a.is_postable));
     } catch (err) {
       console.error(err);
