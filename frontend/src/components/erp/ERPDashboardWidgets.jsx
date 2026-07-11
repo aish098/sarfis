@@ -8,6 +8,7 @@ import { computeChartLayout, normalizeChartRows, AdaptiveChartFrame, PBI } from 
 import { DynamicClusteredBarChart } from '../../components/charts/DynamicCharts';
 import { PowerBICard } from '../../components/charts/PBIDashboardPrimitives';
 import { pbiFadeUp, pbiStagger } from '../../components/charts/pbiAnimations';
+import AnalyticsCard from '../../components/ui/AnalyticsCard';
 
 export function LowStockWidget() {
   const { activeCompany } = useAuthStore();
@@ -140,14 +141,12 @@ export function SectorRevenueWidget() {
   ];
 
   return (
-    <PowerBICard
+    <AnalyticsCard
       title="Sector Revenue"
       subtitle="Revenue and gross profit by segment"
-      action={
-        <button onClick={() => navigate('/dashboard/distribution')} className="text-[11px] font-semibold text-[#118DFF] flex items-center gap-0.5 shrink-0">
-          View all <ArrowUpRight size={12} />
-        </button>
-      }
+      actions={[
+        { label: 'View all', onClick: () => navigate('/dashboard/distribution'), primary: true }
+      ]}
     >
       {loading ? (
         <div className="skeleton h-44 w-full rounded" />
@@ -161,7 +160,7 @@ export function SectorRevenueWidget() {
           <DynamicClusteredBarChart chartRows={chartRows} layout={layout} lookup={chartRows} series={series} />
         </AdaptiveChartFrame>
       )}
-    </PowerBICard>
+    </AnalyticsCard>
   );
 }
 

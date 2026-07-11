@@ -33,6 +33,7 @@ import {
   DynamicComboChart, DynamicBarSeries,
 } from "../components/charts/DynamicCharts";
 import { PowerBIDonut } from "../components/charts/PowerBIDonut";
+import AnalyticsCard from "../components/ui/AnalyticsCard";
 
 /* ═══ THEME — white/light like reference image ══════════════════════════════ */
 const W = {
@@ -130,12 +131,21 @@ function WhiteTooltip({ active, payload, label }) {
   return <ChartTooltip active={active} payload={payload} label={label} formatter={(v) => `PKR ${fmt(v)}`} />;
 }
 
-function PBIChartCard({ title, subtitle, children, height, style = {} }) {
+function PBIChartCard({ title, subtitle, children, height, style = {}, kpis = [], insights = [], actions = [], onDrillDown, onExportExcel, onRefresh }) {
   return (
-    <div className="pbi-card" style={{ padding: "18px 20px", ...style }}>
-      {title && <p className="pbi-chart-title">{title}</p>}
-      {subtitle && <p className="pbi-chart-sub">{subtitle}</p>}
-      <div style={{ width: "100%", height: height || "auto" }}>{children}</div>
+    <div style={style}>
+      <AnalyticsCard
+        title={title}
+        subtitle={subtitle}
+        kpis={kpis}
+        insights={insights}
+        actions={actions}
+        onDrillDown={onDrillDown}
+        onExportExcel={onExportExcel}
+        onRefresh={onRefresh}
+      >
+        <div style={{ width: "100%", height: height || "100%" }}>{children}</div>
+      </AnalyticsCard>
     </div>
   );
 }

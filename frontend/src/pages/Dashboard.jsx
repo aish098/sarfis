@@ -22,6 +22,7 @@ import {
 import { PowerBIDonut } from '../components/charts/PowerBIDonut';
 import { PowerBICard, PowerBIKpi, PowerBIHeader } from '../components/charts/PBIDashboardPrimitives';
 import { pbiStagger } from '../components/charts/pbiAnimations';
+import AnalyticsCard from '../components/ui/AnalyticsCard';
 
 import AccountsPage from './accounts/AccountsPage.jsx';
 import JournalEntryPage from './journal/JournalEntryPage.jsx';
@@ -156,7 +157,15 @@ function DashboardOverview() {
 
       {/* Primary visuals — 2-column Power BI grid */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <PowerBICard title="Financial Breakdown" subtitle="Profit vs expense share">
+        <AnalyticsCard 
+          title="Financial Breakdown" 
+          subtitle="Profit vs expense share"
+          kpis={[
+            { label: 'Net Profit', value: fmt(pieProfit) },
+            { label: 'Total Expenses', value: fmt(chartData.reduce((a, c) => a + (c.expenses || 0), 0)) },
+            { label: 'Profit Margin', value: `${profitMargin}%`, isPositive: parseFloat(profitMargin) > 0 }
+          ]}
+        >
           <PowerBIDonut
             data={[
               { name: 'Net Profit', value: pieProfit },
@@ -168,9 +177,16 @@ function DashboardOverview() {
             height={240}
             currency="PKR"
           />
-        </PowerBICard>
+        </AnalyticsCard>
 
-        <PowerBICard title="Revenue Trend" subtitle={`12 months ending ${periodLabel}`}>
+        <AnalyticsCard 
+          title="Revenue Trend" 
+          subtitle={`12 months ending ${periodLabel}`}
+          kpis={[
+            { label: 'Revenue', value: fmt(totalRev), change: '▲ 8%', isPositive: true },
+            { label: 'Expenses', value: fmt(totalExp) }
+          ]}
+        >
           <AdaptiveChartFrame layout={trendLayout} fallbackHeight={220}>
             <AreaChart data={chartData} margin={buildChartMargins(trendLayout)}>
               <defs>
@@ -192,11 +208,18 @@ function DashboardOverview() {
               <Area type="monotone" dataKey="expenses" name="Expenses" stroke={PBI.negative} strokeWidth={2} fill="url(#expGrad)" dot={false} />
             </AreaChart>
           </AdaptiveChartFrame>
-        </PowerBICard>
+        </AnalyticsCard>
       </div>
 
       {/* Cash flow — full width */}
-      <PowerBICard title="Operating Cash Flow" subtitle={`Monthly contribution through ${periodLabel}`}>
+      <AnalyticsCard 
+        title="Operating Cash Flow" 
+        subtitle={`Monthly contribution through ${periodLabel}`}
+        kpis={[
+          { label: 'Current Balance', value: fmt(cashBal) },
+          { label: 'Total Inflow', value: fmt(chartData.reduce((a, c) => a + (c.cashFlow || 0), 0)) }
+        ]}
+      >
         <AdaptiveChartFrame layout={cashLayout} fallbackHeight={220}>
           <BarChart data={chartData} margin={buildChartMargins(cashLayout)}>
             <defs>
@@ -215,7 +238,7 @@ function DashboardOverview() {
             </Bar>
           </BarChart>
         </AdaptiveChartFrame>
-      </PowerBICard>
+      </AnalyticsCard>
 
       {/* Operations row */}
       <div className="grid grid-cols-1 xl:grid-cols-3 gap-4">
