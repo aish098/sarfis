@@ -52,7 +52,8 @@ async function seed() {
           gl_account_id: salaryExpAccId,
           sequence_no: 10,
           display_order: 10,
-          is_active: true
+          is_active: true,
+          is_system_component: true
         },
         {
           company_id: companyId,
@@ -68,7 +69,8 @@ async function seed() {
           gl_account_id: salaryExpAccId,
           sequence_no: 20,
           display_order: 20,
-          is_active: true
+          is_active: true,
+          is_system_component: true
         },
         {
           company_id: companyId,
@@ -84,7 +86,8 @@ async function seed() {
           gl_account_id: salaryExpAccId,
           sequence_no: 30,
           display_order: 30,
-          is_active: true
+          is_active: true,
+          is_system_component: true
         },
         {
           company_id: companyId,
@@ -100,7 +103,8 @@ async function seed() {
           gl_account_id: salaryExpAccId,
           sequence_no: 40,
           display_order: 40,
-          is_active: true
+          is_active: true,
+          is_system_component: true
         },
         {
           company_id: companyId,
@@ -116,7 +120,8 @@ async function seed() {
           gl_account_id: taxPayAccId,
           sequence_no: 70,
           display_order: 70,
-          is_active: true
+          is_active: true,
+          is_system_component: true
         },
         {
           company_id: companyId,
@@ -132,7 +137,8 @@ async function seed() {
           gl_account_id: pfPayAccId,
           sequence_no: 60,
           display_order: 60,
-          is_active: true
+          is_active: true,
+          is_system_component: true
         },
         {
           company_id: companyId,
@@ -148,7 +154,8 @@ async function seed() {
           gl_account_id: eobiPayAccId,
           sequence_no: 80,
           display_order: 80,
-          is_active: true
+          is_active: true,
+          is_system_component: true
         },
         {
           company_id: companyId,
@@ -164,7 +171,8 @@ async function seed() {
           gl_account_id: ssPayAccId,
           sequence_no: 90,
           display_order: 90,
-          is_active: true
+          is_active: true,
+          is_system_component: true
         }
       ];
 
@@ -172,7 +180,7 @@ async function seed() {
         await db('salary_components')
           .insert(comp)
           .onConflict(['company_id', 'code'])
-          .ignore();
+          .merge(['is_system_component']);
       }
     }
 

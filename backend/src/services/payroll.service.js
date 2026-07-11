@@ -507,6 +507,7 @@ class PayrollService {
           company_id: companyId,
           period,
           status: 'DRAFT',
+          rule_engine_version: '5A.1',
           total_gross: totalGross,
           total_deductions: totalDeductions,
           total_net: totalNet,
