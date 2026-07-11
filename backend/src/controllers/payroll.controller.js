@@ -381,4 +381,36 @@ exports.closePayrollRun = async (req, res) => {
   }
 };
 
+exports.disburseBulkPayroll = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const userId = req.user?.id || 1;
+    const { runId, paymentMethod, remarks } = req.body;
+    const result = await PayrollService.disburseBulkPayroll(parseInt(companyId), parseInt(runId), paymentMethod, remarks, userId);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.getPaymentBatches = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const result = await PayrollService.getPaymentBatches(parseInt(companyId));
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.getPaymentReversals = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const result = await PayrollService.getPaymentReversals(parseInt(companyId));
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
 

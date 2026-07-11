@@ -36,6 +36,9 @@ router.post('/:companyId/lines/:id/release',        companyGuard, requirePermiss
 router.post('/:companyId/lines/:id/pay',            companyGuard, requirePermission('user.manage'), payrollCtrl.payPayrollLine);
 router.post('/:companyId/lines/:id/reverse-payment',companyGuard, requirePermission('user.manage'), payrollCtrl.reversePayrollPayment);
 router.post('/:companyId/lines/:id/adjust',         companyGuard, requirePermission('user.manage'), payrollCtrl.addPayrollAdjustment);
+router.post('/:companyId/disburse-bulk',            companyGuard, requirePermission('user.manage'), payrollCtrl.disburseBulkPayroll);
+router.get('/:companyId/batches',                  companyGuard, requirePermission('user.manage'), payrollCtrl.getPaymentBatches);
+router.get('/:companyId/reversals',                companyGuard, requirePermission('user.manage'), payrollCtrl.getPaymentReversals);
 
 // Engine Maturity Endpoints
 router.post('/:companyId/simulate',                 companyGuard, requirePermission('user.manage'), payrollCtrl.simulatePayrollRun);

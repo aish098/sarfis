@@ -1555,6 +1555,161 @@ class PayrollService {
       return { runId, status: 'CLOSED' };
     });
   }
+
+  static async disburseBulkPayroll(companyId, runId, paymentMethod, remarks, userId) {
+    return await db.transaction(async (trx) => {
+      const run = await trx('payroll_runs').where({ id: runId, company_id: companyId }).first();
+      if (!run) throw new Error('Payroll run not found.');
+      if (run.status !== 'POSTED') throw new Error('Salary payments can only be processed for posted payroll runs.');
+
+      // Find all pending lines for this run
+      const pendingLines = await trx('payroll_lines')
+        .where({ payroll_run_id: runId, payment_status: 'PENDING' });
+
+      if (pendingLines.length === 0) {
+        throw new Error('No pending salary lines found for this run.');
+      }
+
+      // Create batch record
+      const batchRef = `BAT-${runId}-${Date.now().toString().slice(-4)}`;
+      const totalNet = pendingLines.reduce((sum, l) => sum + parseFloat(l.net_salary || 0), 0);
+
+      const [batchIdObj] = await trx('payroll_payment_batches')
+        .insert({
+          company_id: companyId,
+          period: run.period,
+          batch_reference: batchRef,
+          payment_method: paymentMethod || 'BANK',
+          status: 'COMPLETED',
+          total_amount: totalNet,
+          employee_count: pendingLines.length,
+          created_by: userId,
+          approved_by: userId,
+          approved_at: trx.fn.now(),
+          sent_at: trx.fn.now(),
+          paid_at: trx.fn.now()
+        })
+        .returning('id');
+
+      const batchId = typeof batchIdObj === 'object' ? batchIdObj.id : batchIdObj;
+
+      const salaryPayAccId = await this.resolveAccount(companyId, '2020', 'Salary Payable', 'Liability', trx);
+      const bankAccId = await this.resolveAccount(companyId, '1010', 'Cash at Bank', 'Asset', trx);
+
+      for (const line of pendingLines) {
+        const emp = await trx('employees').where({ id: line.employee_id }).first();
+        const netSalary = parseFloat(line.net_salary);
+        const referenceNo = `PAY-${line.id}-${Date.now()}`;
+
+        const journalLines = [
+          { accountId: salaryPayAccId, debit: netSalary, credit: 0 },
+          { accountId: bankAccId, debit: 0, credit: netSalary }
+        ];
+
+        // Post individual payout journal entry
+        const jeId = await JournalService.createDraft({
+          companyId,
+          userId,
+          entryDate: `${run.period}-28`,
+          description: `Salary Payment (Bulk) - Period ${run.period} - Employee ID: ${line.employee_id}`,
+          lines: journalLines
+        });
+
+        await JournalService.postJournalEntry(jeId, companyId, userId, true, trx);
+
+        await trx('payroll_payments').insert({
+          company_id: companyId,
+          payroll_line_id: line.id,
+          employee_id: line.employee_id,
+          payment_batch_id: batchId,
+          journal_entry_id: jeId,
+          payment_method: paymentMethod || 'BANK',
+          bank_account: emp.account_number || 'CASH',
+          amount: netSalary,
+          currency: 'PKR',
+          exchange_rate: 1.0000,
+          payment_date: `${run.period}-28`,
+          payment_reference: referenceNo,
+          remarks: remarks || 'Salary disbursed in bulk batch',
+          created_by: userId
+        });
+
+        // Update line status to paid
+        await trx('payroll_lines')
+          .where({ id: line.id })
+          .update({
+            payment_status: 'PAID',
+            payment_date: trx.fn.now()
+          });
+      }
+
+      return { batchId, batchRef, totalAmount: totalNet, count: pendingLines.length };
+    });
+  }
+
+  static async getPaymentBatches(companyId) {
+    const batches = await db('payroll_payment_batches')
+      .where({ company_id: companyId })
+      .orderBy('created_at', 'desc');
+
+    const result = [];
+    for (const b of batches) {
+      const items = await db('payroll_payments as pp')
+        .join('employees as e', 'pp.employee_id', 'e.id')
+        .where({ 'pp.payment_batch_id': b.id })
+        .select('e.name as emp', 'pp.amount', 'pp.is_reversal');
+
+      result.push({
+        id: b.batch_reference,
+        period: b.period,
+        headcount: b.employee_count,
+        net: parseFloat(b.total_amount),
+        portal: b.bank_name || 'HBL Corporate Portal',
+        status: b.status,
+        date: new Date(b.created_at).toISOString().split('T')[0],
+        steps: [
+          { name: 'Created', done: true },
+          { name: 'Exported', done: !!b.sent_at },
+          { name: 'Sent to Bank', done: !!b.sent_at },
+          { name: 'Accepted', done: !!b.paid_at },
+          { name: 'Completed', done: b.status === 'COMPLETED' }
+        ],
+        items: items.map(it => ({
+          emp: it.emp,
+          amount: parseFloat(it.amount),
+          status: it.is_reversal ? 'REVERSED' : 'PAID'
+        }))
+      });
+    }
+    return result;
+  }
+
+  static async getPaymentReversals(companyId) {
+    const reversals = await db('payroll_payments as pp')
+      .join('employees as e', 'pp.employee_id', 'e.id')
+      .join('payroll_lines as pl', 'pp.payroll_line_id', 'pl.id')
+      .join('payroll_runs as pr', 'pl.payroll_run_id', 'pr.id')
+      .where({ 'pp.company_id': companyId, 'pp.is_reversal': true })
+      .select(
+        'pp.id',
+        'e.name as employee',
+        'pr.period',
+        'pp.amount',
+        'pp.remarks as reason',
+        'pp.payment_date as date'
+      )
+      .orderBy('pp.created_at', 'desc');
+
+    return reversals.map(r => ({
+      id: r.id,
+      employee: r.employee,
+      period: r.period,
+      amount: parseFloat(r.amount),
+      reason: r.reason || 'Reversal processed',
+      status: 'REVERSED',
+      date: new Date(r.date).toISOString().split('T')[0]
+    }));
+  }
 }
 
 module.exports = PayrollService;
