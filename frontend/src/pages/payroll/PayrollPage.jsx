@@ -1,7 +1,8 @@
 import React, { useState, Suspense, lazy } from 'react';
 import { 
   Users, DollarSign, Calendar, Landmark, CheckCircle, 
-  Activity, Sliders, Briefcase, BarChart2, ShieldCheck, Layers
+  Activity, Sliders, Briefcase, BarChart2, ShieldCheck, Layers,
+  UserCheck
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 
@@ -16,6 +17,7 @@ const PayrollReports = lazy(() => import('./PayrollReports'));
 export default function PayrollPage() {
   const { activeCompany } = useAuthStore();
   const [activeTab, setActiveTab] = useState('dashboard'); // dashboard | runs | employees | configuration | payments | reports
+  const [userRole, setUserRole] = useState('HR Manager'); // HR Officer | HR Manager | Finance | Treasury | Auditor
 
   const tabs = [
     { id: 'dashboard', label: 'Dashboard', icon: Layers },
@@ -45,24 +47,41 @@ export default function PayrollPage() {
           </div>
         </div>
 
-        {/* Tab Headers selector bar */}
-        <div className="flex flex-wrap items-center gap-1.5 bg-slate-200/40 p-1 rounded-2xl w-fit">
-          {tabs.map(tab => {
-            const Icon = tab.icon;
-            return (
-              <button
-                key={tab.id}
-                onClick={() => setActiveTab(tab.id)}
-                className={`px-3 py-1.5 rounded-xl transition-all uppercase tracking-wider text-[10px] font-black flex items-center gap-1.5 cursor-pointer ${
-                  activeTab === tab.id 
-                    ? 'bg-white text-slate-800 shadow-sm' 
-                    : 'text-slate-500 hover:text-slate-800'
-                }`}
-              >
-                <Icon size={12} /> {tab.label}
-              </button>
-            );
-          })}
+        {/* Dynamic Role Switcher and Tab Headers */}
+        <div className="flex flex-wrap items-center gap-4">
+          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-3xs">
+            <UserCheck size={14} className="text-slate-400" />
+            <select
+              value={userRole}
+              onChange={e => setUserRole(e.target.value)}
+              className="text-[10.5px] font-black uppercase text-slate-700 bg-transparent border-none outline-none cursor-pointer"
+            >
+              <option value="HR Officer">HR Officer</option>
+              <option value="HR Manager">HR Manager (Admin)</option>
+              <option value="Finance">Finance Director</option>
+              <option value="Treasury">Treasury Officer</option>
+              <option value="Auditor">Auditor (Read Only)</option>
+            </select>
+          </div>
+
+          <div className="flex flex-wrap items-center gap-1.5 bg-slate-200/40 p-1 rounded-2xl">
+            {tabs.map(tab => {
+              const Icon = tab.icon;
+              return (
+                <button
+                  key={tab.id}
+                  onClick={() => setActiveTab(tab.id)}
+                  className={`px-3 py-1.5 rounded-xl transition-all uppercase tracking-wider text-[10px] font-black flex items-center gap-1.5 cursor-pointer ${
+                    activeTab === tab.id 
+                      ? 'bg-white text-slate-800 shadow-sm' 
+                      : 'text-slate-500 hover:text-slate-800'
+                  }`}
+                >
+                  <Icon size={12} /> {tab.label}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
@@ -74,12 +93,12 @@ export default function PayrollPage() {
             <p className="text-slate-400 text-xs font-semibold">Loading payroll sub-workspace...</p>
           </div>
         }>
-          {activeTab === 'dashboard' && <PayrollDashboard onNavigateToTab={setActiveTab} />}
-          {activeTab === 'runs' && <PayrollRuns />}
-          {activeTab === 'employees' && <PayrollEmployees />}
-          {activeTab === 'configuration' && <PayrollConfiguration />}
-          {activeTab === 'payments' && <PayrollPayments />}
-          {activeTab === 'reports' && <PayrollReports />}
+          {activeTab === 'dashboard' && <PayrollDashboard onNavigateToTab={setActiveTab} userRole={userRole} />}
+          {activeTab === 'runs' && <PayrollRuns userRole={userRole} />}
+          {activeTab === 'employees' && <PayrollEmployees userRole={userRole} />}
+          {activeTab === 'configuration' && <PayrollConfiguration userRole={userRole} />}
+          {activeTab === 'payments' && <PayrollPayments userRole={userRole} />}
+          {activeTab === 'reports' && <PayrollReports userRole={userRole} />}
         </Suspense>
       </div>
     </div>

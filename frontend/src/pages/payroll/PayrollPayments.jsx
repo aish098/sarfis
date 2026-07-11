@@ -2,12 +2,12 @@ import React, { useState } from 'react';
 import { 
   Landmark, Download, CheckCircle, ShieldAlert, X, 
   RotateCcw, RefreshCw, Layers, DollarSign, ArrowRight,
-  ChevronRight
+  ChevronRight, Sparkles, UploadCloud
 } from 'lucide-react';
 import api from '../../services/api';
 
-export default function PayrollPayments() {
-  const [activePaymentTab, setActivePaymentTab] = useState('individual'); // individual | bulk | batches | export | reversals
+export default function PayrollPayments({ userRole }) {
+  const [activePaymentTab, setActivePaymentTab] = useState('individual'); // individual | bulk | batches | export | reversals | reconciliation
   const [loading, setLoading] = useState(false);
   const [actionMsg, setActionMsg] = useState(null);
 
@@ -41,6 +41,12 @@ export default function PayrollPayments() {
     ], items: []},
   ]);
 
+  const [reconciliationItems, setReconciliationItems] = useState([
+    { employee: 'Farhan Ali', payable: 156600, statementAmt: 156600, matchStatus: 'MATCHED' },
+    { employee: 'Sana Khan', payable: 130500, statementAmt: 130500, matchStatus: 'MATCHED' },
+    { employee: 'Zainab Ahmed', payable: 95700, statementAmt: 0, matchStatus: 'UNMATCHED' },
+  ]);
+
   const [reversals, setReversals] = useState([
     { id: 8, employee: 'Hamza Sheikh', period: '2026-07', amount: 165000, reason: 'Duplicate transfer error', status: 'REVERSED', date: '2026-07-30' },
   ]);
@@ -69,6 +75,8 @@ export default function PayrollPayments() {
     setActionMsg({ type: 'success', text: `Downloaded bank payout file formatted in ${selectedBankFormat} layout template.` });
   };
 
+  const disableActions = userRole === 'Auditor';
+
   return (
     <div className="space-y-6 text-xs font-semibold text-slate-600">
       {/* Alert Banner */}
@@ -93,6 +101,7 @@ export default function PayrollPayments() {
           { id: 'bulk', label: 'Bulk Disbursements' },
           { id: 'batches', label: 'Batch Monitor' },
           { id: 'export', label: 'Bank Export Gateway' },
+          { id: 'reconciliation', label: 'Reconciliation Workspace' },
           { id: 'reversals', label: 'Reversals Registry' }
         ].map(tb => (
           <button
@@ -142,7 +151,8 @@ export default function PayrollPayments() {
                     <td className="px-5 py-4 text-center">
                       <button 
                         onClick={() => handlePayIndividual(p.id, p.name)}
-                        className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-3xs cursor-pointer text-[10px] font-black"
+                        disabled={disableActions}
+                        className="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-3xs cursor-pointer text-[10px] font-black disabled:opacity-40"
                       >
                         Release Payment
                       </button>
@@ -173,7 +183,7 @@ export default function PayrollPayments() {
               <p className="text-base font-black font-mono text-slate-800 mt-0.5">PKR {pendingPayments.reduce((s, p) => s + p.net, 0).toLocaleString()}</p>
             </div>
             <button 
-              disabled={pendingPayments.length === 0}
+              disabled={pendingPayments.length === 0 || disableActions}
               className="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:opacity-50 text-white rounded-xl shadow-sm text-xs font-black cursor-pointer"
             >
               Confirm Bulk Release
@@ -193,7 +203,6 @@ export default function PayrollPayments() {
           <div className="grid grid-cols-1 gap-6">
             {paymentBatches.map(b => (
               <div key={b.id} className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4">
-                {/* Header */}
                 <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-slate-50 pb-3">
                   <div>
                     <h4 className="font-extrabold text-slate-800 text-sm flex items-center gap-1.5">
@@ -207,7 +216,6 @@ export default function PayrollPayments() {
                   </div>
                 </div>
 
-                {/* Batch Timeline */}
                 <div className="flex items-center justify-center gap-1 font-mono text-[9px]">
                   {b.steps.map((step, idx) => (
                     <React.Fragment key={step.name}>
@@ -221,7 +229,6 @@ export default function PayrollPayments() {
                   ))}
                 </div>
 
-                {/* Employee Transaction Lines */}
                 {b.items.length > 0 && (
                   <div className="border border-slate-100 rounded-2xl overflow-hidden mt-3">
                     <table className="w-full text-left border-collapse text-[11px]">
@@ -305,6 +312,72 @@ export default function PayrollPayments() {
                 ⚠️ Bank files conform strictly to the respective institution's direct clearing layout rules. Upload directly under treasury profiles.
               </p>
             </div>
+          </div>
+        </div>
+      )}
+
+      {/* Reconciliation Workspace */}
+      {activePaymentTab === 'reconciliation' && (
+        <div className="space-y-4">
+          <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+            <div>
+              <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Bank Reconciliation Workspace</h3>
+              <p className="text-[11px] text-slate-400 mt-1">Reconcile general ledger payable records against imported bank clearance statements.</p>
+            </div>
+            <div className="flex gap-2">
+              <button 
+                disabled={disableActions}
+                className="px-3.5 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl transition-all font-black flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+              >
+                <UploadCloud size={14} /> Import Statement
+              </button>
+              <button 
+                disabled={disableActions}
+                className="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all font-black flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
+              >
+                <Sparkles size={14} /> Auto-Match Lines
+              </button>
+            </div>
+          </div>
+
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden">
+            <table className="w-full text-left border-collapse">
+              <thead>
+                <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                  <th className="px-5 py-3.5">Employee Name</th>
+                  <th className="px-5 py-3.5 text-right">Ledger Salary Due</th>
+                  <th className="px-5 py-3.5 text-right">Bank Clearance Value</th>
+                  <th className="px-5 py-3.5 text-center">Status</th>
+                  <th className="px-5 py-3.5 text-center">Action</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 font-semibold text-slate-600">
+                {reconciliationItems.map((item, idx) => (
+                  <tr key={idx} className="hover:bg-slate-50/50">
+                    <td className="px-5 py-4 text-slate-800 font-bold">{item.employee}</td>
+                    <td className="px-5 py-4 text-right font-mono font-bold text-slate-800">PKR {item.payable.toLocaleString()}</td>
+                    <td className="px-5 py-4 text-right font-mono font-bold text-slate-800">PKR {item.statementAmt.toLocaleString()}</td>
+                    <td className="px-5 py-4 text-center">
+                      <span className={`px-2.5 py-0.5 rounded text-[9.5px] font-black border ${
+                        item.matchStatus === 'MATCHED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-rose-50 text-rose-700 border-rose-100 animate-pulse'
+                      }`}>
+                        {item.matchStatus}
+                      </span>
+                    </td>
+                    <td className="px-5 py-4 text-center">
+                      {item.matchStatus === 'UNMATCHED' ? (
+                        <button 
+                          disabled={disableActions}
+                          className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[9.5px] font-black shadow-3xs cursor-pointer disabled:opacity-40"
+                        >
+                          Manual Match
+                        </button>
+                      ) : <span className="text-slate-400 italic">Reconciled</span>}
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
           </div>
         </div>
       )}

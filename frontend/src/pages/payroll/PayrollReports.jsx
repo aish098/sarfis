@@ -2,15 +2,18 @@ import React, { useState } from 'react';
 import { 
   FileText, Download, CheckCircle, Search, Eye, Landmark, 
   ArrowRight, ShieldCheck, DollarSign, RefreshCw, BarChart2,
-  X
+  X, GitCommit, GitBranch, Layers
 } from 'lucide-react';
 
-export default function PayrollReports() {
-  const [activeReportTab, setActiveReportTab] = useState('register'); // register | cost | departments | tax | ledger
+export default function PayrollReports({ userRole }) {
+  const [activeReportTab, setActiveReportTab] = useState('register'); // register | cost | departments | ledger | audit
   
   // Payslip detail state
   const [selectedPayslip, setSelectedPayslip] = useState(null);
   const [showTrace, setShowTrace] = useState(false);
+
+  // Journal detail state
+  const [selectedVoucher, setSelectedVoucher] = useState(null);
 
   const payslips = [
     { id: 25, name: 'Farhan Ali', email: 'farhan@gmail.com', period: '2026-08', gross: 180000, net: 156600, status: 'PAID', trace: {
@@ -47,12 +50,77 @@ export default function PayrollReports() {
   ];
 
   const ledgerPostings = [
-    { id: 'JV-00431', date: '2026-07-28', period: '2026-07', amount: 32550000, description: 'Disbursement Run HBL', status: 'POSTED' },
-    { id: 'JV-00389', date: '2026-06-29', period: '2026-06', amount: 29800000, description: 'Disbursement Run MCB', status: 'POSTED' },
+    { id: 'JV-00431', date: '2026-07-28', period: '2026-07', amount: 32550000, description: 'Disbursement Run HBL', status: 'POSTED', entries: [
+      { account: 'Salary Expense (Engineering)', debit: 18500000, credit: 0 },
+      { account: 'Salary Expense (Product)', debit: 14050000, credit: 0 },
+      { account: 'Employer PF Matching Expense', debit: 1610000, credit: 0 },
+      { account: 'Salary Clearing Payable (HBL)', debit: 0, credit: 32550000 },
+      { account: 'PF Clearing Liability Payable', debit: 0, credit: 1610000 }
+    ]},
+    { id: 'JV-00389', date: '2026-06-29', period: '2026-06', amount: 29800000, description: 'Disbursement Run MCB', status: 'POSTED', entries: [
+      { account: 'Salary Expense (Engineering)', debit: 17000000, credit: 0 },
+      { account: 'Salary Expense (Product)', debit: 12800000, credit: 0 },
+      { account: 'Salary Clearing Payable (MCB)', debit: 0, credit: 29800000 }
+    ]},
+  ];
+
+  const auditExplorerSteps = [
+    { type: 'RUN', desc: 'Payroll calculation compiled (Rule Version 5A.1)', user: 'Rana Talal', time: 'Aug 10, 09:30 AM' },
+    { type: 'FORMULA', desc: 'Evaluated Component basic * 0.05 (Output: PKR 5,400)', user: 'Formula Parser Engine', time: 'Aug 10, 09:32 AM' },
+    { type: 'JOURNAL', desc: 'Generated & Posted GL Journal Entry JV-00431', user: 'Finance System', time: 'Aug 12, 11:35 AM' },
+    { type: 'PAYMENT', desc: 'Released HBL disbursement batch BAT-0021', user: 'Treasury Officer', time: 'Aug 15, 11:50 AM' },
+    { type: 'BANK', desc: 'Direct clearing confirmation response code: 00 (Success)', user: 'HBL API Gateway', time: 'Aug 15, 12:00 PM' }
   ];
 
   return (
     <div className="space-y-6 text-xs font-semibold text-slate-600 relative">
+      {/* Journal Voucher Double-Entry Modal */}
+      {selectedVoucher && (
+        <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-3xl border border-slate-200 shadow-2xl max-w-2xl w-full overflow-hidden text-xs font-semibold text-slate-600">
+            <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
+              <div>
+                <h4 className="font-black text-slate-800 text-sm">Ledger Journal Voucher Double-Entry View</h4>
+                <p className="text-[10px] text-slate-400 font-semibold">{selectedVoucher.description} — Voucher {selectedVoucher.id}</p>
+              </div>
+              <button onClick={() => setSelectedVoucher(null)} className="text-slate-400 hover:text-slate-600 cursor-pointer">
+                <X size={15} />
+              </button>
+            </div>
+
+            <div className="p-5 space-y-4">
+              <div className="border border-slate-150 rounded-2xl overflow-hidden">
+                <table className="w-full text-left border-collapse text-[11px]">
+                  <thead>
+                    <tr className="bg-slate-50 border-b border-slate-150 text-[9px] font-black uppercase tracking-wider text-slate-400">
+                      <th className="px-4 py-2.5">General Ledger Account Target</th>
+                      <th className="px-4 py-2.5 text-right">Debit (PKR)</th>
+                      <th className="px-4 py-2.5 text-right">Credit (PKR)</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 font-semibold text-slate-600 font-mono">
+                    {selectedVoucher.entries.map((entry, idx) => (
+                      <tr key={idx}>
+                        <td className="px-4 py-2.5 font-sans font-bold text-slate-700">{entry.account}</td>
+                        <td className="px-4 py-2.5 text-right text-emerald-600 font-bold">{entry.debit > 0 ? entry.debit.toLocaleString() : '—'}</td>
+                        <td className="px-4 py-2.5 text-right text-indigo-600 font-bold">{entry.credit > 0 ? entry.credit.toLocaleString() : '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex justify-between items-center text-[10px] font-black text-slate-400 uppercase p-1">
+                <span>Voucher Balanced Verification Status</span>
+                <span className="text-emerald-600 bg-emerald-50 px-2 py-0.5 rounded border border-emerald-100 flex items-center gap-1">
+                  <CheckCircle size={10} /> Balanced & Reconciled
+                </span>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* Payslip Detail Drawer / Modal with JSON Formula Trace */}
       {selectedPayslip && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -127,13 +195,13 @@ export default function PayrollReports() {
           { id: 'register', label: 'Payslips & Register' },
           { id: 'cost', label: 'Employee Cost Analysis' },
           { id: 'departments', label: 'Budget vs Actual FP&A' },
-          { id: 'tax', label: 'Tax & Compliance' },
-          { id: 'ledger', label: 'Ledger Postings' }
+          { id: 'ledger', label: 'Ledger Postings' },
+          { id: 'audit', label: 'Audit Explorer Timeline' }
         ].map(tb => (
           <button
             key={tb.id}
             onClick={() => setActiveReportTab(tb.id)}
-            className={`px-4 py-2 rounded-xl transition-all uppercase tracking-wider text-[10px] font-black ${
+            className={`px-4 py-2 rounded-xl transition-all uppercase tracking-wider text-[10px] font-black cursor-pointer ${
               activeReportTab === tb.id ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
@@ -284,45 +352,12 @@ export default function PayrollReports() {
         </div>
       )}
 
-      {/* Tax & Compliance Tab */}
-      {activeReportTab === 'tax' && (
-        <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4 text-xs font-semibold text-slate-600">
-          <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Statutory Tax & Compliance Logs</h3>
-          <p className="text-[11px] text-slate-400 leading-relaxed font-normal">
-            Tax Year 2026 returns generated according to Federal Board of Revenue (FBR) guidelines.
-          </p>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between">
-              <div>
-                <span className="text-[9px] text-slate-400 uppercase font-extrabold tracking-wider block">Income Tax Returns</span>
-                <p className="text-slate-800 font-bold mt-1">FBR Form 149 Compiled</p>
-              </div>
-              <button className="text-indigo-600 hover:underline cursor-pointer self-start text-[10px] font-black mt-3">Download PDF</button>
-            </div>
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between">
-              <div>
-                <span className="text-[9px] text-slate-400 uppercase font-extrabold tracking-wider block">EOBI Contributions</span>
-                <p className="text-slate-800 font-bold mt-1">Pension Fund Register</p>
-              </div>
-              <button className="text-indigo-600 hover:underline cursor-pointer self-start text-[10px] font-black mt-3">Download PDF</button>
-            </div>
-            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl flex flex-col justify-between">
-              <div>
-                <span className="text-[9px] text-slate-400 uppercase font-extrabold tracking-wider block">Social Security Contribution</span>
-                <p className="text-slate-800 font-bold mt-1">PESSI Form R-5 Register</p>
-              </div>
-              <button className="text-indigo-600 hover:underline cursor-pointer self-start text-[10px] font-black mt-3">Download PDF</button>
-            </div>
-          </div>
-        </div>
-      )}
-
       {/* Ledger Postings Tab */}
       {activeReportTab === 'ledger' && (
         <div className="space-y-4">
           <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs">
             <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">General Ledger Posting Logs</h3>
-            <p className="text-[11px] text-slate-400 mt-1">Verify automated journal postings created on finalizing monthly payroll runs.</p>
+            <p className="text-[11px] text-slate-400 mt-1">Verify automated journal postings created on finalizing monthly payroll runs. Click Voucher ID to view double entries.</p>
           </div>
 
           <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden">
@@ -340,7 +375,12 @@ export default function PayrollReports() {
               <tbody className="divide-y divide-slate-50 font-semibold text-slate-600">
                 {ledgerPostings.map(lp => (
                   <tr key={lp.id} className="hover:bg-slate-50/50">
-                    <td className="px-5 py-4 font-mono font-bold text-indigo-600 hover:underline cursor-pointer">{lp.id}</td>
+                    <td 
+                      onClick={() => setSelectedVoucher(lp)}
+                      className="px-5 py-4 font-mono font-bold text-indigo-600 hover:underline cursor-pointer"
+                    >
+                      {lp.id}
+                    </td>
                     <td className="px-5 py-4 font-mono">{lp.date}</td>
                     <td className="px-5 py-4 font-bold text-slate-800">Period {lp.period}</td>
                     <td className="px-5 py-4 text-right font-mono font-bold text-slate-800">PKR {lp.amount.toLocaleString()}</td>
@@ -357,6 +397,35 @@ export default function PayrollReports() {
           </div>
         </div>
       )}
+
+      {/* Audit Explorer Timeline Tab */}
+      {activeReportTab === 'audit' && (
+        <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+          <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Payroll Lifecycle Audit Explorer</h3>
+          <div className="relative border-l border-slate-100 pl-4 ml-2 space-y-6 text-xs font-semibold">
+            {auditExplorerSteps.map((step, idx) => (
+              <div key={idx} className="relative">
+                <span className="absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full bg-indigo-600 ring-4 ring-white" />
+                <div className="flex justify-between items-center">
+                  <span className="text-[10px] text-indigo-600 font-mono font-black uppercase bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">
+                    {step.type}
+                  </span>
+                  <span className="text-[10px] text-slate-400 font-bold">{step.time}</span>
+                </div>
+                <p className="text-slate-800 mt-1 font-bold">{step.desc}</p>
+                <p className="text-[10px] text-slate-400 mt-0.5">Authorized by: {step.user}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      )}
     </div>
+  );
+}
+
+// Simple internal modal X icon
+function X({ size }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
   );
 }

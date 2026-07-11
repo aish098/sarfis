@@ -2,10 +2,10 @@ import React, { useState } from 'react';
 import { 
   Play, RefreshCw, CheckCircle, ShieldAlert, ArrowRight, 
   Layers, Calendar, ChevronRight, FileText, DollarSign, X,
-  AlertOctagon, CheckSquare, Clock
+  AlertOctagon, CheckSquare, Clock, Lock
 } from 'lucide-react';
 
-export default function PayrollRuns() {
+export default function PayrollRuns({ userRole }) {
   const [activeTab, setActiveTab] = useState('ALL');
   const [activeRunsSection, setActiveRunsSection] = useState('list'); // list | exceptions
   const [runs, setRuns] = useState([
@@ -22,6 +22,11 @@ export default function PayrollRuns() {
 
   const filteredRuns = runs.filter(r => activeTab === 'ALL' || r.status === activeTab);
 
+  // Role Action Limits
+  const canGenerate = userRole === 'HR Officer' || userRole === 'HR Manager';
+  const canApprove = userRole === 'HR Manager' || userRole === 'Finance';
+  const canPost = userRole === 'Finance' || userRole === 'HR Manager';
+
   const handleSimulate = () => {
     setLoading(true);
     setTimeout(() => {
@@ -33,6 +38,10 @@ export default function PayrollRuns() {
       setShowSimResult(true);
       setLoading(false);
     }, 1000);
+  };
+
+  const handleClosePeriod = (id) => {
+    setRuns(prev => prev.map(r => r.id === id ? { ...r, status: 'CLOSED' } : r));
   };
 
   const getDetailedTimeline = (status) => {
@@ -91,13 +100,16 @@ export default function PayrollRuns() {
         <div className="flex items-center gap-2.5 flex-wrap">
           <button 
             onClick={handleSimulate} 
-            disabled={loading}
-            className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl transition-all shadow-3xs flex items-center gap-1.5 cursor-pointer"
+            disabled={loading || userRole === 'Auditor'}
+            className="px-4 py-2 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-xl transition-all shadow-3xs flex items-center gap-1.5 cursor-pointer disabled:opacity-40"
           >
             {loading ? <RefreshCw size={12} className="animate-spin text-indigo-600" /> : <RefreshCw size={12} className="text-indigo-600" />}
             Simulate Run
           </button>
-          <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer font-black">
+          <button 
+            disabled={!canGenerate}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer font-black"
+          >
             <Play size={12} /> Generate Run
           </button>
         </div>
@@ -200,21 +212,41 @@ export default function PayrollRuns() {
                           <div className="flex items-center justify-center gap-1.5">
                             {run.status === 'DRAFT' && (
                               <>
-                                <button className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-lg shadow-3xs cursor-pointer text-[10px] font-black">
+                                <button 
+                                  disabled={!canApprove}
+                                  className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-lg shadow-3xs cursor-pointer text-[10px] font-black disabled:opacity-40"
+                                >
                                   Submit
                                 </button>
-                                <button className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-3xs cursor-pointer text-[10px] font-black">
+                                <button 
+                                  disabled={!canPost}
+                                  className="px-2.5 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg shadow-3xs cursor-pointer text-[10px] font-black disabled:opacity-40"
+                                >
                                   Post
                                 </button>
                               </>
                             )}
                             {run.status === 'POSTED' && (
-                              <button className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 rounded-lg shadow-3xs cursor-pointer text-[10px] font-black">
+                              <div className="flex items-center gap-1.5">
+                                <button 
+                                  disabled={userRole === 'Auditor'}
+                                  onClick={() => handleClosePeriod(run.id)}
+                                  className="px-2.5 py-1 bg-slate-900 hover:bg-black text-white rounded-lg shadow-3xs cursor-pointer text-[10px] font-black disabled:opacity-40"
+                                >
+                                  Close Period
+                                </button>
+                                <button 
+                                  disabled={!canPost}
+                                  className="px-2.5 py-1 bg-amber-50 hover:bg-amber-100 border border-amber-200 text-amber-700 rounded-lg shadow-3xs cursor-pointer text-[10px] font-black disabled:opacity-40"
+                                >
                                   Rollback
-                              </button>
+                                </button>
+                              </div>
                             )}
                             {run.status === 'CLOSED' && (
-                              <span className="text-slate-400 italic text-[10px]">Archived</span>
+                              <span className="px-2 py-0.5 rounded bg-slate-100 border border-slate-200 text-slate-500 text-[9.5px] font-black uppercase flex items-center gap-1">
+                                <Lock size={10} /> LOCKED
+                              </span>
                             )}
                           </div>
                         </td>
@@ -246,7 +278,10 @@ export default function PayrollRuns() {
                     <p className="text-[11px] text-slate-500 font-normal leading-relaxed mt-0.5">{exp.detail}</p>
                   </div>
                 </div>
-                <button className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-[10px] font-black transition-all shadow-3xs cursor-pointer">
+                <button 
+                  disabled={userRole === 'Auditor'}
+                  className="px-3 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 text-slate-700 rounded-xl text-[10px] font-black transition-all shadow-3xs cursor-pointer disabled:opacity-40"
+                >
                   Resolve Exception
                 </button>
               </div>
@@ -255,5 +290,12 @@ export default function PayrollRuns() {
         </div>
       )}
     </div>
+  );
+}
+
+// Simple internal modal X icon
+function X({ size }) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={size} height={size} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="18" y1="6" x2="6" y2="18"></line><line x1="6" y1="6" x2="18" y2="18"></line></svg>
   );
 }

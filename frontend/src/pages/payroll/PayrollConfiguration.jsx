@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
 import { 
   Lock, Settings, Plus, Play, RefreshCw, CheckCircle, 
-  HelpCircle, Trash2, Edit2, ShieldAlert, Sliders, Calendar, ArrowRight
+  HelpCircle, Trash2, Edit2, ShieldAlert, Sliders, Calendar, ArrowRight,
+  Globe
 } from 'lucide-react';
 import api from '../../services/api';
 
-export default function PayrollConfiguration() {
+export default function PayrollConfiguration({ userRole }) {
   const [activeConfigTab, setActiveConfigTab] = useState('structures'); // structures | components | formula | rules
 
   // Structures state
@@ -33,20 +34,25 @@ export default function PayrollConfiguration() {
   const [sandboxError, setSandboxError] = useState(null);
   const [sandboxLoading, setSandboxLoading] = useState(false);
 
+  // Multi-Currency Exchange Settings
+  const [currencies, setCurrencies] = useState([
+    { code: 'PKR', base: true, rate: 1.0, type: 'Base Currency (General Ledger Reporting)' },
+    { code: 'USD', base: false, rate: 278.50, type: 'Contract Conversion Rate' },
+    { code: 'AED', base: false, rate: 75.80, type: 'Contract Conversion Rate' },
+    { code: 'SAR', base: false, rate: 74.20, type: 'Contract Conversion Rate' }
+  ]);
+
   const handleValidateFormula = async () => {
     setSandboxLoading(true);
     setSandboxResult(null);
     setSandboxError(null);
     try {
-      // Validate with API
       const res = await api.post('/payroll/1/formula/validate', {
         expression: testFormula
       });
       if (res.data.valid) {
-        // Calculate preview local calculation
         try {
           const vars = JSON.parse(testVars);
-          // Very simple math execution for presentation preview trace
           let resultValue = 0;
           let traceSteps = [];
           if (testFormula.toLowerCase().includes('if')) {
@@ -79,6 +85,8 @@ export default function PayrollConfiguration() {
     }
   };
 
+  const disableEdit = userRole === 'Auditor';
+
   return (
     <div className="space-y-6 text-xs font-semibold text-slate-600">
       {/* Configuration sub tabs */}
@@ -87,12 +95,12 @@ export default function PayrollConfiguration() {
           { id: 'structures', label: 'Salary Structures' },
           { id: 'components', label: 'Salary Components' },
           { id: 'formula', label: 'Formula Builder Sandbox' },
-          { id: 'rules', label: 'Tax & Pension Rules' }
+          { id: 'rules', label: 'Tax & Multi-Currency Rules' }
         ].map(tb => (
           <button
             key={tb.id}
             onClick={() => setActiveConfigTab(tb.id)}
-            className={`px-4 py-2 rounded-xl transition-all uppercase tracking-wider text-[10px] font-black ${
+            className={`px-4 py-2 rounded-xl transition-all uppercase tracking-wider text-[10px] font-black cursor-pointer ${
               activeConfigTab === tb.id ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
@@ -109,7 +117,10 @@ export default function PayrollConfiguration() {
               <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Salary Structures</h3>
               <p className="text-[11px] text-slate-400 mt-1">Versioned templates mapping employee pay configurations.</p>
             </div>
-            <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all font-black flex items-center gap-1">
+            <button 
+              disabled={disableEdit}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-xl transition-all font-black flex items-center gap-1 cursor-pointer"
+            >
               <Plus size={13} /> Create Structure
             </button>
           </div>
@@ -141,7 +152,10 @@ export default function PayrollConfiguration() {
                       </span>
                     </td>
                     <td className="px-5 py-4 text-center">
-                      <button className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-lg shadow-3xs cursor-pointer text-[10px] font-black">
+                      <button 
+                        disabled={disableEdit}
+                        className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-lg shadow-3xs cursor-pointer text-[10px] font-black disabled:opacity-40"
+                      >
                         Create Revision
                       </button>
                     </td>
@@ -161,7 +175,10 @@ export default function PayrollConfiguration() {
               <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Salary Components Master</h3>
               <p className="text-[11px] text-slate-400 mt-1">Earning and deduction variables. Locked system components cannot be deleted.</p>
             </div>
-            <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all font-black flex items-center gap-1">
+            <button 
+              disabled={disableEdit}
+              className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-xl transition-all font-black flex items-center gap-1 cursor-pointer"
+            >
               <Plus size={13} /> Add Component
             </button>
           </div>
@@ -202,12 +219,15 @@ export default function PayrollConfiguration() {
                     </td>
                     <td className="px-5 py-4 text-center">
                       <div className="flex items-center justify-center gap-1.5">
-                        <button className="p-1 text-slate-400 hover:text-indigo-600 rounded">
+                        <button 
+                          disabled={disableEdit}
+                          className="p-1 text-slate-400 hover:text-indigo-600 rounded disabled:opacity-30"
+                        >
                           <Edit2 size={13} />
                         </button>
                         <button 
-                          disabled={comp.system}
-                          className={`p-1 rounded ${comp.system ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-rose-600'}`}
+                          disabled={comp.system || disableEdit}
+                          className={`p-1 rounded ${(comp.system || disableEdit) ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-rose-600'}`}
                         >
                           <Trash2 size={13} />
                         </button>
@@ -233,7 +253,8 @@ export default function PayrollConfiguration() {
               <textarea
                 value={testFormula}
                 onChange={e => setTestFormula(e.target.value)}
-                className="w-full h-24 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-mono text-slate-800"
+                disabled={disableEdit}
+                className="w-full h-24 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-mono text-slate-800 disabled:opacity-40"
                 placeholder="e.g. if(gross > 100000, gross * 0.10, 0)"
               />
             </div>
@@ -243,15 +264,16 @@ export default function PayrollConfiguration() {
               <textarea
                 value={testVars}
                 onChange={e => setTestVars(e.target.value)}
-                className="w-full h-20 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-mono text-slate-800"
+                disabled={disableEdit}
+                className="w-full h-20 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-mono text-slate-800 disabled:opacity-40"
                 placeholder='e.g. {"gross": 120000}'
               />
             </div>
 
             <button
               onClick={handleValidateFormula}
-              disabled={sandboxLoading}
-              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer font-black"
+              disabled={sandboxLoading || disableEdit}
+              className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-sm flex items-center justify-center gap-1.5 cursor-pointer font-black disabled:opacity-40"
             >
               {sandboxLoading ? <RefreshCw size={14} className="animate-spin" /> : <RefreshCw size={14} />}
               Verify & Run Formula
@@ -284,7 +306,7 @@ export default function PayrollConfiguration() {
 
                 <div className="space-y-2">
                   <span className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider block">Auditor Execution Trace</span>
-                  <div className="border border-slate-100 rounded-xl divide-y divide-slate-50 overflow-hidden bg-slate-50/50">
+                  <div className="border border-slate-150 rounded-xl divide-y divide-slate-100 overflow-hidden bg-slate-50/50">
                     {sandboxResult.trace.map((step, index) => (
                       <div key={index} className="p-3 flex justify-between items-center font-mono text-[10.5px]">
                         <span className="text-slate-500">{step.expression}</span>
@@ -308,26 +330,58 @@ export default function PayrollConfiguration() {
         </div>
       )}
 
-      {/* Rules Pane */}
+      {/* Rules & Currency Slabs Pane */}
       {activeConfigTab === 'rules' && (
-        <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4 text-xs font-semibold text-slate-600">
-          <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">FBR Income Tax Slabs (Tax Year 2026)</h3>
-          <div className="overflow-x-auto rounded-2xl border border-slate-100">
-            <table className="w-full text-left border-collapse">
-              <thead>
-                <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                  <th className="px-4 py-2.5">Salary Bracket (PKR)</th>
-                  <th className="px-4 py-2.5 text-right">Fixed Tax</th>
-                  <th className="px-4 py-2.5 text-right">Tax Rate on Excess</th>
-                </tr>
-              </thead>
-              <tbody className="divide-y divide-slate-50 font-semibold text-slate-600">
-                <tr><td className="px-4 py-2.5">Up to 600,000 / year (50,000 / mo)</td><td className="px-4 py-2.5 text-right">PKR 0</td><td className="px-4 py-2.5 text-right">0%</td></tr>
-                <tr><td className="px-4 py-2.5">600,001 to 1,200,000 / year</td><td className="px-4 py-2.5 text-right">PKR 0</td><td className="px-4 py-2.5 text-right">5%</td></tr>
-                <tr><td className="px-4 py-2.5">1,200,001 to 2,400,000 / year</td><td className="px-4 py-2.5 text-right">PKR 30,000</td><td className="px-4 py-2.5 text-right">15%</td></tr>
-                <tr><td className="px-4 py-2.5">2,400,001 to 3,600,000 / year</td><td className="px-4 py-2.5 text-right">PKR 210,000</td><td className="px-4 py-2.5 text-right">25%</td></tr>
-              </tbody>
-            </table>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs font-semibold text-slate-600">
+          {/* FBR Slabs */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+            <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">FBR Income Tax Slabs (Tax Year 2026)</h3>
+            <div className="overflow-x-auto rounded-2xl border border-slate-100">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    <th className="px-4 py-2.5">Salary Bracket (PKR)</th>
+                    <th className="px-4 py-2.5 text-right">Fixed Tax</th>
+                    <th className="px-4 py-2.5 text-right">Tax Rate on Excess</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50 font-semibold text-slate-600">
+                  <tr><td className="px-4 py-2.5">Up to 600,000 / year (50,000 / mo)</td><td className="px-4 py-2.5 text-right">PKR 0</td><td className="px-4 py-2.5 text-right">0%</td></tr>
+                  <tr><td className="px-4 py-2.5">600,001 to 1,200,000 / year</td><td className="px-4 py-2.5 text-right">PKR 0</td><td className="px-4 py-2.5 text-right">5%</td></tr>
+                  <tr><td className="px-4 py-2.5">1,200,001 to 2,400,000 / year</td><td className="px-4 py-2.5 text-right">PKR 30,000</td><td className="px-4 py-2.5 text-right">15%</td></tr>
+                  <tr><td className="px-4 py-2.5">2,400,001 to 3,600,000 / year</td><td className="px-4 py-2.5 text-right">PKR 210,000</td><td className="px-4 py-2.5 text-right">25%</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          {/* Multi-Currency Exchange Settings */}
+          <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+            <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider flex items-center gap-1.5">
+              <Globe size={14} className="text-indigo-600" /> Multi-Currency Exchange Rates
+            </h3>
+            <div className="overflow-x-auto rounded-2xl border border-slate-100">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    <th className="px-4 py-2.5">Currency</th>
+                    <th className="px-4 py-2.5">Exchange Type</th>
+                    <th className="px-4 py-2.5 text-right">Rate (vs PKR)</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50 font-semibold text-slate-600">
+                  {currencies.map(c => (
+                    <tr key={c.code}>
+                      <td className="px-4 py-2.5 font-bold text-slate-800 flex items-center gap-1.5">
+                        {c.code} {c.base && <span className="bg-indigo-50 text-indigo-700 px-1 py-0.5 rounded text-[8px] font-black border border-indigo-100">BASE</span>}
+                      </td>
+                      <td className="px-4 py-2.5 text-slate-500">{c.type}</td>
+                      <td className="px-4 py-2.5 text-right font-mono font-bold text-slate-800">{c.rate.toFixed(2)}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}

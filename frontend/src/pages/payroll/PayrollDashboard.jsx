@@ -1,11 +1,11 @@
-import React from 'react';
+import React, { useState } from 'react';
 import { 
   Users, DollarSign, Calendar, Landmark, CheckCircle, 
   Play, RefreshCw, AlertTriangle, ShieldCheck, Clock, 
-  TrendingUp, ArrowRight, BookOpen, ShieldAlert, GitCommit
+  TrendingUp, ArrowRight, BookOpen, Lock, Activity, ShieldAlert
 } from 'lucide-react';
 
-export default function PayrollDashboard({ onNavigateToTab }) {
+export default function PayrollDashboard({ onNavigateToTab, userRole }) {
   const kpis = [
     { label: 'Total Payroll', value: 'PKR 32,550,000', change: '+4.2% vs last month', icon: DollarSign, color: 'text-indigo-600 bg-indigo-50' },
     { label: 'Employer Cost', value: 'PKR 35,100,000', change: 'Includes benefits & PF', icon: TrendingUp, color: 'text-emerald-600 bg-emerald-50' },
@@ -53,8 +53,19 @@ export default function PayrollDashboard({ onNavigateToTab }) {
     { id: 4, time: 'Yesterday', user: 'System Agent', text: 'Re-validated formula cache for all active components.' },
   ];
 
+  // Role Action Locks
+  const disableGenerate = userRole === 'Treasury' || userRole === 'Auditor' || userRole === 'Finance';
+  const disableSimulate = userRole === 'Treasury' || userRole === 'Auditor';
+  const disablePayments = userRole !== 'Treasury' && userRole !== 'HR Manager';
+
   return (
     <div className="space-y-6 text-xs font-semibold text-slate-600">
+      {/* Role Banner Indicator */}
+      <div className="bg-slate-100 px-4 py-2 rounded-xl flex items-center justify-between border border-slate-200">
+        <span className="flex items-center gap-1.5"><Lock size={12} className="text-slate-400" /> Active View Permission Role:</span>
+        <span className="font-black text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-100">{userRole}</span>
+      </div>
+
       {/* Top Banner Control Center */}
       <div className="bg-gradient-to-r from-slate-900 to-indigo-950 text-white rounded-3xl p-6 shadow-xl relative overflow-hidden border border-slate-800">
         <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
@@ -140,6 +151,29 @@ export default function PayrollDashboard({ onNavigateToTab }) {
         </div>
       </div>
 
+      {/* FP&A Financial Forecast variance */}
+      <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4">
+        <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">FP&A Financial Payroll Forecast Integration</h3>
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-center">
+          <div className="p-3 bg-slate-50 border border-slate-150 rounded-2xl">
+            <span className="text-slate-400 text-[10px] block">Current Period Payroll Cost</span>
+            <p className="font-mono text-slate-800 text-sm font-black mt-1">PKR 32,550,000</p>
+          </div>
+          <div className="p-3 bg-slate-50 border border-slate-150 rounded-2xl">
+            <span className="text-slate-400 text-[10px] block">Corporate Budget Limit</span>
+            <p className="font-mono text-slate-800 text-sm font-black mt-1">PKR 33,000,000</p>
+          </div>
+          <div className="p-3 bg-slate-50 border border-slate-150 rounded-2xl">
+            <span className="text-slate-400 text-[10px] block">FP&A Projected Target Forecast</span>
+            <p className="font-mono text-indigo-700 text-sm font-black mt-1">PKR 32,800,000</p>
+          </div>
+          <div className="p-3 bg-slate-50 border border-slate-150 rounded-2xl">
+            <span className="text-slate-400 text-[10px] block">Favorable Variance</span>
+            <p className="font-mono text-emerald-600 text-sm font-black mt-1">+ PKR 250,000</p>
+          </div>
+        </div>
+      </div>
+
       {/* Row: Payroll Calendar & Workflow Monitor */}
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
         {/* Payroll Calendar */}
@@ -186,9 +220,12 @@ export default function PayrollDashboard({ onNavigateToTab }) {
             <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
               <button 
                 onClick={() => onNavigateToTab('runs')}
-                className="p-3 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-2xl flex flex-col items-start gap-2.5 transition-all text-xs font-black text-left shadow-2xs group cursor-pointer"
+                disabled={disableGenerate}
+                className={`p-3 border rounded-2xl flex flex-col items-start gap-2.5 transition-all text-xs font-black text-left shadow-2xs group cursor-pointer ${
+                  disableGenerate ? 'opacity-40 cursor-not-allowed border-slate-100 bg-slate-50' : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                }`}
               >
-                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-xl group-hover:bg-indigo-600 group-hover:text-white transition-all">
+                <div className={`p-2 rounded-xl transition-all ${disableGenerate ? 'bg-slate-100 text-slate-300' : 'bg-indigo-50 text-indigo-600 group-hover:bg-indigo-600 group-hover:text-white'}`}>
                   <Play size={15} />
                 </div>
                 <div>
@@ -199,9 +236,12 @@ export default function PayrollDashboard({ onNavigateToTab }) {
 
               <button 
                 onClick={() => onNavigateToTab('runs')}
-                className="p-3 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-2xl flex flex-col items-start gap-2.5 transition-all text-xs font-black text-left shadow-2xs group cursor-pointer"
+                disabled={disableSimulate}
+                className={`p-3 border rounded-2xl flex flex-col items-start gap-2.5 transition-all text-xs font-black text-left shadow-2xs group cursor-pointer ${
+                  disableSimulate ? 'opacity-40 cursor-not-allowed border-slate-100 bg-slate-50' : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                }`}
               >
-                <div className="p-2 bg-cyan-50 text-cyan-600 rounded-xl group-hover:bg-cyan-600 group-hover:text-white transition-all">
+                <div className={`p-2 rounded-xl transition-all ${disableSimulate ? 'bg-slate-100 text-slate-300' : 'bg-cyan-50 text-cyan-600 group-hover:bg-cyan-600 group-hover:text-white'}`}>
                   <RefreshCw size={15} />
                 </div>
                 <div>
@@ -212,9 +252,12 @@ export default function PayrollDashboard({ onNavigateToTab }) {
 
               <button 
                 onClick={() => onNavigateToTab('payments')}
-                className="p-3 border border-slate-200 hover:bg-slate-50 text-slate-700 rounded-2xl flex flex-col items-start gap-2.5 transition-all text-xs font-black text-left shadow-2xs group cursor-pointer"
+                disabled={disablePayments}
+                className={`p-3 border rounded-2xl flex flex-col items-start gap-2.5 transition-all text-xs font-black text-left shadow-2xs group cursor-pointer ${
+                  disablePayments ? 'opacity-40 cursor-not-allowed border-slate-100 bg-slate-50' : 'border-slate-200 hover:bg-slate-50 text-slate-700'
+                }`}
               >
-                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-xl group-hover:bg-emerald-600 group-hover:text-white transition-all">
+                <div className={`p-2 rounded-xl transition-all ${disablePayments ? 'bg-slate-100 text-slate-300' : 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-600 group-hover:text-white'}`}>
                   <ShieldCheck size={15} />
                 </div>
                 <div>

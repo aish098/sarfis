@@ -5,7 +5,7 @@ import {
   Activity, Users, ClipboardList, Send, Ban, Undo
 } from 'lucide-react';
 
-export default function PayrollEmployees() {
+export default function PayrollEmployees({ userRole }) {
   const [searchTerm, setSearchTerm] = useState('');
   const [employees, setEmployees] = useState([
     { id: 31, name: 'Farhan Ali', email: 'farhan@gmail.com', department: 'Engineering', role: 'Senior Software Engineer', bankName: 'Habib Bank', bankAccount: 'PK12HABB0000123456789012', salary: 180000, status: 'Paid', notificationsCount: 2 },
@@ -36,6 +36,8 @@ export default function PayrollEmployees() {
     { project: 'Finance System Modules Development', share: '40%' },
     { project: 'Distribution Operations Platform Support', share: '60%' },
   ];
+
+  const disableActions = userRole === 'Auditor';
 
   return (
     <div className="space-y-6 text-xs font-semibold text-slate-600 relative">
@@ -94,15 +96,24 @@ export default function PayrollEmployees() {
                 <div className="space-y-2">
                   <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Quick Actions</h5>
                   <div className="grid grid-cols-3 gap-2 text-center text-[10px] font-black">
-                    <button className="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl flex flex-col items-center gap-1.5 transition-all shadow-3xs cursor-pointer text-slate-700">
+                    <button 
+                      disabled={disableActions}
+                      className="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl flex flex-col items-center gap-1.5 transition-all shadow-3xs cursor-pointer text-slate-700 disabled:opacity-40"
+                    >
                       <Send size={12} className="text-indigo-600" />
                       Email Payslip
                     </button>
-                    <button className="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl flex flex-col items-center gap-1.5 transition-all shadow-3xs cursor-pointer text-slate-700">
+                    <button 
+                      disabled={disableActions}
+                      className="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl flex flex-col items-center gap-1.5 transition-all shadow-3xs cursor-pointer text-slate-700 disabled:opacity-40"
+                    >
                       <Ban size={12} className="text-amber-500" />
                       Hold Salary
                     </button>
-                    <button className="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl flex flex-col items-center gap-1.5 transition-all shadow-3xs cursor-pointer text-slate-700">
+                    <button 
+                      disabled={disableActions}
+                      className="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl flex flex-col items-center gap-1.5 transition-all shadow-3xs cursor-pointer text-slate-700 disabled:opacity-40"
+                    >
                       <Undo size={12} className="text-rose-500" />
                       Reverse Payout
                     </button>
@@ -252,7 +263,10 @@ export default function PayrollEmployees() {
             onChange={e => setSearchTerm(e.target.value)}
           />
         </div>
-        <button className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer font-black">
+        <button 
+          disabled={disableActions}
+          className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer font-black"
+        >
           <Plus size={12} /> Add Employee
         </button>
       </div>
@@ -300,15 +314,21 @@ export default function PayrollEmployees() {
                   <td className="px-5 py-4 text-center whitespace-nowrap">
                     <button 
                       onClick={() => setSelectedEmp(emp)}
-                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-lg mr-1 transition-all"
+                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-lg mr-1 transition-all cursor-pointer"
                       title="View 360° Profile"
                     >
                       <Eye size={13} />
                     </button>
-                    <button className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-lg mr-1 transition-all">
+                    <button 
+                      disabled={disableActions}
+                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-lg mr-1 transition-all cursor-pointer disabled:opacity-30 disabled:hover:bg-transparent"
+                    >
                       <Edit2 size={13} />
                     </button>
-                    <button className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-lg transition-all">
+                    <button 
+                      disabled={disableActions}
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-lg transition-all cursor-pointer disabled:opacity-30 disabled:hover:bg-transparent"
+                    >
                       <Trash2 size={13} />
                     </button>
                   </td>
