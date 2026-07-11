@@ -2,12 +2,12 @@ import React, { useState, useEffect } from 'react';
 import { 
   Landmark, Download, CheckCircle, ShieldAlert, X, 
   RotateCcw, RefreshCw, Layers, DollarSign, ArrowRight,
-  ChevronRight, Sparkles, UploadCloud
+  ChevronRight, Sparkles, UploadCloud, ArrowLeft
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 
-export default function PayrollPayments({ userRole, initialTab = 'individual' }) {
+export default function PayrollPayments({ userRole, initialTab = 'individual', onBackToDashboard }) {
   const { activeCompany } = useAuthStore();
   const [activePaymentTab, setActivePaymentTab] = useState(initialTab); // individual | bulk | batches | export | reversals | reconciliation
 
@@ -140,26 +140,37 @@ export default function PayrollPayments({ userRole, initialTab = 'individual' })
         </div>
       )}
 
-      {/* Sub Tabs */}
-      <div className="flex border-b border-slate-200 bg-white p-2 rounded-2xl shadow-3xs gap-1.5 w-fit">
-        {[
-          { id: 'individual', label: 'Individual Payments' },
-          { id: 'bulk', label: 'Bulk Disbursements' },
-          { id: 'batches', label: 'Batch Monitor' },
-          { id: 'export', label: 'Bank Export Gateway' },
-          { id: 'reconciliation', label: 'Reconciliation Workspace' },
-          { id: 'reversals', label: 'Reversals Registry' }
-        ].map(tb => (
+      {/* Sub Tabs Controls & Navigation */}
+      <div className="flex justify-between items-center flex-wrap gap-4">
+        <div className="flex border-b border-slate-200 bg-white p-2 rounded-2xl shadow-3xs gap-1.5 w-fit">
+          {[
+            { id: 'individual', label: 'Individual Payments' },
+            { id: 'bulk', label: 'Bulk Disbursements' },
+            { id: 'batches', label: 'Batch Monitor' },
+            { id: 'export', label: 'Bank Export Gateway' },
+            { id: 'reconciliation', label: 'Reconciliation Workspace' },
+            { id: 'reversals', label: 'Reversals Registry' }
+          ].map(tb => (
+            <button
+              key={tb.id}
+              onClick={() => setActivePaymentTab(tb.id)}
+              className={`px-4 py-2 rounded-xl transition-all uppercase tracking-wider text-[10px] font-black ${
+                activePaymentTab === tb.id ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'
+              }`}
+            >
+              {tb.label}
+            </button>
+          ))}
+        </div>
+
+        {onBackToDashboard && (
           <button
-            key={tb.id}
-            onClick={() => setActivePaymentTab(tb.id)}
-            className={`px-4 py-2 rounded-xl transition-all uppercase tracking-wider text-[10px] font-black ${
-              activePaymentTab === tb.id ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'
-            }`}
+            onClick={onBackToDashboard}
+            className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl transition-all shadow-3xs flex items-center gap-1.5 cursor-pointer font-black text-[10px] uppercase"
           >
-            {tb.label}
+            <ArrowLeft size={12} className="text-slate-550" /> Back to Dashboard
           </button>
-        ))}
+        )}
       </div>
 
       {/* Individual Payments Tab */}
