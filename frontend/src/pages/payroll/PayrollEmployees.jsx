@@ -663,14 +663,6 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
           </table>
         </div>
       </div>
-
-      {/* Floating Action Button */}
-      {!disableActions && (
-        <FloatingActionButton 
-          onClick={() => setIsAdding(true)} 
-          label="New Profile"
-        />
-      )}
     </div>
   );
 }
