@@ -275,7 +275,7 @@ export default function BudgetDashboard() {
           </div>
 
           {/* Import Button */}
-          {data.status === 'NO_ACTIVE_BUDGET' || data.totalBudget === 0 ? (
+          {data.headerId && data.totalBudget === 0 ? (
             <button 
               onClick={() => { setWizardStep(1); setShowImportWizard(true); }}
               className="flex items-center gap-1.5 px-3 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs shadow transition-all cursor-pointer"

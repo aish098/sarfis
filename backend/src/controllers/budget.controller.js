@@ -1025,6 +1025,10 @@ exports.validateBudgetImport = async (req, res) => {
   const { id } = req.params;
   const { rows } = req.body;
 
+  if (!id || id === 'null' || isNaN(parseInt(id))) {
+    return res.status(400).json({ error: 'Invalid or missing budget identifier. Please select or create a draft budget header first.' });
+  }
+
   if (!rows || !Array.isArray(rows)) {
     return res.status(400).json({ error: 'Invalid import rows format.' });
   }
@@ -1106,6 +1110,10 @@ exports.commitBudgetImport = async (req, res) => {
   const companyId = req.companyId;
   const { id } = req.params;
   const { rows } = req.body;
+
+  if (!id || id === 'null' || isNaN(parseInt(id))) {
+    return res.status(400).json({ error: 'Invalid or missing budget identifier. Please select or create a draft budget header first.' });
+  }
 
   try {
     const header = await db('budget_headers').where({ id, company_id: companyId }).first();
