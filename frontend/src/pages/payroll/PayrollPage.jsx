@@ -20,8 +20,28 @@ export default function PayrollPage() {
   const [activeTab, setActiveTab] = useState('dashboard'); // dashboard | processing | employees | configuration | payments | reports
   const [paymentsInitialTab, setPaymentsInitialTab] = useState('individual');
   const [userRole, setUserRole] = useState('HR Manager'); // HR Officer | HR Manager | Finance | Treasury | Auditor
-  
+  const [isLoading, setIsLoading] = useState(false);
+  const [loadingText, setLoadingText] = useState('Syncing payroll workspace...');
+
+  const triggerTransition = (tabId) => {
+    let text = 'Syncing payroll workspace...';
+    const cleanId = tabId.split('-')[0];
+    if (cleanId === 'dashboard') text = 'Loading dashboard KPIs...';
+    else if (cleanId === 'processing') text = 'Initializing payroll engine...';
+    else if (cleanId === 'employees') text = 'Loading employee directories...';
+    else if (cleanId === 'payments') text = 'Verifying ledger disbursements...';
+    else if (cleanId === 'reports') text = 'Compiling financial registers...';
+    else if (cleanId === 'configuration') text = 'Syncing structural configuration...';
+
+    setLoadingText(text);
+    setIsLoading(true);
+    setTimeout(() => {
+      setIsLoading(false);
+    }, 450);
+  };
+
   const handleNavigateToTab = (tabId) => {
+    triggerTransition(tabId);
     if (tabId === 'payments-reconciliation') {
       setPaymentsInitialTab('reconciliation');
       setActiveTab('payments');
@@ -297,6 +317,7 @@ export default function PayrollPage() {
                 <button
                   key={tab.id}
                   onClick={() => {
+                    triggerTransition(tab.id);
                     setPaymentsInitialTab('individual');
                     setActiveTab(tab.id);
                   }}
@@ -323,20 +344,35 @@ export default function PayrollPage() {
       </div>
 
       {/* Lazily Mounted Sub-Workspace Panel */}
-      <div className="min-h-[500px]">
-        <Suspense fallback={
-          <div className="p-16 text-center space-y-4">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto" />
-            <p className="text-slate-400 text-xs font-semibold">Loading payroll sub-workspace...</p>
+      <div className="min-h-[500px] relative">
+        {isLoading ? (
+          <div className="flex min-h-[400px] w-full items-center justify-center py-16 animate-in fade-in duration-200">
+            <div className="bg-white/80 backdrop-blur-md border border-slate-200/50 rounded-3xl p-8 flex flex-col items-center shadow-xl shadow-slate-900/5 max-w-sm w-full mx-4">
+              <div className="relative w-12 h-12 mb-4 animate-in zoom-in duration-300">
+                {/* Outer glowing pulsing ring */}
+                <div className="absolute inset-0 rounded-full border-[3px] border-emerald-500/20 animate-pulse"></div>
+                {/* Inner rotating gradient arc */}
+                <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-emerald-600 border-r-emerald-600 animate-spin"></div>
+              </div>
+              <h2 className="text-[14px] font-black text-slate-950 tracking-tight font-mono">S A R F I S</h2>
+              <p className="mt-2 text-slate-500 text-[11px] font-medium tracking-wide">{loadingText}</p>
+            </div>
           </div>
-        }>
-          {activeTab === 'dashboard' && <PayrollDashboard onNavigateToTab={handleNavigateToTab} userRole={userRole} />}
-          {activeTab === 'processing' && <PayrollProcessing userRole={userRole} onBackToDashboard={() => handleNavigateToTab('dashboard')} onNavigateToTab={handleNavigateToTab} />}
-          {activeTab === 'employees' && <PayrollEmployees userRole={userRole} onBackToDashboard={() => handleNavigateToTab('dashboard')} />}
-          {activeTab === 'configuration' && <PayrollConfiguration userRole={userRole} />}
-          {activeTab === 'payments' && <PayrollPayments userRole={userRole} initialTab={paymentsInitialTab} onBackToDashboard={() => handleNavigateToTab('dashboard')} />}
-          {activeTab === 'reports' && <PayrollReports userRole={userRole} />}
-        </Suspense>
+        ) : (
+          <Suspense fallback={
+            <div className="p-16 text-center space-y-4">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto" />
+              <p className="text-slate-400 text-xs font-semibold">Loading payroll sub-workspace...</p>
+            </div>
+          }>
+            {activeTab === 'dashboard' && <PayrollDashboard onNavigateToTab={handleNavigateToTab} userRole={userRole} />}
+            {activeTab === 'processing' && <PayrollProcessing userRole={userRole} onBackToDashboard={() => handleNavigateToTab('dashboard')} onNavigateToTab={handleNavigateToTab} />}
+            {activeTab === 'employees' && <PayrollEmployees userRole={userRole} onBackToDashboard={() => handleNavigateToTab('dashboard')} />}
+            {activeTab === 'configuration' && <PayrollConfiguration userRole={userRole} />}
+            {activeTab === 'payments' && <PayrollPayments userRole={userRole} initialTab={paymentsInitialTab} onBackToDashboard={() => handleNavigateToTab('dashboard')} />}
+            {activeTab === 'reports' && <PayrollReports userRole={userRole} />}
+          </Suspense>
+        )}
       </div>
     </div>
   );
