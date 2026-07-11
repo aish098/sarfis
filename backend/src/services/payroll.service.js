@@ -1508,6 +1508,23 @@ class PayrollService {
       return { valid: false, error: err.message };
     }
   }
+
+  static async closePayrollRun(runId, companyId, userId) {
+    return await db.transaction(async (trx) => {
+      const run = await trx('payroll_runs').where({ id: runId, company_id: companyId }).first();
+      if (!run) throw new Error('Payroll run not found.');
+      if (run.status !== 'POSTED') throw new Error('Can only close payroll runs that are posted.');
+
+      await trx('payroll_runs')
+        .where({ id: runId })
+        .update({
+          status: 'CLOSED',
+          updated_at: trx.fn.now()
+        });
+
+      return { runId, status: 'CLOSED' };
+    });
+  }
 }
 
 module.exports = PayrollService;

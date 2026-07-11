@@ -21,6 +21,7 @@ router.post('/:companyId/runs',                     companyGuard, requirePermiss
 router.post('/:companyId/runs/:id/submit',          companyGuard, requirePermission('user.manage'), payrollCtrl.submitToWorkflow);
 router.post('/:companyId/runs/:id/post',            companyGuard, requirePermission('user.manage'), payrollCtrl.postPayrollRun);
 router.post('/:companyId/runs/:id/reverse',         companyGuard, requirePermission('user.manage'), payrollCtrl.reversePayrollRun);
+router.post('/:companyId/runs/:id/close',           companyGuard, requirePermission('user.manage'), payrollCtrl.closePayrollRun);
 router.get('/:companyId/runs/:id/bank-file',        companyGuard, requirePermission('user.manage'), payrollCtrl.getBankFile);
 
 // Payslip Downloads & Reports

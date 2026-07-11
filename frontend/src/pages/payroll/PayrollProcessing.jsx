@@ -260,11 +260,11 @@ export default function PayrollProcessing({ userRole, onBackToDashboard, onNavig
     if (!currentRun) return;
     setLoading(true);
     try {
-      setCurrentRun(prev => prev ? { ...prev, status: 'CLOSED' } : null);
+      await api.post(`/payroll/${activeCompany.id}/runs/${currentRun.id}/close`);
       setActionMsg({ type: 'success', text: `Accounting period ${period} LOCKED. Recalculations and audit changes disabled.` });
       await fetchActiveAndArchiveRuns();
     } catch (err) {
-      setActionMsg({ type: 'error', text: err.message });
+      setActionMsg({ type: 'error', text: err.response?.data?.error || err.message });
     } finally {
       setLoading(false);
     }

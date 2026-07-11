@@ -370,4 +370,15 @@ exports.reversePayrollPayment = async (req, res) => {
   }
 };
 
+exports.closePayrollRun = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const userId = req.user?.id || 1;
+    const result = await PayrollService.closePayrollRun(parseInt(req.params.id), parseInt(companyId), userId);
+    res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
 
