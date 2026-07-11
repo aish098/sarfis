@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import RightDrawer from '../../components/ui/RightDrawer';
 
 export default function EmailCenterPage() {
   const { activeCompany } = useAuthStore();
@@ -18,6 +19,56 @@ export default function EmailCenterPage() {
   
   // Selected detail modal
   const [selectedItem, setSelectedItem] = useState(null);
+
+  // New Communication Compose Panel States
+  const [isComposing, setIsComposing] = useState(false);
+  const [employees, setEmployees] = useState([]);
+  const [composingMsg, setComposingMsg] = useState({
+    employeeId: '',
+    subject: '',
+    body: ''
+  });
+  const [sending, setSending] = useState(false);
+
+  const fetchEmployees = async () => {
+    if (!activeCompany?.id) return;
+    try {
+      const res = await api.get(`/employees/${activeCompany.id}`);
+      // Filter out employees without email addresses to avoid dispatch errors
+      const validEmployees = (res.data || []).filter(emp => emp.user_email || emp.email);
+      setEmployees(validEmployees);
+    } catch (err) {
+      console.error('Failed to fetch employees list for communication:', err);
+    }
+  };
+
+  useEffect(() => {
+    if (isComposing) {
+      fetchEmployees();
+    }
+  }, [isComposing, activeCompany?.id]);
+
+  const handleSendCommunication = async (e) => {
+    e.preventDefault();
+    if (!composingMsg.employeeId || !composingMsg.subject || !composingMsg.body) {
+      alert('Recipient employee, subject, and message body are required.');
+      return;
+    }
+    setSending(true);
+    setError(null);
+    try {
+      await api.post(`/notifications/admin/email-queue/compose/${activeCompany.id}`, composingMsg);
+      setSuccessMsg('Communication email queued successfully.');
+      setTimeout(() => setSuccessMsg(''), 3000);
+      setIsComposing(false);
+      setComposingMsg({ employeeId: '', subject: '', body: '' });
+      loadQueue();
+    } catch (err) {
+      setError(err.response?.data?.error || err.message);
+    } finally {
+      setSending(false);
+    }
+  };
 
   const loadQueue = useCallback(async () => {
     if (!activeCompany) return;
@@ -71,9 +122,17 @@ export default function EmailCenterPage() {
           </div>
         </div>
         
-        <button onClick={loadQueue} className="p-2.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl text-slate-600 transition-colors cursor-pointer self-end md:self-auto">
-          <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-        </button>
+        <div className="flex items-center gap-2 self-end md:self-auto">
+          <button 
+            onClick={() => setIsComposing(true)}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-black shadow-sm transition-all cursor-pointer flex items-center gap-1.5 text-[11px] uppercase tracking-wider"
+          >
+            <Send size={12} /> Send Communication
+          </button>
+          <button onClick={loadQueue} className="p-2.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl text-slate-600 transition-colors cursor-pointer">
+            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+          </button>
+        </div>
       </div>
 
       {successMsg && (
@@ -265,6 +324,66 @@ export default function EmailCenterPage() {
           </div>
         </div>
       )}
+
+      <RightDrawer
+        isOpen={isComposing}
+        onClose={() => {
+          setIsComposing(false);
+          setComposingMsg({ employeeId: '', subject: '', body: '' });
+        }}
+        title="Send Communication"
+        subtitle="Compose and queue direct email messages to your employees using enterprise mail settings."
+      >
+        <form onSubmit={handleSendCommunication} className="space-y-4 font-semibold text-xs text-slate-600 pr-1">
+          <div className="space-y-1">
+            <label className="text-[10px] uppercase font-extrabold text-slate-400">Recipient Employee *</label>
+            <select
+              required
+              className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-semibold cursor-pointer text-xs"
+              value={composingMsg.employeeId}
+              onChange={e => setComposingMsg({...composingMsg, employeeId: e.target.value})}
+            >
+              <option value="">— Select Employee —</option>
+              {employees.map(emp => (
+                <option key={emp.id} value={emp.id}>
+                  {emp.name} ({emp.user_email || emp.email})
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] uppercase font-extrabold text-slate-400">Subject *</label>
+            <input
+              required
+              className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-semibold text-xs"
+              value={composingMsg.subject}
+              onChange={e => setComposingMsg({...composingMsg, subject: e.target.value})}
+              placeholder="e.g. August performance review invitation"
+            />
+          </div>
+
+          <div className="space-y-1">
+            <label className="text-[10px] uppercase font-extrabold text-slate-400">Message Body *</label>
+            <textarea
+              required
+              rows={12}
+              className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-semibold text-xs leading-normal"
+              value={composingMsg.body}
+              onChange={e => setComposingMsg({...composingMsg, body: e.target.value})}
+              placeholder="Write your email message here..."
+            />
+          </div>
+
+          <button
+            type="submit"
+            disabled={sending}
+            className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black rounded-xl text-xs cursor-pointer shadow-sm transition-colors mt-2"
+          >
+            {sending ? 'Queueing Message...' : 'Send Communication Now'}
+          </button>
+        </form>
+      </RightDrawer>
     </div>
   );
 }

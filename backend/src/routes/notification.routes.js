@@ -15,5 +15,6 @@ router.get('/notifications/preferences/:companyId', companyGuard, notifCtrl.getP
 router.put('/notifications/preferences/:companyId', companyGuard, notifCtrl.updatePreferences);
 router.get('/notifications/admin/email-queue/:companyId', companyGuard, notifCtrl.getEmailQueue);
 router.post('/notifications/admin/email-queue/:id/resend/:companyId', companyGuard, notifCtrl.resendEmail);
+router.post('/notifications/admin/email-queue/compose/:companyId', companyGuard, notifCtrl.composeCustomEmail);
 
 module.exports = router;

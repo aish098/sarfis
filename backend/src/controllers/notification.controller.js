@@ -241,15 +241,15 @@ exports.getEmailQueue = async (req, res) => {
     const { status, search } = req.query;
 
     let query = db('notification_queue as nq')
-      .join('users as u', 'nq.user_id', 'u.id')
-      .join('notification_events as ne', 'nq.event_code', 'ne.event_code')
+      .leftJoin('users as u', 'nq.user_id', 'u.id')
+      .leftJoin('notification_events as ne', 'nq.event_code', 'ne.event_code')
       .where('nq.company_id', companyId)
-      .select(
+      .select([
         'nq.*',
-        'u.name as recipient_name',
-        'ne.module',
-        'ne.priority'
-      );
+        db.raw("coalesce(u.name, nq.recipient_email) as recipient_name"),
+        db.raw("coalesce(ne.module, 'ADMIN') as module"),
+        db.raw("coalesce(ne.priority, 'MEDIUM') as priority")
+      ]);
 
     if (status) {
       query = query.where('nq.status', status.toUpperCase());
@@ -281,6 +281,58 @@ exports.resendEmail = async (req, res) => {
     await NotificationService.resendQueueItem(id);
     res.json({ success: true, message: 'Re-queued email for immediate delivery.' });
   } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.composeCustomEmail = async (req, res) => {
+  const companyId = req.companyId;
+  const userId = req.user?.id || 1;
+  const { employeeId, subject, body } = req.body;
+
+  if (!employeeId || !subject || !body) {
+    return res.status(400).json({ error: 'Employee recipient, subject, and body are required.' });
+  }
+
+  try {
+    // 1. Resolve employee email and linked user ID
+    const employee = await db('employees as e')
+      .leftJoin('users as u', 'e.user_id', 'u.id')
+      .where({ 'e.id': employeeId, 'e.company_id': companyId })
+      .select('e.*', 'u.email as user_email')
+      .first();
+
+    if (!employee) {
+      return res.status(404).json({ error: 'Employee not found.' });
+    }
+
+    const recipientEmail = employee.user_email || employee.email || null;
+    if (!recipientEmail || recipientEmail === '—') {
+      return res.status(400).json({ error: 'Selected employee does not have a registered corporate email address.' });
+    }
+
+    // 2. Insert custom email record into notification_queue
+    const [queuedItem] = await db('notification_queue')
+      .insert({
+        company_id: companyId,
+        user_id: employee.user_id || userId,
+        event_code: 'CUSTOM_COMMUNICATION',
+        recipient_email: recipientEmail,
+        subject: subject,
+        body: body,
+        status: 'PENDING',
+        attempts: 0,
+        max_attempts: 3
+      })
+      .returning('*');
+
+    res.status(201).json({
+      success: true,
+      message: 'Custom communication email queued successfully.',
+      item: queuedItem
+    });
+  } catch (err) {
+    console.error('Failed to compose custom email:', err);
     res.status(500).json({ error: err.message });
   }
 };

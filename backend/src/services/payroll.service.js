@@ -317,7 +317,8 @@ class PayrollService {
 
       // Fetch active employees
       const employees = await trx('employees')
-        .where({ company_id: companyId, status: 'Active' });
+        .where({ company_id: companyId })
+        .whereIn('status', ['Active', 'Processing']);
 
       if (employees.length === 0) {
         throw new Error('No active employees found to process.');
@@ -1288,7 +1289,9 @@ class PayrollService {
     let resultPayload = null;
     try {
       await db.transaction(async (trx) => {
-        const employees = await trx('employees').where({ company_id: companyId, status: 'Active' });
+        const employees = await trx('employees')
+          .where({ company_id: companyId })
+          .whereIn('status', ['Active', 'Processing']);
         if (employees.length === 0) {
           throw new Error('No active employees found to process.');
         }
