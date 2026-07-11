@@ -32,20 +32,20 @@ export default function PayrollProcessing({ userRole, onBackToDashboard, onNavig
       let idCounter = 1;
 
       for (const emp of list) {
-        // Exception 1: Missing Bank info or placeholder bank account
-        if (!emp.bank_name || !emp.bank_account || emp.bank_account.trim() === '' || emp.bank_account.includes('123456789012')) {
+        // Exception 1: Missing Bank info
+        if (!emp.bank_name || !emp.account_number || emp.account_number.trim() === '') {
           realExceptions.push({
             id: idCounter++,
             employeeId: emp.id,
             name: emp.name,
             code: 'MISSING_BANK',
-            detail: `No active bank routing account number detected (Current: ${emp.bank_account || 'None'}).`,
+            detail: `No active bank routing account number detected.`,
             severity: 'CRITICAL'
           });
         }
 
         // Exception 2: Missing email
-        if (!emp.email || emp.email.trim() === '' || emp.email === '—') {
+        if (!emp.user_email || emp.user_email.trim() === '' || emp.user_email === '—') {
           realExceptions.push({
             id: idCounter++,
             employeeId: emp.id,

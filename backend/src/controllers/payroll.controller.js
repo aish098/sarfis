@@ -353,12 +353,12 @@ exports.reversePayrollPayment = async (req, res) => {
       .first();
 
     if (!payment) {
-      const line = await db('payroll_lines').where({ id, company_id: companyId }).first();
+      const line = await db('payroll_lines').where({ id }).first();
       if (!line) {
         return res.status(404).json({ error: 'Payroll line not found.' });
       }
       await db('payroll_lines')
-        .where({ id, company_id: companyId })
+        .where({ id })
         .update({ payment_status: 'PENDING' });
       return res.json({ id, payment_status: 'PENDING' });
     }
