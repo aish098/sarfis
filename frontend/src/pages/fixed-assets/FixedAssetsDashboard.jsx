@@ -451,21 +451,26 @@ export default function FixedAssetsDashboard() {
   }
 
   return (
-    <div className="space-y-6 max-w-[1600px] mx-auto p-1">
+    <div className="p-4 lg:p-7 pb-20 max-w-[1600px] mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4F5FB] via-[#FAF9F8] to-[#F3F5FA] space-y-6">
       {/* Top Banner Control Center */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
+      <div className="w-full bg-[#EEF2FF] border border-[#C7D2FE] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
         <div className="flex items-center gap-3">
-          <Link to="/dashboard" className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-all">
-            <ArrowLeft size={16} />
-          </Link>
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/10">
+            <Briefcase size={18} className="text-white fill-white/20" />
+          </div>
           <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Asset Control Center</h1>
-            <p className="text-slate-500 text-sm font-semibold">Centralized command center for calculations, validations, lending control, and lifecycle forecasts.</p>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-indigo-900 tracking-tight uppercase">Asset Control Center</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-indigo-500/15 text-indigo-800 px-2 py-0.5 rounded-full border border-indigo-500/20">Fixed Assets</span>
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
+              Centralized command center for calculations, validations, lending control, and lifecycle forecasts.
+            </p>
           </div>
         </div>
         
         {/* Toggle between Operations and Analytics */}
-        <div className="flex items-center gap-1.5 bg-slate-100 p-1.5 rounded-xl">
+        <div className="flex items-center gap-1.5 bg-slate-200/50 p-1 rounded-xl">
           <button 
             onClick={() => setActiveTab('operations')} 
             className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 ${
@@ -490,36 +495,36 @@ export default function FixedAssetsDashboard() {
         <div className="space-y-6">
           {/* Executive KPIs Row (8 Cards) */}
           <div className="grid grid-cols-2 md:grid-cols-4 lg:grid-cols-8 gap-3">
-            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Acquisition Cost</span>
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between transition-all hover:shadow-md">
+              <span className="text-[9px] text-slate-400 uppercase font-extrabold tracking-widest">Acquisition Cost</span>
               <p className="text-sm font-black text-slate-800 font-mono mt-1">PKR {metrics.totalCost.toLocaleString()}</p>
             </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Accumulated Dep.</span>
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between transition-all hover:shadow-md">
+              <span className="text-[9px] text-slate-400 uppercase font-extrabold tracking-widest">Accumulated Dep.</span>
               <p className="text-sm font-black text-rose-600 font-mono mt-1">PKR {metrics.accumulatedDep.toLocaleString()}</p>
             </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Net Book Value</span>
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between transition-all hover:shadow-md">
+              <span className="text-[9px] text-slate-400 uppercase font-extrabold tracking-widest">Net Book Value</span>
               <p className="text-sm font-black text-emerald-600 font-mono mt-1">PKR {metrics.netBookValue.toLocaleString()}</p>
             </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Active Assets</span>
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between transition-all hover:shadow-md">
+              <span className="text-[9px] text-slate-400 uppercase font-extrabold tracking-widest">Active Assets</span>
               <p className="text-sm font-black text-slate-800 font-mono mt-1">{metrics.activeCount}</p>
             </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Maintenance</span>
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between transition-all hover:shadow-md">
+              <span className="text-[9px] text-slate-400 uppercase font-extrabold tracking-widest">Maintenance</span>
               <p className="text-sm font-black text-amber-600 font-mono mt-1">{metrics.maintCount}</p>
             </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Disposed / Sold</span>
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between transition-all hover:shadow-md">
+              <span className="text-[9px] text-slate-400 uppercase font-extrabold tracking-widest">Disposed / Sold</span>
               <p className="text-sm font-black text-slate-500 font-mono mt-1">{metrics.disposedCount}</p>
             </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Avg. Asset Age</span>
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between transition-all hover:shadow-md">
+              <span className="text-[9px] text-slate-400 uppercase font-extrabold tracking-widest">Avg. Asset Age</span>
               <p className="text-sm font-black text-slate-800 font-mono mt-1">{metrics.avgAge} Yrs</p>
             </div>
-            <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex flex-col justify-between">
-              <span className="text-[10px] text-slate-400 uppercase font-black tracking-wider">Due Depreciation</span>
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between transition-all hover:shadow-md">
+              <span className="text-[9px] text-slate-400 uppercase font-extrabold tracking-widest">Due Depreciation</span>
               <p className={`text-sm font-black font-mono mt-1 ${metrics.dueDepCount > 0 ? 'text-rose-600' : 'text-slate-400'}`}>{metrics.dueDepCount}</p>
             </div>
           </div>

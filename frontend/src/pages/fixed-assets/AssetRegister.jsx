@@ -453,37 +453,30 @@ export default function AssetRegister() {
   return (
     <div className="space-y-6">
       {/* Header */}
-      {/* Top Banner Toolbar */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
+      <div className="flex justify-between items-center border-b border-slate-100 pb-4">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <Layers size={18} className="text-white fill-white/20" />
-          </div>
+          <Link to="/dashboard/fixed-assets" className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-all">
+            <ArrowLeft size={16} />
+          </Link>
           <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Asset Control Center</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Fixed Assets</span>
-            </div>
-            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
-              Verify asset details, print codes, transfer locations, or retire obsolete assets.
-            </p>
+            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Asset Registry</h1>
+            <p className="text-slate-500 text-sm font-semibold">Verify asset details, print codes, transfer locations, or retire obsolete assets.</p>
           </div>
         </div>
-        
-        <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap">
+        <div className="flex gap-2">
           <button 
             onClick={() => setShowVerificationWorkspace(!showVerificationWorkspace)} 
-            className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm"
+            className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-sm"
           >
             <ClipboardList size={14} className="text-amber-500" /> Physical Audit sessions
           </button>
           <button 
             onClick={() => setShowRequestQueue(!showRequestQueue)} 
-            className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-xl text-xs font-black transition-all flex items-center gap-1.5 shadow-sm"
+            className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-sm"
           >
             <MapPin size={14} className="text-blue-500" /> Transfer Requests ({transferRequests.filter(r => r.status === 'PENDING').length})
           </button>
-          <button onClick={() => setShowAddForm(true)} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer">
+          <button onClick={() => setShowAddForm(true)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-md">
             <Plus size={14} /> Capitalize Asset
           </button>
         </div>
@@ -797,7 +790,7 @@ export default function AssetRegister() {
           <div className="overflow-x-auto">
             <table className="w-full text-left border-collapse text-xs">
               <thead>
-                <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
+                <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-400">
                   <th className="px-4 py-3 w-10 text-center">
                     <input
                       type="checkbox"
@@ -806,16 +799,16 @@ export default function AssetRegister() {
                       className="w-4 h-4 rounded text-indigo-600"
                     />
                   </th>
-                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Asset Code</th>
-                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Asset Description</th>
-                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Category Class</th>
-                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-right">Acquisition Cost</th>
-                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-center">Next Dep.</th>
-                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-center">Status</th>
-                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-center">Actions</th>
+                  <th className="px-4 py-3">Asset Code</th>
+                  <th className="px-4 py-3">Asset Description</th>
+                  <th className="px-4 py-3">Category Class</th>
+                  <th className="px-4 py-3 text-right">Acquisition Cost</th>
+                  <th className="px-4 py-3 text-center">Next Dep.</th>
+                  <th className="px-4 py-3 text-center">Status</th>
+                  <th className="px-4 py-3 text-center">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E6EBE8] text-slate-600 font-semibold">
+              <tbody className="divide-y divide-slate-50 text-slate-600 font-semibold">
                 {filteredAssets.map(asset => (
                   <tr key={asset.id} className="hover:bg-slate-50/30 group">
                     <td className="px-4 py-3.5 text-center">
