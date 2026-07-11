@@ -12,7 +12,6 @@ import { PowerBIDonut } from '../../components/charts/PowerBIDonut';
 import { computeChartLayout, normalizeChartRows, AdaptiveChartFrame } from '../../components/charts/chartEngine';
 import { DynamicClusteredBarChart } from '../../components/charts/DynamicCharts';
 import RelationshipRiskModal from '../../components/risk/RelationshipRiskModal';
-import AnalyticsCard from '../../components/ui/AnalyticsCard';
 
 const CHART_COLORS = ['#118DFF', '#12239E', '#E66C37', '#6B007B', '#10b981', '#ef4444'];
 
@@ -432,48 +431,43 @@ export default function DistributionPage() {
 
             return (
               <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-                <div className="lg:col-span-1">
-                  <AnalyticsCard 
-                    title="Revenue Distribution" 
-                    subtitle="Sector contribution share"
-                    kpis={[
-                      { label: 'Total Revenue', value: `$${totalSectorRev.toLocaleString()}` }
-                    ]}
-                  >
-                    {totalSectorRev === 0 ? (
-                      <p className="text-[13px] text-slate-400 py-12 text-center">No sector revenue data.</p>
-                    ) : (
-                      <PowerBIDonut
-                        data={sectorRevenue.map((s) => ({ name: s.sector_name, value: parseFloat(s.total_revenue) || 0 }))}
-                        colors={CHART_COLORS}
-                        height={240}
-                        currency="$"
-                        centerLabel="Total Revenue"
-                        centerValue={`$${totalSectorRev.toLocaleString('en-US', { maximumFractionDigits: 0 })}`}
-                      />
-                    )}
-                  </AnalyticsCard>
-                </div>
+                <Motion.div variants={fadeUp} className="card p-6 lg:col-span-1">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-display font-bold text-[15px] text-slate-800">Revenue Distribution</h3>
+                    <TrendingUp size={14} className="text-emerald-500" />
+                  </div>
+                  {totalSectorRev === 0 ? (
+                    <p className="text-[13px] text-slate-400 py-12 text-center">No sector revenue data.</p>
+                  ) : (
+                    <PowerBIDonut
+                      data={sectorRevenue.map((s) => ({ name: s.sector_name, value: parseFloat(s.total_revenue) || 0 }))}
+                      colors={CHART_COLORS}
+                      height={240}
+                      currency="$"
+                      centerLabel="Total Revenue"
+                      centerValue={`$${totalSectorRev.toLocaleString('en-US', { maximumFractionDigits: 0 })}`}
+                    />
+                  )}
+                </Motion.div>
 
-                <div className="lg:col-span-2">
-                  <AnalyticsCard 
-                    title="Revenue vs Gross Profit by Sector" 
-                    subtitle="Sector profitability comparisons"
-                  >
-                    {sectorRevenue.length > 0 ? (
-                      <AdaptiveChartFrame layout={sectorLayout}>
-                        <DynamicClusteredBarChart
-                          chartRows={sectorChartRows}
-                          layout={sectorLayout}
-                          lookup={sectorChartRows}
-                          series={sectorSeries}
-                        />
-                      </AdaptiveChartFrame>
-                    ) : (
-                      <p className="text-[13px] text-slate-400">No sector data available</p>
-                    )}
-                  </AnalyticsCard>
-                </div>
+                <Motion.div variants={fadeUp} className="card p-6 lg:col-span-2">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="font-display font-bold text-[15px] text-slate-800">Revenue vs Gross Profit by Sector</h3>
+                    <BarChart2 size={14} className="text-slate-400" />
+                  </div>
+                  {sectorRevenue.length > 0 ? (
+                    <AdaptiveChartFrame layout={sectorLayout}>
+                      <DynamicClusteredBarChart
+                        chartRows={sectorChartRows}
+                        layout={sectorLayout}
+                        lookup={sectorChartRows}
+                        series={sectorSeries}
+                      />
+                    </AdaptiveChartFrame>
+                  ) : (
+                    <p className="text-[13px] text-slate-400">No sector data available</p>
+                  )}
+                </Motion.div>
               </div>
             );
           })()}
