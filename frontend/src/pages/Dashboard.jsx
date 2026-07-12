@@ -377,12 +377,32 @@ export default function Dashboard() {
               <Route path="admin" element={<AdminPage />} />
               <Route path="email-center" element={<EmailCenterPage />} />
               <Route path="notifications" element={<NotificationCenterPage />} />
-              <Route path="risk" element={<RiskDashboard />} />
+              <Route path="risk" element={
+                <ModuleProtectedRoute moduleKey="riskEnabled">
+                  <RiskDashboard />
+                </ModuleProtectedRoute>
+              } />
               
-              <Route path="fixed-assets" element={<FixedAssetsDashboard />} />
-              <Route path="fixed-assets/register" element={<AssetRegister />} />
-              <Route path="fixed-assets/categories" element={<AssetCategories />} />
-              <Route path="fixed-assets/wizard" element={<DepreciationWizard />} />
+              <Route path="fixed-assets" element={
+                <ModuleProtectedRoute moduleKey="fixedAssetsEnabled">
+                  <FixedAssetsDashboard />
+                </ModuleProtectedRoute>
+              } />
+              <Route path="fixed-assets/register" element={
+                <ModuleProtectedRoute moduleKey="fixedAssetsEnabled">
+                  <AssetRegister />
+                </ModuleProtectedRoute>
+              } />
+              <Route path="fixed-assets/categories" element={
+                <ModuleProtectedRoute moduleKey="fixedAssetsEnabled">
+                  <AssetCategories />
+                </ModuleProtectedRoute>
+              } />
+              <Route path="fixed-assets/wizard" element={
+                <ModuleProtectedRoute moduleKey="fixedAssetsEnabled">
+                  <DepreciationWizard />
+                </ModuleProtectedRoute>
+              } />
               <Route path="finance/close-wizard" element={<MonthEndCloseWizard />} />
               <Route path="admin/workflows" element={<WorkflowConfigPage />} />
               <Route path="admin/approvals" element={<ApprovalsInboxPage />} />

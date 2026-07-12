@@ -170,6 +170,8 @@ export default function SettingsPage() {
         payrollEnabled: raw.payrollEnabled ?? false,
         warehousingEnabled: raw.warehousingEnabled ?? true,
         budgetingEnabled: raw.budgetingEnabled ?? true,
+        riskEnabled: raw.riskEnabled ?? true,
+        fixedAssetsEnabled: raw.fixedAssetsEnabled ?? true,
         
         smtpHost: raw.smtpHost || '',
         smtpPort: raw.smtpPort || '',
@@ -874,6 +876,8 @@ export default function SettingsPage() {
                 { key: 'warehousingEnabled', title: 'Multi-Warehousing', desc: 'Track physical stock balances across multiple custom locations and warehouses.', default: true },
                 { key: 'budgetingEnabled', title: 'Advanced Budgeting & Analytics', desc: 'Exposes ratios, financial projections, 12-month trends, and monthly operational budgeting.', default: true },
                 { key: 'payrollEnabled', title: 'Payroll & HR', desc: 'Generate monthly payroll runs, employee salary structures, tax deductions, and bank templates.', default: false },
+                { key: 'riskEnabled', title: 'Credit Risk & Governance', desc: 'Credit check workflows, risk analytics dashboards, and compliance logs.', default: true },
+                { key: 'fixedAssetsEnabled', title: 'Asset Management (Fixed Assets)', desc: 'Track asset acquisitions, register categories, and run automatic monthly depreciation schedules.', default: true },
               ].map(mod => (
                 <div key={mod.key} className="flex items-start justify-between p-4 border border-slate-200 rounded-xl bg-white hover:border-slate-300 transition-colors">
                   <div className="space-y-1 pr-6">
