@@ -403,6 +403,27 @@ export default function EmailCenterPage() {
         </div>
       )}
 
+      <style>{`
+        .chats-scrollbar::-webkit-scrollbar {
+          width: 5px !important;
+        }
+        .chats-scrollbar::-webkit-scrollbar-track {
+          background: #f8fafc !important;
+          border-radius: 99px !important;
+        }
+        .chats-scrollbar::-webkit-scrollbar-thumb {
+          background: rgba(16, 185, 129, 0.3) !important;
+          border-radius: 99px !important;
+        }
+        .chats-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: rgba(16, 185, 129, 0.5) !important;
+        }
+        .chats-scrollbar {
+          scrollbar-width: thin !important;
+          scrollbar-color: rgba(16, 185, 129, 0.3) #f8fafc !important;
+        }
+      `}</style>
+
       {/* Communications Tab */}
       {activeTab === 'communications' && (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 h-[550px] items-stretch">
@@ -418,7 +439,7 @@ export default function EmailCenterPage() {
               </button>
             </div>
 
-            <div className="flex-1 overflow-y-auto divide-y divide-slate-100">
+            <div className="flex-1 overflow-y-auto divide-y divide-slate-100 chats-scrollbar">
               {loadingConvs ? (
                 <div className="p-8 text-center text-slate-400 font-semibold flex flex-col gap-2 items-center">
                   <RefreshCw size={20} className="animate-spin text-emerald-600" />
@@ -482,7 +503,7 @@ export default function EmailCenterPage() {
                 </div>
 
                 {/* Thread Body */}
-                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/40">
+                <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-slate-50/40 chats-scrollbar">
                   {/* Initial Message */}
                   <div className={`flex gap-3 max-w-[85%] ${activeThread.conversation.sender_type !== 'ADMIN' ? 'ml-auto flex-row-reverse' : ''}`}>
                     <div className={`w-8 h-8 rounded-full flex-shrink-0 flex items-center justify-center text-white font-bold ${
