@@ -60,12 +60,26 @@ export default function PayrollPage() {
     try {
       const res = await api.get(`/notifications/${activeCompany.id}`);
       const list = res.data || [];
-      const mapped = list.map(n => ({
-        id: n.id,
-        text: n.message || n.title,
-        time: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-        read: n.is_read
-      }));
+      const mapped = list
+        .map(n => ({
+          id: n.id,
+          text: n.message || n.title,
+          time: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+          read: n.is_read
+        }))
+        .filter(n => {
+          const txt = n.text.toLowerCase();
+          return txt.includes('payroll') || 
+                 txt.includes('payslip') || 
+                 txt.includes('disbursement') || 
+                 txt.includes('employee') || 
+                 txt.includes('salary') || 
+                 txt.includes('payout') || 
+                 txt.includes('loan') || 
+                 txt.includes('leave') || 
+                 txt.includes('attendance') ||
+                 txt.includes('hr');
+        });
       setNotifications(mapped);
     } catch (err) {
       console.error('Failed to fetch real-time notifications for bell icon:', err);
@@ -301,7 +315,7 @@ export default function PayrollPage() {
                   <span className="font-black text-slate-800 text-[11px] uppercase tracking-wider">Notification Center</span>
                   <button onClick={() => setShowNotifications(false)} className="text-slate-400 hover:text-slate-600"><X size={13} /></button>
                 </div>
-                <div className="space-y-2.5">
+                <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
                   {notifications.map(n => (
                     <div key={n.id} className="flex gap-2 items-start leading-snug">
                       <span className={`w-1.5 h-1.5 rounded-full mt-1.5 ${n.read ? 'bg-slate-300' : 'bg-indigo-600'}`} />
@@ -311,6 +325,9 @@ export default function PayrollPage() {
                       </div>
                     </div>
                   ))}
+                  {notifications.length === 0 && (
+                    <p className="text-slate-400 text-center py-4">No active payroll alerts.</p>
+                  )}
                 </div>
               </div>
             )}

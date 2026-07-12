@@ -400,7 +400,7 @@ export default function NotificationCenterPage() {
               </button>
             </div>
 
-            <div className="flex-1 divide-y divide-slate-100">
+            <div className="flex-1 divide-y divide-slate-100 max-h-[580px] overflow-y-auto pr-1">
               {loading ? (
                 <div className="flex flex-col items-center justify-center p-12 min-h-[350px]">
                   <RefreshCw size={24} className="animate-spin text-emerald-600 mb-2" />
@@ -420,7 +420,7 @@ export default function NotificationCenterPage() {
                   return (
                     <div
                       key={notif.id}
-                      className={`p-4 hover:bg-slate-50/50 transition-colors relative flex items-start gap-3.5 ${
+                      className={`py-2.5 px-4 hover:bg-slate-50/50 transition-colors relative flex items-start gap-2.5 ${
                         !notif.is_read ? 'bg-emerald-50/5' : ''
                       }`}
                     >
@@ -460,7 +460,7 @@ export default function NotificationCenterPage() {
                         </p>
 
                         {/* Actions Row */}
-                        <div className="flex items-center gap-3 mt-3 pt-2.5 border-t border-slate-100 flex-wrap">
+                        <div className="flex items-center gap-3 mt-2 pt-2 border-t border-slate-100 flex-wrap">
                           {notif.entity_type && (
                             <button
                               onClick={() => handleNotificationClick(notif)}
