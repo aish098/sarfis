@@ -588,10 +588,15 @@ exports.getActiveSessions = async (req, res) => {
     const sessions = await db('user_sessions as us')
       .join('users as u', 'u.id', 'us.user_id')
       .where('us.company_id', companyId)
-      .select('us.id', 'u.name', 'u.email', 'us.ip_address', 'us.device', 'us.login_time', 'us.last_activity', 'us.is_active')
+      .select('us.id', 'u.name', 'u.email', 'us.ip_address', 'us.device', 'us.login_time', 'us.last_activity', 'us.is_active', 'us.user_id')
       .orderBy('us.last_activity', 'desc');
 
-    res.json(sessions);
+    const mappedSessions = sessions.map(s => ({
+      ...s,
+      is_current: s.id === req.user.sessionId
+    }));
+
+    res.json(mappedSessions);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }
@@ -619,6 +624,35 @@ exports.terminateSession = async (req, res) => {
     });
 
     res.json({ success: true, message: 'Session terminated.' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.terminateOtherSessions = async (req, res) => {
+  try {
+    const companyId = parseInt(req.params.companyId, 10);
+    await assertCompanyAdmin(req, companyId);
+
+    const currentSessionId = req.user.sessionId;
+
+    await db('user_sessions')
+      .where({ company_id: companyId })
+      .andWhere('id', '<>', currentSessionId)
+      .update({ is_active: false });
+
+    // Insert an audit log entry for session termination
+    await db('audit_logs').insert({
+      company_id: companyId,
+      user_id: req.user.id,
+      action: 'TERMINATE_OTHER_SESSIONS',
+      entity_type: 'session',
+      entity_id: String(companyId),
+      ip_address: req.ip || '127.0.0.1',
+      user_agent: req.headers['user-agent'] || 'Unknown'
+    });
+
+    res.json({ success: true, message: 'All other active sessions terminated.' });
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

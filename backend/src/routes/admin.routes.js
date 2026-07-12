@@ -24,6 +24,7 @@ router.post('/companies/:companyId/purge', companyGuard, requirePermission('audi
 // Active DB-Backed Sessions
 router.get('/companies/:companyId/sessions', companyGuard, requirePermission('audit.view'), adminController.getActiveSessions);
 router.post('/companies/:companyId/sessions/:id/terminate', companyGuard, requirePermission('audit.manage'), adminController.terminateSession);
+router.post('/companies/:companyId/sessions/terminate-others', companyGuard, requirePermission('audit.manage'), adminController.terminateOtherSessions);
 
 // Pending Approvals Inbox (Journals & Vouchers)
 router.get('/companies/:companyId/approvals', companyGuard, requirePermission('approval.view'), adminController.getPendingApprovals);

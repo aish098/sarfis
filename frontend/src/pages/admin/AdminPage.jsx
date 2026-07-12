@@ -2,8 +2,8 @@ import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import {
   Activity, AlertTriangle, Building2, Calendar, Check, CheckCircle2,
-  Crown, Database, FileDown, FileUp, Info, KeyRound, Lock,
-  RefreshCw, Save, ShieldCheck, Trash2, Unlock, UserPlus, Users, X
+  Crown, Database, FileDown, FileUp, Info, KeyRound, Lock, LogOut,
+  RefreshCw, Save, Search, ShieldCheck, Trash2, Unlock, UserPlus, Users, X
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -175,6 +175,8 @@ export default function AdminPage() {
   const [roles, setRoles] = useState(Object.keys(ROLE_NOTES));
   const [periods, setPeriods] = useState([]);
   const [sessions, setSessions] = useState([]);
+  const [sessionSearch, setSessionSearch] = useState('');
+  const [sessionFilter, setSessionFilter] = useState('all'); // 'all', 'active', 'terminated'
   
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -561,6 +563,23 @@ export default function AdminPage() {
       setSessions(resSessions.data || []);
     } catch (err) {
       setMessage({ type: 'error', text: 'Failed to terminate session.' });
+    }
+    setSaving(false);
+  };
+
+  const terminateOtherSessions = async () => {
+    if (!canAdmin) return;
+    if (!window.confirm("Are you sure you want to terminate all other active user sessions? Users will be signed out immediately.")) {
+      return;
+    }
+    setSaving(true);
+    try {
+      await api.post(`/admin/companies/${activeCompanyId}/sessions/terminate-others`, {}, requestConfig);
+      setMessage({ type: 'success', text: 'All other active sessions terminated.' });
+      const resSessions = await api.get(`/admin/companies/${activeCompanyId}/sessions`, requestConfig);
+      setSessions(resSessions.data || []);
+    } catch (err) {
+      setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to terminate other sessions.' });
     }
     setSaving(false);
   };
@@ -1581,87 +1600,148 @@ export default function AdminPage() {
         )}
 
         {/* --- TAB 5: ACTIVE SESSIONS --- */}
-        {activeTab === 'sessions' && (
-          <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
-            <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
-              <div>
-                <h2 className="text-[15px] font-black text-slate-900 flex items-center gap-2">
-                  <Activity size={18} className="text-emerald-600" />
-                  Active User Sessions Monitor
-                </h2>
-                <p className="text-[12px] text-slate-500 mt-0.5">Track current logged-in connections and terminate active tokens instantly.</p>
+        {activeTab === 'sessions' && (() => {
+          const filteredSessions = sessions.filter(s => {
+            const nameMatch = s.name?.toLowerCase().includes(sessionSearch.toLowerCase());
+            const emailMatch = s.email?.toLowerCase().includes(sessionSearch.toLowerCase());
+            if (sessionSearch && !nameMatch && !emailMatch) return false;
+
+            if (sessionFilter === 'active' && !s.is_active) return false;
+            if (sessionFilter === 'terminated' && s.is_active) return false;
+
+            return true;
+          });
+
+          return (
+            <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden animate-in fade-in duration-200">
+              <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/60 flex items-center justify-between">
+                <div>
+                  <h2 className="text-[15px] font-black text-slate-900 flex items-center gap-2">
+                    <Activity size={18} className="text-emerald-600" />
+                    Active User Sessions Monitor
+                  </h2>
+                  <p className="text-[12px] text-slate-500 mt-0.5">Track current logged-in connections and terminate active tokens instantly.</p>
+                </div>
+                <button
+                  onClick={loadData}
+                  className="inline-flex items-center justify-center p-2 rounded-lg border border-slate-200 hover:bg-slate-50 bg-white shadow-sm transition"
+                  title="Refresh sessions list"
+                >
+                  <RefreshCw size={14} className="text-slate-500" />
+                </button>
               </div>
-              <button
-                onClick={loadData}
-                className="inline-flex items-center justify-center p-2 rounded-lg border border-slate-200 hover:bg-slate-50 bg-white"
-                title="Refresh sessions list"
-              >
-                <RefreshCw size={14} />
-              </button>
-            </div>
-            <div className="overflow-x-auto">
-              <table className="w-full text-left">
-                <thead>
-                  <tr className="border-b border-slate-100 bg-slate-50">
-                    <th className="px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-400">User Details</th>
-                    <th className="px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-400">IP Address</th>
-                    <th className="px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-400">Client / Browser OS</th>
-                    <th className="px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-400">Login Timestamp</th>
-                    <th className="px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-400">Last Activity</th>
-                    <th className="px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-400">Status</th>
-                    <th className="px-5 py-3 text-right text-[11px] font-black uppercase tracking-wider text-slate-400">Action</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {sessions.length === 0 ? (
-                    <tr>
-                      <td colSpan={7} className="px-5 py-12 text-center text-slate-400 text-[13px] font-medium">
-                        No active database sessions loaded.
-                      </td>
+
+              {/* Filters toolbar */}
+              <div className="p-4 bg-slate-50/20 border-b border-slate-100 flex flex-col md:flex-row gap-3 items-center justify-between">
+                <div className="relative w-full md:w-80">
+                  <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by name or email..."
+                    value={sessionSearch}
+                    onChange={(e) => setSessionSearch(e.target.value)}
+                    className="w-full h-9 pl-9 pr-3 rounded-lg border border-slate-200 bg-white text-[12px] font-medium text-slate-700 placeholder-slate-400 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/10 transition"
+                  />
+                </div>
+                <div className="flex items-center gap-3 w-full md:w-auto justify-end">
+                  <select
+                    value={sessionFilter}
+                    onChange={(e) => setSessionFilter(e.target.value)}
+                    className="h-9 px-3 rounded-lg border border-slate-200 bg-white text-[12px] font-bold text-slate-700 outline-none focus:border-emerald-500 focus:ring-4 focus:ring-emerald-500/5 transition cursor-pointer"
+                  >
+                    <option value="all">All Statuses</option>
+                    <option value="active">Active Only</option>
+                    <option value="terminated">Terminated Only</option>
+                  </select>
+
+                  <button
+                    onClick={terminateOtherSessions}
+                    disabled={!canAdmin || saving || sessions.filter(s => !s.is_current && s.is_active).length === 0}
+                    className="h-9 px-4 rounded-lg bg-red-600 hover:bg-red-700 text-white text-[12px] font-extrabold transition inline-flex items-center gap-1.5 shadow-sm disabled:opacity-40 disabled:hover:bg-red-600"
+                  >
+                    <LogOut size={13} />
+                    Terminate Others
+                  </button>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <table className="w-full text-left">
+                  <thead>
+                    <tr className="border-b border-slate-100 bg-slate-50/50">
+                      <th className="px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-400">User Details</th>
+                      <th className="px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-400">IP Address</th>
+                      <th className="px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-400">Client / Browser OS</th>
+                      <th className="px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-400">Login Timestamp</th>
+                      <th className="px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-400">Last Activity</th>
+                      <th className="px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-400">Status</th>
+                      <th className="px-5 py-3 text-right text-[11px] font-black uppercase tracking-wider text-slate-400">Action</th>
                     </tr>
-                  ) : (
-                    sessions.map((s) => {
-                      const isActiveSession = s.is_active;
-                      return (
-                        <tr key={s.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60">
-                          <td className="px-5 py-4">
-                            <p className="text-[13px] font-bold text-slate-900">{s.name}</p>
-                            <p className="text-[11px] text-slate-500">{s.email}</p>
-                          </td>
-                          <td className="px-5 py-4 text-[12px] font-mono text-slate-600">{s.ip_address || '127.0.0.1'}</td>
-                          <td className="px-5 py-4 text-[12px] text-slate-600 font-medium">{formatUserAgent(s.device)}</td>
-                          <td className="px-5 py-4 text-[12px] text-slate-500">{new Date(s.login_time).toLocaleString()}</td>
-                          <td className="px-5 py-4 text-[12px] text-slate-500">{new Date(s.last_activity).toLocaleString()}</td>
-                          <td className="px-5 py-4">
-                            <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${isActiveSession ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
-                              <span className={`w-1.5 h-1.5 rounded-full ${isActiveSession ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
-                              {isActiveSession ? 'Active' : 'Terminated'}
-                            </span>
-                          </td>
-                          <td className="px-5 py-4 text-right">
-                            <button
-                              onClick={() => terminateSession(s.id)}
-                              disabled={!canAdmin || saving || !isActiveSession}
-                              className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-100 bg-red-50 text-[11px] font-bold text-red-700 hover:bg-red-100 disabled:opacity-30"
-                            >
-                              <X size={12} /> Force Kill
-                            </button>
-                          </td>
-                        </tr>
-                      );
-                    })
-                  )}
-                </tbody>
-              </table>
-            </div>
-            <div className="p-4 border-t border-slate-100 bg-slate-50/40 flex items-start gap-2.5">
-              <KeyRound size={15} className="text-slate-400 mt-0.5 shrink-0" />
-              <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-                Active sessions track signed tokens on a rolling database checklist. Terminating a connection sets the row status to inactive, prompting immediate session expiration and redirecting the user back to the login gateway on their next request.
-              </p>
-            </div>
-          </section>
-        )}
+                  </thead>
+                  <tbody>
+                    {filteredSessions.length === 0 ? (
+                      <tr>
+                        <td colSpan={7} className="px-5 py-12 text-center text-slate-400 text-[13px] font-medium">
+                          No matching user sessions found.
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredSessions.map((s) => {
+                        const isActiveSession = s.is_active;
+                        return (
+                          <tr key={s.id} className={`border-b border-slate-50 last:border-0 hover:bg-slate-50/60 transition ${s.is_current ? 'bg-emerald-50/20' : ''}`}>
+                            <td className="px-5 py-4">
+                              <div className="flex items-center gap-2">
+                                <p className="text-[13px] font-bold text-slate-900">{s.name}</p>
+                                {s.is_current && (
+                                  <span className="inline-flex items-center px-1.5 py-0.25 rounded text-[9px] font-black bg-emerald-600 text-white uppercase tracking-wider">
+                                    You
+                                  </span>
+                                )}
+                              </div>
+                              <p className="text-[11px] text-slate-500 font-medium">{s.email}</p>
+                            </td>
+                            <td className="px-5 py-4 text-[12px] font-mono text-slate-600">{s.ip_address || '127.0.0.1'}</td>
+                            <td className="px-5 py-4 text-[12px] text-slate-600 font-semibold">{formatUserAgent(s.device)}</td>
+                            <td className="px-5 py-4 text-[12px] text-slate-500">{new Date(s.login_time).toLocaleString()}</td>
+                            <td className="px-5 py-4 text-[12px] text-slate-500">{new Date(s.last_activity).toLocaleString()}</td>
+                            <td className="px-5 py-4">
+                              <span className={`inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold border ${isActiveSession ? 'bg-emerald-50 text-emerald-700 border-emerald-100' : 'bg-red-50 text-red-700 border-red-100'}`}>
+                                <span className={`w-1.5 h-1.5 rounded-full ${isActiveSession ? 'bg-emerald-500 animate-pulse' : 'bg-red-500'}`} />
+                                {isActiveSession ? 'Active' : 'Terminated'}
+                              </span>
+                            </td>
+                            <td className="px-5 py-4 text-right">
+                              {s.is_current ? (
+                                <span className="text-[11px] text-slate-400 font-bold italic px-3 py-1.5">
+                                  Current Session
+                                </span>
+                              ) : (
+                                <button
+                                  onClick={() => terminateSession(s.id)}
+                                  disabled={!canAdmin || saving || !isActiveSession}
+                                  className="inline-flex items-center gap-1.5 px-3 py-1.5 rounded-lg border border-red-100 bg-red-50 text-[11px] font-bold text-red-700 hover:bg-red-100 disabled:opacity-30 transition"
+                                >
+                                  <X size={12} /> Force Kill
+                                </button>
+                              )}
+                            </td>
+                          </tr>
+                        );
+                      })
+                    )}
+                  </tbody>
+                </table>
+              </div>
+              <div className="p-4 border-t border-slate-100 bg-slate-50/40 flex items-start gap-2.5">
+                <KeyRound size={15} className="text-slate-400 mt-0.5 shrink-0" />
+                <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                  Active sessions track signed tokens on a rolling database checklist. Terminating a connection sets the row status to inactive, prompting immediate session expiration and redirecting the user back to the login gateway on their next request.
+                </p>
+              </div>
+            </section>
+          );
+        })()}
       </div>
 
       {/* User Overrides Modal */}
