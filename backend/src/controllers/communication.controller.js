@@ -16,7 +16,7 @@ exports.getAdminCommunications = async (req, res) => {
         'e.name as employee_name',
         'u.email as employee_email',
         'e.department',
-        'e.designation',
+        'e.role as designation',
         'c.subject',
         'c.body',
         'c.status',
@@ -61,7 +61,7 @@ exports.getAdminThread = async (req, res) => {
       .join('employees as e', 'c.employee_id', 'e.id')
       .leftJoin('users as u', 'e.user_id', 'u.id')
       .where({ 'c.id': parentId, 'c.company_id': companyId })
-      .select('c.*', 'e.name as employee_name', 'u.email as employee_email', 'e.department', 'e.designation')
+      .select('c.*', 'e.name as employee_name', 'u.email as employee_email', 'e.department', 'e.role as designation')
       .first();
 
     if (!parentMsg) return res.status(404).json({ error: 'Conversation not found.' });
