@@ -30,8 +30,8 @@ vi.mock('../../services/api', () => ({
       if (url.includes('/employees')) {
         return Promise.resolve({ 
           data: [
-            { id: 1, name: 'Alice', bank_account: '' },
-            { id: 2, name: 'Bob', bank_account: 'PK12HABB001' }
+            { id: 1, name: 'Alice', account_number: '' },
+            { id: 2, name: 'Bob', account_number: 'PK12HABB001' }
           ] 
         });
       }

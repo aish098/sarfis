@@ -131,7 +131,7 @@ export default function PayrollDashboard({ onNavigateToTab, userRole }) {
         const holdCount = wsEmployees.filter(e => e.payment_status === 'ON_HOLD').length;
         const pendingCount = wsEmployees.length - paidCount - holdCount;
         const failedCount = wsEmployees.filter(e => e.payment_status === 'FAILED').length;
-        const missingBankCount = baseEmployees.filter(e => !e.bank_account || e.bank_account.trim() === '').length;
+        const missingBankCount = baseEmployees.filter(e => !e.account_number || e.account_number.trim() === '').length;
 
         setStats({
           totalPayroll: latestRun ? parseFloat(latestRun.total_net || 0) : 0,

@@ -53,11 +53,28 @@ export default function PayrollPage() {
   
   // Notification state
   const [showNotifications, setShowNotifications] = useState(false);
-  const [notifications, setNotifications] = useState([
-    { id: 1, text: 'Payroll Run Approved for Jul 2026', time: '2 mins ago', read: false },
-    { id: 2, text: 'Bank payment batch file generated successfully', time: '15 mins ago', read: false },
-    { id: 3, text: '1 payment transfer failed (Zainab Ahmed)', time: '30 mins ago', read: true },
-  ]);
+  const [notifications, setNotifications] = useState([]);
+
+  const fetchNotifications = async () => {
+    if (!activeCompany?.id) return;
+    try {
+      const res = await api.get(`/notifications/${activeCompany.id}`);
+      const list = res.data || [];
+      const mapped = list.map(n => ({
+        id: n.id,
+        text: n.message || n.title,
+        time: new Date(n.created_at).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
+        read: n.is_read
+      }));
+      setNotifications(mapped);
+    } catch (err) {
+      console.error('Failed to fetch real-time notifications for bell icon:', err);
+    }
+  };
+
+  useEffect(() => {
+    fetchNotifications();
+  }, [activeCompany?.id]);
 
   // Global search state
   const [searchTerm, setSearchTerm] = useState('');
@@ -271,7 +288,11 @@ export default function PayrollPage() {
               className="p-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-500 hover:text-slate-700 transition-all shadow-3xs cursor-pointer"
             >
               <Bell size={14} />
-              <span className="absolute -top-1 -right-1 bg-rose-500 text-white font-mono text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center">3</span>
+              {notifications.filter(n => !n.read).length > 0 && (
+                <span className="absolute -top-1 -right-1 bg-rose-500 text-white font-mono text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center">
+                  {notifications.filter(n => !n.read).length}
+                </span>
+              )}
             </button>
             
             {showNotifications && (
