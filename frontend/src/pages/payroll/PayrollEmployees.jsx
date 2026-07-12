@@ -515,6 +515,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
   ];
 
   const disableActions = userRole === 'Auditor';
+  const isLocked = disableActions || selectedEmp?.status === 'PROCESSING' || selectedEmp?.status === 'PAID' || selectedEmp?.status === 'DISBURSED';
 
   const drawerTabs = [
     { id: 'overview', label: 'Overview' },
@@ -673,6 +674,17 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
       >
         {selectedEmp && (
           <div className="font-normal text-slate-550 leading-relaxed text-xs">
+            {(selectedEmp.status === 'PROCESSING' || selectedEmp.status === 'PAID' || selectedEmp.status === 'DISBURSED') && (
+              <div className="mb-4 p-3.5 bg-blue-50 border border-blue-200 text-blue-800 rounded-2xl flex items-start gap-2.5 shadow-3xs font-semibold">
+                <ShieldAlert size={16} className="text-blue-600 flex-shrink-0 mt-0.5" />
+                <div>
+                  <h4 className="font-black uppercase tracking-wider text-[9px] text-blue-900">Active Payout Lock</h4>
+                  <p className="text-[10.5px] font-normal leading-normal mt-0.5 text-blue-750">
+                    This employee's payout is currently <strong>{selectedEmp.status}</strong>. Salary profile, loans, leaves, and overtime items are locked for changes to prevent audit mismatches.
+                  </p>
+                </div>
+              </div>
+            )}
             {activeSubTab === 'overview' && (
               <div className="space-y-4 text-xs font-semibold">
                 <div className="bg-slate-50 p-4 rounded-2xl border border-slate-100 grid grid-cols-2 gap-4">
@@ -698,7 +710,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
                       Email Payslip
                     </button>
                     <button 
-                      disabled={disableActions}
+                      disabled={isLocked}
                       onClick={selectedEmp.status === 'ON_HOLD' ? handleReleaseSalary : handleHoldSalary}
                       className="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl flex flex-col items-center gap-1.5 transition-all shadow-3xs cursor-pointer text-slate-700 disabled:opacity-40"
                     >
@@ -706,7 +718,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
                       {selectedEmp.status === 'ON_HOLD' ? 'Release Salary' : 'Hold Salary'}
                     </button>
                     <button 
-                      disabled={disableActions}
+                      disabled={isLocked}
                       onClick={handleReversePayment}
                       className="p-2 border border-slate-200 hover:bg-slate-50 rounded-xl flex flex-col items-center gap-1.5 transition-all shadow-3xs cursor-pointer text-slate-700 disabled:opacity-40"
                     >
@@ -835,7 +847,8 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
                   </div>
                   <button
                     type="submit"
-                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
+                    disabled={isLocked}
+                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
                   >
                     Post Attendance Log Record
                   </button>
@@ -928,7 +941,8 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
 
                   <button
                     type="submit"
-                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
+                    disabled={isLocked}
+                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
                   >
                     Submit Leave Application Request
                   </button>
@@ -996,7 +1010,8 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
 
                   <button
                     type="submit"
-                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
+                    disabled={isLocked}
+                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
                   >
                     Log Overtime Log Entry
                   </button>
@@ -1071,7 +1086,8 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
 
                   <button
                     type="submit"
-                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
+                    disabled={isLocked}
+                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black rounded-xl text-xs cursor-pointer shadow-sm mt-2"
                   >
                     Submit Loan Request
                   </button>
@@ -1222,14 +1238,14 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
                       Open 360°
                     </button>
                     <button 
-                      disabled={disableActions}
+                      disabled={disableActions || emp.status === 'PROCESSING' || emp.status === 'PAID' || emp.status === 'DISBURSED'}
                       onClick={() => handleStartEdit(emp)}
                       className="p-1.5 text-slate-400 hover:text-indigo-650 hover:bg-indigo-50 border border-slate-200 rounded-lg transition-all cursor-pointer disabled:opacity-30"
                     >
                       <Edit2 size={13} />
                     </button>
                     <button 
-                      disabled={disableActions}
+                      disabled={disableActions || emp.status === 'PROCESSING' || emp.status === 'PAID' || emp.status === 'DISBURSED'}
                       onClick={() => handleDeleteEmployee(emp.id, emp.name)}
                       className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 rounded-lg transition-all cursor-pointer disabled:opacity-30"
                     >
@@ -1284,14 +1300,14 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
                           <Eye size={13} />
                         </button>
                         <button 
-                          disabled={disableActions}
+                          disabled={disableActions || emp.status === 'PROCESSING' || emp.status === 'PAID' || emp.status === 'DISBURSED'}
                           onClick={() => handleStartEdit(emp)}
                           className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-lg mr-1 transition-all cursor-pointer disabled:opacity-30 disabled:hover:bg-transparent"
                         >
                           <Edit2 size={13} />
                         </button>
                         <button 
-                          disabled={disableActions}
+                          disabled={disableActions || emp.status === 'PROCESSING' || emp.status === 'PAID' || emp.status === 'DISBURSED'}
                           onClick={() => handleDeleteEmployee(emp.id, emp.name)}
                           className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-lg transition-all cursor-pointer disabled:opacity-30 disabled:hover:bg-transparent"
                         >
