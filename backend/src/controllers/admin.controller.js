@@ -247,7 +247,7 @@ exports.exportCompanyBackup = async (req, res) => {
     // 2. Conditionally aggregate based on type
     if (type === 'full' || type === 'settings') {
       data.company_accounting_settings = await db('company_accounting_settings').where({ company_id: companyId });
-      data.settings = await db('settings').where({ company_id: companyId });
+      data.settings = await db('settings').where({ scope: 'company', target_id: String(companyId) });
     }
 
     if (type === 'full' || type === 'accounting') {
@@ -340,7 +340,7 @@ exports.restoreCompanyBackup = async (req, res) => {
         await trx('company_accounting_settings').where('company_id', companyId).del();
       }
       if (data.settings) {
-        await trx('settings').where('company_id', companyId).del();
+        await trx('settings').where({ scope: 'company', target_id: String(companyId) }).del();
       }
       if (data.vouchers) {
         await trx('vouchers').where('company_id', companyId).del();
@@ -390,6 +390,9 @@ exports.restoreCompanyBackup = async (req, res) => {
           const mapped = { ...row };
           if (mapped.hasOwnProperty('company_id')) {
             mapped.company_id = companyId;
+          }
+          if (tableName === 'settings' && mapped.scope === 'company') {
+            mapped.target_id = String(companyId);
           }
           return mapped;
         });
