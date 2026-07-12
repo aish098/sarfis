@@ -35,6 +35,14 @@ const TEMPLATES = [
   }
 ];
 
+function MessageSquareIcon(props) {
+  return (
+    <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
+      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
+    </svg>
+  );
+}
+
 export default function EmailCenterPage() {
   const { activeCompany } = useAuthStore();
   const [activeTab, setActiveTab] = useState('communications');
@@ -635,105 +643,7 @@ export default function EmailCenterPage() {
               <span className="text-[10px] text-slate-400 font-extrabold uppercase">Delivery Rate</span>
               <span className="text-[20px] font-black text-indigo-600 mt-2">{successRate}% Success</span>
             </div>
-          </div>
-
-          <div className="bg-white border border-slate-200 rounded-xl overflow-hidden shadow-3xs">
-            <div className="p-4 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
-              <h3 className="text-xs font-extrabold text-slate-800 uppercase tracking-wider">Outbound SMTP Monitor Queue</h3>
-              <div className="flex gap-2">
-                <button
-                  onClick={handlePurgeFailed}
-                  className="px-3 h-8 bg-red-50 hover:bg-red-100 border border-red-200 text-red-700 rounded-lg text-xs font-bold transition flex items-center gap-1 cursor-pointer"
-                >
-                  <Trash2 size={12} /> Purge Failed Logs
-                </button>
-                <button
-                  onClick={fetchQueue}
-                  className="p-2 border border-slate-200 hover:bg-slate-50 rounded-lg text-slate-500 cursor-pointer"
-                >
-                  <RefreshCw size={12} className={loadingQueue ? 'animate-spin' : ''} />
-                </button>
-              </div>
-            </div>
-
-            <div className="overflow-x-auto">
-              {loadingQueue ? (
-                <div className="p-16 text-center text-slate-450">
-                  <RefreshCw size={24} className="animate-spin text-emerald-600 mx-auto mb-2" />
-                  <p>Loading queue monitor logs...</p>
-                </div>
-              ) : queueLogs.length === 0 ? (
-                <div className="p-16 text-center text-slate-400 font-medium italic">No email logs in queue.</div>
-              ) : (
-                <table className="w-full text-left text-[12px]">
-                  <thead>
-                    <tr className="bg-slate-50 text-slate-500 font-extrabold uppercase text-[9px] tracking-wider border-b border-slate-200">
-                      <th className="px-4 py-3">Recipient</th>
-                      <th className="px-4 py-3">Subject / Event</th>
-                      <th className="px-4 py-3">Priority</th>
-                      <th className="px-4 py-3 text-center">Attempts</th>
-                      <th className="px-4 py-3 text-center">Status</th>
-                      <th className="px-4 py-3 text-center">Actions</th>
-                    </tr>
-                  </thead>
-                  <tbody className="divide-y divide-slate-100 font-semibold text-slate-700">
-                    {queueLogs.map((item) => (
-                      <tr key={item.id} className="hover:bg-slate-50/50">
-                        <td className="px-4 py-3">
-                          <span className="font-bold text-slate-900 block">{item.recipient_email}</span>
-                          <span className="text-[10px] text-slate-400 block mt-0.5">UID: {item.user_id || 'System'}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className="block">{item.subject}</span>
-                          <span className="text-[9.5px] uppercase font-bold text-slate-400 mt-0.5 block">{item.event_code}</span>
-                        </td>
-                        <td className="px-4 py-3">
-                          <span className={`inline-flex px-1.5 py-0.5 rounded text-[9.5px] font-bold ${
-                            item.priority === 'HIGH' ? 'bg-red-50 text-red-700' : 'bg-slate-100 text-slate-650'
-                          }`}>{item.priority}</span>
-                        </td>
-                        <td className="px-4 py-3 text-center font-mono">{item.attempts} / {item.max_attempts}</td>
-                        <td className="px-4 py-3 text-center">
-                          <span className={`inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold ${
-                            item.status === 'SENT' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                            item.status === 'FAILED' ? 'bg-red-50 text-red-700 border border-red-100' :
-                            'bg-amber-50 text-amber-700 border border-amber-100'
-                          }`}>
-                            {item.status}
-                          </span>
-                          {item.status === 'FAILED' && item.error_log && (
-                            <span className="block text-[8.5px] text-red-500 font-normal font-mono max-w-[150px] truncate mx-auto mt-0.5" title={item.error_log}>
-                              {item.error_log}
-                            </span>
-                          )}
-                        </td>
-                        <td className="px-4 py-3 text-center">
-                          <div className="inline-flex gap-1.5">
-                            {item.status === 'FAILED' && (
-                              <button
-                                onClick={() => handleResend(item.id)}
-                                className="p-1 border border-emerald-200 bg-emerald-50 text-emerald-700 hover:bg-emerald-100 rounded cursor-pointer"
-                                title="Resend Email"
-                              >
-                                <RotateCcw size={12} />
-                              </button>
-                            )}
-                            <button
-                              onClick={() => handleDeleteQueue(item.id)}
-                              className="p-1 border border-slate-200 hover:bg-slate-50 rounded text-slate-500 cursor-pointer"
-                              title="Delete Log"
-                            >
-                              <Trash2 size={12} className="text-red-500" />
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
-          </div>
+          </div>          {/* Delete detailed queue table log as requested */}
         </div>
       )}
 
@@ -765,211 +675,57 @@ export default function EmailCenterPage() {
 
       {/* Settings & Config Tab */}
       {activeTab === 'settings' && (
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
-          {/* SMTP Setup */}
-          <div className="lg:col-span-2 space-y-6">
-            <form onSubmit={handleSaveSmtp} className="bg-white border border-slate-200 rounded-xl p-5 space-y-4 shadow-3xs font-semibold text-slate-600">
-              <h3 className="text-[13.5px] font-black text-slate-900 border-b border-slate-100 pb-2">SMTP Server Configs</h3>
-              
-              <div className="grid grid-cols-2 gap-4">
-                <div className="space-y-1 col-span-2">
-                  <label className="text-[10px] uppercase font-bold text-slate-450">Active Provider</label>
-                  <div className="flex gap-2">
-                    {[
-                      { id: 'MOCK', label: 'Sandbox / Mock Provider', desc: 'Logs all outbound emails without real SMTP delivery.' },
-                      { id: 'SMTP', label: 'Real SMTP Server Provider', desc: 'Routes emails using corporate SMTP relay credentials.' }
-                    ].map(p => (
-                      <button
-                        key={p.id}
-                        type="button"
-                        onClick={() => setSmtpConfig({ ...smtpConfig, provider: p.id })}
-                        className={`flex-1 p-3 border rounded-xl text-left cursor-pointer transition ${
-                          smtpConfig.provider === p.id 
-                            ? 'border-emerald-500 bg-emerald-50/20 text-emerald-800' 
-                            : 'border-slate-200 bg-white hover:bg-slate-50 text-slate-600'
-                        }`}
-                      >
-                        <span className="block font-black text-[11px]">{p.label}</span>
-                        <span className="block text-[9.5px] text-slate-400 font-normal mt-0.5 leading-tight">{p.desc}</span>
-                      </button>
-                    ))}
-                  </div>
-                </div>
-
-                {smtpConfig.provider === 'SMTP' && (
-                  <>
-                    <div className="space-y-1 col-span-2 sm:col-span-1">
-                      <label className="text-[10px] uppercase font-bold text-slate-455">SMTP Host Server</label>
-                      <input
-                        required
-                        type="text"
-                        value={smtpConfig.host || ''}
-                        onChange={e => setSmtpConfig({ ...smtpConfig, host: e.target.value })}
-                        placeholder="e.g. smtp.gmail.com"
-                        className="w-full h-10 px-3 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800"
-                      />
-                    </div>
-                    <div className="space-y-1 col-span-2 sm:col-span-1">
-                      <label className="text-[10px] uppercase font-bold text-slate-455">SMTP Port</label>
-                      <input
-                        required
-                        type="number"
-                        value={smtpConfig.port || ''}
-                        onChange={e => setSmtpConfig({ ...smtpConfig, port: e.target.value })}
-                        placeholder="e.g. 587"
-                        className="w-full h-10 px-3 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800"
-                      />
-                    </div>
-                    <div className="space-y-1 col-span-2 sm:col-span-1">
-                      <label className="text-[10px] uppercase font-bold text-slate-455">SMTP Username</label>
-                      <input
-                        required
-                        type="text"
-                        value={smtpConfig.username || ''}
-                        onChange={e => setSmtpConfig({ ...smtpConfig, username: e.target.value })}
-                        placeholder="e.g. your-name@gmail.com"
-                        className="w-full h-10 px-3 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800"
-                      />
-                    </div>
-                    <div className="space-y-1 col-span-2 sm:col-span-1">
-                      <label className="text-[10px] uppercase font-bold text-slate-455">SMTP Password</label>
-                      <input
-                        required
-                        type="password"
-                        value={smtpConfig.password || ''}
-                        onChange={e => setSmtpConfig({ ...smtpConfig, password: e.target.value })}
-                        placeholder="••••••••"
-                        className="w-full h-10 px-3 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800"
-                      />
-                    </div>
-                    <div className="space-y-1 col-span-2 sm:col-span-1">
-                      <label className="text-[10px] uppercase font-bold text-slate-455">Encryption Layer</label>
-                      <select
-                        value={smtpConfig.encryption || 'TLS'}
-                        onChange={e => setSmtpConfig({ ...smtpConfig, encryption: e.target.value })}
-                        className="w-full h-10 px-3 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 outline-none"
-                      >
-                        <option value="TLS">TLS (Port 587)</option>
-                        <option value="SSL">SSL (Port 465)</option>
-                        <option value="NONE">None (Port 25)</option>
-                      </select>
-                    </div>
-                  </>
-                )}
-
-                <div className="space-y-1 col-span-2 sm:col-span-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-455">Sender Display Name</label>
-                  <input
-                    required
-                    type="text"
-                    value={smtpConfig.from_name || ''}
-                    onChange={e => setSmtpConfig({ ...smtpConfig, from_name: e.target.value })}
-                    placeholder="e.g. Sarfis ERP"
-                    className="w-full h-10 px-3 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800"
-                  />
-                </div>
-                <div className="space-y-1 col-span-2 sm:col-span-1">
-                  <label className="text-[10px] uppercase font-bold text-slate-455">From Email Address</label>
-                  <input
-                    required
-                    type="email"
-                    value={smtpConfig.from_email || ''}
-                    onChange={e => setSmtpConfig({ ...smtpConfig, from_email: e.target.value })}
-                    placeholder="e.g. alerts@sarfis.com"
-                    className="w-full h-10 px-3 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800"
-                  />
-                </div>
-              </div>
-
-              <button
-                type="submit"
-                disabled={savingSmtp}
-                className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 text-white text-xs font-bold rounded-lg transition cursor-pointer shadow-sm"
-              >
-                {savingSmtp ? 'Saving...' : 'Save SMTP Configs'}
-              </button>
-            </form>
-
-            {/* Diagnostics */}
-            <form onSubmit={handleTestSmtp} className="bg-white border border-slate-200 rounded-xl p-5 space-y-4 shadow-3xs font-semibold text-slate-600">
-              <h3 className="text-[13.5px] font-black text-slate-900 border-b border-slate-100 pb-2">SMTP Server Diagnostics</h3>
-              <p className="text-[11px] text-slate-400 mt-1">Submit a sandboxed test payload to verify TLS handshake and relay credentials.</p>
-              
-              <div className="space-y-1">
-                <label className="text-[10px] uppercase font-bold text-slate-455">Target Verification Email</label>
-                <input
-                  required
-                  type="email"
-                  value={testEmail}
-                  onChange={e => setTestEmail(e.target.value)}
-                  placeholder="e.g. recipient@gmail.com"
-                  className="w-full h-10 px-3 border border-slate-300 rounded-lg text-xs font-semibold text-slate-800 max-w-md"
-                />
-              </div>
-
-              <button
-                type="submit"
-                disabled={testingSmtp || !testEmail}
-                className="px-4 py-2.5 bg-slate-800 hover:bg-slate-900 disabled:bg-slate-300 text-white text-xs font-bold rounded-lg transition cursor-pointer shadow-sm"
-              >
-                {testingSmtp ? 'Testing connection...' : 'Send Test Email'}
-              </button>
-            </form>
+        <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4 shadow-3xs max-w-4xl">
+          <div>
+            <h3 className="text-[13.5px] font-black text-slate-900 border-b border-slate-100 pb-2">Outbound Preferences</h3>
+            <p className="text-[11px] text-slate-400 mt-1">Toggle checkboxes to subscribe or unsubscribe employees from automated system emails.</p>
           </div>
 
-          {/* Preferences Grid */}
-          <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4 shadow-3xs">
-            <div>
-              <h3 className="text-[13.5px] font-black text-slate-900 border-b border-slate-100 pb-2">Outbound Preferences</h3>
-              <p className="text-[11px] text-slate-400 mt-1">Toggle checkboxes to subscribe or unsubscribe employees from automated system emails.</p>
-            </div>
+          <div className="divide-y divide-slate-100 space-y-4 pt-2">
+            {loadingSettings ? (
+              <div className="p-8 text-center text-slate-400">
+                <RefreshCw size={18} className="animate-spin text-emerald-600 mx-auto" />
+              </div>
+            ) : employees.length === 0 ? (
+              <p className="italic text-slate-400 text-xs">No employees found.</p>
+            ) : (
+              employees.map(emp => {
+                const subList = subscriptions[emp.id] || [];
+                const getEmailChecked = (eventCode) => {
+                  const sub = subList.find(s => s.eventCode === eventCode);
+                  return sub ? !!sub.channels?.EMAIL : false;
+                };
 
-            <div className="divide-y divide-slate-100 space-y-4">
-              {loadingSettings ? (
-                <div className="p-8 text-center text-slate-400">
-                  <RefreshCw size={18} className="animate-spin text-emerald-600 mx-auto" />
-                </div>
-              ) : employees.length === 0 ? (
-                <p className="italic text-slate-400 text-xs">No employees found.</p>
-              ) : (
-                employees.map(emp => {
-                  const subList = subscriptions[emp.id] || [];
-                  const getEmailChecked = (eventCode) => {
-                    const sub = subList.find(s => s.eventCode === eventCode);
-                    return sub ? !!sub.channels?.EMAIL : false;
-                  };
-
-                  return (
-                    <div key={emp.id} className="pt-3 first:pt-0 space-y-2">
-                      <div>
-                        <span className="font-extrabold text-[12px] text-slate-800 block">{emp.name}</span>
-                        <span className="text-[10px] text-slate-400 font-mono block mt-0.5">{emp.user_email || emp.email || 'No email registered'}</span>
-                      </div>
-                      
-                      <div className="grid grid-cols-2 gap-2 text-[10.5px] font-semibold text-slate-600">
-                        {[
-                          { code: 'LOW_STOCK_ALERT', label: 'Inventory Alerts' },
-                          { code: 'JOURNAL_POSTED', label: 'Finance & Journals' },
-                          { code: 'BUDGET_EXCEEDED', label: 'Budget Alerts' },
-                          { code: 'PAYROLL_POSTED', label: 'Payroll runs' }
-                        ].map(col => (
-                          <label key={col.code} className="flex items-center gap-2 cursor-pointer hover:text-slate-800">
-                            <input
-                              type="checkbox"
-                              checked={getEmailChecked(col.code)}
-                              disabled={!(emp.user_email || emp.email)}
-                              onChange={e => handleToggleSubscription(emp.id, col.code, e.target.checked)}
-                              className="w-3.5 h-3.5 border-slate-300 rounded text-emerald-600 focus:ring-emerald-500 accent-emerald-600"
-                            />
-                            <span>{col.label}</span>
-                          </label>
-                        ))}
-                      </div>
+                return (
+                  <div key={emp.id} className="pt-3 first:pt-0 space-y-2">
+                    <div>
+                      <span className="font-extrabold text-[12px] text-slate-800 block">{emp.name}</span>
+                      <span className="text-[10px] text-slate-400 font-mono block mt-0.5">{emp.user_email || emp.email || 'No email registered'}</span>
                     </div>
-                  );
-                })
-              )}
-            </div>
+                    
+                    <div className="grid grid-cols-2 sm:grid-cols-4 gap-4 text-[11px] font-semibold text-slate-600">
+                      {[
+                        { code: 'LOW_STOCK_ALERT', label: 'Inventory Alerts' },
+                        { code: 'JOURNAL_POSTED', label: 'Finance & Journals' },
+                        { code: 'BUDGET_EXCEEDED', label: 'Budget Alerts' },
+                        { code: 'PAYROLL_POSTED', label: 'Payroll runs' }
+                      ].map(col => (
+                        <label key={col.code} className="flex items-center gap-2 cursor-pointer hover:text-slate-800">
+                          <input
+                            type="checkbox"
+                            checked={getEmailChecked(col.code)}
+                            disabled={!(emp.user_email || emp.email)}
+                            onChange={e => handleToggleSubscription(emp.id, col.code, e.target.checked)}
+                            className="w-3.5 h-3.5 border-slate-300 rounded text-emerald-600 focus:ring-emerald-500 accent-emerald-600 cursor-pointer"
+                          />
+                          <span>{col.label}</span>
+                        </label>
+                      ))}
+                    </div>
+                  </div>
+                );
+              })
+            )}
           </div>
         </div>
       )}
@@ -1036,14 +792,5 @@ export default function EmailCenterPage() {
       </RightDrawer>
 
     </div>
-  );
-}
-
-// Simple placeholder icon wrapper since lucide icon imports vary
-function MessageSquareIcon(props) {
-  return (
-    <svg xmlns="http://www.w3.org/2000/svg" width={props.size || 24} height={props.size || 24} viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" {...props}>
-      <path d="M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z" />
-    </svg>
   );
 }
