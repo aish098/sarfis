@@ -16,6 +16,21 @@ class PeriodValidationService {
     }
     const targetDate = parsedDate.toISOString().split('T')[0];
 
+    // Check Close the Books (closingDate) setting
+    const closingDateSetting = await trx('settings')
+      .where({ scope: 'company', target_id: String(companyId) })
+      .first();
+
+    if (closingDateSetting && closingDateSetting.value && closingDateSetting.value.closingDate) {
+      const closingDate = new Date(closingDateSetting.value.closingDate);
+      if (!isNaN(closingDate.getTime())) {
+        const closingDateStr = closingDate.toISOString().split('T')[0];
+        if (targetDate <= closingDateStr) {
+          throw new Error(`The books are closed for this date. No transactions can be posted on or before ${closingDateStr}.`);
+        }
+      }
+    }
+
     const period = await trx('accounting_periods')
       .where('company_id', companyId)
       .andWhere('start_date', '<=', targetDate)
