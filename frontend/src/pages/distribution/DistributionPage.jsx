@@ -800,15 +800,15 @@ export default function DistributionPage() {
                     </div>
                     <div className="border border-slate-200 rounded-xl overflow-hidden">
                       <div className="overflow-x-auto">
-                        <div className="min-w-[850px] divide-y divide-slate-100">
+                        <div className="min-w-[1000px] divide-y divide-slate-100">
                           {/* Header */}
                           <div className="grid grid-cols-12 gap-3 px-4 py-3 bg-[#EBF2EE] border-b-[2px] border-[#D1E0D8] text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">
                             <div className="col-span-3">Product</div>
                             <div className="col-span-1">Qty</div>
                             <div className="col-span-2">Unit Price</div>
-                            <div className="col-span-2">Discount</div>
+                            <div className="col-span-1">Discount</div>
                             <div className="col-span-2">Offer/Promo</div>
-                            <div className="col-span-1">Cost</div>
+                            <div className="col-span-2">Cost</div>
                             <div className="col-span-1 text-center">Action</div>
                           </div>
                           
@@ -827,13 +827,13 @@ export default function DistributionPage() {
                               <div className="col-span-2">
                                 <input type="number" step="0.01" required placeholder="0.00" className="input-enterprise text-[12px] py-1.5 w-full font-mono" value={item.unit_price} onChange={e => setDeliveryItem(idx, 'unit_price', e.target.value)} />
                               </div>
-                              <div className="col-span-2">
+                              <div className="col-span-1">
                                 <input type="number" step="0.01" placeholder="0.00" className="input-enterprise text-[12px] py-1.5 w-full font-mono" value={item.discount} onChange={e => setDeliveryItem(idx, 'discount', e.target.value)} />
                               </div>
                               <div className="col-span-2">
                                 <input type="text" placeholder="Promo code / Offer" className="input-enterprise text-[12px] py-1.5 w-full" value={item.offer} onChange={e => setDeliveryItem(idx, 'offer', e.target.value)} />
                               </div>
-                              <div className="col-span-1">
+                              <div className="col-span-2">
                                 <input type="number" step="0.01" placeholder="0.00" className="input-enterprise text-[12px] py-1.5 w-full font-mono bg-slate-50 text-slate-500" value={item.unit_cost} onChange={e => setDeliveryItem(idx, 'unit_cost', e.target.value)} />
                               </div>
                               <div className="col-span-1 flex justify-center">
