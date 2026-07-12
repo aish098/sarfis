@@ -1,31 +1,22 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   Lock, Settings, Plus, Play, RefreshCw, CheckCircle, 
   HelpCircle, Trash2, Edit2, ShieldAlert, Sliders, Calendar, ArrowRight,
   Globe
 } from 'lucide-react';
 import api from '../../services/api';
+import useAuthStore from '../../store/authStore';
 
 export default function PayrollConfiguration({ userRole }) {
+  const { activeCompany } = useAuthStore();
   const [activeConfigTab, setActiveConfigTab] = useState('structures'); // structures | components | formula | rules
+  const [loading, setLoading] = useState(false);
 
   // Structures state
-  const [structures, setStructures] = useState([
-    { id: 1, name: 'Senior Management Structure', revision: 2, status: 'ACTIVE', effectiveFrom: '2026-01-01', componentsCount: 6 },
-    { id: 2, name: 'Software Engineer Structure', revision: 1, status: 'ACTIVE', effectiveFrom: '2026-01-01', componentsCount: 5 },
-    { id: 3, name: 'Sales Agent Structure', revision: 3, status: 'DRAFT', effectiveFrom: '2026-09-01', componentsCount: 6 },
-  ]);
+  const [structures, setStructures] = useState([]);
 
-  // Components list (with is_system_component locks!)
-  const [components, setComponents] = useState([
-    { code: 'BASIC', name: 'Basic Salary', type: 'EARNING', calculation: 'PERCENTAGE', value: '60%', system: true },
-    { code: 'HRA', name: 'House Rent Allowance', type: 'EARNING', calculation: 'PERCENTAGE', value: '25%', system: true },
-    { code: 'MED', name: 'Medical Allowance', type: 'EARNING', calculation: 'PERCENTAGE', value: '10%', system: true },
-    { code: 'TRANS', name: 'Transport Allowance', type: 'EARNING', calculation: 'FIXED', value: 'PKR 10,000', system: false },
-    { code: 'TAX', name: 'Income Tax Withholding', type: 'DEDUCTION', calculation: 'FORMULA', value: 'FBR Slabs', system: true },
-    { code: 'PF', name: 'Provident Fund Contribution', type: 'DEDUCTION', calculation: 'FORMULA', value: 'basic * 0.05', system: true },
-    { code: 'EOBI', name: 'EOBI Pension', type: 'DEDUCTION', calculation: 'FIXED', value: 'PKR 1,000', system: true },
-  ]);
+  // Components list
+  const [components, setComponents] = useState([]);
 
   // Formula sandbox variables
   const [testFormula, setTestFormula] = useState('if(gross > 100000, gross * 0.10, 0)');
@@ -42,12 +33,132 @@ export default function PayrollConfiguration({ userRole }) {
     { code: 'SAR', base: false, rate: 74.20, type: 'Contract Conversion Rate' }
   ]);
 
+  const fetchConfigData = async () => {
+    if (!activeCompany?.id) return;
+    setLoading(true);
+    try {
+      const structRes = await api.get(`/payroll/${activeCompany.id}/structures`);
+      const structList = (structRes.data || []).map(s => ({
+        id: s.id,
+        name: s.name,
+        revision: s.name.includes('(Revision') ? 2 : 1,
+        status: s.status,
+        effectiveFrom: s.effective_from ? s.effective_from.split('T')[0] : '2026-01-01',
+        componentsCount: 6
+      }));
+      setStructures(structList);
+
+      const compRes = await api.get(`/payroll/${activeCompany.id}/components`);
+      const compList = (compRes.data || []).map(c => ({
+        id: c.id,
+        code: c.code,
+        name: c.name,
+        type: c.type,
+        calculation: c.calculation_type,
+        value: c.calculation_type === 'FIXED' ? `PKR ${parseFloat(c.default_value).toLocaleString()}` : (c.calculation_type === 'FORMULA' ? c.formula_expression : `${Math.round(parseFloat(c.default_value) * 100)}%`),
+        formula: c.formula_expression || '',
+        system: c.is_system_component
+      }));
+      setComponents(compList);
+    } catch (err) {
+      console.error('Failed to load configuration lists:', err);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    fetchConfigData();
+  }, [activeCompany?.id]);
+
+  const handleCreateStructure = async () => {
+    const name = prompt('Enter Salary Structure Name:');
+    if (!name || name.trim() === '') return;
+    try {
+      await api.post(`/payroll/${activeCompany.id}/structures`, {
+        name,
+        code: name.slice(0, 5).toUpperCase(),
+        effective_from: new Date().toISOString().split('T')[0]
+      });
+      fetchConfigData();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to create structure.');
+    }
+  };
+
+  const handleCreateRevision = async (strId) => {
+    try {
+      await api.post(`/payroll/${activeCompany.id}/structures/${strId}/revision`);
+      fetchConfigData();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to create revision.');
+    }
+  };
+
+  const handleAddComponent = async () => {
+    const code = prompt('Enter Component Code (e.g. TRANS):');
+    if (!code) return;
+    const name = prompt('Enter Component Name (e.g. Transport Allowance):');
+    if (!name) return;
+    const type = prompt('Enter Type (EARNING or DEDUCTION):', 'EARNING');
+    if (!type || (type !== 'EARNING' && type !== 'DEDUCTION')) return;
+    const calculation = prompt('Enter Calculation Basis (PERCENTAGE, FIXED, or FORMULA):', 'PERCENTAGE');
+    if (!calculation) return;
+    const value = prompt('Enter Default Weight/Value (e.g. 0.10 for 10%, 5000 for PKR 5,000, or a formula expression):');
+    if (value === null) return;
+
+    try {
+      await api.post(`/payroll/${activeCompany.id}/components`, {
+        code: code.toUpperCase(),
+        name,
+        type,
+        calculation_type: calculation,
+        default_value: calculation === 'FORMULA' ? '0.00' : String(parseFloat(value)),
+        formula_expression: calculation === 'FORMULA' ? value : null
+      });
+      fetchConfigData();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to add component.');
+    }
+  };
+
+  const handleEditComponent = async (comp) => {
+    const name = prompt('Update Component Name:', comp.name);
+    if (!name) return;
+    const value = prompt('Update Default Weight/Value (percentage decimal, fixed number, or formula):', comp.formula || comp.value);
+    if (value === null) return;
+
+    try {
+      await api.put(`/payroll/${activeCompany.id}/components/${comp.id}`, {
+        code: comp.code,
+        name,
+        type: comp.type,
+        calculation_type: comp.calculation,
+        default_value: comp.calculation === 'FORMULA' ? '0.00' : String(parseFloat(value)),
+        formula_expression: comp.calculation === 'FORMULA' ? value : null
+      });
+      fetchConfigData();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to update component.');
+    }
+  };
+
+  const handleDeleteComponent = async (compId) => {
+    if (!confirm('Are you sure you want to delete this salary component?')) return;
+    try {
+      await api.delete(`/payroll/${activeCompany.id}/components/${compId}`);
+      fetchConfigData();
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to delete component.');
+    }
+  };
+
   const handleValidateFormula = async () => {
     setSandboxLoading(true);
     setSandboxResult(null);
     setSandboxError(null);
     try {
-      const res = await api.post('/payroll/1/formula/validate', {
+      const res = await api.post(`/payroll/${activeCompany.id || 1}/formula/validate`, {
         expression: testFormula
       });
       if (res.data.valid) {
@@ -119,12 +230,13 @@ export default function PayrollConfiguration({ userRole }) {
             </div>
             <button 
               disabled={disableEdit}
+              onClick={handleCreateStructure}
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-xl transition-all font-black flex items-center gap-1 cursor-pointer"
             >
               <Plus size={13} /> Create Structure
             </button>
           </div>
-
+ 
           <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden">
             <table className="w-full text-left border-collapse">
               <thead>
@@ -154,6 +266,7 @@ export default function PayrollConfiguration({ userRole }) {
                     <td className="px-5 py-4 text-center">
                       <button 
                         disabled={disableEdit}
+                        onClick={() => handleCreateRevision(str.id)}
                         className="px-2.5 py-1 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-lg shadow-3xs cursor-pointer text-[10px] font-black disabled:opacity-40"
                       >
                         Create Revision
@@ -177,6 +290,7 @@ export default function PayrollConfiguration({ userRole }) {
             </div>
             <button 
               disabled={disableEdit}
+              onClick={handleAddComponent}
               className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white rounded-xl transition-all font-black flex items-center gap-1 cursor-pointer"
             >
               <Plus size={13} /> Add Component
@@ -221,13 +335,15 @@ export default function PayrollConfiguration({ userRole }) {
                       <div className="flex items-center justify-center gap-1.5">
                         <button 
                           disabled={disableEdit}
-                          className="p-1 text-slate-400 hover:text-indigo-600 rounded disabled:opacity-30"
+                          onClick={() => handleEditComponent(comp)}
+                          className="p-1 text-slate-400 hover:text-indigo-600 rounded disabled:opacity-30 cursor-pointer"
                         >
                           <Edit2 size={13} />
                         </button>
                         <button 
                           disabled={comp.system || disableEdit}
-                          className={`p-1 rounded ${(comp.system || disableEdit) ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-rose-600'}`}
+                          onClick={() => handleDeleteComponent(comp.id)}
+                          className={`p-1 rounded ${(comp.system || disableEdit) ? 'text-slate-200 cursor-not-allowed' : 'text-slate-400 hover:text-rose-600 cursor-pointer'}`}
                         >
                           <Trash2 size={13} />
                         </button>
@@ -348,8 +464,10 @@ export default function PayrollConfiguration({ userRole }) {
                 <tbody className="divide-y divide-slate-50 font-semibold text-slate-600">
                   <tr><td className="px-4 py-2.5">Up to 600,000 / year (50,000 / mo)</td><td className="px-4 py-2.5 text-right">PKR 0</td><td className="px-4 py-2.5 text-right">0%</td></tr>
                   <tr><td className="px-4 py-2.5">600,001 to 1,200,000 / year</td><td className="px-4 py-2.5 text-right">PKR 0</td><td className="px-4 py-2.5 text-right">5%</td></tr>
-                  <tr><td className="px-4 py-2.5">1,200,001 to 2,400,000 / year</td><td className="px-4 py-2.5 text-right">PKR 30,000</td><td className="px-4 py-2.5 text-right">15%</td></tr>
-                  <tr><td className="px-4 py-2.5">2,400,001 to 3,600,000 / year</td><td className="px-4 py-2.5 text-right">PKR 210,000</td><td className="px-4 py-2.5 text-right">25%</td></tr>
+                  <tr><td className="px-4 py-2.5">1,200,001 to 2,200,000 / year</td><td className="px-4 py-2.5 text-right">PKR 30,000</td><td className="px-4 py-2.5 text-right">15%</td></tr>
+                  <tr><td className="px-4 py-2.5">2,200,001 to 3,200,000 / year</td><td className="px-4 py-2.5 text-right">PKR 180,000</td><td className="px-4 py-2.5 text-right">25%</td></tr>
+                  <tr><td className="px-4 py-2.5">3,200,001 to 4,100,000 / year</td><td className="px-4 py-2.5 text-right">PKR 430,000</td><td className="px-4 py-2.5 text-right">30%</td></tr>
+                  <tr><td className="px-4 py-2.5">Above 4,100,000 / year</td><td className="px-4 py-2.5 text-right">PKR 700,000</td><td className="px-4 py-2.5 text-right">35%</td></tr>
                 </tbody>
               </table>
             </div>

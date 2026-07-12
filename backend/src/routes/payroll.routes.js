@@ -43,6 +43,15 @@ router.get('/:companyId/reports/cost-analysis',    companyGuard, requirePermissi
 router.get('/:companyId/reports/dept-variance',    companyGuard, requirePermission('user.manage'), payrollCtrl.getDepartmentalCostVariance);
 router.get('/:companyId/reports/audit-trail',       companyGuard, requirePermission('user.manage'), payrollCtrl.getPayrollAuditTrail);
 
+// Settings Configuration Endpoints
+router.get('/:companyId/structures',                companyGuard, requirePermission('user.manage'), payrollCtrl.getSalaryStructures);
+router.post('/:companyId/structures',               companyGuard, requirePermission('user.manage'), payrollCtrl.createSalaryStructure);
+router.post('/:companyId/structures/:id/revision',  companyGuard, requirePermission('user.manage'), payrollCtrl.createStructureRevision);
+router.get('/:companyId/components',                companyGuard, requirePermission('user.manage'), payrollCtrl.getSalaryComponents);
+router.post('/:companyId/components',               companyGuard, requirePermission('user.manage'), payrollCtrl.createSalaryComponent);
+router.put('/:companyId/components/:id',            companyGuard, requirePermission('user.manage'), payrollCtrl.updateSalaryComponent);
+router.delete('/:companyId/components/:id',         companyGuard, requirePermission('user.manage'), payrollCtrl.deleteSalaryComponent);
+
 // Engine Maturity Endpoints
 router.post('/:companyId/simulate',                 companyGuard, requirePermission('user.manage'), payrollCtrl.simulatePayrollRun);
 router.post('/:companyId/formula/validate',         companyGuard, requirePermission('user.manage'), payrollCtrl.validateFormulaExpression);

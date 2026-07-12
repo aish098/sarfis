@@ -240,8 +240,12 @@ exports.simulatePayrollRun = async (req, res) => {
 
 exports.validateFormulaExpression = async (req, res) => {
   try {
-    const { formula, variables } = req.body;
-    const result = PayrollService.validateFormulaExpression(formula, variables);
+    const { formula, expression, variables } = req.body;
+    const formulaText = formula || expression;
+    if (!formulaText) {
+      return res.status(400).json({ error: 'Formula expression is required.' });
+    }
+    const result = PayrollService.validateFormulaExpression(formulaText, variables);
     res.json(result);
   } catch (err) {
     res.status(400).json({ error: err.message });
@@ -441,6 +445,164 @@ exports.getPayrollAuditTrail = async (req, res) => {
     const { period } = req.query;
     const result = await PayrollService.getPayrollAuditTrail(parseInt(companyId), period);
     res.json(result);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.getSalaryStructures = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const structures = await db('salary_structures')
+      .where({ company_id: companyId })
+      .orderBy('created_at', 'desc');
+
+    if (structures.length === 0) {
+      const seeded = [
+        {
+          company_id: companyId,
+          code: 'MGMT',
+          name: 'Senior Management Structure',
+          description: 'Versioned template for executive team',
+          status: 'ACTIVE',
+          effective_from: '2026-01-01'
+        },
+        {
+          company_id: companyId,
+          code: 'ENG',
+          name: 'Software Engineer Structure',
+          description: 'Standard pay configuration for Engineering department',
+          status: 'ACTIVE',
+          effective_from: '2026-01-01'
+        },
+        {
+          company_id: companyId,
+          code: 'SALES',
+          name: 'Sales Agent Structure',
+          description: 'Commission and base pay structure',
+          status: 'DRAFT',
+          effective_from: '2026-09-01'
+        }
+      ];
+      await db('salary_structures').insert(seeded);
+      const refreshed = await db('salary_structures').where({ company_id: companyId }).orderBy('created_at', 'desc');
+      return res.json(refreshed);
+    }
+
+    res.json(structures);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.createSalaryStructure = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const { name, code, description, status, effective_from } = req.body;
+    const [newStr] = await db('salary_structures')
+      .insert({
+        company_id: companyId,
+        code: code || 'NEW-STR',
+        name,
+        description: description || 'Custom Salary pay configuration structure template.',
+        status: status || 'ACTIVE',
+        effective_from: effective_from || new Date().toISOString().split('T')[0]
+      })
+      .returning('*');
+    res.json(newStr);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.createStructureRevision = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const struct = await db('salary_structures').where({ id }).first();
+    if (!struct) return res.status(404).json({ error: 'Salary structure not found.' });
+
+    const [updated] = await db('salary_structures')
+      .where({ id })
+      .update({
+        name: struct.name.includes('(Revision') ? struct.name : `${struct.name} (Revision)`,
+        updated_at: db.fn.now()
+      })
+      .returning('*');
+
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.getSalaryComponents = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const list = await db('salary_components')
+      .where({ company_id: companyId })
+      .orderBy('sequence_no', 'asc');
+    res.json(list);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.createSalaryComponent = async (req, res) => {
+  try {
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
+    const { code, name, type, calculation_type, default_value, formula_expression } = req.body;
+    const [newComp] = await db('salary_components')
+      .insert({
+        company_id: companyId,
+        code,
+        name,
+        type,
+        calculation_type: calculation_type || 'PERCENTAGE',
+        default_value: default_value || '0.00',
+        formula_expression: formula_expression || null,
+        is_system_component: false,
+        is_active: true
+      })
+      .returning('*');
+    res.json(newComp);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.updateSalaryComponent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const { code, name, type, calculation_type, default_value, formula_expression } = req.body;
+    
+    const [updated] = await db('salary_components')
+      .where({ id })
+      .update({
+        code,
+        name,
+        type,
+        calculation_type,
+        default_value,
+        formula_expression,
+        updated_at: db.fn.now()
+      })
+      .returning('*');
+    res.json(updated);
+  } catch (err) {
+    res.status(400).json({ error: err.message });
+  }
+};
+
+exports.deleteSalaryComponent = async (req, res) => {
+  try {
+    const { id } = req.params;
+    const comp = await db('salary_components').where({ id }).first();
+    if (!comp) return res.status(404).json({ error: 'Salary component not found.' });
+    if (comp.is_system_component) {
+      return res.status(400).json({ error: 'System component is locked and cannot be deleted.' });
+    }
+    await db('salary_components').where({ id }).delete();
+    res.json({ success: true });
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
