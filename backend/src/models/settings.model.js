@@ -25,7 +25,6 @@ class SettingsModel {
       if (value.hasOwnProperty('defaultInventoryAccountId')) mapping.default_inventory_account_id = value.defaultInventoryAccountId ? parseInt(value.defaultInventoryAccountId, 10) : null;
       if (value.hasOwnProperty('defaultCogsAccountId')) mapping.default_cogs_account_id = value.defaultCogsAccountId ? parseInt(value.defaultCogsAccountId, 10) : null;
       if (value.hasOwnProperty('defaultCashAccountId')) mapping.default_cash_account_id = value.defaultCashAccountId ? parseInt(value.defaultCashAccountId, 10) : null;
-      if (value.hasOwnProperty('defaultSalariesAccountId')) mapping.default_salaries_account_id = value.defaultSalariesAccountId ? parseInt(value.defaultSalariesAccountId, 10) : null;
       if (value.hasOwnProperty('taxRate')) mapping.tax_rate = parseFloat(value.taxRate || 0);
       if (value.hasOwnProperty('negativeBalanceStyle')) mapping.negative_balance_style = value.negativeBalanceStyle || 'minus';
 
