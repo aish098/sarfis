@@ -92,6 +92,14 @@ exports.getPendingApprovals = async (req, res) => {
         const lines = await db('budget_control_lines').where({ budget_header_id: p.document_id });
         docSummary = `Budget Plan: ${bh?.name || 'Annual Budget'} (${bh?.fiscal_year} - ${bh?.version_name})`;
         amount = lines.reduce((sum, l) => sum + parseFloat(l.allocated_amount || 0), 0);
+      } else if (p.document_type_code === 'PURCHASE_ORDER') {
+        const po = await db('purchase_orders as po')
+          .leftJoin('vendors as v', 'po.vendor_id', 'v.id')
+          .select('po.*', 'v.name as vendor_name')
+          .where({ 'po.id': p.document_id })
+          .first();
+        docSummary = `Purchase Order ${po?.po_number || '#' + p.document_id}: ${po?.vendor_name || 'System Auto-PO'}`;
+        amount = parseFloat(po?.total_amount || 0);
       }
       result.push({ ...p, docSummary, amount });
     }

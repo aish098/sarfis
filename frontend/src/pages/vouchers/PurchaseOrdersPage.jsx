@@ -125,17 +125,22 @@ export default function PurchaseOrdersPage() {
     setFormError('');
   };
 
-  const handleEditPo = (po) => {
-    setEditingPo(po);
-    setVendorId(po.vendor_id || '');
-    setNotes(po.notes || '');
-    setDate(po.date ? new Date(po.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
-    setItems(po.items.map(item => ({
-      productId: item.product_id,
-      quantity: parseFloat(item.quantity),
-      unitPrice: parseFloat(item.unit_price)
-    })));
-    setShowFormModal(true);
+  const handleEditPo = async (po) => {
+    try {
+      const { data } = await api.get(`/purchase-orders/${activeCompany.id}/${po.id}`);
+      setEditingPo(data);
+      setVendorId(data.vendor_id || '');
+      setNotes(data.notes || '');
+      setDate(data.date ? new Date(data.date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0]);
+      setItems(data.items.map(item => ({
+        productId: item.product_id,
+        quantity: parseFloat(item.quantity),
+        unitPrice: parseFloat(item.unit_price)
+      })));
+      setShowFormModal(true);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to load purchase order details for editing.');
+    }
   };
 
   const handleSubmitForm = async (e) => {

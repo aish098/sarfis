@@ -105,7 +105,27 @@ const processSale = async ({
   companyId, deliveryId, items, clientId,
   arAccountId, userId,
 }) => {
+  const AccountModel = require('../models/account.model');
   return db.transaction(async (trx) => {
+    let resolvedArAccountId = arAccountId;
+    if (!resolvedArAccountId) {
+      const SettingsModel = require('../models/settings.model');
+      const settings = await SettingsModel.getSettings(companyId);
+      resolvedArAccountId = settings.default_ar_account_id || settings.defaultArAccountId;
+    }
+    if (!resolvedArAccountId) {
+      const arAcc = await trx('accounts')
+        .where('company_id', companyId)
+        .andWhere(function() {
+          this.where('code', 'like', '12%').orWhere('name', 'like', '%Receivable%');
+        })
+        .first();
+      if (arAcc) resolvedArAccountId = arAcc.id;
+    }
+    if (!resolvedArAccountId) {
+      throw new Error('Accounts Receivable (AR) account mapping is missing for this company.');
+    }
+
     let totalRevenue = 0;
     let totalCOGS = 0;
     const jeLines = [];
@@ -179,10 +199,17 @@ const processSale = async ({
 
     // Dr AR, Cr Revenue + Dr COGS, Cr Inventory
     await trx('journal_lines').insert([
-      { entry_id: je.id, account_id: arAccountId, debit: totalRevenue, credit: 0 },
+      { entry_id: je.id, account_id: resolvedArAccountId, debit: totalRevenue, credit: 0 },
       { entry_id: je.id, account_id: firstRevenueAccountId, debit: 0, credit: totalRevenue },
       ...jeLines.map(l => ({ ...l, entry_id: je.id })),
     ]);
+
+    // Update balance cache
+    await AccountModel.updateBalance(resolvedArAccountId, companyId, totalRevenue, 0, trx);
+    await AccountModel.updateBalance(firstRevenueAccountId, companyId, 0, totalRevenue, trx);
+    for (const l of jeLines) {
+      await AccountModel.updateBalance(l.account_id, companyId, l.debit, l.credit, trx);
+    }
 
     return { journalEntry: je, totalRevenue, totalCOGS };
   });

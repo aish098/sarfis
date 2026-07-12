@@ -694,20 +694,8 @@ class PayrollService {
       if (run.status !== 'POSTED') throw new Error('Only posted payroll runs can be reversed.');
 
       // Call journal reversal
-      const res = await fetch(`http://localhost:${PORT}/api/journal/${run.journal_entry_id}/reverse`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.getInternalToken()}`,
-          'x-company-id': companyId.toString()
-        },
-        body: JSON.stringify({ reason: 'Reversing Payroll Run' })
-      });
-
-      if (res.status !== 200) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to reverse payroll journal entry.');
-      }
+      const JournalPostingService = require('./journal_posting.service');
+      await JournalPostingService.reverse(run.journal_entry_id, companyId, userId, 'Reversing Payroll Run');
 
       await trx('payroll_runs')
         .where({ id: runId })
@@ -1091,20 +1079,8 @@ class PayrollService {
       const paymentDate = new Date(payment.payment_date);
       await PostingEngineService.assertPeriodOpen(companyId, paymentDate, trx);
 
-      const res = await fetch(`http://localhost:${PORT}/api/journal/${payment.journal_entry_id}/reverse`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${this.getInternalToken()}`,
-          'x-company-id': companyId.toString()
-        },
-        body: JSON.stringify({ reason: remarks || 'Reversing Salary Payment' })
-      });
-
-      if (res.status !== 200) {
-        const errData = await res.json();
-        throw new Error(errData.error || 'Failed to reverse payroll payment journal entry.');
-      }
+      const JournalPostingService = require('./journal_posting.service');
+      await JournalPostingService.reverse(payment.journal_entry_id, companyId, userId, remarks || 'Reversing Salary Payment');
 
       const referenceNo = `REV-${payment.payment_reference}`;
 

@@ -26,8 +26,8 @@ async function testContra() {
     // Fetch the balance sheet for this company
     const balanceSheet = await ReportModel.getBalanceSheet(companyId, new Date());
     
-    const eqRow = balanceSheet.find(a => a.id === equipment.id);
-    const accDepRow = balanceSheet.find(a => a.id === accDep.id);
+    const eqRow = balanceSheet.items.find(a => a.id === equipment.id);
+    const accDepRow = balanceSheet.items.find(a => a.id === accDep.id);
 
     console.log('--- Current Balance Sheet Stats ---');
     console.log('Equipment:', eqRow ? `Debit: ${eqRow.total_debit}, Credit: ${eqRow.total_credit}` : 'No entries');

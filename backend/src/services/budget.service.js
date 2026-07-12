@@ -96,7 +96,7 @@ class BudgetService {
           .sum('amount as total');
         const committed = parseFloat(committedRes[0]?.total || 0);
 
-        allocated = parseFloat(budgetLine.current_budget_amount || budgetLine.allocated_amount);
+        allocated = parseFloat(budgetLine.current_budget_amount) || parseFloat(budgetLine.allocated_amount);
         consumed = actual + committed;
         remaining = allocated - consumed;
       }

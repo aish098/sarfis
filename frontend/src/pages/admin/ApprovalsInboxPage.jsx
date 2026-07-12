@@ -87,6 +87,9 @@ export default function ApprovalsInboxPage() {
       } else if (item.document_type_code === 'BUDGET') {
         const { data } = await api.get(`/budgets/${item.document_id}`);
         setDocPayload(data);
+      } else if (item.document_type_code === 'PURCHASE_ORDER') {
+        const { data } = await api.get(`/purchase-orders/${activeCompany.id}/${item.document_id}`);
+        setDocPayload(data);
       }
     } catch (err) {
       console.error(err);
@@ -362,10 +365,27 @@ export default function ApprovalsInboxPage() {
                             ))}
                           </div>
                         </>
+                      ) : selectedApproval.document_type_code === 'PURCHASE_ORDER' ? (
+                        <>
+                          <div className="flex justify-between"><span>PO Number:</span><span className="font-bold text-slate-800">{docPayload.po_number}</span></div>
+                          <div className="flex justify-between"><span>Vendor:</span><span className="font-bold text-slate-800">{docPayload.vendor_name || 'System Auto-PO'}</span></div>
+                          <div className="flex justify-between"><span>Date:</span><span className="font-bold text-slate-800">{new Date(docPayload.date).toLocaleDateString()}</span></div>
+                          <div className="flex justify-between"><span>Status:</span><span className="font-bold text-indigo-700">{docPayload.status}</span></div>
+                          <div className="border-t border-slate-200/50 pt-2 space-y-1">
+                            {docPayload.items?.map((item, idx) => (
+                              <div key={idx} className="flex justify-between gap-2">
+                                <span className="truncate">{item.product_name} (x{parseFloat(item.quantity)})</span>
+                                <span className="font-mono font-bold shrink-0 text-slate-800">
+                                  PKR {fmt(item.line_total)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
                       ) : (
                         <>
                           <div className="flex justify-between"><span>ID:</span><span className="font-bold text-slate-800">#{docPayload.id}</span></div>
-                          <div className="flex justify-between"><span>Date:</span><span className="font-bold text-slate-800">{new Date(docPayload.entry_date).toLocaleDateString()}</span></div>
+                          <div className="flex justify-between"><span>Date:</span><span className="font-bold text-slate-800">{docPayload.entry_date ? new Date(docPayload.entry_date).toLocaleDateString() : 'N/A'}</span></div>
                           <div className="border-t border-slate-200/50 pt-2 space-y-1">
                             {docPayload.lines?.map((line, idx) => (
                               <div key={idx} className="flex justify-between gap-2">
