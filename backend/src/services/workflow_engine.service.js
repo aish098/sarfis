@@ -223,6 +223,12 @@ class WorkflowEngineService {
     } else if (instance.document_type_code === 'JOURNAL') {
       const lines = await trx('journal_lines').where({ entry_id: instance.document_id });
       amount = lines.reduce((sum, l) => sum + parseFloat(l.debit || 0), 0);
+    } else if (instance.document_type_code === 'PURCHASE_ORDER') {
+      const po = await trx('purchase_orders').where({ id: instance.document_id }).first();
+      amount = parseFloat(po?.total_amount || 0);
+    } else if (instance.document_type_code === 'BUDGET') {
+      const lines = await trx('budget_control_lines').where({ budget_header_id: instance.document_id });
+      amount = lines.reduce((sum, l) => sum + parseFloat(l.allocated_amount || 0), 0);
     }
 
     const activeStages = allStages.filter(stage => 
