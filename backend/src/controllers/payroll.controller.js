@@ -518,18 +518,37 @@ exports.createSalaryStructure = async (req, res) => {
 exports.createStructureRevision = async (req, res) => {
   try {
     const { id } = req.params;
+    const companyId = req.headers['x-company-id'] || req.params.companyId;
     const struct = await db('salary_structures').where({ id }).first();
     if (!struct) return res.status(404).json({ error: 'Salary structure not found.' });
 
-    const [updated] = await db('salary_structures')
-      .where({ id })
-      .update({
-        name: struct.name.includes('(Revision') ? struct.name : `${struct.name} (Revision)`,
-        updated_at: db.fn.now()
+    const suffix = ' (Revision)';
+    const newName = struct.name.endsWith(suffix) ? struct.name : `${struct.name}${suffix}`;
+    const newCode = `${struct.code.slice(0, 7)}_REV`;
+
+    const [newStr] = await db('salary_structures')
+      .insert({
+        company_id: companyId,
+        code: newCode,
+        name: newName,
+        description: struct.description,
+        status: 'DRAFT',
+        effective_from: new Date().toISOString().split('T')[0]
       })
       .returning('*');
 
-    res.json(updated);
+    // Also copy components mapping if any
+    const originalComps = await db('salary_structure_components').where({ structure_id: id });
+    if (originalComps.length > 0) {
+      const copyPayloads = originalComps.map(c => ({
+        structure_id: newStr.id,
+        component_id: c.component_id,
+        value: c.value
+      }));
+      await db('salary_structure_components').insert(copyPayloads);
+    }
+
+    res.json(newStr);
   } catch (err) {
     res.status(400).json({ error: err.message });
   }
@@ -557,6 +576,7 @@ exports.createSalaryComponent = async (req, res) => {
         code,
         name,
         type,
+        category: type === 'EARNING' ? 'ALLOWANCE' : 'DEDUCTION',
         calculation_type: calculation_type || 'PERCENTAGE',
         default_value: default_value || '0.00',
         formula_expression: formula_expression || null,
@@ -581,6 +601,7 @@ exports.updateSalaryComponent = async (req, res) => {
         code,
         name,
         type,
+        category: type === 'EARNING' ? 'ALLOWANCE' : 'DEDUCTION',
         calculation_type,
         default_value,
         formula_expression,
