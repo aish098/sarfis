@@ -115,6 +115,17 @@ export default function ReportsPage() {
     if (!noteData) return;
     const doc = new jsPDF();
 
+    // Hex to RGB converter helper
+    const hexToRgb = (hex) => {
+      let c = hex.replace('#', '');
+      if (c.length === 3) {
+        c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
+      }
+      const num = parseInt(c, 16);
+      return [num >> 16, (num >> 8) & 0x00ff, num & 0x0000ff];
+    };
+    const brandRgb = hexToRgb(settings?.brandColor || '#10b981');
+
     if (settings?.logoUrl) {
       const logoUrl = settings.logoUrl.startsWith('http') ? settings.logoUrl : `${import.meta.env.PROD ? window.location.origin : 'http://localhost:5001'}${settings.logoUrl}`;
       await new Promise((resolve) => {
@@ -224,7 +235,7 @@ export default function ReportsPage() {
       head: [['Item Name', 'Carrying Amount', 'Contribution %']],
       body: breakdownRows,
       theme: 'striped',
-      headStyles: { fillColor: [30, 41, 59], fontStyle: 'bold' },
+      headStyles: { fillColor: brandRgb, fontStyle: 'bold' },
       styles: { fontSize: 8.5, cellPadding: 2.5 },
       columnStyles: {
         1: { halign: 'right' },
@@ -280,13 +291,42 @@ export default function ReportsPage() {
     setClosing(false);
   };
 
-  const handleExport = () => {
+  const handleExport = async () => {
     if (!data) return;
     const doc = new jsPDF();
     const activeLabel = TABS.find(t => t.id === tab)?.label || 'Financial Report';
     
+    // Hex to RGB converter helper
+    const hexToRgb = (hex) => {
+      let c = hex.replace('#', '');
+      if (c.length === 3) {
+        c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
+      }
+      const num = parseInt(c, 16);
+      return [num >> 16, (num >> 8) & 0x00ff, num & 0x0000ff];
+    };
+    const brandRgb = hexToRgb(settings?.brandColor || '#10b981');
+
+    if (settings?.logoUrl) {
+      const logoUrl = settings.logoUrl.startsWith('http') ? settings.logoUrl : `${import.meta.env.PROD ? window.location.origin : 'http://localhost:5001'}${settings.logoUrl}`;
+      await new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = () => {
+          try {
+            doc.addImage(img, 'PNG', 160, 8, 36, 12);
+          } catch (e) {
+            console.error('Failed to draw logo on PDF:', e);
+          }
+          resolve();
+        };
+        img.onerror = () => resolve();
+        img.src = logoUrl;
+      });
+    }
+    
     doc.setFontSize(20);
-    doc.setTextColor(30, 41, 59);
+    doc.setTextColor(brandRgb[0], brandRgb[1], brandRgb[2]);
     doc.text(activeCompany?.name || 'Sarfis Financials', 14, 20);
     
     doc.setFontSize(14);
@@ -374,7 +414,7 @@ export default function ReportsPage() {
       head: [columns],
       body: rows,
       theme: 'grid',
-      headStyles: { fillColor: [30, 41, 59], textColor: 255 },
+      headStyles: { fillColor: brandRgb, textColor: 255 },
       styles: { fontSize: 8, cellPadding: 2 },
       columnStyles: { [columns.length - 1]: { halign: 'right' } }
     });
