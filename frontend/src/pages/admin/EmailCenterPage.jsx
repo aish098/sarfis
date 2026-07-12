@@ -7,10 +7,6 @@ import {
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import RightDrawer from '../../components/ui/RightDrawer';
-import { 
-  AreaChart, Area, BarChart, Bar, XAxis, YAxis, CartesianGrid, 
-  Tooltip, Legend, ResponsiveContainer, Cell 
-} from 'recharts';
 
 const TEMPLATES = [
   {
@@ -74,10 +70,7 @@ export default function EmailCenterPage() {
   });
   const [sendingCompose, setSendingCompose] = useState(false);
 
-  // Queue Monitor states
-  const [queueLogs, setQueueLogs] = useState([]);
-  const [loadingQueue, setLoadingQueue] = useState(false);
-  const [queueStats, setQueueStats] = useState({ pending: 0, sent: 0, failed: 0 });
+
 
   // SMTP Settings states
   const [smtpConfig, setSmtpConfig] = useState({
@@ -120,8 +113,6 @@ export default function EmailCenterPage() {
 
     if (activeTab === 'communications') {
       fetchConvs();
-    } else if (activeTab === 'queue') {
-      fetchQueue();
     } else if (activeTab === 'settings') {
       fetchSmtpSettings();
       fetchPreferencesGrid();
@@ -198,110 +189,7 @@ export default function EmailCenterPage() {
     setSendingCompose(false);
   };
 
-  // Queue Monitor Actions
-  const fetchQueue = async () => {
-    if (!activeCompany?.id) return;
-    setLoadingQueue(true);
-    try {
-      const res = await api.get(`/notifications/admin/email-queue/${activeCompany.id}`);
-      const logs = res.data || [];
-      setQueueLogs(logs);
-      
-      const pendingCount = logs.filter(l => l.status === 'PENDING' || l.status === 'QUEUED' || l.status === 'RETRY').length;
-      const sentCount = logs.filter(l => l.status === 'SENT').length;
-      const failedCount = logs.filter(l => l.status === 'FAILED').length;
-      setQueueStats({ pending: pendingCount, sent: sentCount, failed: failedCount });
-    } catch (err) {
-      console.error(err);
-    }
-    setLoadingQueue(false);
-  };
 
-  const getChartData = () => {
-    if (queueLogs.length === 0) {
-      return [
-        { date: 'Jul 06', Sent: 24, Failed: 1, Pending: 0 },
-        { date: 'Jul 07', Sent: 32, Failed: 2, Pending: 0 },
-        { date: 'Jul 08', Sent: 45, Failed: 0, Pending: 1 },
-        { date: 'Jul 09', Sent: 28, Failed: 1, Pending: 0 },
-        { date: 'Jul 10', Sent: 50, Failed: 3, Pending: 0 },
-        { date: 'Jul 11', Sent: 38, Failed: 0, Pending: 2 },
-        { date: 'Jul 12', Sent: 15, Failed: 1, Pending: 3 }
-      ];
-    }
-    const groups = {};
-    queueLogs.forEach(log => {
-      const dateStr = new Date(log.created_at).toLocaleDateString('en-US', { month: 'short', day: '2-digit' });
-      if (!groups[dateStr]) {
-        groups[dateStr] = { Sent: 0, Failed: 0, Pending: 0 };
-      }
-      if (log.status === 'SENT') groups[dateStr].Sent++;
-      else if (log.status === 'FAILED') groups[dateStr].Failed++;
-      else if (log.status === 'PENDING' || log.status === 'QUEUED' || log.status === 'RETRY') groups[dateStr].Pending++;
-    });
-    return Object.keys(groups).map(date => ({
-      date,
-      ...groups[date]
-    })).reverse().slice(-7);
-  };
-
-  const getModuleData = () => {
-    if (queueLogs.length === 0) {
-      return [
-        { name: 'Payroll', value: 45 },
-        { name: 'Inventory', value: 30 },
-        { name: 'Finance', value: 20 },
-        { name: 'HR Alerts', value: 15 }
-      ];
-    }
-    const modules = {};
-    queueLogs.forEach(log => {
-      const mod = log.module || 'ADMIN';
-      modules[mod] = (modules[mod] || 0) + 1;
-    });
-    return Object.keys(modules).map(name => ({
-      name: name === 'LOW_STOCK_ALERT' ? 'Inventory' : name === 'PAYROLL_POSTED' ? 'Payroll' : name,
-      value: modules[name]
-    }));
-  };
-
-  const handleResend = async (id) => {
-    try {
-      await api.post(`/notifications/admin/email-queue/${id}/resend/${activeCompany.id}`);
-      setSuccessMsg('Email resend triggered!');
-      setTimeout(() => setSuccessMsg(''), 3000);
-      fetchQueue();
-    } catch (err) {
-      setError(err.response?.data?.error || err.message);
-      setTimeout(() => setError(null), 4000);
-    }
-  };
-
-  const handleDeleteQueue = async (id) => {
-    if (!confirm('Are you sure you want to delete this queue log entry?')) return;
-    try {
-      await api.delete(`/notifications/admin/email-queue/${id}/${activeCompany.id}`);
-      setSuccessMsg('Queue item deleted.');
-      setTimeout(() => setSuccessMsg(''), 3000);
-      fetchQueue();
-    } catch (err) {
-      setError(err.response?.data?.error || err.message);
-      setTimeout(() => setError(null), 4000);
-    }
-  };
-
-  const handlePurgeFailed = async () => {
-    if (!confirm('Are you sure you want to purge all failed queue emails?')) return;
-    try {
-      await api.delete(`/notifications/admin/email-queue/purge/failed/${activeCompany.id}`);
-      setSuccessMsg('All failed emails purged.');
-      setTimeout(() => setSuccessMsg(''), 3000);
-      fetchQueue();
-    } catch (err) {
-      setError(err.response?.data?.error || err.message);
-      setTimeout(() => setError(null), 4000);
-    }
-  };
 
   // Settings: SMTP Actions
   const fetchSmtpSettings = async () => {
@@ -449,9 +337,7 @@ export default function EmailCenterPage() {
     setIsComposing(true);
   };
 
-  const successRate = queueStats.sent + queueStats.failed > 0 
-    ? Math.round((queueStats.sent / (queueStats.sent + queueStats.failed)) * 100) 
-    : 0;
+
 
   return (
     <div className="p-5 lg:p-7 space-y-6 pb-16 min-h-full" style={{ background: '#faf9f8' }}>
@@ -479,7 +365,6 @@ export default function EmailCenterPage() {
       <div className="flex border-b border-slate-200 gap-1.5 text-xs font-bold bg-white p-1 rounded-lg border shadow-3xs w-fit">
         {[
           { id: 'communications', label: 'Communications', icon: MessageSquareIcon },
-          { id: 'queue', label: 'Queue Monitor', icon: FileSignature },
           { id: 'templates', label: 'Templates', icon: CheckSquare },
           { id: 'settings', label: 'Settings & Config', icon: Sliders }
         ].map(tab => (
@@ -675,166 +560,7 @@ export default function EmailCenterPage() {
         </div>
       )}
 
-      {/* Queue Monitor Tab */}
-      {activeTab === 'queue' && (
-        <div className="space-y-6">
-          {/* Stats Badges */}
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between shadow-3xs hover:shadow-2xs transition-all duration-200 group">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Queue Pending</span>
-                <span className="p-1.5 bg-amber-50 text-amber-600 rounded-lg group-hover:scale-110 transition-transform duration-200">
-                  <RefreshCw size={14} className="animate-spin" />
-                </span>
-              </div>
-              <span className="text-[22px] font-black text-amber-600 mt-3">{queueStats.pending} <span className="text-xs font-semibold text-slate-400">Emails</span></span>
-            </div>
-            
-            <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between shadow-3xs hover:shadow-2xs transition-all duration-200 group">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Queue Sent</span>
-                <span className="p-1.5 bg-emerald-50 text-emerald-600 rounded-lg group-hover:scale-110 transition-transform duration-200">
-                  <CheckCircle size={14} />
-                </span>
-              </div>
-              <span className="text-[22px] font-black text-emerald-600 mt-3">{queueStats.sent} <span className="text-xs font-semibold text-slate-400">Emails</span></span>
-            </div>
 
-            <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between shadow-3xs hover:shadow-2xs transition-all duration-200 group">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Queue Failures</span>
-                <span className="p-1.5 bg-rose-50 text-rose-600 rounded-lg group-hover:scale-110 transition-transform duration-200">
-                  <ShieldAlert size={14} />
-                </span>
-              </div>
-              <span className="text-[22px] font-black text-rose-600 mt-3">{queueStats.failed} <span className="text-xs font-semibold text-slate-400">Emails</span></span>
-            </div>
-
-            <div className="bg-white border border-slate-200 rounded-xl p-5 flex flex-col justify-between shadow-3xs hover:shadow-2xs transition-all duration-200 group">
-              <div className="flex items-center justify-between">
-                <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wider">Delivery Rate</span>
-                <span className="p-1.5 bg-indigo-50 text-indigo-600 rounded-lg group-hover:scale-110 transition-transform duration-200">
-                  <Info size={14} />
-                </span>
-              </div>
-              <span className="text-[22px] font-black text-indigo-600 mt-3">{successRate}% <span className="text-xs font-semibold text-slate-400">Success</span></span>
-            </div>
-          </div>
-
-          {/* Queue Status Assessment Banner */}
-          <div className={`p-4 rounded-xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 font-semibold text-xs ${
-            queueStats.failed > 0 
-              ? 'bg-rose-50 border-rose-100 text-rose-800' 
-              : queueStats.pending > 0 
-              ? 'bg-amber-50 border-amber-100 text-amber-800' 
-              : 'bg-emerald-50 border-emerald-100 text-emerald-800'
-          }`}>
-            <div className="flex items-center gap-2">
-              <AlertTriangle size={16} className={queueStats.failed > 0 ? 'text-rose-600' : 'text-amber-500'} />
-              <div>
-                <span className="font-extrabold block">
-                  {queueStats.failed > 0 
-                    ? 'SMTP Queue Requires Attention' 
-                    : queueStats.pending > 0 
-                    ? 'Emails are processing in background' 
-                    : 'All background delivery systems operational'}
-                </span>
-                <span className="text-[10.5px] text-slate-500 mt-0.5 block">
-                  {queueStats.failed > 0 
-                    ? `There are ${queueStats.failed} failed outbound communication events. You can retry sending them, or clear the queue.` 
-                    : queueStats.pending > 0 
-                    ? `Currently handling background dispatch of ${queueStats.pending} pending requests.` 
-                    : 'SMTP relay connection active. No dispatch latency detected.'}
-                </span>
-              </div>
-            </div>
-
-            {queueStats.failed > 0 && (
-              <button
-                onClick={handlePurgeFailed}
-                className="px-3 py-1.5 bg-rose-600 hover:bg-rose-700 text-white rounded-lg text-xs font-bold transition uppercase tracking-wider cursor-pointer shadow-sm w-fit"
-              >
-                Purge Failed Logs
-              </button>
-            )}
-          </div>
-
-          {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
-            {/* Chart 1: Real-time Trends */}
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-3xs flex flex-col justify-between min-w-0">
-              <div>
-                <h4 className="font-black text-[13px] text-slate-800 tracking-tight flex items-center justify-between">
-                  <span>Outbound Delivery Volume Trend</span>
-                  {queueLogs.length === 0 && (
-                    <span className="text-[9px] bg-slate-100 border border-slate-200 text-slate-500 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
-                      Simulation Mode
-                    </span>
-                  )}
-                </h4>
-                <p className="text-[10.5px] text-slate-400 mt-0.5">SMTP relay volume over the last 7 active periods.</p>
-              </div>
-
-              <div className="h-[250px] w-full min-w-0 mt-4 text-[10px] font-semibold text-slate-400">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                  <AreaChart data={getChartData()}>
-                    <defs>
-                      <linearGradient id="colorSent" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#10b981" stopOpacity={0.2}/>
-                        <stop offset="95%" stopColor="#10b981" stopOpacity={0.0}/>
-                      </linearGradient>
-                      <linearGradient id="colorFailed" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="#ef4444" stopOpacity={0.2}/>
-                        <stop offset="95%" stopColor="#ef4444" stopOpacity={0.0}/>
-                      </linearGradient>
-                    </defs>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="date" stroke="#94a3b8" />
-                    <YAxis stroke="#94a3b8" />
-                    <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold' }} />
-                    <Legend wrapperStyle={{ fontSize: '11px', fontWeight: 'bold', paddingTop: '10px' }} />
-                    <Area type="monotone" dataKey="Sent" stroke="#10b981" fillOpacity={1} fill="url(#colorSent)" strokeWidth={2} name="Sent" />
-                    <Area type="monotone" dataKey="Failed" stroke="#ef4444" fillOpacity={1} fill="url(#colorFailed)" strokeWidth={2} name="Failed" />
-                    <Area type="monotone" dataKey="Pending" stroke="#f59e0b" strokeWidth={2} name="Pending" />
-                  </AreaChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-
-            {/* Chart 2: Module breakdown */}
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-3xs flex flex-col justify-between min-w-0">
-              <div>
-                <h4 className="font-black text-[13px] text-slate-800 tracking-tight flex items-center justify-between">
-                  <span>Functional Module Distribution</span>
-                  {queueLogs.length === 0 && (
-                    <span className="text-[9px] bg-slate-100 border border-slate-200 text-slate-500 px-2 py-0.5 rounded font-bold uppercase tracking-wider">
-                      Simulation Mode
-                    </span>
-                  )}
-                </h4>
-                <p className="text-[10.5px] text-slate-400 mt-0.5">Email notification frequency segmented by business module.</p>
-              </div>
-
-              <div className="h-[250px] w-full min-w-0 mt-4 text-[10px] font-semibold text-slate-400">
-                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
-                  <BarChart data={getModuleData()}>
-                    <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
-                    <XAxis dataKey="name" stroke="#94a3b8" />
-                    <YAxis stroke="#94a3b8" />
-                    <Tooltip contentStyle={{ background: '#fff', border: '1px solid #e2e8f0', borderRadius: '8px', fontSize: '11px', fontWeight: 'bold' }} />
-                    <Bar dataKey="value" fill="#6366f1" radius={[4, 4, 0, 0]} name="Total Emails">
-                      {getModuleData().map((entry, index) => {
-                        const colors = ['#6366f1', '#10b981', '#f59e0b', '#3b82f6'];
-                        return <Cell key={`cell-${index}`} fill={colors[index % colors.length]} />;
-                      })}
-                    </Bar>
-                  </BarChart>
-                </ResponsiveContainer>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
       {/* Templates Tab */}
       {activeTab === 'templates' && (
