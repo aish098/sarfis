@@ -1,12 +1,15 @@
+import { useState, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import {
   LayoutDashboard, BookOpen, FilePlus, BookMarked,
   BarChart2, TrendingUp, Target, Settings, LogOut,
   Home, ChevronLeft, ChevronRight, Zap, Building2, Activity,
-  Package, Truck, ShieldCheck, Briefcase, Mail, CheckSquare, Sliders
+  Package, Truck, ShieldCheck, Briefcase, Mail, CheckSquare, Sliders,
+  Calendar, FileText
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
+import api from '../../services/api';
 
 const NAV_SECTIONS = [
   {
@@ -61,7 +64,26 @@ const BOTTOM_ITEMS = [
 export default function Sidebar({ collapsed, isMobile, onToggle }) {
   const navigate = useNavigate();
   const { logout, activeCompany, user, permissions, settings } = useAuthStore();
-  
+  const [unreadMessages, setUnreadMessages] = useState(0);
+
+  const isEmployee = activeCompany?.user_role === 'Employee';
+
+  useEffect(() => {
+    if (!isEmployee || !activeCompany?.id) return;
+    const fetchUnread = async () => {
+      try {
+        const res = await api.get(`/communications/employee/${activeCompany.id}`);
+        const unreadCount = res.data.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+        setUnreadMessages(unreadCount);
+      } catch (err) {
+        console.error('Failed to fetch unread employee messages count', err);
+      }
+    };
+    fetchUnread();
+    const timer = setInterval(fetchUnread, 30000);
+    return () => clearInterval(timer);
+  }, [isEmployee, activeCompany?.id]);
+
   const isSuperAdmin = user?.role === 'Super Admin';
   const hasPermission = (perm) => {
     if (!perm) return true;
@@ -84,7 +106,20 @@ export default function Sidebar({ collapsed, isMobile, onToggle }) {
     items: section.items.filter(item => hasPermission(item.permission) && isModuleEnabled(item.moduleKey))
   })).filter(section => section.items.length > 0);
 
-  const navSections = hasPermission('user.manage')
+  const employeeNavSections = [
+    {
+      label: 'Employee Workspace',
+      items: [
+        { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+        { to: '/dashboard/payroll', icon: Briefcase, label: 'Payroll' },
+        { to: '/dashboard/leave', icon: Calendar, label: 'Leave' },
+        { to: '/dashboard/documents', icon: FileText, label: 'Documents' },
+        { to: '/dashboard/messages', icon: Mail, label: 'Messages', badge: unreadMessages }
+      ]
+    }
+  ];
+
+  const navSections = isEmployee ? employeeNavSections : (hasPermission('user.manage')
     ? [
         ...filteredSections,
         {
@@ -95,7 +130,11 @@ export default function Sidebar({ collapsed, isMobile, onToggle }) {
           ],
         },
       ]
-    : filteredSections;
+    : filteredSections);
+
+  const bottomItems = isEmployee
+    ? [{ to: '/', icon: Home, label: 'Back to Home' }]
+    : BOTTOM_ITEMS.filter(item => hasPermission(item.permission));
 
   const handleLogout = () => { logout(); navigate('/login'); };
 
@@ -214,9 +253,8 @@ export default function Sidebar({ collapsed, isMobile, onToggle }) {
           ))}
         </div>
 
-        {/* Bottom */}
         <div className="border-t pb-3 pt-2" style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-          {BOTTOM_ITEMS.filter(item => hasPermission(item.permission)).map((item) => (
+          {bottomItems.map((item) => (
             <SidebarItem key={item.to} item={item} collapsed={collapsed} />
           ))}
           <button
@@ -243,19 +281,26 @@ function SidebarItem({ item, collapsed }) {
         }
         title={collapsed ? item.label : undefined}
       >
-        <item.icon size={17} className="flex-shrink-0" />
-        <AnimatePresence>
-          {!collapsed && (
-            <Motion.span
-              initial={{ opacity: 0, width: 0 }}
-              animate={{ opacity: 1, width: 'auto' }}
-              exit={{ opacity: 0, width: 0 }}
-              className="overflow-hidden whitespace-nowrap text-[13.5px]"
-            >
-              {item.label}
-            </Motion.span>
-          )}
-        </AnimatePresence>
+        <div className="flex items-center gap-3 w-full">
+          <item.icon size={17} className="flex-shrink-0" />
+          <AnimatePresence>
+            {!collapsed && (
+              <Motion.span
+                initial={{ opacity: 0, width: 0 }}
+                animate={{ opacity: 1, width: 'auto' }}
+                exit={{ opacity: 0, width: 0 }}
+                className="overflow-hidden whitespace-nowrap text-[13.5px] flex items-center justify-between w-full"
+              >
+                <span>{item.label}</span>
+                {item.badge > 0 && (
+                  <span className="bg-red-500 text-white text-[9.5px] font-bold px-1.5 py-0.5 rounded-full mr-2">
+                    {item.badge}
+                  </span>
+                )}
+              </Motion.span>
+            )}
+          </AnimatePresence>
+        </div>
       </NavLink>
     </Motion.div>
   );

@@ -37,6 +37,9 @@ import SettingsPage from './settings/SettingsPage.jsx';
 import AdminPage from './admin/AdminPage.jsx';
 import PayrollPage from './payroll/PayrollPage.jsx';
 import NotificationCenterPage from './notifications/NotificationCenterPage.jsx';
+import EmployeeLeavePage from './notifications/EmployeeLeavePage.jsx';
+import EmployeeDocumentsPage from './notifications/EmployeeDocumentsPage.jsx';
+import EmployeeMessagesPage from './notifications/EmployeeMessagesPage.jsx';
 import RiskDashboard from './analytics/RiskDashboard.jsx';
 import EmailCenterPage from './admin/EmailCenterPage.jsx';
 import FixedAssetsDashboard from './fixed-assets/FixedAssetsDashboard.jsx';
@@ -91,6 +94,45 @@ function DashboardOverview() {
   const periodParam = `${year}-${String(month).padStart(2, '0')}`;
   const periodLabel = `${MONTHS[month - 1]} ${year}`;
 
+  const isEmployee = activeCompany?.user_role === 'Employee';
+  const [empStats, setEmpStats] = useState({
+    leaveBalance: 0,
+    lastNetPay: 0,
+    unreadMsgs: 0,
+    recentLeaves: [],
+    recentMsgs: []
+  });
+
+  const loadEmployeeData = useCallback(async () => {
+    if (!activeCompany) return;
+    setIsLoading(true);
+    try {
+      const [msgRes, leavesRes, balRes] = await Promise.all([
+        api.get(`/communications/employee/${activeCompany.id}`),
+        api.get(`/communications/ess/${activeCompany.id}/leaves`),
+        api.get(`/communications/ess/${activeCompany.id}/leave-balances`)
+      ]);
+      const unread = msgRes.data.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
+      
+      let lastNetPay = 0;
+      try {
+        const profRes = await api.get(`/communications/ess/${activeCompany.id}/profile`);
+        lastNetPay = profRes.data?.salary || 0;
+      } catch (e) {}
+
+      setEmpStats({
+        leaveBalance: balRes.data?.remaining || 0,
+        lastNetPay,
+        unreadMsgs: unread,
+        recentLeaves: (leavesRes.data || []).slice(0, 5),
+        recentMsgs: (msgRes.data || []).slice(0, 5)
+      });
+    } catch (err) {
+      console.error("Employee dashboard data load error", err);
+    }
+    setIsLoading(false);
+  }, [activeCompany]);
+
   const load = useCallback(async () => {
     if (!activeCompany) return;
     setIsLoading(true);
@@ -123,8 +165,99 @@ function DashboardOverview() {
   }, [activeCompany, month, periodParam, year]);
 
   useEffect(() => {
-    Promise.resolve().then(() => load());
-  }, [load]);
+    if (isEmployee) {
+      loadEmployeeData();
+    } else {
+      load();
+    }
+  }, [isEmployee, load, loadEmployeeData]);
+
+  if (isEmployee) {
+    return (
+      <div className="p-5 lg:p-7 space-y-6 pb-16 min-h-full" style={{ background: '#faf9f8' }}>
+        <PowerBIHeader
+          title={`Welcome back, ${user?.name || 'Employee'}!`}
+          subtitle={activeCompany?.name ? `${activeCompany.name} - Employee Self-Service Workspace` : 'Employee Self-Service Workspace'}
+          meta={periodLabel}
+        />
+
+        {/* Employee KPI Row */}
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+          <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between shadow-3xs">
+            <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wide">Leave Balance</span>
+            <span className="text-[20px] font-black text-emerald-600 mt-2">{empStats.leaveBalance} Days Remaining</span>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between shadow-3xs">
+            <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wide">Base Salary</span>
+            <span className="text-[20px] font-black text-indigo-600 mt-2">PKR {parseFloat(empStats.lastNetPay).toLocaleString()}</span>
+          </div>
+          <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between shadow-3xs">
+            <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wide">New Communications</span>
+            <span className="text-[20px] font-black text-blue-600 mt-2">{empStats.unreadMsgs} Messages</span>
+          </div>
+        </div>
+
+        {/* Content columns */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Recent Communications */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4 shadow-3xs">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 className="font-extrabold text-[13px] text-slate-900 uppercase tracking-wide">Recent Messages</h3>
+              <button onClick={() => navigate('/dashboard/messages')} className="text-[11px] text-emerald-600 hover:text-emerald-700 font-bold transition cursor-pointer">
+                View All
+              </button>
+            </div>
+
+            {empStats.recentMsgs.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 italic text-xs">No recent messages.</div>
+            ) : (
+              <div className="space-y-3">
+                {empStats.recentMsgs.map(m => (
+                  <div key={m.id} className="p-3 bg-slate-50 rounded-lg border border-slate-100 hover:border-emerald-500/20 cursor-pointer transition" onClick={() => navigate('/dashboard/messages')}>
+                    <div className="flex items-center justify-between">
+                      <span className="font-extrabold text-[12px] text-slate-800">{m.subject}</span>
+                      <span className="text-[10px] text-slate-400 font-medium">{new Date(m.created_at).toLocaleDateString()}</span>
+                    </div>
+                    <p className="text-[11px] text-slate-500 mt-1 truncate">{m.body}</p>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+
+          {/* Recent Leave Requests */}
+          <div className="bg-white border border-slate-200 rounded-xl p-5 space-y-4 shadow-3xs">
+            <div className="flex items-center justify-between border-b border-slate-100 pb-2">
+              <h3 className="font-extrabold text-[13px] text-slate-900 uppercase tracking-wide">Leave Requests</h3>
+              <button onClick={() => navigate('/dashboard/leave')} className="text-[11px] text-emerald-600 hover:text-emerald-700 font-bold transition cursor-pointer">
+                View All
+              </button>
+            </div>
+
+            {empStats.recentLeaves.length === 0 ? (
+              <div className="py-8 text-center text-slate-400 italic text-xs">No leave history.</div>
+            ) : (
+              <div className="space-y-3">
+                {empStats.recentLeaves.map(l => (
+                  <div key={l.id} className="flex items-center justify-between p-3 bg-slate-50 rounded-lg border border-slate-100">
+                    <div>
+                      <span className="font-extrabold text-[12px] text-slate-800">{l.leave_type} Leave</span>
+                      <span className="block text-[10px] text-slate-400 mt-0.5">{new Date(l.start_date).toLocaleDateString()} - {new Date(l.end_date).toLocaleDateString()}</span>
+                    </div>
+                    <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${
+                      l.status === 'Approved' ? 'bg-emerald-50 text-emerald-700' : l.status === 'Rejected' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
+                    }`}>
+                      {l.status}
+                    </span>
+                  </div>
+                ))}
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   const cashLabels = chartData.map(d => d.month);
   const cashLayout = computeChartLayout(cashLabels, { valueMagnitudes: chartData.map(d => d.cashFlow), minHeight: 220 });
@@ -377,6 +510,9 @@ export default function Dashboard() {
               <Route path="admin" element={<AdminPage />} />
               <Route path="email-center" element={<EmailCenterPage />} />
               <Route path="notifications" element={<NotificationCenterPage />} />
+              <Route path="leave" element={<EmployeeLeavePage />} />
+              <Route path="documents" element={<EmployeeDocumentsPage />} />
+              <Route path="messages" element={<EmployeeMessagesPage />} />
               <Route path="risk" element={
                 <ModuleProtectedRoute moduleKey="riskEnabled">
                   <RiskDashboard />

@@ -269,6 +269,17 @@ class NotificationService {
               sent_at: db.fn.now(),
               error_log: null
             });
+
+          // Sync communication status
+          if (item.event_code === 'CUSTOM_COMMUNICATION') {
+            await db('communications')
+              .where({
+                company_id: item.company_id,
+                subject: item.subject,
+                status: 'QUEUED'
+              })
+              .update({ status: 'SENT' });
+          }
         } catch (err) {
           const reachedLimit = nextAttempts >= item.max_attempts;
           await db('notification_queue')
@@ -277,6 +288,16 @@ class NotificationService {
               status: reachedLimit ? 'FAILED' : 'RETRY',
               error_log: err.message
             });
+
+          if (item.event_code === 'CUSTOM_COMMUNICATION' && reachedLimit) {
+            await db('communications')
+              .where({
+                company_id: item.company_id,
+                subject: item.subject,
+                status: 'QUEUED'
+              })
+              .update({ status: 'FAILED' });
+          }
         }
       }
     } catch (err) {
