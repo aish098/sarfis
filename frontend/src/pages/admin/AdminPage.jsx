@@ -250,7 +250,7 @@ export default function AdminPage() {
     setSaving(true);
     setMessage(null);
     try {
-      await api.patch(`/admin/companies/${activeCompanyId}/members/${member.id}`, { role }, requestConfig);
+      await api.patch(`/admin/companies/${activeCompanyId}/members/${member.user_id}`, { role }, requestConfig);
       setMessage({ type: 'success', text: `${member.name || member.email} role updated to ${role}.` });
       await loadData();
     } catch (err) {
@@ -265,7 +265,7 @@ export default function AdminPage() {
     setSaving(true);
     setMessage(null);
     try {
-      await api.delete(`/admin/companies/${activeCompanyId}/members/${member.id}`, requestConfig);
+      await api.delete(`/admin/companies/${activeCompanyId}/members/${member.user_id}`, requestConfig);
       setMessage({ type: 'success', text: 'User access removed.' });
       await loadData();
     } catch (err) {
@@ -508,7 +508,7 @@ export default function AdminPage() {
     setOverrideModalOpen(true);
     setSaving(true);
     try {
-      const res = await api.get(`/admin/companies/${activeCompanyId}/members/${member.id}/permissions`, requestConfig);
+      const res = await api.get(`/admin/companies/${activeCompanyId}/members/${member.user_id}/permissions`, requestConfig);
       setUserPermissionDetails(res.data);
       
       const initial = {};
@@ -574,7 +574,7 @@ export default function AdminPage() {
         ...localOverrides[permId]
       }));
 
-      await api.post(`/admin/companies/${activeCompanyId}/members/${selectedOverrideUser.id}/permissions`, {
+      await api.post(`/admin/companies/${activeCompanyId}/members/${selectedOverrideUser.user_id}/permissions`, {
         overrides: payload
       }, requestConfig);
 
@@ -593,7 +593,7 @@ export default function AdminPage() {
     setSelectedOverrideUser(member);
     setSaving(true);
     try {
-      const res = await api.get(`/admin/companies/${activeCompanyId}/members/${member.id}/permissions`, requestConfig);
+      const res = await api.get(`/admin/companies/${activeCompanyId}/members/${member.user_id}/permissions`, requestConfig);
       setUserPermissionDetails(res.data);
       
       const initial = {};
@@ -659,12 +659,12 @@ export default function AdminPage() {
         ...localOverrides[permId]
       }));
 
-      await api.post(`/admin/companies/${activeCompanyId}/members/${selectedOverrideUser.id}/permissions`, {
+      await api.post(`/admin/companies/${activeCompanyId}/members/${selectedOverrideUser.user_id}/permissions`, {
         overrides: payload
       }, requestConfig);
 
       setMessage({ type: 'success', text: `Permission overrides for ${selectedOverrideUser.name} updated successfully.` });
-      const res = await api.get(`/admin/companies/${activeCompanyId}/members/${selectedOverrideUser.id}/permissions`, requestConfig);
+      const res = await api.get(`/admin/companies/${activeCompanyId}/members/${selectedOverrideUser.user_id}/permissions`, requestConfig);
       setUserPermissionDetails(res.data);
       await loadData();
     } catch (err) {
@@ -792,7 +792,7 @@ export default function AdminPage() {
                     </thead>
                     <tbody>
                       {members.map((member) => (
-                        <tr key={member.id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60">
+                        <tr key={member.user_id} className="border-b border-slate-50 last:border-0 hover:bg-slate-50/60">
                           <td className="px-5 py-4">
                             <p className="text-[13px] font-bold text-slate-900">{member.name || 'Unnamed'}</p>
                             <p className="text-[11px] text-slate-500">{member.email}</p>
@@ -802,7 +802,7 @@ export default function AdminPage() {
                               <select
                                 value={member.company_role}
                                 onChange={(e) => updateRole(member, e.target.value)}
-                                disabled={saving || member.id === user?.id}
+                                disabled={saving || member.user_id === user?.id}
                                 className="h-9 rounded-lg border border-slate-200 bg-white px-3 text-[12px] font-bold text-slate-700 outline-none focus:border-emerald-500 disabled:bg-slate-50 disabled:text-slate-400"
                               >
                                 {roles.map((r) => <option key={r} value={r}>{r}</option>)}
@@ -826,7 +826,7 @@ export default function AdminPage() {
                             )}
                             <button
                               onClick={() => removeMember(member)}
-                              disabled={!canAdmin || saving || member.id === user?.id}
+                              disabled={!canAdmin || saving || member.user_id === user?.id}
                               className="inline-flex items-center justify-center w-8 h-8 rounded-lg text-slate-300 hover:bg-red-50 hover:text-red-600 disabled:opacity-30"
                               title="Revoke access"
                             >
@@ -967,7 +967,7 @@ export default function AdminPage() {
                 <div className="flex items-center gap-2">
                   <span className="text-[11px] font-black uppercase text-slate-400 tracking-wider">Target User:</span>
                   <select
-                    value={selectedOverrideUser?.id || ''}
+                    value={selectedOverrideUser?.user_id || ''}
                     onChange={(e) => {
                       const val = e.target.value;
                       if (val === '') {
@@ -975,7 +975,7 @@ export default function AdminPage() {
                         setUserPermissionDetails(null);
                         setLocalOverrides({});
                       } else {
-                        const member = members.find(m => String(m.id) === String(val));
+                        const member = members.find(m => String(m.user_id) === String(val));
                         if (member) {
                           loadUserOverridesForMatrix(member);
                         }
@@ -985,7 +985,7 @@ export default function AdminPage() {
                   >
                     <option value="">-- Role Defaults (View Only) --</option>
                     {members.filter(m => m.global_role !== 'Super Admin').map(m => (
-                      <option key={m.id} value={m.id}>Customize: {m.name} ({m.company_role})</option>
+                      <option key={m.user_id} value={m.user_id}>Customize: {m.name} ({m.company_role})</option>
                     ))}
                   </select>
                 </div>
