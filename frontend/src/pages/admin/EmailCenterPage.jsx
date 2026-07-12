@@ -207,7 +207,7 @@ export default function EmailCenterPage() {
       const logs = res.data || [];
       setQueueLogs(logs);
       
-      const pendingCount = logs.filter(l => l.status === 'PENDING').length;
+      const pendingCount = logs.filter(l => l.status === 'PENDING' || l.status === 'QUEUED' || l.status === 'RETRY').length;
       const sentCount = logs.filter(l => l.status === 'SENT').length;
       const failedCount = logs.filter(l => l.status === 'FAILED').length;
       setQueueStats({ pending: pendingCount, sent: sentCount, failed: failedCount });
@@ -237,7 +237,7 @@ export default function EmailCenterPage() {
       }
       if (log.status === 'SENT') groups[dateStr].Sent++;
       else if (log.status === 'FAILED') groups[dateStr].Failed++;
-      else if (log.status === 'PENDING' || log.status === 'QUEUED') groups[dateStr].Pending++;
+      else if (log.status === 'PENDING' || log.status === 'QUEUED' || log.status === 'RETRY') groups[dateStr].Pending++;
     });
     return Object.keys(groups).map(date => ({
       date,
