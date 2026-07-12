@@ -30,6 +30,121 @@ export default function EmailCenterPage() {
   });
   const [sending, setSending] = useState(false);
 
+  // Email Settings & Subscriptions states
+  const [activeSubTab, setActiveSubTab] = useState('monitor');
+  const [employeesSettings, setEmployeesSettings] = useState([]);
+  const [subscriptions, setSubscriptions] = useState({});
+  const [loadingSettings, setLoadingSettings] = useState(false);
+
+  const fetchSettingsData = async () => {
+    if (!activeCompany?.id) return;
+    setLoadingSettings(true);
+    setError(null);
+    try {
+      const res = await api.get(`/employees/${activeCompany.id}`);
+      const validEmployees = res.data || [];
+      setEmployeesSettings(validEmployees);
+
+      const subData = {};
+      await Promise.all(validEmployees.map(async (emp) => {
+        try {
+          const subRes = await api.get(`/employees/${activeCompany.id}/${emp.id}/notification-subscriptions`);
+          subData[emp.id] = subRes.data || [];
+        } catch (e) {
+          console.error(`Failed to load subscriptions for employee ${emp.id}:`, e);
+          subData[emp.id] = [];
+        }
+      }));
+      setSubscriptions(subData);
+    } catch (err) {
+      console.error("Failed to load settings data:", err);
+      setError('Failed to load employee list or preferences.');
+    } finally {
+      setLoadingSettings(false);
+    }
+  };
+
+  useEffect(() => {
+    if (activeSubTab === 'settings') {
+      fetchSettingsData();
+    }
+  }, [activeSubTab, activeCompany?.id]);
+
+  const handleToggleSubscription = async (empId, eventCode, isChecked) => {
+    const empSubs = subscriptions[empId] || [];
+    let eventSub = empSubs.find(s => s.eventCode === eventCode);
+    let updatedSubs;
+    
+    if (eventSub) {
+      updatedSubs = empSubs.map(s => {
+        if (s.eventCode === eventCode) {
+          return {
+            ...s,
+            channels: {
+              ...s.channels,
+              EMAIL: isChecked
+            }
+          };
+        }
+        return s;
+      });
+    } else {
+      let eventId = null;
+      Object.values(subscriptions).forEach(subsList => {
+        const found = subsList.find(s => s.eventCode === eventCode);
+        if (found) eventId = found.eventId;
+      });
+      if (!eventId) {
+        const fallbackIds = {
+          'LOW_STOCK_ALERT': 1,
+          'JOURNAL_POSTED': 10,
+          'BUDGET_EXCEEDED': 13,
+          'PAYROLL_POSTED': 14,
+          'RISK_OVERRIDE_REQUESTED': 3
+        };
+        eventId = fallbackIds[eventCode];
+      }
+      updatedSubs = [
+        ...empSubs,
+        {
+          eventId,
+          eventCode,
+          channels: {
+            EMAIL: isChecked,
+            APP: false,
+            SMS: false,
+            WHATSAPP: false,
+            SLACK: false,
+            TEAMS: false
+          }
+        }
+      ];
+    }
+    
+    setSubscriptions(prev => ({
+      ...prev,
+      [empId]: updatedSubs
+    }));
+    
+    try {
+      const apiPayload = updatedSubs.map(s => ({
+        eventId: s.eventId,
+        channels: s.channels
+      }));
+      await api.put(`/employees/${activeCompany.id}/${empId}/notification-subscriptions`, {
+        subscriptions: apiPayload
+      });
+    } catch (err) {
+      console.error("Failed to save subscription update:", err);
+      setSubscriptions(prev => ({
+        ...prev,
+        [empId]: empSubs
+      }));
+      setError("Failed to update email preferences.");
+      setTimeout(() => setError(null), 4000);
+    }
+  };
+
   const fetchEmployees = async () => {
     if (!activeCompany?.id) return;
     try {
@@ -149,125 +264,240 @@ export default function EmailCenterPage() {
         </div>
       )}
 
-      {/* Filter Toolbar */}
-      <div className="flex flex-col md:flex-row gap-4 justify-between bg-white border border-slate-100 p-4 rounded-xl shadow-3xs">
-        <div className="flex flex-wrap items-center gap-3">
-          <select 
-            className="input-enterprise max-w-[150px] text-[11px] font-bold" 
-            value={statusFilter} 
-            onChange={e => setStatusFilter(e.target.value)}
-          >
-            <option value="">All Delivery Statuses</option>
-            <option value="PENDING">Pending</option>
-            <option value="SENT">Sent</option>
-            <option value="FAILED">Failed</option>
-            <option value="RETRY">Retry</option>
-          </select>
-        </div>
-
-        <div className="relative max-w-sm w-full">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input 
-            className="input-enterprise pl-10 py-2.5 text-[12px]" 
-            placeholder="Search email or subject..."
-            value={searchTerm} 
-            onChange={e => setSearchTerm(e.target.value)} 
-          />
-        </div>
+      {/* Sub tabs */}
+      <div className="flex border-b border-slate-200 gap-1 mt-1">
+        <button
+          onClick={() => setActiveSubTab('monitor')}
+          className={`pb-2.5 px-4 font-bold text-[12px] border-b-2 transition-all cursor-pointer ${
+            activeSubTab === 'monitor'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-slate-400 hover:text-slate-700'
+          }`}
+        >
+          SMTP Monitor Queue
+        </button>
+        <button
+          onClick={() => setActiveSubTab('settings')}
+          className={`pb-2.5 px-4 font-bold text-[12px] border-b-2 transition-all cursor-pointer ${
+            activeSubTab === 'settings'
+              ? 'border-indigo-600 text-indigo-600'
+              : 'border-transparent text-slate-400 hover:text-slate-700'
+          }`}
+        >
+          Employee Email Settings
+        </button>
       </div>
 
-      {/* Queue Table */}
-      <div className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-3xs">
-        <table className="w-full text-left border-collapse">
-          <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-wider">
-            <tr className="border-b border-slate-100">
-              <th className="px-4 py-3">Recipient Employee</th>
-              <th className="px-4 py-3">Subject / Event</th>
-              <th className="px-4 py-3 text-center">Module</th>
-              <th className="px-4 py-3 text-center">Priority</th>
-              <th className="px-4 py-3 text-center">Attempts</th>
-              <th className="px-4 py-3">Last Attempt</th>
-              <th className="px-4 py-3">Delivery Status</th>
-              <th className="px-4 py-3 text-center">Actions</th>
-            </tr>
-          </thead>
-          <tbody className="divide-y divide-slate-50 bg-white text-[11px] font-bold text-slate-600">
-            {loading ? (
-              <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-slate-400">
-                  <RefreshCw size={24} className="animate-spin text-indigo-600 mx-auto mb-2" />
-                  <span>Scanning queue ledger...</span>
-                </td>
-              </tr>
-            ) : queue.length === 0 ? (
-              <tr>
-                <td colSpan={8} className="px-4 py-12 text-center text-slate-400 italic">
-                  No queued notification emails found matching current filters.
-                </td>
-              </tr>
-            ) : queue.map((item) => (
-              <tr key={item.id} className="hover:bg-slate-50/50">
-                <td className="px-4 py-3">
-                  <span className="font-extrabold text-slate-800 block">{item.recipient_name}</span>
-                  <span className="text-[10px] text-slate-400 font-mono font-medium block mt-0.5">{item.recipient_email}</span>
-                </td>
-                <td className="px-4 py-3">
-                  <span className="font-extrabold text-slate-800 block max-w-xs truncate">{item.subject}</span>
-                  <span className="text-[9.5px] font-mono text-slate-400 block mt-0.5">{item.event_code}</span>
-                </td>
-                <td className="px-4 py-3 text-center text-slate-500">{item.module}</td>
-                <td className="px-4 py-3 text-center">
-                  <span className={`text-[9px] uppercase font-black px-1.5 py-0.5 rounded ${
-                    item.priority === 'CRITICAL' ? 'bg-rose-100 text-rose-800' :
-                    item.priority === 'HIGH' ? 'bg-amber-100 text-amber-800' :
-                    'bg-slate-100 text-slate-600'
-                  }`}>
-                    {item.priority}
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-center font-mono">{item.attempts} / {item.max_attempts}</td>
-                <td className="px-4 py-3 text-slate-400 font-mono text-[10px]">
-                  {item.last_attempt_at ? new Date(item.last_attempt_at).toLocaleString() : '—'}
-                </td>
-                <td className="px-4 py-3">
-                  <span className={`text-[9.5px] uppercase font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${
-                    item.status === 'SENT' ? 'bg-emerald-100 text-emerald-800' :
-                    item.status === 'FAILED' ? 'bg-rose-100 text-rose-800' :
-                    item.status === 'RETRY' ? 'bg-amber-100 text-amber-800' :
-                    'bg-slate-100 text-slate-600'
-                  }`}>
-                    {item.status === 'SENT' && <CheckCircle size={10} />}
-                    {item.status === 'FAILED' && <XCircle size={10} />}
-                    {item.status === 'RETRY' && <AlertTriangle size={10} />}
-                    <span>{item.status}</span>
-                  </span>
-                </td>
-                <td className="px-4 py-3 text-center">
-                  <div className="flex items-center justify-center gap-2">
-                    <button 
-                      onClick={() => setSelectedItem(item)}
-                      className="p-1.5 bg-slate-50 border border-slate-100 hover:bg-slate-100 text-slate-600 rounded-lg cursor-pointer"
-                      title="Inspect Email"
-                    >
-                      <Eye size={12} />
-                    </button>
-                    {(item.status === 'FAILED' || item.status === 'RETRY') && (
-                      <button 
-                        onClick={() => handleResend(item.id)}
-                        disabled={resendingId === item.id}
-                        className="p-1.5 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 text-indigo-600 rounded-lg cursor-pointer disabled:opacity-50"
-                        title="Force Resend"
-                      >
-                        <Send size={12} />
-                      </button>
-                    )}
-                  </div>
-                </td>
-              </tr>
-            ))}
-          </tbody>
-        </table>
-      </div>
+      {activeSubTab === 'monitor' && (
+        <>
+          {/* Filter Toolbar */}
+          <div className="flex flex-col md:flex-row gap-4 justify-between bg-white border border-slate-100 p-4 rounded-xl shadow-3xs">
+            <div className="flex flex-wrap items-center gap-3">
+              <select 
+                className="input-enterprise max-w-[150px] text-[11px] font-bold" 
+                value={statusFilter} 
+                onChange={e => setStatusFilter(e.target.value)}
+              >
+                <option value="">All Delivery Statuses</option>
+                <option value="PENDING">Pending</option>
+                <option value="SENT">Sent</option>
+                <option value="FAILED">Failed</option>
+                <option value="RETRY">Retry</option>
+              </select>
+            </div>
+
+            <div className="relative max-w-sm w-full">
+              <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+              <input 
+                className="input-enterprise pl-10 py-2.5 text-[12px]" 
+                placeholder="Search email or subject..."
+                value={searchTerm} 
+                onChange={e => setSearchTerm(e.target.value)} 
+              />
+            </div>
+          </div>
+
+          {/* Queue Table */}
+          <div className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-3xs">
+            <table className="w-full text-left border-collapse">
+              <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-wider">
+                <tr className="border-b border-slate-100">
+                  <th className="px-4 py-3">Recipient Employee</th>
+                  <th className="px-4 py-3">Subject / Event</th>
+                  <th className="px-4 py-3 text-center">Module</th>
+                  <th className="px-4 py-3 text-center">Priority</th>
+                  <th className="px-4 py-3 text-center">Attempts</th>
+                  <th className="px-4 py-3">Last Attempt</th>
+                  <th className="px-4 py-3">Delivery Status</th>
+                  <th className="px-4 py-3 text-center">Actions</th>
+                </tr>
+              </thead>
+              <tbody className="divide-y divide-slate-50 bg-white text-[11px] font-bold text-slate-600">
+                {loading ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-12 text-center text-slate-400">
+                      <RefreshCw size={24} className="animate-spin text-indigo-600 mx-auto mb-2" />
+                      <span>Scanning queue ledger...</span>
+                    </td>
+                  </tr>
+                ) : queue.length === 0 ? (
+                  <tr>
+                    <td colSpan={8} className="px-4 py-12 text-center text-slate-400 italic">
+                      No queued notification emails found matching current filters.
+                    </td>
+                  </tr>
+                ) : queue.map((item) => (
+                  <tr key={item.id} className="hover:bg-slate-50/50">
+                    <td className="px-4 py-3">
+                      <span className="font-extrabold text-slate-800 block">{item.recipient_name}</span>
+                      <span className="text-[10px] text-slate-400 font-mono font-medium block mt-0.5">{item.recipient_email}</span>
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className="font-extrabold text-slate-800 block max-w-xs truncate">{item.subject}</span>
+                      <span className="text-[9.5px] font-mono text-slate-400 block mt-0.5">{item.event_code}</span>
+                    </td>
+                    <td className="px-4 py-3 text-center text-slate-500">{item.module}</td>
+                    <td className="px-4 py-3 text-center">
+                      <span className={`text-[9px] uppercase font-black px-1.5 py-0.5 rounded ${
+                        item.priority === 'CRITICAL' ? 'bg-rose-100 text-rose-800' :
+                        item.priority === 'HIGH' ? 'bg-amber-100 text-amber-800' :
+                        'bg-slate-100 text-slate-600'
+                      }`}>
+                        {item.priority}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center font-mono">{item.attempts} / {item.max_attempts}</td>
+                    <td className="px-4 py-3 text-slate-400 font-mono text-[10px]">
+                      {item.last_attempt_at ? new Date(item.last_attempt_at).toLocaleString() : '—'}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span className={`text-[9.5px] uppercase font-black px-2 py-0.5 rounded-full inline-flex items-center gap-1 ${
+                        item.status === 'SENT' ? 'bg-emerald-100 text-emerald-800' :
+                        item.status === 'FAILED' ? 'bg-rose-100 text-rose-800' :
+                        item.status === 'RETRY' ? 'bg-amber-100 text-amber-800' :
+                        'bg-slate-100 text-slate-600'
+                      }`}>
+                        {item.status === 'SENT' && <CheckCircle size={10} />}
+                        {item.status === 'FAILED' && <XCircle size={10} />}
+                        {item.status === 'RETRY' && <AlertTriangle size={10} />}
+                        <span>{item.status}</span>
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-center">
+                      <div className="flex items-center justify-center gap-2">
+                        <button 
+                          onClick={() => setSelectedItem(item)}
+                          className="p-1.5 bg-slate-50 border border-slate-100 hover:bg-slate-100 text-slate-600 rounded-lg cursor-pointer"
+                          title="Inspect Email"
+                        >
+                          <Eye size={12} />
+                        </button>
+                        {(item.status === 'FAILED' || item.status === 'RETRY') && (
+                          <button 
+                            onClick={() => handleResend(item.id)}
+                            disabled={resendingId === item.id}
+                            className="p-1.5 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 text-indigo-600 rounded-lg cursor-pointer disabled:opacity-50"
+                            title="Force Resend"
+                          >
+                            <Send size={12} />
+                          </button>
+                        )}
+                      </div>
+                    </td>
+                  </tr>
+                ))}
+              </tbody>
+            </table>
+          </div>
+        </>
+      )}
+
+      {activeSubTab === 'settings' && (
+        <div className="space-y-4">
+          <div className="bg-white border border-slate-100 p-4 rounded-xl shadow-3xs flex flex-col md:flex-row md:items-center justify-between gap-3">
+            <div>
+              <h3 className="font-display font-extrabold text-[13px] text-slate-800 uppercase">Employee Outbound Email Preferences</h3>
+              <p className="text-[11px] text-slate-400 mt-0.5">Toggle checkboxes to subscribe or unsubscribe employees from automated system emails.</p>
+            </div>
+            <button 
+              onClick={fetchSettingsData} 
+              className="px-3 py-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-lg text-slate-600 transition-colors cursor-pointer flex items-center gap-1.5 text-[11px] font-bold"
+            >
+              <RefreshCw size={12} className={loadingSettings ? "animate-spin" : ""} /> Reload Preferences
+            </button>
+          </div>
+
+          <div className="bg-white border border-slate-100 rounded-xl overflow-hidden shadow-3xs">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse min-w-[800px]">
+                <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-wider">
+                  <tr className="border-b border-slate-100">
+                    <th className="px-4 py-3.5 w-1/3">Employee Profile</th>
+                    <th className="px-4 py-3.5 text-center">Inventory Alerts</th>
+                    <th className="px-4 py-3.5 text-center">Finance & Journals</th>
+                    <th className="px-4 py-3.5 text-center">Budget Alerts</th>
+                    <th className="px-4 py-3.5 text-center">Payroll runs</th>
+                    <th className="px-4 py-3.5 text-center">Risk Alerts</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-100 bg-white text-[11.5px] font-semibold text-slate-600">
+                  {loadingSettings ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-16 text-center text-slate-400">
+                        <RefreshCw size={24} className="animate-spin text-indigo-600 mx-auto mb-2" />
+                        <span>Fetching preferences from ledger...</span>
+                      </td>
+                    </tr>
+                  ) : employeesSettings.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="px-4 py-16 text-center text-slate-400 italic">
+                        No active employees found. Please register employees first.
+                      </td>
+                    </tr>
+                  ) : employeesSettings.map(emp => {
+                    const subList = subscriptions[emp.id] || [];
+                    const getEmailChecked = (eventCode) => {
+                      const sub = subList.find(s => s.eventCode === eventCode);
+                      return sub ? !!sub.channels?.EMAIL : false;
+                    };
+                    
+                    return (
+                      <tr key={emp.id} className="hover:bg-slate-50/40">
+                        <td className="px-4 py-3">
+                          <span className="font-extrabold text-slate-800 block">{emp.name}</span>
+                          <span className="text-[10px] text-slate-400 block mt-0.5">{emp.designation || 'Staff'} • {emp.department || 'General'}</span>
+                          <span className="text-[9.5px] text-slate-400 font-mono font-medium block mt-0.5">{emp.user_email || emp.email || 'No Email'}</span>
+                        </td>
+                        
+                        {[
+                          { code: 'LOW_STOCK_ALERT', label: 'Inventory' },
+                          { code: 'JOURNAL_POSTED', label: 'Finance' },
+                          { code: 'BUDGET_EXCEEDED', label: 'Budgets' },
+                          { code: 'PAYROLL_POSTED', label: 'Payroll' },
+                          { code: 'RISK_OVERRIDE_REQUESTED', label: 'Risk' }
+                        ].map(col => (
+                          <td key={col.code} className="px-4 py-3 text-center">
+                            <div className="flex items-center justify-center">
+                              <input
+                                type="checkbox"
+                                checked={getEmailChecked(col.code)}
+                                disabled={!(emp.user_email || emp.email)}
+                                onChange={e => handleToggleSubscription(emp.id, col.code, e.target.checked)}
+                                className="w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300 accent-indigo-600 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
+                                title={`Toggle email notifications for ${col.label}`}
+                              />
+                            </div>
+                          </td>
+                        ))}
+                      </tr>
+                    );
+                  })}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Inspect Modal */}
       {selectedItem && (
