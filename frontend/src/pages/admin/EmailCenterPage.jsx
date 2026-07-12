@@ -340,21 +340,29 @@ export default function EmailCenterPage() {
 
 
   return (
-    <div className="p-5 lg:p-7 space-y-6 pb-16 min-h-full" style={{ background: '#faf9f8' }}>
+    <div className="space-y-6 max-w-7xl mx-auto pb-12">
       
       {/* Top Header Banner */}
-      <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-        <div>
-          <h2 className="text-[20px] font-black text-slate-900 tracking-tight flex items-center gap-2">
-            <Mail size={22} className="text-emerald-500" /> Enterprise Email Hub
-          </h2>
-          <p className="text-[12px] text-slate-500 font-semibold mt-1">Manage communications, monitor background SMTP queues, and configure alerts.</p>
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
+            <Mail size={18} className="text-white fill-white/20" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Enterprise Email Hub</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-[#10b981]/15 text-[#064E3B] px-2 py-0.5 rounded-full border border-[#10b981]/20">Communications</span>
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 flex items-center mt-0.5">
+              Manage communications, monitor background SMTP queues, and configure alerts.
+            </p>
+          </div>
         </div>
 
-        <div className="flex items-center gap-2">
+        <div className="flex items-center gap-4 mt-3 md:mt-0">
           <button
             onClick={() => setIsComposing(true)}
-            className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-bold shadow-sm transition-all cursor-pointer flex items-center gap-1.5 text-xs uppercase"
+            className="px-4 py-2 bg-[#10b981] hover:bg-[#059669] text-white rounded-xl font-bold shadow-md shadow-emerald-500/10 transition-all cursor-pointer flex items-center gap-1.5 text-xs uppercase"
           >
             <Send size={13} /> Compose Message
           </button>
@@ -362,7 +370,7 @@ export default function EmailCenterPage() {
       </div>
 
       {/* Tabs Row */}
-      <div className="flex border-b border-slate-200 gap-1.5 text-xs font-bold bg-white p-1 rounded-lg border shadow-3xs w-fit">
+      <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-xl w-fit">
         {[
           { id: 'communications', label: 'Communications', icon: MessageSquareIcon },
           { id: 'templates', label: 'Templates', icon: CheckSquare },
@@ -371,10 +379,10 @@ export default function EmailCenterPage() {
           <button
             key={tab.id}
             onClick={() => setActiveTab(tab.id)}
-            className={`flex items-center gap-1.5 px-4 h-9 rounded-md transition cursor-pointer ${
+            className={`flex items-center gap-1.5 px-4 py-2 text-[12.5px] font-bold rounded-lg transition-all cursor-pointer ${
               activeTab === tab.id 
-                ? 'bg-emerald-600 text-white shadow-2xs' 
-                : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                ? 'bg-white text-slate-800 shadow-sm' 
+                : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <tab.icon size={14} />
@@ -384,13 +392,13 @@ export default function EmailCenterPage() {
       </div>
 
       {successMsg && (
-        <div className="p-3 bg-emerald-50 border border-emerald-100 text-emerald-800 rounded-lg flex items-center gap-2 text-xs font-bold">
+        <div className="p-4 bg-emerald-50 border border-emerald-200 text-emerald-800 text-xs font-bold rounded-xl flex items-center gap-2">
           <CheckCircle size={14} /> {successMsg}
         </div>
       )}
 
       {error && (
-        <div className="p-3 bg-rose-50 border border-rose-100 text-rose-800 rounded-lg flex items-center gap-2 text-xs font-bold">
+        <div className="p-4 bg-rose-50 border border-rose-200 text-rose-800 text-xs font-bold rounded-xl flex items-center gap-2">
           <ShieldAlert size={14} /> {error}
         </div>
       )}
