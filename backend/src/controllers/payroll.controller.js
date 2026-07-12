@@ -524,7 +524,7 @@ exports.createStructureRevision = async (req, res) => {
 
     const suffix = ' (Revision)';
     const newName = struct.name.endsWith(suffix) ? struct.name : `${struct.name}${suffix}`;
-    const newCode = `${struct.code.slice(0, 7)}_REV`;
+    const newCode = `${struct.code.slice(0, 10)}_R${Date.now().toString().slice(-5)}`;
 
     const [newStr] = await db('salary_structures')
       .insert({

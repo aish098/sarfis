@@ -95,6 +95,18 @@ export default function PayrollConfiguration({ userRole }) {
     }
   };
 
+  const parseInputValue = (calcBasis, val) => {
+    if (!val) return { default_value: '0.00', formula_expression: null };
+    if (calcBasis === 'FORMULA') return { default_value: '0.00', formula_expression: val };
+    if (calcBasis === 'PERCENTAGE') {
+      const parsed = parseFloat(String(val).replace(/%/g, ''));
+      const dec = parsed > 1 ? parsed / 100 : parsed;
+      return { default_value: String(dec || 0), formula_expression: null };
+    }
+    const num = parseFloat(String(val).replace(/[^0-9.]/g, ''));
+    return { default_value: String(num || 0), formula_expression: null };
+  };
+
   const handleAddComponent = async () => {
     const code = prompt('Enter Component Code (e.g. TRANS):');
     if (!code) return;
@@ -104,8 +116,10 @@ export default function PayrollConfiguration({ userRole }) {
     if (!type || (type !== 'EARNING' && type !== 'DEDUCTION')) return;
     const calculation = prompt('Enter Calculation Basis (PERCENTAGE, FIXED, or FORMULA):', 'PERCENTAGE');
     if (!calculation) return;
-    const value = prompt('Enter Default Weight/Value (e.g. 0.10 for 10%, 5000 for PKR 5,000, or a formula expression):');
+    const value = prompt('Enter Default Weight/Value (e.g. 10% or 0.10, fixed number, or formula expression):');
     if (value === null) return;
+
+    const { default_value, formula_expression } = parseInputValue(calculation, value);
 
     try {
       await api.post(`/payroll/${activeCompany.id}/components`, {
@@ -113,8 +127,8 @@ export default function PayrollConfiguration({ userRole }) {
         name,
         type,
         calculation_type: calculation,
-        default_value: calculation === 'FORMULA' ? '0.00' : String(parseFloat(value)),
-        formula_expression: calculation === 'FORMULA' ? value : null
+        default_value,
+        formula_expression
       });
       fetchConfigData();
     } catch (err) {
@@ -128,14 +142,16 @@ export default function PayrollConfiguration({ userRole }) {
     const value = prompt('Update Default Weight/Value (percentage decimal, fixed number, or formula):', comp.formula || comp.value);
     if (value === null) return;
 
+    const { default_value, formula_expression } = parseInputValue(comp.calculation, value);
+
     try {
       await api.put(`/payroll/${activeCompany.id}/components/${comp.id}`, {
         code: comp.code,
         name,
         type: comp.type,
         calculation_type: comp.calculation,
-        default_value: comp.calculation === 'FORMULA' ? '0.00' : String(parseFloat(value)),
-        formula_expression: comp.calculation === 'FORMULA' ? value : null
+        default_value,
+        formula_expression
       });
       fetchConfigData();
     } catch (err) {
