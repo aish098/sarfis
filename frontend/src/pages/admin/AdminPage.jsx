@@ -78,6 +78,29 @@ const PERMISSION_ROWS = [
       { name: 'View Audit Logs', code: 'audit.view', rights: { Admin: 'F', Accountant: 'F', 'Inventory Manager': 'N', 'Sales Manager': 'N', 'Finance Manager': 'F', Viewer: 'F' } },
       { name: 'Database Maintenance & Backups', code: 'audit.manage', rights: { Admin: 'F', Accountant: 'N', 'Inventory Manager': 'N', 'Sales Manager': 'N', 'Finance Manager': 'N', Viewer: 'N' } }
     ]
+  },
+  {
+    group: 'Payroll & HR Management',
+    items: [
+      { name: 'View Payroll Register', code: 'payroll.view', rights: { Admin: 'F', Accountant: 'F', Manager: 'F', 'Inventory Manager': 'N', 'Sales Manager': 'N', 'Finance Manager': 'F', Viewer: 'F' } },
+      { name: 'Generate Payroll Runs', code: 'payroll.run', rights: { Admin: 'F', Accountant: 'N', Manager: 'N', 'Inventory Manager': 'N', 'Sales Manager': 'N', 'Finance Manager': 'N', Viewer: 'N' } },
+      { name: 'Manage Salary Structures', code: 'payroll.manage', rights: { Admin: 'F', Accountant: 'N', Manager: 'N', 'Inventory Manager': 'N', 'Sales Manager': 'N', 'Finance Manager': 'N', Viewer: 'N' } }
+    ]
+  },
+  {
+    group: 'Fixed Asset Management',
+    items: [
+      { name: 'View Asset Register', code: 'asset.view', rights: { Admin: 'F', Accountant: 'F', Manager: 'F', 'Inventory Manager': 'F', 'Sales Manager': 'N', 'Finance Manager': 'F', Viewer: 'F' } },
+      { name: 'Manage Categories & Assets', code: 'asset.manage', rights: { Admin: 'F', Accountant: 'N', Manager: 'N', 'Inventory Manager': 'F', 'Sales Manager': 'N', 'Finance Manager': 'N', Viewer: 'N' } },
+      { name: 'Run Asset Depreciation', code: 'asset.depreciate', rights: { Admin: 'F', Accountant: 'F', Manager: 'N', 'Inventory Manager': 'N', 'Sales Manager': 'N', 'Finance Manager': 'N', Viewer: 'N' } }
+    ]
+  },
+  {
+    group: 'Logistics & Distribution',
+    items: [
+      { name: 'View Delivery Routing', code: 'distribution.view', rights: { Admin: 'F', Accountant: 'F', Manager: 'F', 'Inventory Manager': 'F', 'Sales Manager': 'N', 'Finance Manager': 'F', Viewer: 'F' } },
+      { name: 'Manage Routes & Dispatch', code: 'distribution.manage', rights: { Admin: 'F', Accountant: 'N', Manager: 'N', 'Inventory Manager': 'F', 'Sales Manager': 'N', 'Finance Manager': 'N', Viewer: 'N' } }
+    ]
   }
 ];
 
