@@ -167,6 +167,11 @@ exports.unarchiveNotification = async (req, res) => {
 exports.getPreferences = async (req, res) => {
   const companyId = req.companyId;
   try {
+    // Dynamically heal/migrate System module to Communications for manual email triggers
+    await db('notification_events')
+      .where({ event_code: 'CUSTOM_COMMUNICATION', module: 'System' })
+      .update({ module: 'Communications' });
+
     const events = await db('notification_events').orderBy('module').orderBy('event_name');
     const prefs = await db('user_notification_preferences').where({ user_id: req.user.id, company_id: companyId });
 
@@ -317,11 +322,15 @@ exports.composeCustomEmail = async (req, res) => {
       await db('notification_events').insert({
         event_code: 'CUSTOM_COMMUNICATION',
         event_name: 'Custom Email Communication',
-        module: 'System',
+        module: 'Communications',
         category: 'Communication',
         priority: 'LOW',
         description: 'Manually composed client/employee custom emails'
       });
+    } else if (eventExists.module !== 'Communications') {
+      await db('notification_events')
+        .where({ event_code: 'CUSTOM_COMMUNICATION' })
+        .update({ module: 'Communications' });
     }
 
     // 3. Insert custom email record into notification_queue
