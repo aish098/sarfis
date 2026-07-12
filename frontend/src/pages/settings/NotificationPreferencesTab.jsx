@@ -49,11 +49,13 @@ export default function NotificationPreferencesTab() {
   };
 
   // Group preferences by module
-  const grouped = preferences.reduce((acc, p) => {
-    if (!acc[p.module]) acc[p.module] = [];
-    acc[p.module].push(p);
-    return acc;
-  }, {});
+  const grouped = preferences
+    .filter(p => p.eventCode !== 'CUSTOM_COMMUNICATION' && p.module !== 'Communications' && p.module !== 'System')
+    .reduce((acc, p) => {
+      if (!acc[p.module]) acc[p.module] = [];
+      acc[p.module].push(p);
+      return acc;
+    }, {});
 
   return (
     <div className="space-y-6 text-xs font-semibold text-slate-600">
