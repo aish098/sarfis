@@ -130,7 +130,16 @@ export default function VoucherDetails() {
         img.crossOrigin = 'Anonymous';
         img.onload = () => {
           try {
-            doc.addImage(img, 'PNG', 160, 8, 36, 12);
+            const maxWidth = 35;
+            const maxHeight = 12;
+            let width = maxWidth;
+            let height = maxWidth / (img.width / img.height);
+            
+            if (height > maxHeight) {
+              height = maxHeight;
+              width = maxHeight * (img.width / img.height);
+            }
+            doc.addImage(img, 'PNG', 196 - width, 8, width, height);
           } catch (e) {
             console.error('Failed to draw logo on PDF:', e);
           }
