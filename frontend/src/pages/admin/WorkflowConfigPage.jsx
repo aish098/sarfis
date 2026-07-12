@@ -214,13 +214,21 @@ export default function WorkflowConfigPage() {
 
   return (
     <div className="space-y-6 max-w-6xl mx-auto pb-12">
-      {/* Title */}
-      <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-            <Settings className="text-indigo-600 animate-spin-slow" size={24} /> Workflow Configurations
-          </h1>
-          <p className="text-slate-500 text-sm font-semibold">Define role hierarchies, approval thresholds, conditions, and manager delegations.</p>
+      {/* Top Banner Toolbar */}
+      <div className="w-full bg-[#F5F3FF] border border-[#E0D7FF] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#4f46e5] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-indigo-500/10">
+            <Settings size={18} className="text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#312E81] tracking-tight uppercase">Workflow Configurations</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-indigo-500/15 text-indigo-800 px-2 py-0.5 rounded-full border border-indigo-500/20">System Gates</span>
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
+              Define role hierarchies, approval thresholds, conditions, and manager delegations.
+            </p>
+          </div>
         </div>
       </div>
 
