@@ -1825,14 +1825,14 @@ class PayrollService {
     const formulas = await db('payroll_line_details as pld')
       .join('payroll_lines as pl', 'pld.payroll_line_id', 'pl.id')
       .where({ 'pl.payroll_run_id': run.id })
-      .select('pld.formula_expression', 'pld.calculated_value')
+      .select('pld.formula_used', 'pld.amount')
       .limit(1)
       .first();
 
     if (formulas) {
       auditSteps.push({
         type: 'FORMULA',
-        desc: `Evaluated Component "${formulas.formula_expression}" (Output: PKR ${parseFloat(formulas.calculated_value).toLocaleString()})`,
+        desc: `Evaluated Component "${formulas.formula_used || 'Formula'}" (Output: PKR ${parseFloat(formulas.amount || 0).toLocaleString()})`,
         user: 'Formula Parser Engine',
         time: new Date(run.created_at).toLocaleString()
       });
