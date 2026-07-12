@@ -339,16 +339,18 @@ export default function ReportsPage() {
     let columns = [];
     let rows = [];
 
+    const accountList = Array.isArray(data) ? data : (data?.items || []);
+
     if (tab === 'trial_balance') {
       columns = ['Code', 'Account Name', 'Debit', 'Credit'];
-      rows = (data || []).map(acc => {
+      rows = accountList.map(acc => {
         const d = parseFloat(acc.total_debit) || 0, c = parseFloat(acc.total_credit) || 0, net = d - c;
         return [acc.code, acc.name, net > 0 ? fmt(net) : '—', net < 0 ? fmt(Math.abs(net)) : '—'];
       }).filter(r => r[2] !== '—' || r[3] !== '—');
     } else if (tab === 'income_statement') {
       columns = ['Account', 'Amount'];
-      const rev = (data || []).filter(a => ['income', 'revenue'].includes(a.category?.toLowerCase() || a.type?.toLowerCase())).map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
-      const exp = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'expense').map(a => ({ ...a, net: parseFloat(a.total_debit || 0) - parseFloat(a.total_credit || 0) })).filter(a => Math.abs(a.net) > 0);
+      const rev = accountList.filter(a => ['income', 'revenue'].includes(a.category?.toLowerCase() || a.type?.toLowerCase())).map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
+      const exp = accountList.filter(a => (a.category || a.type)?.toLowerCase() === 'expense').map(a => ({ ...a, net: parseFloat(a.total_debit || 0) - parseFloat(a.total_credit || 0) })).filter(a => Math.abs(a.net) > 0);
       const totalRev = rev.reduce((s, r) => s + r.net, 0);
       const totalExp = exp.reduce((s, r) => s + r.net, 0);
       
@@ -365,11 +367,11 @@ export default function ReportsPage() {
       ];
     } else if (tab === 'balance_sheet') {
       columns = ['Account', 'Amount'];
-      const assets = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'asset').map(a => ({ ...a, net: parseFloat(a.total_debit || 0) - parseFloat(a.total_credit || 0) })).filter(a => Math.abs(a.net) > 0);
-      const liabs = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'liability').map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
-      const equity = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'equity').map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
-      const revLines = (data || []).filter(a => ['income','revenue'].includes((a.category || a.type)?.toLowerCase())).map(a => parseFloat(a.total_credit||0)-parseFloat(a.total_debit||0));
-      const expLines = (data || []).filter(a => (a.category || a.type)?.toLowerCase() === 'expense').map(a => parseFloat(a.total_debit||0)-parseFloat(a.total_credit||0));
+      const assets = accountList.filter(a => (a.category || a.type)?.toLowerCase() === 'asset').map(a => ({ ...a, net: parseFloat(a.total_debit || 0) - parseFloat(a.total_credit || 0) })).filter(a => Math.abs(a.net) > 0);
+      const liabs = accountList.filter(a => (a.category || a.type)?.toLowerCase() === 'liability').map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
+      const equity = accountList.filter(a => (a.category || a.type)?.toLowerCase() === 'equity').map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
+      const revLines = accountList.filter(a => ['income','revenue'].includes((a.category || a.type)?.toLowerCase())).map(a => parseFloat(a.total_credit||0)-parseFloat(a.total_debit||0));
+      const expLines = accountList.filter(a => (a.category || a.type)?.toLowerCase() === 'expense').map(a => parseFloat(a.total_debit||0)-parseFloat(a.total_credit||0));
       const ytd = revLines.reduce((s,n)=>s+n,0) - expLines.reduce((s,n)=>s+n,0);
       if (Math.abs(ytd) > 0.001) equity.push({ name: 'Current Year Earnings', net: ytd });
       
@@ -388,9 +390,9 @@ export default function ReportsPage() {
       ];
     } else if (tab === 'cash_flow') {
       columns = ['Activity', 'Amount'];
-      const operating = (data || []).filter(r => ['income','revenue','expense'].includes((r.category || r.type)?.toLowerCase()));
-      const investing = (data || []).filter(r => (r.category || r.type)?.toLowerCase() === 'asset');
-      const financing = (data || []).filter(r => ['liability','equity'].includes((r.category || r.type)?.toLowerCase()));
+      const operating = accountList.filter(r => ['income','revenue','expense'].includes((r.category || r.type)?.toLowerCase()));
+      const investing = accountList.filter(r => (r.category || r.type)?.toLowerCase() === 'asset');
+      const financing = accountList.filter(r => ['liability','equity'].includes((r.category || r.type)?.toLowerCase()));
       
       rows = [
         ['OPERATING ACTIVITIES', ''],
