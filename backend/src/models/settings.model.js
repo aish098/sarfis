@@ -10,6 +10,38 @@ class SettingsModel {
   }
 
   static async upsertSettings(companyId, value) {
+    // 1. Sync to company_accounting_settings if accounting keys are present
+    const hasAccountingKeys = [
+      'defaultSalesAccountId', 'defaultApAccountId', 'defaultArAccountId', 
+      'defaultInventoryAccountId', 'defaultCogsAccountId', 'defaultCashAccountId', 
+      'defaultSalariesAccountId', 'taxRate', 'negativeBalanceStyle'
+    ].some(k => value.hasOwnProperty(k));
+    
+    if (hasAccountingKeys) {
+      const mapping = {};
+      if (value.hasOwnProperty('defaultSalesAccountId')) mapping.default_sales_account_id = value.defaultSalesAccountId ? parseInt(value.defaultSalesAccountId, 10) : null;
+      if (value.hasOwnProperty('defaultApAccountId')) mapping.default_ap_account_id = value.defaultApAccountId ? parseInt(value.defaultApAccountId, 10) : null;
+      if (value.hasOwnProperty('defaultArAccountId')) mapping.default_ar_account_id = value.defaultArAccountId ? parseInt(value.defaultArAccountId, 10) : null;
+      if (value.hasOwnProperty('defaultInventoryAccountId')) mapping.default_inventory_account_id = value.defaultInventoryAccountId ? parseInt(value.defaultInventoryAccountId, 10) : null;
+      if (value.hasOwnProperty('defaultCogsAccountId')) mapping.default_cogs_account_id = value.defaultCogsAccountId ? parseInt(value.defaultCogsAccountId, 10) : null;
+      if (value.hasOwnProperty('defaultCashAccountId')) mapping.default_cash_account_id = value.defaultCashAccountId ? parseInt(value.defaultCashAccountId, 10) : null;
+      if (value.hasOwnProperty('defaultSalariesAccountId')) mapping.default_salaries_account_id = value.defaultSalariesAccountId ? parseInt(value.defaultSalariesAccountId, 10) : null;
+      if (value.hasOwnProperty('taxRate')) mapping.tax_rate = parseFloat(value.taxRate || 0);
+      if (value.hasOwnProperty('negativeBalanceStyle')) mapping.negative_balance_style = value.negativeBalanceStyle || 'minus';
+
+      if (Object.keys(mapping).length > 0) {
+        const existAcc = await db('company_accounting_settings').where({ company_id: companyId }).first();
+        if (existAcc) {
+          await db('company_accounting_settings').where({ company_id: companyId }).update(mapping);
+        } else {
+          await db('company_accounting_settings').insert({
+            company_id: companyId,
+            ...mapping
+          });
+        }
+      }
+    }
+
     const existing = await db('settings')
       .where({ scope: 'company', target_id: String(companyId) })
       .first();
