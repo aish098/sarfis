@@ -124,7 +124,7 @@ export default function ReportsPage() {
       const num = parseInt(c, 16);
       return [num >> 16, (num >> 8) & 0x00ff, num & 0x0000ff];
     };
-    const brandRgb = hexToRgb(settings?.brandColor || '#10b981');
+    const brandRgb = hexToRgb(settings?.accentColor || '#10b981');
 
     if (settings?.logoUrl) {
       const logoUrl = settings.logoUrl.startsWith('http') ? settings.logoUrl : `${import.meta.env.PROD ? window.location.origin : 'http://localhost:5001'}${settings.logoUrl}`;
@@ -314,7 +314,7 @@ export default function ReportsPage() {
       const num = parseInt(c, 16);
       return [num >> 16, (num >> 8) & 0x00ff, num & 0x0000ff];
     };
-    const brandRgb = hexToRgb(settings?.brandColor || '#10b981');
+    const brandRgb = hexToRgb(settings?.accentColor || '#10b981');
 
     if (settings?.logoUrl) {
       const logoUrl = settings.logoUrl.startsWith('http') ? settings.logoUrl : `${import.meta.env.PROD ? window.location.origin : 'http://localhost:5001'}${settings.logoUrl}`;
