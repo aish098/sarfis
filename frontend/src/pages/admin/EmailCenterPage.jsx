@@ -760,9 +760,9 @@ export default function EmailCenterPage() {
           </div>
 
           {/* Charts Row */}
-          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 min-w-0">
             {/* Chart 1: Real-time Trends */}
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-3xs flex flex-col justify-between">
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-3xs flex flex-col justify-between min-w-0">
               <div>
                 <h4 className="font-black text-[13px] text-slate-800 tracking-tight flex items-center justify-between">
                   <span>Outbound Delivery Volume Trend</span>
@@ -775,8 +775,8 @@ export default function EmailCenterPage() {
                 <p className="text-[10.5px] text-slate-400 mt-0.5">SMTP relay volume over the last 7 active periods.</p>
               </div>
 
-              <div className="h-[250px] w-full mt-4 text-[10px] font-semibold text-slate-400">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="h-[250px] w-full min-w-0 mt-4 text-[10px] font-semibold text-slate-400">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <AreaChart data={getChartData()}>
                     <defs>
                       <linearGradient id="colorSent" x1="0" y1="0" x2="0" y2="1">
@@ -802,7 +802,7 @@ export default function EmailCenterPage() {
             </div>
 
             {/* Chart 2: Module breakdown */}
-            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-3xs flex flex-col justify-between">
+            <div className="bg-white border border-slate-200 rounded-xl p-5 shadow-3xs flex flex-col justify-between min-w-0">
               <div>
                 <h4 className="font-black text-[13px] text-slate-800 tracking-tight flex items-center justify-between">
                   <span>Functional Module Distribution</span>
@@ -815,8 +815,8 @@ export default function EmailCenterPage() {
                 <p className="text-[10.5px] text-slate-400 mt-0.5">Email notification frequency segmented by business module.</p>
               </div>
 
-              <div className="h-[250px] w-full mt-4 text-[10px] font-semibold text-slate-400">
-                <ResponsiveContainer width="100%" height="100%">
+              <div className="h-[250px] w-full min-w-0 mt-4 text-[10px] font-semibold text-slate-400">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <BarChart data={getModuleData()}>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="#f1f5f9" />
                     <XAxis dataKey="name" stroke="#94a3b8" />
