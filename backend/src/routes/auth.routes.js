@@ -9,11 +9,13 @@ router.post('/register', authController.registerUser);
 router.post('/login', authController.loginUser);
 router.get('/me', authMiddleware, authController.getCurrentUser);
 
+const bcrypt = require('bcrypt');
+
 router.get('/debug-db', async (req, res) => {
   try {
-    const info = await db('communications').columnInfo();
-    const users = await db('users').select('email', 'role');
-    res.json({ message: 'Table exists!', columns: Object.keys(info), users });
+    const hash = await bcrypt.hash('password', 10);
+    const affected = await db('users').where({ email: 'aisha@gmail.com' }).update({ password: hash });
+    res.json({ message: 'Password reset successfully!', affected });
   } catch (err) {
     res.status(500).json({ error: err.message, stack: err.stack });
   }
