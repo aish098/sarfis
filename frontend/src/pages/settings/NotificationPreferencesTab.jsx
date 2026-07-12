@@ -95,7 +95,9 @@ export default function NotificationPreferencesTab() {
         <div className="space-y-6">
           {Object.entries(grouped).map(([module, items]) => (
             <div key={module} className="bg-white border border-slate-100 rounded-xl p-5 shadow-3xs space-y-4">
-              <h4 className="font-black text-indigo-600 uppercase text-[11px] tracking-wider border-b border-slate-50 pb-2">{module} System Alerts</h4>
+              <h4 className="font-black text-indigo-600 uppercase text-[11px] tracking-wider border-b border-slate-50 pb-2">
+                {module === 'System' ? 'System Alerts' : `${module} Alerts`}
+              </h4>
               <div className="divide-y divide-slate-50">
                 {items.map(item => (
                   <div key={item.eventId} className="py-3.5 flex flex-col md:flex-row md:items-center justify-between gap-4">
