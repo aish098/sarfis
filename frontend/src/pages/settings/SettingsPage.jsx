@@ -5,13 +5,11 @@ import {
   UploadCloud, ShieldCheck, Save, AlertTriangle, RefreshCw,
   Plus, Trash2, Download, Eye, Check, CheckSquare,
   FileSpreadsheet, Play, ArrowRight, Lock, Key, FileText,
-  User, Computer, Info, ArrowLeftRight, Bell, Calendar,
-  Send, ShieldAlert
+  User, Computer, Info, ArrowLeftRight, Bell, Calendar
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import NotificationPreferencesTab from './NotificationPreferencesTab';
-import RightDrawer from '../../components/ui/RightDrawer';
 
 // Tabs configuration
 const TABS = [
@@ -105,166 +103,6 @@ export default function SettingsPage() {
   const [testingSmtp, setTestingSmtp] = useState(false);
   const [loadingMailConfig, setLoadingMailConfig] = useState(false);
   const [savingMailConfig, setSavingMailConfig] = useState(false);
-
-  // Email & Reminders Tab states (Send Communication & Subscriptions)
-  const [isComposing, setIsComposing] = useState(false);
-  const [employees, setEmployees] = useState([]);
-  const [composingMsg, setComposingMsg] = useState({
-    employeeId: '',
-    subject: '',
-    body: ''
-  });
-  const [sendingComm, setSendingComm] = useState(false);
-  const [employeesSettings, setEmployeesSettings] = useState([]);
-  const [subscriptions, setSubscriptions] = useState({});
-  const [loadingSettings, setLoadingSettings] = useState(false);
-
-  const fetchSettingsData = async () => {
-    if (!activeCompanyId) return;
-    setLoadingSettings(true);
-    try {
-      const res = await api.get(`/employees/${activeCompanyId}`, requestConfig);
-      const validEmployees = res.data || [];
-      setEmployeesSettings(validEmployees);
-
-      const subData = {};
-      await Promise.all(validEmployees.map(async (emp) => {
-        try {
-          const subRes = await api.get(`/employees/${activeCompanyId}/${emp.id}/notification-subscriptions`, requestConfig);
-          subData[emp.id] = subRes.data || [];
-        } catch (e) {
-          console.error(`Failed to load subscriptions for employee ${emp.id}:`, e);
-          subData[emp.id] = [];
-        }
-      }));
-      setSubscriptions(subData);
-    } catch (err) {
-      console.error("Failed to load settings data:", err);
-    } finally {
-      setLoadingSettings(false);
-    }
-  };
-
-  const fetchEmployees = async () => {
-    if (!activeCompanyId) return;
-    try {
-      const res = await api.get(`/employees/${activeCompanyId}`, requestConfig);
-      const validEmployees = (res.data || []).filter(emp => emp.user_email || emp.email);
-      setEmployees(validEmployees);
-    } catch (err) {
-      console.error('Failed to fetch employees list for communication:', err);
-    }
-  };
-
-  useEffect(() => {
-    if (activeTab === 'email' && activeCompanyId) {
-      fetchSettingsData();
-    }
-  }, [activeTab, activeCompanyId]);
-
-  useEffect(() => {
-    if (isComposing) {
-      fetchEmployees();
-    }
-  }, [isComposing, activeCompanyId]);
-
-  const handleSendCommunication = async (e) => {
-    e.preventDefault();
-    if (!composingMsg.employeeId || !composingMsg.subject || !composingMsg.body) {
-      alert('Recipient employee, subject, and message body are required.');
-      return;
-    }
-    setSendingComm(true);
-    try {
-      await api.post(`/notifications/admin/email-queue/compose/${activeCompanyId}`, composingMsg, requestConfig);
-      setMessage({ type: 'success', text: 'Communication email queued successfully.' });
-      setTimeout(() => setMessage(null), 3000);
-      setIsComposing(false);
-      setComposingMsg({ employeeId: '', subject: '', body: '' });
-      fetchSettingsData();
-    } catch (err) {
-      setMessage({ type: 'error', text: err.response?.data?.error || err.message });
-      setTimeout(() => setMessage(null), 4000);
-    } finally {
-      setSendingComm(false);
-    }
-  };
-
-  const handleToggleSubscription = async (empId, eventCode, isChecked) => {
-    const empSubs = subscriptions[empId] || [];
-    let eventSub = empSubs.find(s => s.eventCode === eventCode);
-    let updatedSubs;
-    
-    if (eventSub) {
-      updatedSubs = empSubs.map(s => {
-        if (s.eventCode === eventCode) {
-          return {
-            ...s,
-            channels: {
-              ...s.channels,
-              EMAIL: isChecked,
-              APP: s.channels.APP !== undefined ? !!s.channels.APP : true
-            }
-          };
-        }
-        return s;
-      });
-    } else {
-      let eventId = null;
-      Object.values(subscriptions).forEach(subsList => {
-        const found = subsList.find(s => s.eventCode === eventCode);
-        if (found) eventId = found.eventId;
-      });
-      if (!eventId) {
-        const fallbackIds = {
-          'LOW_STOCK_ALERT': 1,
-          'JOURNAL_POSTED': 10,
-          'BUDGET_EXCEEDED': 13,
-          'PAYROLL_POSTED': 14,
-          'RISK_OVERRIDE_REQUESTED': 3
-        };
-        eventId = fallbackIds[eventCode];
-      }
-      updatedSubs = [
-        ...empSubs,
-        {
-          eventId,
-          eventCode,
-          channels: {
-            EMAIL: isChecked,
-            APP: true,
-            SMS: false,
-            WHATSAPP: false,
-            SLACK: false,
-            TEAMS: false
-          }
-        }
-      ];
-    }
-    
-    setSubscriptions(prev => ({
-      ...prev,
-      [empId]: updatedSubs
-    }));
-    
-    try {
-      const apiPayload = updatedSubs.map(s => ({
-        eventId: s.eventId,
-        channels: s.channels
-      }));
-      await api.put(`/employees/${activeCompanyId}/${empId}/notification-subscriptions`, {
-        subscriptions: apiPayload
-      }, requestConfig);
-    } catch (err) {
-      console.error("Failed to save subscription update:", err);
-      setSubscriptions(prev => ({
-        ...prev,
-        [empId]: empSubs
-      }));
-      setMessage({ type: 'error', text: "Failed to update email preferences." });
-      setTimeout(() => setMessage(null), 4000);
-    }
-  };
 
   // CSV Import state
   const [importType, setImportType] = useState('coa'); // 'coa' | 'customers' | 'vendors' | 'products' | 'balances'
@@ -1071,107 +909,230 @@ export default function SettingsPage() {
       case 'email':
         return (
           <div className="space-y-6 text-xs text-slate-600 font-semibold">
-            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-3">
-              <h2 className="text-[18px] font-black text-slate-900 flex items-center gap-2">
-                <Mail size={20} className="text-emerald-500" /> Email & Reminders
-              </h2>
-              <div className="flex items-center gap-2">
-                <button
-                  type="button"
-                  onClick={() => setIsComposing(true)}
-                  className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-sm transition-all cursor-pointer flex items-center gap-1.5 text-[11px] uppercase tracking-wider"
-                >
-                  <Send size={12} /> Send Communication
-                </button>
-                <button
-                  type="button"
-                  onClick={fetchSettingsData}
-                  className="p-2 bg-slate-50 border border-slate-200 hover:bg-slate-100 rounded-xl text-slate-600 transition-colors cursor-pointer"
-                  title="Reload email settings"
-                >
-                  <RefreshCw size={14} className={loadingSettings ? "animate-spin" : ""} />
-                </button>
-              </div>
-            </div>
+            <h2 className="text-[18px] font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+              <Mail size={20} className="text-emerald-500" /> Email & Reminders
+            </h2>
 
-            <div className="space-y-4">
-              <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl flex flex-col md:flex-row md:items-center justify-between gap-3">
-                <div>
-                  <h3 className="font-display font-extrabold text-[13px] text-slate-800 uppercase">Employee Outbound Email Preferences</h3>
-                  <p className="text-[11px] text-slate-400 mt-0.5 font-normal">Toggle checkboxes to subscribe or unsubscribe employees from automated system emails.</p>
+            {loadingMailConfig ? (
+              <div className="p-16 text-center space-y-3">
+                <RefreshCw size={24} className="animate-spin text-emerald-600 mx-auto" />
+                <p className="text-slate-400 text-[12px]">Loading email server config...</p>
+              </div>
+            ) : (
+              <>
+                {/* Provider Selector Cards */}
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <button
+                    type="button"
+                    onClick={() => setMailConfig(p => ({ ...p, provider: 'MOCK' }))}
+                    className={`p-4 border rounded-xl flex flex-col items-center justify-center gap-2 text-center transition-all cursor-pointer ${
+                      mailConfig.provider === 'MOCK'
+                        ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 font-extrabold'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="text-[13.5px]">Sandbox / Mock Provider</span>
+                    <span className="text-[11px] font-normal text-slate-400 max-w-[280px]">Logs all emails to console logs and sandbox database without real SMTP delivery.</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => setMailConfig(p => ({ ...p, provider: 'SMTP' }))}
+                    className={`p-4 border rounded-xl flex flex-col items-center justify-center gap-2 text-center transition-all cursor-pointer ${
+                      mailConfig.provider === 'SMTP'
+                        ? 'border-emerald-600 bg-emerald-50/50 text-emerald-950 font-extrabold'
+                        : 'border-slate-200 bg-white text-slate-600 hover:bg-slate-50'
+                    }`}
+                  >
+                    <span className="text-[13.5px]">Real SMTP Server Provider</span>
+                    <span className="text-[11px] font-normal text-slate-400 max-w-[280px]">Routes emails using corporate SMTP relay channels (Google Workspace, Office365, Zoho, etc.).</span>
+                  </button>
                 </div>
-              </div>
 
-              <div className="bg-white border border-slate-250 rounded-xl overflow-hidden shadow-3xs">
-                <div className="overflow-x-auto">
-                  <table className="w-full text-left border-collapse min-w-[700px]">
-                    <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-wider">
-                      <tr className="border-b border-slate-100">
-                        <th className="px-4 py-3.5 w-1/3">Employee Profile</th>
-                        <th className="px-4 py-3.5 text-center">Inventory Alerts</th>
-                        <th className="px-4 py-3.5 text-center">Finance & Journals</th>
-                        <th className="px-4 py-3.5 text-center">Budget Alerts</th>
-                        <th className="px-4 py-3.5 text-center">Payroll runs</th>
-                        <th className="px-4 py-3.5 text-center">Risk Alerts</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-100 bg-white text-[11.5px] font-semibold text-slate-600">
-                      {loadingSettings ? (
-                        <tr>
-                          <td colSpan={6} className="px-4 py-16 text-center text-slate-400">
-                            <RefreshCw size={24} className="animate-spin text-emerald-600 mx-auto mb-2" />
-                            <span>Fetching preferences from ledger...</span>
-                          </td>
-                        </tr>
-                      ) : employeesSettings.length === 0 ? (
-                        <tr>
-                          <td colSpan={6} className="px-4 py-16 text-center text-slate-400 italic">
-                            No active employees found. Please register employees first.
-                          </td>
-                        </tr>
-                      ) : employeesSettings.map(emp => {
-                        const subList = subscriptions[emp.id] || [];
-                        const getEmailChecked = (eventCode) => {
-                          const sub = subList.find(s => s.eventCode === eventCode);
-                          return sub ? !!sub.channels?.EMAIL : false;
-                        };
-                        
-                        return (
-                          <tr key={emp.id} className="hover:bg-slate-50/40">
-                            <td className="px-4 py-3">
-                              <span className="font-extrabold text-slate-800 block">{emp.name}</span>
-                              <span className="text-[10px] text-slate-400 block mt-0.5 font-normal">{emp.designation || 'Staff'} • {emp.department || 'General'}</span>
-                              <span className="text-[9.5px] text-slate-400 font-mono font-normal block mt-0.5">{emp.user_email || emp.email || 'No Email'}</span>
-                            </td>
-                            
-                            {[
-                              { code: 'LOW_STOCK_ALERT', label: 'Inventory' },
-                              { code: 'JOURNAL_POSTED', label: 'Finance' },
-                              { code: 'BUDGET_EXCEEDED', label: 'Budgets' },
-                              { code: 'PAYROLL_POSTED', label: 'Payroll' },
-                              { code: 'RISK_OVERRIDE_REQUESTED', label: 'Risk' }
-                            ].map(col => (
-                              <td key={col.code} className="px-4 py-3 text-center">
-                                <div className="flex items-center justify-center">
-                                  <input
-                                    type="checkbox"
-                                    checked={getEmailChecked(col.code)}
-                                    disabled={!(emp.user_email || emp.email) || !canEdit}
-                                    onChange={e => handleToggleSubscription(emp.id, col.code, e.target.checked)}
-                                    className="w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-350 accent-emerald-600 cursor-pointer disabled:opacity-40 disabled:cursor-not-allowed"
-                                    title={`Toggle email notifications for ${col.label}`}
-                                  />
-                                </div>
-                              </td>
-                            ))}
+                {/* SMTP Form */}
+                {mailConfig.provider === 'SMTP' && (
+                  <form onSubmit={handleSaveMailConfig} className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
+                    <h3 className="font-bold text-[13px] text-slate-900">SMTP Relay Configurations</h3>
+                    <p className="text-[11px] text-slate-500">Configure outbound SMTP server credentials for encryption, relay ports, and authenticated logins.</p>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <div className="sm:col-span-2">
+                        <Field label="SMTP Server Host">
+                          <InputField value={mailConfig.host} onChange={v => setMailConfig(p => ({ ...p, host: v }))} placeholder="e.g. smtp.gmail.com" />
+                        </Field>
+                      </div>
+                      <Field label="SMTP Port">
+                        <InputField type="number" value={mailConfig.port} onChange={v => setMailConfig(p => ({ ...p, port: v }))} placeholder="587" />
+                      </Field>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                      <Field label="SMTP Username">
+                        <InputField value={mailConfig.username} onChange={v => setMailConfig(p => ({ ...p, username: v }))} placeholder="e.g. alert@domain.com" />
+                      </Field>
+                      <Field label="SMTP Password">
+                        <InputField type="password" value={mailConfig.password} onChange={v => setMailConfig(p => ({ ...p, password: v }))} placeholder="••••••••••••" />
+                      </Field>
+                      <Field label="Encryption Layer">
+                        <select
+                          value={mailConfig.encryption || 'TLS'}
+                          onChange={e => setMailConfig(p => ({ ...p, encryption: e.target.value }))}
+                          className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] text-slate-800 outline-none focus:border-emerald-500 transition-all font-semibold"
+                        >
+                          <option value="TLS">TLS (Recommended - 587)</option>
+                          <option value="SSL">SSL (Secure - 465)</option>
+                          <option value="NONE">NONE (Plain - 25)</option>
+                        </select>
+                      </Field>
+                    </div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                      <Field label="Sender Name Label">
+                        <InputField value={mailConfig.from_name} onChange={v => setMailConfig(p => ({ ...p, from_name: v }))} placeholder="e.g. SARFIS Billing" />
+                      </Field>
+                      <Field label="Sender From Email Address">
+                        <InputField value={mailConfig.from_email} onChange={v => setMailConfig(p => ({ ...p, from_email: v }))} placeholder="e.g. billing@domain.com" />
+                      </Field>
+                    </div>
+
+                    <div className="flex justify-end pt-2">
+                      <button
+                        type="submit"
+                        disabled={savingMailConfig}
+                        className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-sm"
+                      >
+                        {savingMailConfig && <RefreshCw size={12} className="animate-spin" />}
+                        Save SMTP Configs
+                      </button>
+                    </div>
+                  </form>
+                )}
+
+                {/* SMTP Test Connection Panel */}
+                {mailConfig.provider === 'SMTP' && (
+                  <div className="bg-slate-50 border border-slate-200 rounded-xl p-5 space-y-4">
+                    <h3 className="font-bold text-[13px] text-slate-900">SMTP Diagnostics & Connection Verification</h3>
+                    <p className="text-[11px] text-slate-500">Submit a sandboxed test payload to verify TLS handshakes and recipient authentication.</p>
+
+                    <div className="flex flex-col sm:flex-row gap-3 items-end">
+                      <div className="flex-1">
+                        <Field label="Target Verification Email">
+                          <InputField value={testEmailAddress} onChange={v => setTestEmailAddress(v)} placeholder="e.g. recipient@gmail.com" />
+                        </Field>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={handleTestSmtpConnection}
+                        disabled={testingSmtp || !testEmailAddress}
+                        className="h-10 px-5 bg-emerald-600 hover:bg-emerald-700 text-white text-[12px] font-bold rounded-lg flex items-center gap-1.5 cursor-pointer shadow-sm mb-4"
+                      >
+                        {testingSmtp && <RefreshCw size={12} className="animate-spin" />}
+                        Send Test Email
+                      </button>
+                    </div>
+                  </div>
+                )}
+
+                {/* Metrics Stats Dashboard */}
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
+                  <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between shadow-3xs">
+                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wide">Queue Pending</span>
+                    <span className="text-[20px] font-black text-blue-600 mt-2">{queueStats.pending}</span>
+                  </div>
+                  <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between shadow-3xs">
+                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wide">Queue Delivered</span>
+                    <span className="text-[20px] font-black text-emerald-600 mt-2">{queueStats.sent}</span>
+                  </div>
+                  <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between shadow-3xs">
+                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wide">Queue Failures</span>
+                    <span className="text-[20px] font-black text-red-600 mt-2">{queueStats.failed}</span>
+                  </div>
+                  <div className="bg-white border border-slate-200 rounded-xl p-4 flex flex-col justify-between shadow-3xs">
+                    <span className="text-[10px] text-slate-400 font-extrabold uppercase tracking-wide">Delivery Success Rate</span>
+                    <span className="text-[20px] font-black text-slate-800 mt-2">
+                      {mailStats.success + mailStats.failed > 0
+                        ? `${Math.round((mailStats.success / (mailStats.success + mailStats.failed)) * 100)}%`
+                        : '100%'}
+                    </span>
+                  </div>
+                </div>
+
+                {/* Delivery Audit Logs */}
+                <div className="border border-slate-200 rounded-xl overflow-hidden shadow-3xs bg-white">
+                  <div className="p-4 border-b border-slate-100 bg-slate-50">
+                    <h3 className="font-bold text-[13px] text-slate-900">Outbound Delivery Audit Logs</h3>
+                    <p className="text-[11px] text-slate-500">Historical traces of all SMTP transmission requests and connection responses.</p>
+                  </div>
+                  <div className="overflow-x-auto">
+                    {mailLogs.length === 0 ? (
+                      <div className="p-8 text-center text-slate-400 italic">No delivery logs recorded yet.</div>
+                    ) : (
+                      <table className="w-full text-left text-[12px]">
+                        <thead>
+                          <tr className="bg-slate-50 text-slate-500 font-black uppercase text-[9px] tracking-wider border-b border-slate-200">
+                            <th className="px-4 py-2.5">Recipient</th>
+                            <th className="px-4 py-2.5">Subject</th>
+                            <th className="px-4 py-2.5">Channel Provider</th>
+                            <th className="px-4 py-2.5 text-right">Latency</th>
+                            <th className="px-4 py-2.5 text-center">Status</th>
                           </tr>
-                        );
-                      })}
-                    </tbody>
-                  </table>
+                        </thead>
+                        <tbody className="divide-y divide-slate-100 text-slate-700">
+                          {mailLogs.map(log => (
+                            <tr key={log.id} className="hover:bg-slate-50/50">
+                              <td className="px-4 py-2.5 font-bold font-mono">{log.recipient}</td>
+                              <td className="px-4 py-2.5 max-w-[200px] truncate">{log.subject}</td>
+                              <td className="px-4 py-2.5 font-bold text-slate-500">{log.provider}</td>
+                              <td className="px-4 py-2.5 text-right font-mono text-slate-400">{log.duration_ms}ms</td>
+                              <td className="px-4 py-2.5 text-center">
+                                <span className={`inline-flex px-2 py-0.5 rounded text-[9.5px] font-bold ${
+                                  log.status === 'SUCCESS'
+                                    ? 'bg-emerald-50 text-emerald-700 border border-emerald-100'
+                                    : 'bg-red-50 text-red-700 border border-red-100'
+                                }`} title={log.error_message || log.smtp_response}>
+                                  {log.status}
+                                </span>
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    )}
+                  </div>
                 </div>
-              </div>
-            </div>
+
+                {/* Original Automated Invoice Reminders Section */}
+                <div className="border border-slate-200 rounded-xl p-5 space-y-4 bg-white">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-1">
+                      <h3 className="font-bold text-[13px] text-slate-900">Automated Invoice Reminders</h3>
+                      <p className="text-[11px] text-slate-500">Auto-email unpaid invoices and reminders to customer emails.</p>
+                    </div>
+                    <label className="relative inline-flex items-center cursor-pointer">
+                      <input
+                        type="checkbox"
+                        checked={localSettings.autoRemindersEnabled ?? false}
+                        onChange={e => update('autoRemindersEnabled', e.target.checked)}
+                        disabled={!canEdit}
+                        className="sr-only peer"
+                      />
+                      <div className="w-11 h-6 bg-slate-200 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-slate-300 after:border after:rounded-full after:h-5 after:w-5 after:transition-all peer-checked:bg-emerald-600"></div>
+                    </label>
+                  </div>
+
+                  {localSettings.autoRemindersEnabled && (
+                    <div className="pt-3">
+                      <Field label="Trigger Reminder Days">
+                        <div className="flex items-center gap-3">
+                          <InputField type="number" value={localSettings.autoRemindersDays} onChange={v => update('autoRemindersDays', v)} disabled={!canEdit} />
+                          <span className="text-[13px] text-slate-600 font-medium shrink-0">days after invoice is overdue.</span>
+                        </div>
+                      </Field>
+                    </div>
+                  )}
+                </div>
+              </>
+            )}
           </div>
         );
 
@@ -1817,66 +1778,6 @@ function ScheduledReportsTab() {
           </form>
         </div>
       </div>
-
-      <RightDrawer
-        isOpen={isComposing}
-        onClose={() => {
-          setIsComposing(false);
-          setComposingMsg({ employeeId: '', subject: '', body: '' });
-        }}
-        title="Send Communication"
-        subtitle="Compose and queue direct email messages to your employees using enterprise mail settings."
-      >
-        <form onSubmit={handleSendCommunication} className="space-y-4 font-semibold text-xs text-slate-600 pr-1">
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase font-extrabold text-slate-400">Recipient Employee *</label>
-            <select
-              required
-              className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-semibold cursor-pointer text-xs"
-              value={composingMsg.employeeId}
-              onChange={e => setComposingMsg({...composingMsg, employeeId: e.target.value})}
-            >
-              <option value="">— Select Employee —</option>
-              {employees.map(emp => (
-                <option key={emp.id} value={emp.id}>
-                  {emp.name} ({emp.user_email || emp.email})
-                </option>
-              ))}
-            </select>
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase font-extrabold text-slate-400">Subject *</label>
-            <input
-              required
-              className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-semibold text-xs"
-              value={composingMsg.subject}
-              onChange={e => setComposingMsg({...composingMsg, subject: e.target.value})}
-              placeholder="e.g. August performance review invitation"
-            />
-          </div>
-
-          <div className="space-y-1">
-            <label className="text-[10px] uppercase font-extrabold text-slate-400">Message Body *</label>
-            <textarea
-              required
-              rows={12}
-              className="w-full p-2.5 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-semibold text-xs leading-normal"
-              value={composingMsg.body}
-              onChange={e => setComposingMsg({...composingMsg, body: e.target.value})}
-              placeholder="Write your email message here..."
-            />
-          </div>
-
-          <button
-            type="submit"
-            disabled={sendingComm}
-            className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-300 disabled:cursor-not-allowed text-white font-black rounded-xl text-xs cursor-pointer shadow-sm transition-colors mt-2"
-          >
-            {sendingComm ? 'Queueing Message...' : 'Send Communication Now'}
-          </button>
-        </form>
-      </RightDrawer>
     </div>
   );
 }

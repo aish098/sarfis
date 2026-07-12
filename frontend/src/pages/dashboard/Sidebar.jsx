@@ -54,6 +54,7 @@ const NAV_SECTIONS = [
 
 const BOTTOM_ITEMS = [
   { to: '/', icon: Home, label: 'Back to Home' },
+  { to: '/dashboard/email-center', icon: Mail, label: 'Email Center', permission: 'settings.manage' },
   { to: '/dashboard/settings', icon: Settings, label: 'Settings', permission: 'settings.manage' },
 ];
 

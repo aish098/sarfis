@@ -38,6 +38,7 @@ import AdminPage from './admin/AdminPage.jsx';
 import PayrollPage from './payroll/PayrollPage.jsx';
 import NotificationCenterPage from './notifications/NotificationCenterPage.jsx';
 import RiskDashboard from './analytics/RiskDashboard.jsx';
+import EmailCenterPage from './admin/EmailCenterPage.jsx';
 import FixedAssetsDashboard from './fixed-assets/FixedAssetsDashboard.jsx';
 import AssetRegister from './fixed-assets/AssetRegister.jsx';
 import AssetCategories from './fixed-assets/AssetCategories.jsx';
@@ -374,6 +375,7 @@ export default function Dashboard() {
               <Route path="vendors" element={<VendorsPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="admin" element={<AdminPage />} />
+              <Route path="email-center" element={<EmailCenterPage />} />
               <Route path="notifications" element={<NotificationCenterPage />} />
               <Route path="risk" element={
                 <ModuleProtectedRoute moduleKey="riskEnabled">
