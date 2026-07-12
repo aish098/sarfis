@@ -147,15 +147,14 @@ export default function Sidebar({ collapsed, isMobile, onToggle }) {
           width: 6px;
         }
         .custom-scrollbar::-webkit-scrollbar-track {
-          background: #0f172a; /* Solid dark slate track */
-          border-radius: 10px;
+          background: transparent;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb {
-          background: #94a3b8; /* Solid visible soft-grey */
-          border-radius: 10px;
+          background: rgba(16, 185, 129, 0.3) !important;
+          border-radius: 99px;
         }
         .custom-scrollbar::-webkit-scrollbar-thumb:hover {
-          background: #e2e8f0; /* Brighter grey hover */
+          background: rgba(16, 185, 129, 0.5) !important;
         }
       `}</style>
       {/* Mobile overlay */}

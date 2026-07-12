@@ -29,19 +29,38 @@ body {
   min-height: 100%;
 }
 
-/* ─── Custom Scrollbar ─── */
-::-webkit-scrollbar {
-  width: 6px;
+/* ─── Unified Theme Custom Scrollbar ─── */
+::-webkit-scrollbar,
+.custom-scrollbar::-webkit-scrollbar,
+.sarfis-scrollbar::-webkit-scrollbar,
+.chats-scrollbar::-webkit-scrollbar {
+  width: 6px !important;
+  height: 6px !important;
 }
-::-webkit-scrollbar-track {
-  background: #030b1a;
+::-webkit-scrollbar-track,
+.custom-scrollbar::-webkit-scrollbar-track,
+.sarfis-scrollbar::-webkit-scrollbar-track,
+.chats-scrollbar::-webkit-scrollbar-track {
+  background: transparent !important;
 }
-::-webkit-scrollbar-thumb {
-  background: rgba(16, 185, 129, 0.25);
-  border-radius: 99px;
+::-webkit-scrollbar-thumb,
+.custom-scrollbar::-webkit-scrollbar-thumb,
+.sarfis-scrollbar::-webkit-scrollbar-thumb,
+.chats-scrollbar::-webkit-scrollbar-thumb {
+  background: rgba(16, 185, 129, 0.3) !important;
+  border-radius: 99px !important;
 }
-::-webkit-scrollbar-thumb:hover {
-  background: rgba(16, 185, 129, 0.45);
+::-webkit-scrollbar-thumb:hover,
+.custom-scrollbar::-webkit-scrollbar-thumb:hover,
+.sarfis-scrollbar::-webkit-scrollbar-thumb:hover,
+.chats-scrollbar::-webkit-scrollbar-thumb:hover {
+  background: rgba(16, 185, 129, 0.5) !important;
+}
+
+/* Firefox Support */
+* {
+  scrollbar-width: thin;
+  scrollbar-color: rgba(16, 185, 129, 0.3) transparent;
 }
 
 /* ─── Selection ─── */
@@ -334,19 +353,3 @@ body {
   margin-bottom: 6px;
 }
 
-/* Custom Minimal Scrollbar */
-.custom-scrollbar::-webkit-scrollbar {
-  height: 6px;
-  width: 6px;
-}
-.custom-scrollbar::-webkit-scrollbar-track {
-  background: #f8fafc;
-  border-radius: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb {
-  background: #cbd5e1;
-  border-radius: 4px;
-}
-.custom-scrollbar::-webkit-scrollbar-thumb:hover {
-  background: #94a3b8;
-}
