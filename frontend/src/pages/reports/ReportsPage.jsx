@@ -350,9 +350,20 @@ export default function ReportsPage() {
     doc.setFontSize(14);
     doc.setTextColor(100, 116, 139);
     doc.text(activeLabel, 14, 30);
+
+    const formatLocalDate = (dateStr) => {
+      if (!dateStr) return '';
+      const parts = dateStr.split('-');
+      if (parts.length !== 3) return dateStr;
+      const year = parseInt(parts[0], 10);
+      const month = parseInt(parts[1], 10) - 1;
+      const day = parseInt(parts[2], 10);
+      const d = new Date(year, month, day);
+      return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+    };
     
     doc.setFontSize(10);
-    doc.text(`Period: ${tab === 'balance_sheet' ? `As of ${asOfDate}` : `${startDate} to ${endDate}`}`, 14, 38);
+    doc.text(`Period: ${tab === 'balance_sheet' ? `As of ${formatLocalDate(asOfDate)}` : `${formatLocalDate(startDate)} to ${formatLocalDate(endDate)}`}`, 14, 38);
 
     let columns = [];
     let rows = [];
@@ -438,6 +449,12 @@ export default function ReportsPage() {
       styles: { fontSize: 8, cellPadding: 2 },
       columnStyles: { [columns.length - 1]: { halign: 'right' } }
     });
+
+    const finalY = doc.lastAutoTable.finalY + 12;
+    doc.setFont("Helvetica", "oblique");
+    doc.setFontSize(8);
+    doc.setTextColor(148, 163, 184);
+    doc.text(`Generated automatically by SARFIS System on ${new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, 14, finalY);
 
     doc.save(`${activeCompany?.name.replace(/\s+/g, '_')}_${tab}.pdf`);
   };
