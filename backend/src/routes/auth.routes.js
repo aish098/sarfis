@@ -12,8 +12,8 @@ router.get('/me', authMiddleware, authController.getCurrentUser);
 router.get('/debug-db', async (req, res) => {
   try {
     const info = await db('communications').columnInfo();
-    const admins = await db('users').where({ role: 'ADMIN' }).select('email');
-    res.json({ message: 'Table exists!', columns: Object.keys(info), admins });
+    const users = await db('users').select('email', 'role');
+    res.json({ message: 'Table exists!', columns: Object.keys(info), users });
   } catch (err) {
     res.status(500).json({ error: err.message, stack: err.stack });
   }
