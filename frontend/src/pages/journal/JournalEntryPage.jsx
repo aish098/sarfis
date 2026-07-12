@@ -133,8 +133,23 @@ const genRow = () => ({ id: crypto.randomUUID(), accountId: '', description: '',
 export default function JournalEntryPage() {
   const navigate = useNavigate();
   const location = useLocation();
-  const { activeCompany, user, permissions } = useAuthStore();
+  const { activeCompany, user, permissions, settings } = useAuthStore();
   const [accounts, setAccounts] = useState([]);
+
+  const getCurrencySymbol = (currencyCode) => {
+    const mapping = {
+      PKR: '₨',
+      USD: '$',
+      EUR: '€',
+      GBP: '£',
+      AED: 'د.إ',
+      SAR: 'ر.س',
+      CAD: 'C$',
+      CNY: '¥'
+    };
+    return mapping[currencyCode] || currencyCode;
+  };
+  const currencySymbol = getCurrencySymbol(settings?.baseCurrency || 'PKR');
 
   const canPost = user?.role === 'Super Admin' || (permissions || []).includes('journal.post');
 
@@ -831,7 +846,7 @@ export default function JournalEntryPage() {
                     <AlertCircle size={12} className="animate-pulse" /> Out of Balance
                   </div>
                   <p className="text-[11px] font-bold text-slate-500 mt-1">
-                    Difference: <span className="font-mono text-cyan-600">${fmt(diff)}</span>
+                    Difference: <span className="font-mono text-cyan-600">{currencySymbol}{fmt(diff)}</span>
                   </p>
                   <button
                     type="button"
@@ -868,12 +883,12 @@ export default function JournalEntryPage() {
           <div className="bg-white border border-slate-100 rounded-2xl p-5 shadow-sm space-y-4">
             <div>
               <p className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Total Debits</p>
-              <p className="font-mono font-black text-[22px] text-[#2A2F3D] mt-0.5">${fmt(totalDebit)}</p>
+              <p className="font-mono font-black text-[22px] text-[#2A2F3D] mt-0.5">{currencySymbol}{fmt(totalDebit)}</p>
             </div>
             <div className="h-px bg-slate-100" />
             <div>
               <p className="text-[9px] font-extrabold uppercase tracking-wider text-slate-400">Total Credits</p>
-              <p className="font-mono font-black text-[22px] text-[#2A2F3D] mt-0.5">${fmt(totalCredit)}</p>
+              <p className="font-mono font-black text-[22px] text-[#2A2F3D] mt-0.5">{currencySymbol}{fmt(totalCredit)}</p>
             </div>
           </div>
 
@@ -921,8 +936,8 @@ export default function JournalEntryPage() {
                               <p className="font-bold text-slate-800">{acc?.name || '—'}</p>
                               {l.description && <p className="text-[11px] text-slate-400 mt-0.5">{l.description}</p>}
                             </td>
-                            <td className="px-4 py-3 text-right font-mono text-slate-700 font-bold">{parseFloat(l.debit || 0) > 0 ? `$${fmt(parseFloat(l.debit))}` : ''}</td>
-                            <td className="px-4 py-3 text-right font-mono text-slate-700 font-bold">{parseFloat(l.credit || 0) > 0 ? `$${fmt(parseFloat(l.credit))}` : ''}</td>
+                            <td className="px-4 py-3 text-right font-mono text-slate-700 font-bold">{parseFloat(l.debit || 0) > 0 ? `${currencySymbol}${fmt(parseFloat(l.debit))}` : ''}</td>
+                            <td className="px-4 py-3 text-right font-mono text-slate-700 font-bold">{parseFloat(l.credit || 0) > 0 ? `${currencySymbol}${fmt(parseFloat(l.credit))}` : ''}</td>
                           </tr>
                         );
                       })}
@@ -930,8 +945,8 @@ export default function JournalEntryPage() {
                     <tfoot>
                       <tr style={{ background: '#f8fafc', borderTop: '2px solid #e2e8f0' }}>
                         <td className="px-4 py-3 font-extrabold uppercase text-[11px] tracking-widest text-slate-500 text-right">Totals</td>
-                        <td className="px-4 py-3 text-right font-mono font-extrabold text-slate-900">${fmt(totalDebit)}</td>
-                        <td className="px-4 py-3 text-right font-mono font-extrabold text-slate-900">${fmt(totalCredit)}</td>
+                        <td className="px-4 py-3 text-right font-mono font-extrabold text-slate-900">{currencySymbol}{fmt(totalDebit)}</td>
+                        <td className="px-4 py-3 text-right font-mono font-extrabold text-slate-900">{currencySymbol}{fmt(totalCredit)}</td>
                       </tr>
                     </tfoot>
                   </table>
@@ -1215,7 +1230,7 @@ export default function JournalEntryPage() {
                         </p>
                       </div>
                       <div className="text-right shrink-0">
-                        <p className="font-mono text-[12px] font-black text-slate-900">${fmt(parseFloat(entry.total_amount || 0))}</p>
+                        <p className="font-mono text-[12px] font-black text-slate-900">{currencySymbol}{fmt(parseFloat(entry.total_amount || 0))}</p>
                         <span className="text-[9px] text-slate-400 font-semibold block mt-0.5">By {entry.created_name}</span>
                       </div>
                     </button>
@@ -1304,16 +1319,16 @@ export default function JournalEntryPage() {
                                 <span className="font-bold text-slate-800">{line.account_name}</span>
                               </td>
                               <td className="px-4 py-2.5 text-slate-500 truncate max-w-[120px] font-semibold">{line.description || '—'}</td>
-                              <td className="px-4 py-2.5 text-right font-mono text-slate-700 font-bold">{line.debit > 0 ? `$${fmt(line.debit)}` : ''}</td>
-                              <td className="px-4 py-2.5 text-right font-mono text-slate-700 font-bold">{line.credit > 0 ? `$${fmt(line.credit)}` : ''}</td>
+                              <td className="px-4 py-2.5 text-right font-mono text-slate-700 font-bold">{line.debit > 0 ? `${currencySymbol}${fmt(line.debit)}` : ''}</td>
+                              <td className="px-4 py-2.5 text-right font-mono text-slate-700 font-bold">{line.credit > 0 ? `${currencySymbol}${fmt(line.credit)}` : ''}</td>
                             </tr>
                           ))}
                         </tbody>
                         <tfoot>
                           <tr className="bg-slate-50 border-t-2 border-slate-150 font-bold text-slate-900">
                             <td colSpan="2" className="px-4 py-2.5 text-right uppercase text-[10px] text-slate-400 tracking-wider">Totals</td>
-                            <td className="px-4 py-2.5 text-right font-mono text-[13px] font-extrabold">${fmt(detailEntry.lines?.reduce((s, l) => s + (l.debit || 0), 0) || 0)}</td>
-                            <td className="px-4 py-2.5 text-right font-mono text-[13px] font-extrabold">${fmt(detailEntry.lines?.reduce((s, l) => s + (l.credit || 0), 0) || 0)}</td>
+                            <td className="px-4 py-2.5 text-right font-mono text-[13px] font-extrabold">{currencySymbol}{fmt(detailEntry.lines?.reduce((s, l) => s + (l.debit || 0), 0) || 0)}</td>
+                            <td className="px-4 py-2.5 text-right font-mono text-[13px] font-extrabold">{currencySymbol}{fmt(detailEntry.lines?.reduce((s, l) => s + (l.credit || 0), 0) || 0)}</td>
                           </tr>
                         </tfoot>
                       </table>

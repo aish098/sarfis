@@ -28,6 +28,7 @@ const fmt = v => {
 export default function ReportsPage() {
   const navigate = useNavigate();
   const { activeCompany, settings } = useAuthStore();
+  const currencyLabel = settings?.baseCurrency || 'PKR';
   const [tab, setTab] = useState('trial_balance');
   const [data, setData] = useState(null);
   
@@ -100,14 +101,14 @@ export default function ReportsPage() {
       const displayVal = n > 0 && isContra ? -n : n;
       const formattedAbs = Math.abs(displayVal).toLocaleString('en-US', { minimumFractionDigits: 2 });
       if (stylePreference === 'parentheses') {
-        return `(PKR ${formattedAbs})`;
+        return `(${currencyLabel} ${formattedAbs})`;
       }
       if (stylePreference === 'red') {
-        return <span className="text-rose-600 font-bold">-PKR {formattedAbs}</span>;
+        return <span className="text-rose-600 font-bold">-{currencyLabel} {formattedAbs}</span>;
       }
-      return `-PKR ${formattedAbs}`;
+      return `-${currencyLabel} ${formattedAbs}`;
     }
-    return `PKR ${formattedNum}`;
+    return `${currencyLabel} ${formattedNum}`;
   };
 
   const exportNoteToPDF = () => {
@@ -143,9 +144,9 @@ export default function ReportsPage() {
 
     // 3. Carrying Summary Card Table
     const summaryData = [
-      ['Opening Balance', `PKR ${noteData.openingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-      ['Current Movements', `PKR ${noteData.movements.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-      ['Closing Balance', `PKR ${noteData.closingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`]
+      ['Opening Balance', `${currencyLabel} ${noteData.openingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
+      ['Current Movements', `${currencyLabel} ${noteData.movements.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
+      ['Closing Balance', `${currencyLabel} ${noteData.closingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`]
     ];
 
     autoTable(doc, {
@@ -168,12 +169,12 @@ export default function ReportsPage() {
 
     const reconStatus = noteData.reconciliation.status === 'VERIFIED'
       ? `✓ VERIFIED (No differences detected between General Ledger and ${noteData.metadata.source})`
-      : `⚠ DISCREPANCY DETECTED (Difference: PKR ${noteData.reconciliation.difference.toLocaleString('en-US', { minimumFractionDigits: 2 })})`;
+      : `⚠ DISCREPANCY DETECTED (Difference: ${currencyLabel} ${noteData.reconciliation.difference.toLocaleString('en-US', { minimumFractionDigits: 2 })})`;
 
     const reconRows = [
       ['Reconciliation Status', reconStatus],
-      ['GL Control Balance', `PKR ${noteData.reconciliation.ledgerTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-      ['Sub-ledger Balance', `PKR ${noteData.reconciliation.subledgerTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`]
+      ['GL Control Balance', `${currencyLabel} ${noteData.reconciliation.ledgerTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
+      ['Sub-ledger Balance', `${currencyLabel} ${noteData.reconciliation.subledgerTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`]
     ];
 
     autoTable(doc, {
@@ -196,7 +197,7 @@ export default function ReportsPage() {
 
     const breakdownRows = (noteData.breakdown || []).map(b => [
       b.item,
-      `PKR ${b.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+      `${currencyLabel} ${b.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
       `${b.percent}%`
     ]);
 
@@ -223,8 +224,8 @@ export default function ReportsPage() {
     const journalRows = (noteData.journalEntries || []).map(je => [
       new Date(je.date).toLocaleDateString(),
       je.voucher_number ? `${je.voucher_type} #${je.voucher_number}` : je.description || 'Journal Entry',
-      je.debit > 0 ? `PKR ${je.debit.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—',
-      je.credit > 0 ? `PKR ${je.credit.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'
+      je.debit > 0 ? `${currencyLabel} ${je.debit.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—',
+      je.credit > 0 ? `${currencyLabel} ${je.credit.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'
     ]);
 
     autoTable(doc, {
