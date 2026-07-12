@@ -804,7 +804,7 @@ export default function DistributionPage() {
                           {/* Header */}
                           <div className="grid grid-cols-12 gap-3 px-4 py-3 bg-[#EBF2EE] border-b-[2px] border-[#D1E0D8] text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">
                             <div className="col-span-3">Product</div>
-                            <div className="col-span-2">Qty</div>
+                            <div className="col-span-1">Qty</div>
                             <div className="col-span-2">Unit Price</div>
                             <div className="col-span-2">Discount</div>
                             <div className="col-span-2">Offer/Promo</div>
@@ -821,7 +821,7 @@ export default function DistributionPage() {
                                   {products.map(p => <option key={p.id} value={p.id}>{p.sku} - {p.name}</option>)}
                                 </select>
                               </div>
-                              <div className="col-span-2">
+                              <div className="col-span-1">
                                 <input type="number" step="0.01" required placeholder="0" className="input-enterprise text-[12px] py-1.5 w-full font-mono" value={item.quantity} onChange={e => setDeliveryItem(idx, 'quantity', e.target.value)} />
                               </div>
                               <div className="col-span-2">
