@@ -82,7 +82,8 @@ export default function EmailCenterPage() {
             ...s,
             channels: {
               ...s.channels,
-              EMAIL: isChecked
+              EMAIL: isChecked,
+              APP: s.channels.APP !== undefined ? !!s.channels.APP : true
             }
           };
         }
@@ -111,7 +112,7 @@ export default function EmailCenterPage() {
           eventCode,
           channels: {
             EMAIL: isChecked,
-            APP: false,
+            APP: true,
             SMS: false,
             WHATSAPP: false,
             SLACK: false,
