@@ -311,7 +311,20 @@ exports.composeCustomEmail = async (req, res) => {
       return res.status(400).json({ error: 'Selected employee does not have a registered corporate email address.' });
     }
 
-    // 2. Insert custom email record into notification_queue
+    // 2. Ensure CUSTOM_COMMUNICATION event exists to satisfy foreign key constraints
+    const eventExists = await db('notification_events').where({ event_code: 'CUSTOM_COMMUNICATION' }).first();
+    if (!eventExists) {
+      await db('notification_events').insert({
+        event_code: 'CUSTOM_COMMUNICATION',
+        event_name: 'Custom Email Communication',
+        module: 'System',
+        category: 'Communication',
+        priority: 'LOW',
+        description: 'Manually composed client/employee custom emails'
+      });
+    }
+
+    // 3. Insert custom email record into notification_queue
     const [queuedItem] = await db('notification_queue')
       .insert({
         company_id: companyId,

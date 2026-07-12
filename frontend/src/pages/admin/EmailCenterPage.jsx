@@ -309,7 +309,8 @@ export default function EmailCenterPage() {
             <div className="relative max-w-sm w-full">
               <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
               <input 
-                className="input-enterprise pl-10 py-2.5 text-[12px]" 
+                className="input-enterprise !pl-9 py-2.5 text-[12px]" 
+                style={{ paddingLeft: '34px' }}
                 placeholder="Search email or subject..."
                 value={searchTerm} 
                 onChange={e => setSearchTerm(e.target.value)} 
