@@ -408,6 +408,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
   const fetchEmployeesData = async () => {
     if (!activeCompany?.id) return;
     setLoading(true);
+    const startTime = Date.now();
     try {
       const baseRes = await api.get(`/employees/${activeCompany.id}`);
       const baseList = baseRes.data || [];
@@ -439,6 +440,11 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
           lineId: matchingLine ? matchingLine.line_id : null
         };
       });
+
+      const elapsed = Date.now() - startTime;
+      if (elapsed < 800) {
+        await new Promise(resolve => setTimeout(resolve, 800 - elapsed));
+      }
 
       setEmployees(combined);
     } catch (err) {
@@ -1184,119 +1190,127 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
       </div>
 
       {/* Responsive Employee Directory: Grid of cards on Mobile, Table on Desktop */}
-      
-      {/* Mobile view cards */}
-      <div className="grid grid-cols-1 gap-4 md:hidden">
-        {filtered.map(emp => (
-          <div key={emp.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-3xs space-y-3 text-xs font-semibold text-slate-600">
-            <div className="flex justify-between items-start">
-              <div>
-                <h4 className="font-extrabold text-slate-800 text-sm">{emp.name}</h4>
-                <p className="text-[10.5px] text-slate-400 mt-0.5">{emp.role} • {emp.department}</p>
-              </div>
-              <StatusBadge status={emp.status} />
-            </div>
-            
-            <div className="border-t border-slate-50 pt-2 flex justify-between items-center">
-              <div>
-                <span className="text-[9.5px] text-slate-400 block font-normal">Monthly Base Pay</span>
-                <span className="font-mono font-bold text-slate-800">PKR {emp.salary.toLocaleString()}</span>
-              </div>
-              <div className="flex items-center gap-1.5">
-                <button 
-                  onClick={() => handleSelectEmployee(emp)}
-                  className="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 cursor-pointer"
-                >
-                  Open 360°
-                </button>
-                <button 
-                  disabled={disableActions}
-                  onClick={() => handleStartEdit(emp)}
-                  className="p-1.5 text-slate-400 hover:text-indigo-650 hover:bg-indigo-50 border border-slate-200 rounded-lg transition-all cursor-pointer disabled:opacity-30"
-                >
-                  <Edit2 size={13} />
-                </button>
-                <button 
-                  disabled={disableActions}
-                  onClick={() => handleDeleteEmployee(emp.id, emp.name)}
-                  className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 rounded-lg transition-all cursor-pointer disabled:opacity-30"
-                >
-                  <Trash2 size={13} />
-                </button>
-              </div>
-            </div>
-          </div>
-        ))}
-      </div>
-
-      {/* Desktop view Table */}
-      <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden hidden md:block">
-        <div className="overflow-x-auto">
-          <table className="w-full text-left border-collapse">
-            <thead>
-              <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-400">
-                <th className="px-5 py-3.5">Employee</th>
-                <th className="px-5 py-3.5">Department</th>
-                <th className="px-5 py-3.5">Job Role</th>
-                <th className="px-5 py-3.5">Bank Information</th>
-                <th className="px-5 py-3.5 text-right">Monthly Base Pay</th>
-                <th className="px-5 py-3.5 text-center">Status</th>
-                <th className="px-5 py-3.5 text-center">Actions</th>
-              </tr>
-            </thead>
-            <tbody className="divide-y divide-slate-50 font-semibold text-slate-600">
-              {filtered.map(emp => (
-                <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
-                  <td className="px-5 py-4">
-                    <p className="font-bold text-slate-800">{emp.name}</p>
-                    <p className="text-[10px] text-slate-400 font-mono mt-0.5">{emp.email}</p>
-                  </td>
-                  <td className="px-5 py-4 text-slate-500">{emp.department}</td>
-                  <td className="px-5 py-4 text-slate-500">{emp.role}</td>
-                  <td className="px-5 py-4">
-                    <p className="font-bold text-slate-700">{emp.bankName}</p>
-                    <p className="text-[9.5px] text-slate-400 font-mono mt-0.5">{emp.bankAccount}</p>
-                  </td>
-                  <td className="px-5 py-4 text-right font-mono font-bold text-slate-800">
-                    PKR {emp.salary.toLocaleString()}
-                  </td>
-                  <td className="px-5 py-4 text-center">
-                    <StatusBadge status={emp.status} />
-                  </td>
-                  <td className="px-5 py-4 text-center whitespace-nowrap">
+      {loading ? (
+        <div className="flex flex-col items-center justify-center py-24 bg-white/70 backdrop-blur-xs rounded-3xl border border-slate-100 shadow-xs gap-3">
+          <RefreshCw size={24} className="animate-spin text-indigo-600" />
+          <span className="text-[11px] uppercase tracking-wider text-slate-400 font-black animate-pulse">Loading Employee Directory...</span>
+        </div>
+      ) : (
+        <>
+          {/* Mobile view cards */}
+          <div className="grid grid-cols-1 gap-4 md:hidden">
+            {filtered.map(emp => (
+              <div key={emp.id} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-3xs space-y-3 text-xs font-semibold text-slate-600">
+                <div className="flex justify-between items-start">
+                  <div>
+                    <h4 className="font-extrabold text-slate-800 text-sm">{emp.name}</h4>
+                    <p className="text-[10.5px] text-slate-400 mt-0.5">{emp.role} • {emp.department}</p>
+                  </div>
+                  <StatusBadge status={emp.status} />
+                </div>
+                
+                <div className="border-t border-slate-50 pt-2 flex justify-between items-center">
+                  <div>
+                    <span className="text-[9.5px] text-slate-400 block font-normal">Monthly Base Pay</span>
+                    <span className="font-mono font-bold text-slate-800">PKR {emp.salary.toLocaleString()}</span>
+                  </div>
+                  <div className="flex items-center gap-1.5">
                     <button 
                       onClick={() => handleSelectEmployee(emp)}
-                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-lg mr-1 transition-all cursor-pointer"
-                      title="View 360° Profile"
+                      className="px-2.5 py-1.5 bg-slate-50 hover:bg-slate-100 border border-slate-200 rounded-lg text-slate-700 cursor-pointer"
                     >
-                      <Eye size={13} />
+                      Open 360°
                     </button>
                     <button 
                       disabled={disableActions}
                       onClick={() => handleStartEdit(emp)}
-                      className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-lg mr-1 transition-all cursor-pointer disabled:opacity-30 disabled:hover:bg-transparent"
+                      className="p-1.5 text-slate-400 hover:text-indigo-650 hover:bg-indigo-50 border border-slate-200 rounded-lg transition-all cursor-pointer disabled:opacity-30"
                     >
                       <Edit2 size={13} />
                     </button>
                     <button 
                       disabled={disableActions}
                       onClick={() => handleDeleteEmployee(emp.id, emp.name)}
-                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-lg transition-all cursor-pointer disabled:opacity-30 disabled:hover:bg-transparent"
+                      className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-slate-200 rounded-lg transition-all cursor-pointer disabled:opacity-30"
                     >
                       <Trash2 size={13} />
                     </button>
-                  </td>
-                </tr>
-              ))}
-              {employees.length === 0 && (
-                <tr>
-                  <td colSpan={7} className="px-5 py-8 text-center text-slate-400 font-bold">No active employees found in active workspace directory.</td>
-                </tr>
-              )}
-            </tbody>
-          </table>
-        </div>
-      </div>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+
+          {/* Desktop view Table */}
+          <div className="bg-white rounded-3xl border border-slate-100 shadow-xs overflow-hidden hidden md:block">
+            <div className="overflow-x-auto">
+              <table className="w-full text-left border-collapse">
+                <thead>
+                  <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                    <th className="px-5 py-3.5">Employee</th>
+                    <th className="px-5 py-3.5">Department</th>
+                    <th className="px-5 py-3.5">Job Role</th>
+                    <th className="px-5 py-3.5">Bank Information</th>
+                    <th className="px-5 py-3.5 text-right">Monthly Base Pay</th>
+                    <th className="px-5 py-3.5 text-center">Status</th>
+                    <th className="px-5 py-3.5 text-center">Actions</th>
+                  </tr>
+                </thead>
+                <tbody className="divide-y divide-slate-50 font-semibold text-slate-600">
+                  {filtered.map(emp => (
+                    <tr key={emp.id} className="hover:bg-slate-50/50 transition-colors">
+                      <td className="px-5 py-4">
+                        <p className="font-bold text-slate-800">{emp.name}</p>
+                        <p className="text-[10px] text-slate-400 font-mono mt-0.5">{emp.email}</p>
+                      </td>
+                      <td className="px-5 py-4 text-slate-500">{emp.department}</td>
+                      <td className="px-5 py-4 text-slate-500">{emp.role}</td>
+                      <td className="px-5 py-4">
+                        <p className="font-bold text-slate-700">{emp.bankName}</p>
+                        <p className="text-[9.5px] text-slate-400 font-mono mt-0.5">{emp.bankAccount}</p>
+                      </td>
+                      <td className="px-5 py-4 text-right font-mono font-bold text-slate-800">
+                        PKR {emp.salary.toLocaleString()}
+                      </td>
+                      <td className="px-5 py-4 text-center">
+                        <StatusBadge status={emp.status} />
+                      </td>
+                      <td className="px-5 py-4 text-center whitespace-nowrap">
+                        <button 
+                          onClick={() => handleSelectEmployee(emp)}
+                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-lg mr-1 transition-all cursor-pointer"
+                          title="View 360° Profile"
+                        >
+                          <Eye size={13} />
+                        </button>
+                        <button 
+                          disabled={disableActions}
+                          onClick={() => handleStartEdit(emp)}
+                          className="p-1.5 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border border-transparent hover:border-indigo-100 rounded-lg mr-1 transition-all cursor-pointer disabled:opacity-30 disabled:hover:bg-transparent"
+                        >
+                          <Edit2 size={13} />
+                        </button>
+                        <button 
+                          disabled={disableActions}
+                          onClick={() => handleDeleteEmployee(emp.id, emp.name)}
+                          className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 border border-transparent hover:border-rose-100 rounded-lg transition-all cursor-pointer disabled:opacity-30 disabled:hover:bg-transparent"
+                        >
+                          <Trash2 size={13} />
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                  {employees.length === 0 && (
+                    <tr>
+                      <td colSpan={7} className="px-5 py-8 text-center text-slate-400 font-bold">No active employees found in active workspace directory.</td>
+                    </tr>
+                  )}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </>
+      )}
     </div>
   );
 }
