@@ -172,7 +172,10 @@ exports.getPreferences = async (req, res) => {
       .where({ event_code: 'CUSTOM_COMMUNICATION', module: 'System' })
       .update({ module: 'Communications' });
 
-    const events = await db('notification_events').orderBy('module').orderBy('event_name');
+    const events = await db('notification_events')
+      .whereNot({ event_code: 'CUSTOM_COMMUNICATION' })
+      .orderBy('module')
+      .orderBy('event_name');
     const prefs = await db('user_notification_preferences').where({ user_id: req.user.id, company_id: companyId });
 
     const response = events.map(ev => {
