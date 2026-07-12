@@ -870,7 +870,10 @@ class PayrollService {
         'e.department',
         'e.bank_name',
         'e.account_number',
+        'pl.gross_salary',
         'pl.net_salary',
+        'pl.pf_deduction',
+        'pl.tax_deduction',
         'pl.payment_status'
       );
   }

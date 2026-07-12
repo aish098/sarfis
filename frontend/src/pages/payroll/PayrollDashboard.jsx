@@ -133,13 +133,18 @@ export default function PayrollDashboard({ onNavigateToTab, userRole }) {
         const failedCount = wsEmployees.filter(e => e.payment_status === 'FAILED').length;
         const missingBankCount = baseEmployees.filter(e => !e.account_number || e.account_number.trim() === '').length;
 
+        const totalNet = wsEmployees.reduce((sum, e) => sum + parseFloat(e.net_salary || 0), 0);
+        const totalGross = wsEmployees.reduce((sum, e) => sum + parseFloat(e.gross_salary || 0), 0);
+        const totalPF = wsEmployees.reduce((sum, e) => sum + parseFloat(e.pf_deduction || 0), 0);
+        const totalTax = wsEmployees.reduce((sum, e) => sum + parseFloat(e.tax_deduction || 0), 0);
+
         setStats({
-          totalPayroll: latestRun ? parseFloat(latestRun.total_net || 0) : 0,
-          employerCost: latestRun ? parseFloat(latestRun.total_gross || 0) * 1.08 : 0,
-          pfContribution: latestRun ? parseFloat(latestRun.total_deductions || 0) * 0.25 : 0,
-          taxesWithheld: latestRun ? parseFloat(latestRun.total_deductions || 0) * 0.70 : 0,
-          averageSalary: baseEmployees.length > 0 && latestRun ? (parseFloat(latestRun.total_net || 0) / baseEmployees.length) : 0,
-          budgetVariance: latestRun ? (parseFloat(latestRun.total_net || 0) - 3000000) : 0,
+          totalPayroll: totalNet || (latestRun ? parseFloat(latestRun.total_net || 0) : 0),
+          employerCost: (totalGross + totalPF) || (latestRun ? parseFloat(latestRun.total_gross || 0) * 1.08 : 0),
+          pfContribution: totalPF || (latestRun ? parseFloat(latestRun.total_deductions || 0) * 0.25 : 0),
+          taxesWithheld: totalTax || (latestRun ? parseFloat(latestRun.total_deductions || 0) * 0.70 : 0),
+          averageSalary: baseEmployees.length > 0 ? ((totalNet || (latestRun ? parseFloat(latestRun.total_net || 0) : 0)) / baseEmployees.length) : 0,
+          budgetVariance: (totalNet || (latestRun ? parseFloat(latestRun.total_net || 0) : 0)) - 3000000,
           totalHeadcount: baseEmployees.length,
           paid: paidCount,
           pending: pendingCount,
