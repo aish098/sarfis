@@ -781,7 +781,7 @@ export default function SettingsPage() {
               </Field>
 
               <Field label="Accent Brand Color">
-                <div className="flex items-center gap-3">
+                <div className="flex items-center gap-3 flex-wrap">
                   <input
                     type="color"
                     value={localSettings.accentColor || '#10b981'}
@@ -790,6 +790,14 @@ export default function SettingsPage() {
                     className="w-10 h-10 rounded border border-slate-300 cursor-pointer"
                   />
                   <InputField value={localSettings.accentColor} onChange={v => update('accentColor', v)} disabled={!canEdit} />
+                  <button
+                    type="button"
+                    onClick={() => update('accentColor', '#10b981')}
+                    disabled={!canEdit || localSettings.accentColor === '#10b981'}
+                    className="px-3 h-10 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
+                  >
+                    Reset to Sarfis Default
+                  </button>
                 </div>
               </Field>
             </div>
