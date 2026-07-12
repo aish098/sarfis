@@ -204,7 +204,7 @@ class VoucherService {
     const executePost = async (t) => {
       const voucher = await t('vouchers').where({ id, company_id: companyId, deleted_at: null }).first();
       if (!voucher) throw new Error('Voucher not found.');
-      if (voucher.status === 'POSTED') throw new Error('Voucher is already posted.');
+      if (voucher.status === 'POSTED') return voucher;
 
       // Execute Posting Engine
       const { journalEntryId, totalAmount } = await PostingEngineService.postTransaction({

@@ -99,7 +99,7 @@ class JournalService {
     const executePost = async (t) => {
       const header = await t('journal_entries').where({ id: entryId, company_id: companyId }).first();
       if (!header) throw new Error('Journal entry not found.');
-      if (header.status === 'POSTED') throw new Error('Journal entry is already posted.');
+      if (header.status === 'POSTED') return entryId;
       if (header.status === 'REVERSED') throw new Error('Cannot post a reversed journal entry.');
 
       const lines = await t('journal_lines').where('entry_id', entryId);
