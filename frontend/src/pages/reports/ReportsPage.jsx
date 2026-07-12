@@ -111,9 +111,27 @@ export default function ReportsPage() {
     return `${currencyLabel} ${formattedNum}`;
   };
 
-  const exportNoteToPDF = () => {
+  const exportNoteToPDF = async () => {
     if (!noteData) return;
     const doc = new jsPDF();
+
+    if (settings?.logoUrl) {
+      const logoUrl = settings.logoUrl.startsWith('http') ? settings.logoUrl : `${import.meta.env.PROD ? window.location.origin : 'http://localhost:5001'}${settings.logoUrl}`;
+      await new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = () => {
+          try {
+            doc.addImage(img, 'PNG', 160, 8, 36, 12);
+          } catch (e) {
+            console.error('Failed to draw logo on PDF:', e);
+          }
+          resolve();
+        };
+        img.onerror = () => resolve();
+        img.src = logoUrl;
+      });
+    }
     
     // 1. Company Name & Main Title
     doc.setFont("Helvetica", "bold");

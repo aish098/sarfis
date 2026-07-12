@@ -142,10 +142,18 @@ export default function Sidebar({ collapsed, isMobile, onToggle }) {
         <div className="flex items-center h-[60px] px-4 border-b flex-shrink-0"
           style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
           <div className="flex items-center gap-3 min-w-0">
-            <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
-              style={{ background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)' }}>
-              <Zap size={14} className="text-white fill-white" />
-            </div>
+            {settings?.logoUrl ? (
+              <img
+                src={settings.logoUrl.startsWith('http') ? settings.logoUrl : `${import.meta.env.PROD ? window.location.origin : 'http://localhost:5001'}${settings.logoUrl}`}
+                alt="Logo"
+                className="w-8 h-8 object-contain rounded-lg flex-shrink-0 bg-white p-0.5"
+              />
+            ) : (
+              <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
+                style={{ background: 'linear-gradient(135deg, var(--brand-primary, #10b981) 0%, #06b6d4 100%)' }}>
+                <Zap size={14} className="text-white fill-white" />
+              </div>
+            )}
             <AnimatePresence>
               {!collapsed && (
                 <Motion.span

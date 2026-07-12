@@ -39,7 +39,7 @@ function AnimatedRoutes() {
 }
 
 export default function App() {
-  const { fetchCurrentUser, token, isLoading } = useAuthStore();
+  const { fetchCurrentUser, token, isLoading, settings } = useAuthStore();
 
   useEffect(() => {
     // Re-hydrate the session on mount if we have a token
@@ -47,6 +47,62 @@ export default function App() {
       fetchCurrentUser();
     }
   }, [token, fetchCurrentUser]);
+
+  useEffect(() => {
+    if (!settings?.brandColor) return;
+    
+    const darkenHex = (hex, percent) => {
+      let num = parseInt(hex.replace("#",""), 16),
+      amt = Math.round(2.55 * percent),
+      R = (num >> 16) - amt,
+      G = (num >> 8 & 0x00FF) - amt,
+      B = (num & 0x0000FF) - amt;
+      return "#" + (0x1000000 + (R<255?R<0?0:R:255)*0x10000 + (G<255?G<0?0:G:255)*0x100 + (B<255?B<0?0:B:255)).toString(16).slice(1);
+    };
+
+    const brandColor = settings.brandColor;
+    const hoverColor = darkenHex(brandColor, 10);
+    const lightColor = brandColor + '15'; // 8% opacity
+    const borderLight = brandColor + '30'; // 18% opacity
+    
+    let styleEl = document.getElementById('dynamic-brand-styles');
+    if (!styleEl) {
+      styleEl = document.createElement('style');
+      styleEl.id = 'dynamic-brand-styles';
+      document.head.appendChild(styleEl);
+    }
+    
+    styleEl.innerHTML = `
+      :root {
+        --brand-primary: ${brandColor} !important;
+        --brand-primary-hover: ${hoverColor} !important;
+        --brand-primary-light: ${lightColor} !important;
+        --brand-primary-border: ${borderLight} !important;
+      }
+      
+      .bg-emerald-500, .bg-[#10b981], .bg-emerald-600 {
+        background-color: var(--brand-primary) !important;
+      }
+      .hover\\:bg-emerald-600:hover, .hover\\:bg-[#059669]:hover, .hover\\:bg-emerald-700:hover {
+        background-color: var(--brand-primary-hover) !important;
+      }
+      .text-emerald-600, .text-emerald-500, .text-[#10b981] {
+        color: var(--brand-primary) !important;
+      }
+      .border-emerald-500, .border-[#10b981] {
+        border-color: var(--brand-primary) !important;
+      }
+      .bg-emerald-50, .bg-emerald-500\\/10 {
+        background-color: var(--brand-primary-light) !important;
+      }
+      .text-emerald-700, .text-emerald-800 {
+        color: var(--brand-primary) !important;
+      }
+      .border-emerald-100 {
+        border-color: var(--brand-primary-border) !important;
+      }
+    `;
+  }, [settings?.brandColor]);
 
   if (isLoading) {
     return (

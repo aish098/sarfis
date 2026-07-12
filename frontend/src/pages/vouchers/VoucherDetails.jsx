@@ -43,7 +43,7 @@ const generateMockProducts = (totalAmount, type) => {
 export default function VoucherDetails() {
   const { id } = useParams();
   const navigate = useNavigate();
-  const { activeCompany } = useAuthStore();
+  const { activeCompany, settings } = useAuthStore();
 
   const [details, setDetails] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -60,7 +60,7 @@ export default function VoucherDetails() {
       setError('');
     } catch (err) {
       console.error(err);
-      setError(err.response?.data?.error || 'Failed to load transaction details.');
+      setError(err.response?.data?.error || 'Failed to load voucher details');
     }
     setLoading(false);
   };
@@ -120,8 +120,26 @@ export default function VoucherDetails() {
     window.print();
   };
 
-  const handlePDF = () => {
+  const handlePDF = async () => {
     const doc = new jsPDF();
+
+    if (settings?.logoUrl) {
+      const logoUrl = settings.logoUrl.startsWith('http') ? settings.logoUrl : `${import.meta.env.PROD ? window.location.origin : 'http://localhost:5001'}${settings.logoUrl}`;
+      await new Promise((resolve) => {
+        const img = new Image();
+        img.crossOrigin = 'Anonymous';
+        img.onload = () => {
+          try {
+            doc.addImage(img, 'PNG', 160, 8, 36, 12);
+          } catch (e) {
+            console.error('Failed to draw logo on PDF:', e);
+          }
+          resolve();
+        };
+        img.onerror = () => resolve();
+        img.src = logoUrl;
+      });
+    }
     
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
