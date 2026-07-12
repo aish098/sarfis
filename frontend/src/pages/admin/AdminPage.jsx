@@ -383,17 +383,19 @@ export default function AdminPage() {
   const downloadBackup = async () => {
     try {
       setMessage(null);
-      const res = await api.get(`/admin/companies/${activeCompanyId}/backup?type=${backupType}`, requestConfig);
-      
-      const blob = new Blob([JSON.stringify(res.data, null, 2)], { type: 'application/json' });
-      const url = URL.createObjectURL(blob);
+      const res = await api.get(`/admin/companies/${activeCompanyId}/backup?type=${backupType}&format=xlsx`, {
+        ...requestConfig,
+        responseType: 'blob'
+      });
+
+      const url = URL.createObjectURL(res.data);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `SARFIS_${backupType.toUpperCase()}_Backup_${activeCompanyName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.json`;
+      link.download = `SARFIS_${backupType.toUpperCase()}_Backup_${activeCompanyName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
-      
+
       setMessage({ type: 'success', text: `Downloaded ${backupType.toUpperCase()} company backup successfully.` });
     } catch (err) {
       setMessage({ type: 'error', text: 'Backup extraction failed.' });
@@ -401,22 +403,27 @@ export default function AdminPage() {
   };
 
   // --- RESTORE UTILITY ---
-  const handleBackupUpload = (e) => {
+  const handleBackupUpload = async (e) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
     setRestoreFile(file);
-    const reader = new FileReader();
-    reader.onload = (event) => {
-      try {
-        const parsed = JSON.parse(event.target.result);
-        if (!parsed.data || !parsed.backupType) {
-          setMessage({ type: 'error', text: 'Invalid file format. Please upload a valid SARFIS backup file.' });
-          setRestorePreview(null);
-          return;
-        }
+    setMessage(null);
 
-        // Generate Counts preview
+    if (file.name.endsWith('.xlsx')) {
+      setSaving(true);
+      try {
+        const formData = new FormData();
+        formData.append('file', file);
+
+        const response = await api.post(`/admin/companies/${activeCompanyId}/backup/parse`, formData, {
+          headers: {
+            ...requestConfig?.headers,
+            'Content-Type': 'multipart/form-data'
+          }
+        });
+
+        const parsed = response.data;
         const stats = {
           accounts: parsed.data.accounts?.length || 0,
           journalEntries: parsed.data.journal_entries?.length || 0,
@@ -433,13 +440,45 @@ export default function AdminPage() {
           stats,
           rawPayload: parsed
         });
-        setMessage(null);
       } catch (err) {
-        setMessage({ type: 'error', text: 'Failed to parse backup JSON file.' });
+        setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to parse Excel backup file.' });
         setRestorePreview(null);
       }
-    };
-    reader.readAsText(file);
+      setSaving(false);
+    } else {
+      const reader = new FileReader();
+      reader.onload = (event) => {
+        try {
+          const parsed = JSON.parse(event.target.result);
+          if (!parsed.data || !parsed.backupType) {
+            setMessage({ type: 'error', text: 'Invalid file format. Please upload a valid SARFIS backup file.' });
+            setRestorePreview(null);
+            return;
+          }
+
+          const stats = {
+            accounts: parsed.data.accounts?.length || 0,
+            journalEntries: parsed.data.journal_entries?.length || 0,
+            vouchers: parsed.data.vouchers?.length || 0,
+            products: parsed.data.products?.length || 0,
+            clients: parsed.data.clients?.length || 0,
+            vendors: parsed.data.vendors?.length || 0,
+          };
+
+          setRestorePreview({
+            backupType: parsed.backupType,
+            originalCompany: parsed.companyName,
+            timestamp: parsed.timestamp,
+            stats,
+            rawPayload: parsed
+          });
+        } catch (err) {
+          setMessage({ type: 'error', text: 'Failed to parse backup JSON file.' });
+          setRestorePreview(null);
+        }
+      };
+      reader.readAsText(file);
+    }
   };
 
   const executeRestore = async () => {
@@ -1405,21 +1444,21 @@ export default function AdminPage() {
                 </div>
                 <div className="p-5 space-y-4">
                   <p className="text-[12px] text-slate-500 leading-relaxed">
-                    Upload a valid `.json` backup file to restore company state. Restore point will be downloaded automatically as safety rollback before apply.
+                    Upload a valid `.xlsx` or `.json` backup file to restore company state. Restore point will be downloaded automatically as safety rollback before apply.
                   </p>
 
                   <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 flex flex-col items-center justify-center bg-slate-50/30 hover:bg-slate-50 hover:border-emerald-400 transition relative">
                     <input
                       type="file"
-                      accept=".json"
+                      accept=".json,.xlsx"
                       onChange={handleBackupUpload}
                       className="absolute inset-0 opacity-0 cursor-pointer"
                     />
                     <FileUp size={30} className="text-slate-400 mb-2" />
                     <p className="text-[12px] font-bold text-slate-700">
-                      {restoreFile ? restoreFile.name : 'Click or Drag & Drop Backup JSON file'}
+                      {restoreFile ? restoreFile.name : 'Click or Drag & Drop Backup Excel or JSON file'}
                     </p>
-                    <p className="text-[10px] text-slate-400 mt-1">Accepts only valid SARFIS backup schemas</p>
+                    <p className="text-[10px] text-slate-400 mt-1">Accepts valid SARFIS Excel (.xlsx) or JSON (.json) backup formats</p>
                   </div>
 
                   {restorePreview && (

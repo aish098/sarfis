@@ -281,6 +281,39 @@ exports.exportCompanyBackup = async (req, res) => {
       data.vendors = await db('vendors').where({ company_id: companyId }).orderBy('id', 'asc');
     }
 
+    if (req.query.format === 'xlsx') {
+      const ExcelJS = require('exceljs');
+      const workbook = new ExcelJS.Workbook();
+
+      const metaSheet = workbook.addWorksheet('Metadata');
+      metaSheet.columns = [
+        { header: 'Key', key: 'key', width: 25 },
+        { header: 'Value', key: 'value', width: 45 }
+      ];
+      metaSheet.addRow({ key: 'companyId', value: companyId });
+      metaSheet.addRow({ key: 'companyName', value: company ? company.name : 'Unknown Workspace' });
+      metaSheet.addRow({ key: 'backupType', value: type });
+      metaSheet.addRow({ key: 'timestamp', value: new Date().toISOString() });
+
+      for (const [tableName, rows] of Object.entries(data)) {
+        const sheetName = tableName.substring(0, 31);
+        const sheet = workbook.addWorksheet(sheetName);
+        if (rows && rows.length > 0) {
+          const headers = Object.keys(rows[0]);
+          sheet.columns = headers.map(h => ({ header: h, key: h, width: 20 }));
+          for (const row of rows) {
+            sheet.addRow(row);
+          }
+        }
+      }
+
+      res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+      res.setHeader('Content-Disposition', `attachment; filename=SARFIS_${type.toUpperCase()}_Backup_${(company ? company.name : 'Workspace').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+
+      const buffer = await workbook.xlsx.writeBuffer();
+      return res.send(buffer);
+    }
+
     res.json({
       companyId,
       companyName: company ? company.name : 'Unknown Workspace',
@@ -387,6 +420,75 @@ exports.restoreCompanyBackup = async (req, res) => {
     });
 
     res.json({ success: true, message: `Successfully restored ${backupType} backup.` });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.parseExcelBackup = async (req, res) => {
+  try {
+    const companyId = parseInt(req.params.companyId, 10);
+    await assertCompanyAdmin(req, companyId);
+
+    if (!req.file) {
+      return res.status(400).json({ message: 'No backup file uploaded.' });
+    }
+
+    const ExcelJS = require('exceljs');
+    const workbook = new ExcelJS.Workbook();
+    await workbook.xlsx.load(req.file.buffer);
+
+    const backup = {
+      companyId: null,
+      companyName: '',
+      backupType: '',
+      timestamp: '',
+      data: {}
+    };
+
+    const metaSheet = workbook.getWorksheet('Metadata');
+    if (metaSheet) {
+      metaSheet.eachRow((row, rowNumber) => {
+        if (rowNumber > 1) {
+          const key = row.getCell(1).value;
+          const val = row.getCell(2).value;
+          if (key === 'companyId') backup.companyId = parseInt(val, 10);
+          else if (key === 'companyName') backup.companyName = String(val);
+          else if (key === 'backupType') backup.backupType = String(val);
+          else if (key === 'timestamp') backup.timestamp = String(val);
+        }
+      });
+    }
+
+    workbook.eachSheet(sheet => {
+      if (sheet.name === 'Metadata') return;
+
+      const tableName = sheet.name;
+      const rows = [];
+      let headers = [];
+
+      sheet.eachRow((row, rowNumber) => {
+        if (rowNumber === 1) {
+          headers = row.values.slice(1);
+        } else {
+          const item = {};
+          const vals = row.values.slice(1);
+          headers.forEach((h, idx) => {
+            let cellValue = vals[idx];
+            if (cellValue && typeof cellValue === 'object') {
+              if (cellValue.result !== undefined) cellValue = cellValue.result;
+              else if (cellValue.text !== undefined) cellValue = cellValue.text;
+            }
+            item[h] = cellValue;
+          });
+          rows.push(item);
+        }
+      });
+
+      backup.data[tableName] = rows;
+    });
+
+    res.json(backup);
   } catch (err) {
     res.status(500).json({ message: err.message });
   }

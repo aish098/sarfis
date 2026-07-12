@@ -13,8 +13,12 @@ router.delete('/companies/:companyId/members/:userId', companyGuard, requirePerm
 router.get('/companies/:companyId/members', companyGuard, requirePermission('approval.view'), adminController.getCompanyMembers);
 
 // Backup, Restore & Purge Maintenance Utilities
+const multer = require('multer');
+const upload = multer({ storage: multer.memoryStorage() });
+
 router.get('/companies/:companyId/backup', companyGuard, requirePermission('audit.manage'), adminController.exportCompanyBackup);
 router.post('/companies/:companyId/restore', companyGuard, requirePermission('audit.manage'), adminController.restoreCompanyBackup);
+router.post('/companies/:companyId/backup/parse', companyGuard, requirePermission('audit.manage'), upload.single('file'), adminController.parseExcelBackup);
 router.post('/companies/:companyId/purge', companyGuard, requirePermission('audit.manage'), adminController.purgeCompanyTransactions);
 
 // Active DB-Backed Sessions
