@@ -92,7 +92,7 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
   // State hooks for accounting data
   const [periods, setPeriods] = useState([]);
   const [periodsLoading, setPeriodsLoading] = useState(false);
-  const [approvals, setApprovals] = useState({ pendingJournals: [], pendingVouchers: [] });
+  const [approvals, setApprovals] = useState([]);
   const [approvalsLoading, setApprovalsLoading] = useState(false);
   const [actionSaving, setActionSaving] = useState(false);
   const [feedback, setFeedback] = useState(null);
@@ -166,15 +166,15 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
     }
   }, [activeCompany?.id]);
 
-  // 2. Fetch pending approvals (Journals and Vouchers)
+  // 2. Fetch pending approvals (Unified Workflows)
   const fetchApprovals = useCallback(async () => {
     if (!activeCompany?.id || !hasApprovalAccess) return;
     setApprovalsLoading(true);
     try {
-      const res = await api.get(`/admin/companies/${activeCompany.id}/approvals`, {
+      const res = await api.get('/workflows/pending', {
         headers: { 'x-company-id': String(activeCompany.id) }
       });
-      setApprovals(res.data || { pendingJournals: [], pendingVouchers: [] });
+      setApprovals(res.data || []);
     } catch (err) {
       console.error('Failed to fetch approvals in header:', err);
     } finally {
@@ -292,39 +292,23 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
     }
   };
 
-  // Approve and post vouchers to General Ledger
-  const handleApproveVoucher = async (voucherId) => {
+  // Approve unified workflow stages
+  const handleApproveApproval = async (instanceId) => {
     if (!activeCompany?.id) return;
     setActionSaving(true);
     setFeedback(null);
     try {
-      await api.post(`/vouchers/${activeCompany.id}/${voucherId}/post`, {}, {
+      await api.post(`/workflows/review/${instanceId}`, {
+        action: 'APPROVE',
+        comments: 'Approved via Quick Header Inbox'
+      }, {
         headers: { 'x-company-id': String(activeCompany.id) }
       });
       await fetchApprovals();
-      setFeedback({ type: 'success', text: 'Voucher posted successfully to General Ledger.' });
+      setFeedback({ type: 'success', text: 'Workflow stage approved successfully.' });
       setTimeout(() => setFeedback(null), 3000);
     } catch (err) {
-      setFeedback({ type: 'error', text: err.response?.data?.error || 'Failed to post voucher.' });
-    } finally {
-      setActionSaving(false);
-    }
-  };
-
-  // Approve and post manual journal entries
-  const handleApproveJournal = async (journalId) => {
-    if (!activeCompany?.id) return;
-    setActionSaving(true);
-    setFeedback(null);
-    try {
-      await api.post(`/journal/${journalId}/post`, {}, {
-        headers: { 'x-company-id': String(activeCompany.id) }
-      });
-      await fetchApprovals();
-      setFeedback({ type: 'success', text: 'Journal entry posted successfully to General Ledger.' });
-      setTimeout(() => setFeedback(null), 3000);
-    } catch (err) {
-      setFeedback({ type: 'error', text: err.response?.data?.error || 'Failed to post journal entry.' });
+      setFeedback({ type: 'error', text: err.response?.data?.error || 'Failed to approve stage.' });
     } finally {
       setActionSaving(false);
     }
@@ -527,7 +511,7 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
   };
 
   const years = Array.from({ length: 7 }, (_, i) => new Date().getFullYear() - 3 + i);
-  const totalPendingCount = (approvals.pendingJournals?.length || 0) + (approvals.pendingVouchers?.length || 0);
+  const totalPendingCount = approvals.length;
   const unreadCount = notifications.filter(n => !n.is_read).length;
 
   return (
@@ -832,14 +816,10 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
             <HeaderDropdown open={openMenu === 'approvals'} onClose={closeAll} className="w-80">
               <div className="px-4 py-3 border-b bg-slate-50/50" style={{ borderColor: PBI.border }}>
                 <p className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600">Pending Approvals</p>
-                <div className="grid grid-cols-3 gap-2 mt-2 text-center text-[11px] font-bold text-slate-500">
+                <div className="grid grid-cols-2 gap-2 mt-2 text-center text-[11px] font-bold text-slate-500">
                   <div className="bg-white p-1.5 rounded border">
-                    <span className="block text-[14px] font-black text-slate-800">{approvals.pendingJournals?.length || 0}</span>
-                    Journals
-                  </div>
-                  <div className="bg-white p-1.5 rounded border">
-                    <span className="block text-[14px] font-black text-slate-800">{approvals.pendingVouchers?.length || 0}</span>
-                    Vouchers
+                    <span className="block text-[14px] font-black text-slate-800">{approvals.length}</span>
+                    Awaiting Review
                   </div>
                   <div className="bg-amber-50 border border-amber-100 p-1.5 rounded text-amber-800">
                     <span className="block text-[14px] font-black">{totalPendingCount}</span>
@@ -855,62 +835,30 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
               )}
 
               <div className="max-h-[300px] overflow-y-auto divide-y divide-slate-100">
-                {/* Pending Vouchers */}
-                {canApproveVouchers && approvals.pendingVouchers?.map((v) => (
-                  <div key={v.id} className="p-3 text-[12px] hover:bg-slate-50/50 transition">
+                {approvals.map((appr) => (
+                  <div key={appr.instance_id} className="p-3 text-[12px] hover:bg-slate-50/50 transition">
                     <div className="flex justify-between items-start gap-1">
-                      <div>
-                        <p className="font-bold text-slate-800">{v.voucher_number}</p>
-                        <p className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wide mt-0.5">{v.type} Voucher</p>
+                      <div className="min-w-0 flex-1 pr-1">
+                        <p className="font-bold text-slate-800 truncate">{appr.docSummary}</p>
+                        <p className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wide mt-0.5">{appr.stage_name}</p>
                         <p className="text-[10px] text-slate-500 font-medium mt-1">
-                          Amount: <span className="font-semibold text-slate-700">PKR {parseFloat(v.total_amount).toLocaleString()}</span>
+                          Amount: <span className="font-semibold text-slate-700">PKR {parseFloat(appr.amount || 0).toLocaleString()}</span>
                         </p>
-                        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">By: {v.creator_name || 'System'}</p>
+                        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">By: {appr.submitter_name || 'System'}</p>
                       </div>
                       <div className="flex flex-col gap-1 flex-shrink-0">
                         <button
-                          onClick={() => handleApproveVoucher(v.id)}
+                          onClick={() => handleApproveApproval(appr.instance_id)}
                           disabled={actionSaving}
                           className="px-2 py-1 rounded bg-[#EBFDF5] text-emerald-800 border border-[#C2F3DC] text-[10px] font-bold hover:bg-[#d5f7e6]"
                         >
                           Approve
                         </button>
                         <button
-                          onClick={() => { navigate(`/dashboard/vouchers/details/${v.id}`); closeAll(); }}
+                          onClick={() => { navigate('/dashboard/admin/approvals'); closeAll(); }}
                           className="px-2 py-1 rounded bg-white text-slate-600 border text-[10px] font-bold hover:bg-slate-50"
                         >
-                          Review
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                ))}
-
-                {/* Pending Journals */}
-                {canApproveJournals && approvals.pendingJournals?.map((j) => (
-                  <div key={j.id} className="p-3 text-[12px] hover:bg-slate-50/50 transition">
-                    <div className="flex justify-between items-start gap-1">
-                      <div className="min-w-0 flex-1 pr-1">
-                        <p className="font-bold text-slate-800 truncate">JE #{j.id} — {j.description}</p>
-                        <p className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wide mt-0.5">Manual Journal</p>
-                        <p className="text-[10px] text-slate-500 font-medium mt-1">
-                          Amount: <span className="font-semibold text-slate-700">PKR {parseFloat(j.total_amount).toLocaleString()}</span>
-                        </p>
-                        <p className="text-[10px] text-slate-400 font-semibold mt-0.5">By: {j.creator_name || 'System'}</p>
-                      </div>
-                      <div className="flex flex-col gap-1 flex-shrink-0">
-                        <button
-                          onClick={() => handleApproveJournal(j.id)}
-                          disabled={actionSaving}
-                          className="px-2 py-1 rounded bg-[#EBFDF5] text-emerald-800 border border-[#C2F3DC] text-[10px] font-bold hover:bg-[#d5f7e6]"
-                        >
-                          Post GL
-                        </button>
-                        <button
-                          onClick={() => { navigate('/dashboard/ledger'); closeAll(); }}
-                          className="px-2 py-1 rounded bg-white text-slate-600 border text-[10px] font-bold hover:bg-slate-50"
-                        >
-                          Review
+                          Details
                         </button>
                       </div>
                     </div>
@@ -920,7 +868,7 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
                 {totalPendingCount === 0 && (
                   <div className="p-6 text-center text-slate-500 font-medium">
                     <CheckCircle2 size={32} className="text-emerald-500 mx-auto mb-2" />
-                    <p className="text-[12px]">All transactions posted</p>
+                    <p className="text-[12px]">All transactions approved</p>
                     <p className="text-[10px] text-slate-400 mt-1">Workspace is fully locked and approved.</p>
                   </div>
                 )}
