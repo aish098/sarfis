@@ -317,11 +317,13 @@ class WorkflowEngineService {
         console.error('[WORKFLOW BUDGET RELEASE ERROR]', relErr);
       }
 
-      // Reset document back to DRAFT
+      // Reset document back to DRAFT / REJECTED
       if (instance.document_type_code === 'VOUCHER') {
         await trx('vouchers').where({ id: instance.document_id, company_id: companyId }).update({ status: 'DRAFT' });
       } else if (instance.document_type_code === 'JOURNAL') {
         await trx('journal_entries').where({ id: instance.document_id, company_id: companyId }).update({ status: 'DRAFT' });
+      } else if (instance.document_type_code === 'PURCHASE_ORDER') {
+        await trx('purchase_orders').where({ id: instance.document_id, company_id: companyId }).update({ status: 'REJECTED' });
       }
 
       // Notify the creator

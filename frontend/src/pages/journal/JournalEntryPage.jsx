@@ -158,6 +158,7 @@ export default function JournalEntryPage() {
   const [reference, setReference] = useState('JE-' + Math.floor(1000 + Math.random() * 9000));
   const [lines, setLines] = useState([genRow(), genRow()]);
   const [editingId, setEditingId] = useState(null);
+  const [focusedField, setFocusedField] = useState({ index: null, field: null });
 
   // Ledger Settings
   const [postingMode, setPostingMode] = useState('REALTIME'); // REALTIME | BATCH (saves draft)
@@ -751,13 +752,23 @@ export default function JournalEntryPage() {
                           <td key={field} className="px-2 py-1.5">
                             <input
                               id={`je-input-${idx}-${field}`}
-                              type="number"
-                              step="0.01"
+                              type="text"
                               placeholder="0.00"
                               disabled={field === 'debit' ? !!line.credit : !!line.debit}
-                              className="w-full bg-white border-2 border-slate-100 rounded-lg px-2 py-1.5 text-right font-mono text-[13px] font-semibold outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 disabled:opacity-30 disabled:bg-slate-50"
-                              value={line[field]}
-                              onChange={e => setLine(idx, field, e.target.value)}
+                              className="w-full bg-white border-2 border-slate-100 rounded-lg px-2 py-1.5 text-right font-mono text-[13px] font-semibold outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 disabled:opacity-30 disabled:bg-slate-50 overflow-x-auto"
+                              style={{ textAlign: 'right' }}
+                              value={focusedField.index === idx && focusedField.field === field
+                                ? line[field]
+                                : (line[field] !== '' && !isNaN(parseFloat(line[field])) ? parseFloat(line[field]).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : line[field])
+                              }
+                              onFocus={() => setFocusedField({ index: idx, field })}
+                              onBlur={() => setFocusedField({ index: null, field: null })}
+                              onChange={e => {
+                                const val = e.target.value;
+                                if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                  setLine(idx, field, val);
+                                }
+                              }}
                               onKeyDown={e => handleKeyDown(e, idx, field)}
                             />
                           </td>

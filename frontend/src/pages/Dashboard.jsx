@@ -32,6 +32,8 @@ import InventoryPage from './inventory/InventoryPage.jsx';
 import WarehousePage from './inventory/WarehousePage.jsx';
 import DistributionPage from './distribution/DistributionPage.jsx';
 import VouchersPage from './vouchers/VouchersPage.jsx';
+import PurchaseOrdersPage from './vouchers/PurchaseOrdersPage.jsx';
+import OrderTrackingPage from './distribution/OrderTrackingPage.jsx';
 import VendorsPage from './vendors/VendorsPage.jsx';
 import SettingsPage from './settings/SettingsPage.jsx';
 import AdminPage from './admin/AdminPage.jsx';
@@ -505,6 +507,8 @@ export default function Dashboard() {
                 </ModuleProtectedRoute>
               } />
               <Route path="vouchers/*" element={<VouchersPage />} />
+              <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
+              <Route path="order-tracking" element={<OrderTrackingPage />} />
               <Route path="vendors" element={<VendorsPage />} />
               <Route path="settings" element={<SettingsPage />} />
               <Route path="admin" element={<AdminPage />} />

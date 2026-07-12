@@ -66,13 +66,13 @@ const upsertInventory = async (trx, productId, warehouseId, quantityDelta) => {
     .where({ product_id: productId, warehouse_id: warehouseId })
     .first();
 
+  let newQty = 0;
   if (existing) {
-    const newQty = parseFloat(existing.quantity) + quantityDelta;
+    newQty = parseFloat(existing.quantity) + quantityDelta;
     if (newQty < 0) throw new Error('Insufficient stock');
     await trx('inventory')
       .where({ product_id: productId, warehouse_id: warehouseId })
       .update({ quantity: newQty, updated_at: trx.fn.now() });
-    return newQty;
   } else {
     if (quantityDelta < 0) throw new Error('Insufficient stock');
     await trx('inventory').insert({
@@ -80,8 +80,92 @@ const upsertInventory = async (trx, productId, warehouseId, quantityDelta) => {
       warehouse_id: warehouseId,
       quantity: quantityDelta,
     });
-    return quantityDelta;
+    newQty = quantityDelta;
   }
+
+  // Hook for low stock check & auto-creation of Draft PO
+  try {
+    const product = await trx('products').where({ id: productId }).first();
+    if (product && product.reorder_level > 0) {
+      // Sum total stock of this product across all warehouses
+      const sumRes = await trx('inventory')
+        .where({ product_id: productId })
+        .sum('quantity as total')
+        .first();
+      const totalStock = parseFloat(sumRes?.total || 0);
+
+      if (totalStock <= product.reorder_level) {
+        // Check if there is already a draft or pending PO for this product
+        const existingPO = await trx('purchase_order_items as poi')
+          .join('purchase_orders as po', 'poi.purchase_order_id', 'po.id')
+          .where('poi.product_id', productId)
+          .whereIn('po.status', ['DRAFT', 'PENDING_APPROVAL'])
+          .first();
+
+        if (!existingPO) {
+          const poService = require('../services/purchase_order.service');
+          const NotificationService = require('../services/notification.service');
+
+          // Find the last vendor this product was purchased from (via stock_logs)
+          const lastPurchase = await trx('stock_logs')
+            .where({ product_id: productId, type: 'PURCHASE' })
+            .orderBy('created_at', 'desc')
+            .first();
+
+          let vendorId = null;
+          if (lastPurchase && lastPurchase.reference_id && lastPurchase.reference_type === 'voucher') {
+            const voucher = await trx('vouchers').where({ id: lastPurchase.reference_id }).first();
+            if (voucher && voucher.payload && voucher.payload.vendorId) {
+              vendorId = voucher.payload.vendorId;
+            }
+          }
+
+          // If no last vendor, fallback to first active vendor in company
+          if (!vendorId) {
+            const firstVendor = await trx('vendors')
+              .where({ company_id: product.company_id, is_active: true })
+              .orderBy('id', 'asc')
+              .first();
+            vendorId = firstVendor ? firstVendor.id : null;
+          }
+
+          // Find first user (usually admin/creator)
+          const firstUser = await trx('users')
+            .where({ company_id: product.company_id })
+            .orderBy('id', 'asc')
+            .first();
+          const creatorId = firstUser ? firstUser.id : null;
+
+          // Standard restock qty
+          const reorderQty = Math.max(10, product.reorder_level * 2);
+
+          // Create the PO draft
+          const po = await poService.createPurchaseOrder({
+            companyId: product.company_id,
+            vendorId,
+            date: new Date(),
+            notes: `Auto-generated Draft PO due to low stock level.`,
+            items: [{ productId, quantity: reorderQty, unitPrice: product.cost_price }],
+            userId: creatorId
+          });
+
+          // Send low stock notification
+          await NotificationService.notifyUsersWithPermission({
+            companyId: product.company_id,
+            permissionCode: 'voucher.view',
+            title: 'Low Stock Detected',
+            message: `Low stock detected for "${product.name}" (SKU: ${product.sku}). Draft Purchase Order ${po.po_number} has been created.`,
+            type: 'system',
+            priority: 'HIGH'
+          });
+        }
+      }
+    }
+  } catch (err) {
+    console.error('[LOW STOCK PO AUTO-CREATION ERROR]', err);
+  }
+
+  return newQty;
 };
 
 const insertStockLog = (trx, logData) =>

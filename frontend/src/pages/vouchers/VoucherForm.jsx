@@ -70,6 +70,7 @@ export default function VoucherForm() {
   const [overrideRequestId, setOverrideRequestId] = useState(null);
   const [riskCheckLoading, setRiskCheckLoading] = useState(false);
   const [overrideRequesting, setOverrideRequesting] = useState(false);
+  const [focusedField, setFocusedField] = useState({ index: null, field: null, group: null });
 
   // Fetch catalogs
   const fetchCatalogs = useCallback(async () => {
@@ -936,14 +937,22 @@ export default function VoucherForm() {
                             <div className="flex flex-col gap-1 md:col-span-2">
                               <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 md:hidden">Quantity</span>
                               <input 
-                                type="number" 
+                                type="text" 
                                 required
-                                min="0.01" 
-                                step="any"
                                 placeholder="0" 
-                                className="input-enterprise text-[12.5px] py-1.5 md:text-right font-mono font-semibold"
-                                value={item.quantity}
-                                onChange={e => handleItemChange(idx, 'quantity', e.target.value)}
+                                className="input-enterprise text-[12.5px] py-1.5 text-right font-mono font-semibold overflow-x-auto"
+                                value={focusedField.group === 'items' && focusedField.index === idx && focusedField.field === 'quantity'
+                                  ? item.quantity
+                                  : (item.quantity !== '' && !isNaN(parseFloat(item.quantity)) ? parseFloat(item.quantity).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : item.quantity)
+                                }
+                                onFocus={() => setFocusedField({ group: 'items', index: idx, field: 'quantity' })}
+                                onBlur={() => setFocusedField({ group: null, index: null, field: null })}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                    handleItemChange(idx, 'quantity', val);
+                                  }
+                                }}
                               />
                             </div>
                             <div className="flex flex-col gap-1 md:col-span-3">
@@ -952,14 +961,25 @@ export default function VoucherForm() {
                               </span>
                               <div className="flex items-center gap-1.5">
                                 <input 
-                                  type="number" 
+                                  type="text" 
                                   required
-                                  min="0.00" 
-                                  step="any"
                                   placeholder="0.00" 
-                                  className="input-enterprise text-[12.5px] py-1.5 md:text-right font-mono font-semibold flex-grow"
-                                  value={type === 'SALES' ? item.unitPrice : item.unitCost}
-                                  onChange={e => handleItemChange(idx, type === 'SALES' ? 'unitPrice' : 'unitCost', e.target.value)}
+                                  className="input-enterprise text-[12.5px] py-1.5 text-right font-mono font-semibold flex-grow overflow-x-auto"
+                                  value={focusedField.group === 'items' && focusedField.index === idx && focusedField.field === 'price'
+                                    ? (type === 'SALES' ? item.unitPrice : item.unitCost)
+                                    : (() => {
+                                        const p = type === 'SALES' ? item.unitPrice : item.unitCost;
+                                        return (p !== '' && !isNaN(parseFloat(p)) ? parseFloat(p).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : p);
+                                      })()
+                                  }
+                                  onFocus={() => setFocusedField({ group: 'items', index: idx, field: 'price' })}
+                                  onBlur={() => setFocusedField({ group: null, index: null, field: null })}
+                                  onChange={e => {
+                                    const val = e.target.value;
+                                    if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                      handleItemChange(idx, type === 'SALES' ? 'unitPrice' : 'unitCost', val);
+                                    }
+                                  }}
                                 />
                                 {items.length > 1 && (
                                   <button 
@@ -1030,14 +1050,22 @@ export default function VoucherForm() {
                       <div className="relative">
                         <DollarSign size={14} className="absolute left-[14px] top-1/2 -translate-y-1/2 text-slate-400" />
                         <input 
-                          type="number" 
+                          type="text" 
                           required 
-                          min="0.01" 
-                          step="0.01"
                           placeholder="0.00" 
-                          className="input-enterprise !pl-10 text-[13.5px] font-mono font-semibold" 
-                          value={amount} 
-                          onChange={e => setAmount(e.target.value)} 
+                          className="input-enterprise !pl-10 text-[13.5px] font-mono font-semibold text-right" 
+                          value={focusedField.group === 'amount'
+                            ? amount
+                            : (amount !== '' && !isNaN(parseFloat(amount)) ? parseFloat(amount).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : amount)
+                          } 
+                          onFocus={() => setFocusedField({ group: 'amount', index: 0, field: 'amount' })}
+                          onBlur={() => setFocusedField({ group: null, index: null, field: null })}
+                          onChange={e => {
+                            const val = e.target.value;
+                            if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                              setAmount(val);
+                            }
+                          }} 
                         />
                       </div>
                     </div>
@@ -1116,12 +1144,21 @@ export default function VoucherForm() {
                           <div className="flex flex-col gap-1 md:col-span-3">
                             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 md:hidden font-sans">Debit ($)</span>
                             <input 
-                              type="number" 
-                              step="any"
+                              type="text" 
                               placeholder="0.00" 
-                              className="input-enterprise text-[12.5px] py-1.5 md:text-right font-mono font-semibold"
-                              value={line.debit}
-                              onChange={e => handleJournalLineChange(idx, 'debit', e.target.value)}
+                              className="input-enterprise text-[12.5px] py-1.5 text-right font-mono font-semibold overflow-x-auto"
+                              value={focusedField.group === 'journal' && focusedField.index === idx && focusedField.field === 'debit'
+                                ? line.debit
+                                : (line.debit !== '' && !isNaN(parseFloat(line.debit)) ? parseFloat(line.debit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : line.debit)
+                              }
+                              onFocus={() => setFocusedField({ group: 'journal', index: idx, field: 'debit' })}
+                              onBlur={() => setFocusedField({ group: null, index: null, field: null })}
+                              onChange={e => {
+                                const val = e.target.value;
+                                if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                  handleJournalLineChange(idx, 'debit', val);
+                                }
+                              }}
                               disabled={line.credit !== ''}
                             />
                           </div>
@@ -1129,12 +1166,21 @@ export default function VoucherForm() {
                             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 md:hidden font-sans">Credit ($)</span>
                             <div className="flex items-center gap-1.5">
                               <input 
-                                type="number" 
-                                step="any"
+                                type="text" 
                                 placeholder="0.00" 
-                                className="input-enterprise text-[12.5px] py-1.5 md:text-right font-mono font-semibold flex-grow"
-                                value={line.credit}
-                                onChange={e => handleJournalLineChange(idx, 'credit', e.target.value)}
+                                className="input-enterprise text-[12.5px] py-1.5 text-right font-mono font-semibold flex-grow overflow-x-auto"
+                                value={focusedField.group === 'journal' && focusedField.index === idx && focusedField.field === 'credit'
+                                  ? line.credit
+                                  : (line.credit !== '' && !isNaN(parseFloat(line.credit)) ? parseFloat(line.credit).toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 }) : line.credit)
+                                }
+                                onFocus={() => setFocusedField({ group: 'journal', index: idx, field: 'credit' })}
+                                onBlur={() => setFocusedField({ group: null, index: null, field: null })}
+                                onChange={e => {
+                                  const val = e.target.value;
+                                  if (val === '' || /^\d*\.?\d*$/.test(val)) {
+                                    handleJournalLineChange(idx, 'credit', val);
+                                  }
+                                }}
                                 disabled={line.debit !== ''}
                               />
                               {journalLines.length > 2 && (

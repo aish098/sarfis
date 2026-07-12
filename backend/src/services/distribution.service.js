@@ -19,7 +19,7 @@ const createDeliveryOrder = async ({
   const client = await distModel.getClientById(clientId, companyId);
   if (!client) throw new Error('Client not found');
 
-  const orderTotal = items.reduce((s, i) => s + (parseFloat(i.quantity) * parseFloat(i.unit_price)), 0);
+  const orderTotal = items.reduce((s, i) => s + ((parseFloat(i.quantity) * parseFloat(i.unit_price)) - parseFloat(i.discount || 0)), 0);
 
   // Enforce Credit Policy Check at Order creation
   const RiskService = require('./risk.service');
@@ -56,6 +56,8 @@ const createDeliveryOrder = async ({
       quantity: i.quantity,
       unit_price: i.unit_price,
       unit_cost: i.unit_cost,
+      discount: parseFloat(i.discount || 0.00),
+      offer: i.offer || null
     })));
 
     return delivery;
