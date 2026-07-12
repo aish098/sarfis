@@ -573,7 +573,12 @@ export default function SettingsPage() {
     loadData();
   };
 
-  const update = (key, val) => setLocalSettings(s => ({ ...s, [key]: val }));
+  const update = (key, val) => {
+    setLocalSettings(s => ({ ...s, [key]: val }));
+    if (['inventoryEnabled', 'warehousingEnabled', 'budgetingEnabled', 'payrollEnabled', 'riskEnabled', 'fixedAssetsEnabled'].includes(key)) {
+      setSettings({ ...settings, [key]: val });
+    }
+  };
 
   // Helper for generating account options
   const accountOptions = useMemo(() => {
