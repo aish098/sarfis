@@ -7,13 +7,14 @@ exports.getAdminCommunications = async (req, res) => {
 
     const conversations = await db('communications as c')
       .join('employees as e', 'c.employee_id', 'e.id')
+      .leftJoin('users as u', 'e.user_id', 'u.id')
       .where('c.company_id', companyId)
       .andWhere('c.parent_id', null)
       .select(
         'c.id',
         'c.employee_id',
         'e.name as employee_name',
-        'e.email as employee_email',
+        'u.email as employee_email',
         'e.department',
         'e.designation',
         'c.subject',
@@ -58,8 +59,9 @@ exports.getAdminThread = async (req, res) => {
 
     const parentMsg = await db('communications as c')
       .join('employees as e', 'c.employee_id', 'e.id')
+      .leftJoin('users as u', 'e.user_id', 'u.id')
       .where({ 'c.id': parentId, 'c.company_id': companyId })
-      .select('c.*', 'e.name as employee_name', 'e.email as employee_email', 'e.department', 'e.designation')
+      .select('c.*', 'e.name as employee_name', 'u.email as employee_email', 'e.department', 'e.designation')
       .first();
 
     if (!parentMsg) return res.status(404).json({ error: 'Conversation not found.' });
@@ -99,7 +101,11 @@ exports.adminComposeMessage = async (req, res) => {
       return res.status(400).json({ error: 'Recipient, subject, and body are required.' });
     }
 
-    const employee = await db('employees').where({ id: employeeId, company_id: companyId }).first();
+    const employee = await db('employees as e')
+      .leftJoin('users as u', 'e.user_id', 'u.id')
+      .where({ 'e.id': employeeId, 'e.company_id': companyId })
+      .select('e.*', 'u.email as email')
+      .first();
     if (!employee) return res.status(404).json({ error: 'Employee not found.' });
 
     const recipientEmail = employee.email || null;
@@ -150,7 +156,11 @@ exports.adminReplyMessage = async (req, res) => {
     const parentMsg = await db('communications').where({ id: parentId, company_id: companyId }).first();
     if (!parentMsg) return res.status(404).json({ error: 'Parent conversation not found.' });
 
-    const employee = await db('employees').where({ id: parentMsg.employee_id }).first();
+    const employee = await db('employees as e')
+      .leftJoin('users as u', 'e.user_id', 'u.id')
+      .where({ 'e.id': parentMsg.employee_id })
+      .select('e.*', 'u.email as email')
+      .first();
     if (!employee) return res.status(404).json({ error: 'Employee not found.' });
 
     const [reply] = await db('communications')
