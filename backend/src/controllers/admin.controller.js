@@ -434,9 +434,26 @@ exports.purgeCompanyTransactions = async (req, res) => {
         await trx('inventory').whereIn('product_id', pids).update({ quantity: 0 });
       }
 
-      await trx('clients').where('company_id', companyId).update({ balance: 0 });
-      await trx('vendors').where('company_id', companyId).update({ balance: 0 });
-      await trx('accounts').where('company_id', companyId).update({ current_balance: 0 });
+      await trx('clients').where('company_id', companyId).update({ current_balance: 0 });
+      await trx('vendors').where('company_id', companyId).update({ current_balance: 0 });
+      await trx('accounts').where('company_id', companyId).update({ balance: 0 });
+
+      // 4. Clear payroll transactions
+      const runIds = await trx('payroll_runs').where('company_id', companyId).select('id');
+      const rids = runIds.map(r => r.id);
+      if (rids.length > 0) {
+        const lineIds = await trx('payroll_lines').whereIn('payroll_run_id', rids).select('id');
+        const lids = lineIds.map(l => l.id);
+        if (lids.length > 0) {
+          await trx('payroll_line_details').whereIn('payroll_line_id', lids).del();
+          await trx('payroll_payments').whereIn('payroll_line_id', lids).del();
+          await trx('payroll_adjustments').whereIn('payroll_line_id', lids).del();
+          await trx('payroll_payslips').whereIn('payroll_line_id', lids).del();
+          await trx('payroll_status_history').whereIn('payroll_line_id', lids).del();
+        }
+        await trx('payroll_lines').whereIn('payroll_run_id', rids).del();
+      }
+      await trx('payroll_runs').where('company_id', companyId).del();
 
       // Log purge to audit trail
       await trx('audit_logs').insert({
