@@ -1,7 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { 
   Mail, RefreshCw, Search, CheckCircle, XCircle, AlertTriangle, 
-  Send, ShieldAlert, ArrowRight, Play, Eye
+  Send, ShieldAlert, ArrowRight, Play, Eye, Trash2
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -220,6 +220,34 @@ export default function EmailCenterPage() {
     setResendingId(null);
   };
 
+  const handleDelete = async (id) => {
+    if (!window.confirm('Are you sure you want to delete this email queue item?')) return;
+    setSuccessMsg('');
+    setError(null);
+    try {
+      await api.delete(`/notifications/admin/email-queue/${id}/${activeCompany.id}`);
+      setSuccessMsg('Email queue item deleted successfully.');
+      setTimeout(() => setSuccessMsg(''), 3000);
+      loadQueue();
+    } catch (err) {
+      setError(err.response?.data?.error || err.message);
+    }
+  };
+
+  const handlePurgeFailed = async () => {
+    if (!window.confirm('Are you sure you want to delete all failed email logs from the queue?')) return;
+    setSuccessMsg('');
+    setError(null);
+    try {
+      const res = await api.delete(`/notifications/admin/email-queue/purge/failed/${activeCompany.id}`);
+      setSuccessMsg(res.data.message);
+      setTimeout(() => setSuccessMsg(''), 3000);
+      loadQueue();
+    } catch (err) {
+      setError(err.response?.data?.error || err.message);
+    }
+  };
+
   return (
     <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6] space-y-6 text-xs font-semibold text-slate-600">
       
@@ -305,6 +333,14 @@ export default function EmailCenterPage() {
                 <option value="FAILED">Failed</option>
                 <option value="RETRY">Retry</option>
               </select>
+              <button
+                type="button"
+                onClick={handlePurgeFailed}
+                className="px-3 py-1.5 border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-xl font-bold transition-all flex items-center gap-1.5 text-[11px] cursor-pointer"
+                title="Delete all failed logs from the queue"
+              >
+                <Trash2 size={12} /> Clear Failed Logs
+              </button>
             </div>
 
             <div className="relative max-w-sm w-full">
@@ -396,6 +432,7 @@ export default function EmailCenterPage() {
                         </button>
                         {(item.status === 'FAILED' || item.status === 'RETRY') && (
                           <button 
+                            type="button"
                             onClick={() => handleResend(item.id)}
                             disabled={resendingId === item.id}
                             className="p-1.5 bg-indigo-50 border border-indigo-100 hover:bg-indigo-100 text-indigo-600 rounded-lg cursor-pointer disabled:opacity-50"
@@ -404,6 +441,14 @@ export default function EmailCenterPage() {
                             <Send size={12} />
                           </button>
                         )}
+                        <button 
+                          type="button"
+                          onClick={() => handleDelete(item.id)}
+                          className="p-1.5 bg-rose-50 border border-rose-100 hover:bg-rose-100 text-rose-600 rounded-lg cursor-pointer"
+                          title="Delete Email Log"
+                        >
+                          <Trash2 size={12} />
+                        </button>
                       </div>
                     </td>
                   </tr>

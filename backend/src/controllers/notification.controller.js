@@ -349,3 +349,29 @@ exports.composeCustomEmail = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.deleteEmailQueueItem = async (req, res) => {
+  try {
+    const { id, companyId } = req.params;
+    const deleted = await db('notification_queue')
+      .where({ id, company_id: companyId })
+      .del();
+    
+    if (!deleted) return res.status(404).json({ error: 'Email queue item not found.' });
+    res.json({ success: true, message: 'Email queue item deleted successfully.' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
+exports.purgeFailedEmailQueue = async (req, res) => {
+  try {
+    const { companyId } = req.params;
+    const deleted = await db('notification_queue')
+      .where({ company_id: companyId, status: 'FAILED' })
+      .del();
+    res.json({ success: true, message: `Successfully deleted ${deleted} failed email logs.` });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};

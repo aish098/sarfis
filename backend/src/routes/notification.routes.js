@@ -17,4 +17,7 @@ router.get('/notifications/admin/email-queue/:companyId', companyGuard, notifCtr
 router.post('/notifications/admin/email-queue/:id/resend/:companyId', companyGuard, notifCtrl.resendEmail);
 router.post('/notifications/admin/email-queue/compose/:companyId', companyGuard, notifCtrl.composeCustomEmail);
 
+router.delete('/notifications/admin/email-queue/:id/:companyId', companyGuard, notifCtrl.deleteEmailQueueItem);
+router.delete('/notifications/admin/email-queue/purge/failed/:companyId', companyGuard, notifCtrl.purgeFailedEmailQueue);
+
 module.exports = router;
