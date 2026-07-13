@@ -429,6 +429,17 @@ export default function PurchaseOrdersPage() {
                       });
                     });
                   }
+                  if (selectedPo?.relatedRequisition) {
+                    relatedDocs.push({
+                      type: 'PURCHASE_REQUISITION',
+                      id: selectedPo.relatedRequisition.id,
+                      number: selectedPo.relatedRequisition.requisition_number,
+                      status: selectedPo.relatedRequisition.status,
+                      created_at: selectedPo.relatedRequisition.created_at,
+                      creator_name: selectedPo.relatedRequisition.creator_name,
+                      link: `/dashboard/purchase-requisitions?id=${selectedPo.relatedRequisition.id}`
+                    });
+                  }
                   return <RelatedDocuments documents={relatedDocs} currentType="PURCHASE_ORDER" />;
                 })()}
 
@@ -470,13 +481,30 @@ export default function PurchaseOrdersPage() {
                       Submit for Approval
                     </button>
                   )}
-                  {selectedPo.status === 'APPROVED' && (
-                    <button 
-                      onClick={() => handleConvertPo(selectedPo.id)}
-                      className="w-full py-2.5 bg-emerald-600 text-white rounded-xl text-[12.5px] font-bold shadow-sm hover:bg-emerald-700 transition cursor-pointer"
-                    >
-                      Convert to Purchase Voucher
-                    </button>
+                  {['APPROVED', 'PARTIALLY_RECEIVED'].includes(selectedPo.status) && (
+                    <div className="bg-emerald-50/50 border border-emerald-150 p-3.5 rounded-2xl space-y-2 shadow-sm text-left">
+                      <span className="block text-[10px] font-black uppercase text-emerald-800 tracking-wider">Next Recommended Action</span>
+                      <p className="text-[11.5px] text-slate-650 font-semibold leading-relaxed">
+                        This Purchase Order is approved. Record the arrival of items at the warehouse using a Goods Receipt Note (GRN).
+                      </p>
+                      <button 
+                        onClick={() => navigate(`/dashboard/goods-receipts?po_id=${selectedPo.id}`)}
+                        className="w-full py-2.5 bg-emerald-600 text-white rounded-xl text-[12.5px] font-bold shadow-sm hover:bg-emerald-700 transition cursor-pointer border-none mt-1"
+                      >
+                        Receive Goods
+                      </button>
+                    </div>
+                  )}
+                  {selectedPo.status === 'GOODS_RECEIVED' && (
+                    <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-center justify-between text-[12px] font-semibold text-slate-650">
+                      <span>All goods received successfully</span>
+                      <button 
+                        onClick={() => navigate(`/dashboard/goods-receipts`)}
+                        className="text-[11.5px] font-bold text-emerald-600 border-none bg-transparent cursor-pointer hover:underline flex items-center gap-0.5"
+                      >
+                        Open Receipts <ArrowRight size={12} />
+                      </button>
+                    </div>
                   )}
                 </div>
               </Motion.div>

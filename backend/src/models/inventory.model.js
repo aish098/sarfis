@@ -83,7 +83,7 @@ const upsertInventory = async (trx, productId, warehouseId, quantityDelta) => {
     newQty = quantityDelta;
   }
 
-  // Hook for low stock check & auto-creation of Draft PO
+  // Hook for low stock check & auto-creation of Requisition
   try {
     const product = await trx('products').where({ id: productId }).first();
     if (product && product.reorder_level > 0) {
@@ -95,66 +95,57 @@ const upsertInventory = async (trx, productId, warehouseId, quantityDelta) => {
       const totalStock = parseFloat(sumRes?.total || 0);
 
       if (totalStock <= product.reorder_level) {
-        // Check if there is already a draft or pending PO for this product
+        // Check if there is already a requisition or PO in draft/pending/approved status for this product
+        const existingReq = await trx('purchase_requisition_items as pri')
+          .join('purchase_requisitions as pr', 'pri.purchase_requisition_id', 'pr.id')
+          .where('pri.product_id', productId)
+          .whereIn('pr.status', ['DRAFT', 'PENDING_APPROVAL', 'APPROVED'])
+          .first();
+
         const existingPO = await trx('purchase_order_items as poi')
           .join('purchase_orders as po', 'poi.purchase_order_id', 'po.id')
           .where('poi.product_id', productId)
           .whereIn('po.status', ['DRAFT', 'PENDING_APPROVAL'])
           .first();
 
-        if (!existingPO) {
-          const poService = require('../services/purchase_order.service');
+        if (!existingReq && !existingPO) {
+          const prService = require('../services/purchase_requisition.service');
           const NotificationService = require('../services/notification.service');
 
-          // Find the last vendor this product was purchased from (via stock_logs)
-          const lastPurchase = await trx('stock_logs')
-            .where({ product_id: productId, type: 'PURCHASE' })
-            .orderBy('created_at', 'desc')
-            .first();
-
-          let vendorId = null;
-          if (lastPurchase && lastPurchase.reference_id && lastPurchase.reference_type === 'voucher') {
-            const voucher = await trx('vouchers').where({ id: lastPurchase.reference_id }).first();
-            if (voucher && voucher.payload && voucher.payload.vendorId) {
-              vendorId = voucher.payload.vendorId;
-            }
-          }
-
-          // If no last vendor, fallback to first active vendor in company
-          if (!vendorId) {
-            const firstVendor = await trx('vendors')
-              .where({ company_id: product.company_id, is_active: true })
-              .orderBy('id', 'asc')
-              .first();
-            vendorId = firstVendor ? firstVendor.id : null;
-          }
-
-          // Find first user (usually admin/creator)
-          const firstUser = await trx('users')
-            .where({ company_id: product.company_id })
-            .orderBy('id', 'asc')
+          // Find first user in the company via company_users
+          const firstUser = await trx('company_users as cu')
+            .join('users as u', 'cu.user_id', 'u.id')
+            .where('cu.company_id', product.company_id)
+            .orderBy('u.id', 'asc')
+            .select('u.id')
             .first();
           const creatorId = firstUser ? firstUser.id : null;
 
           // Standard restock qty
           const reorderQty = Math.max(10, product.reorder_level * 2);
 
-          // Create the PO draft
-          const po = await poService.createPurchaseOrder({
+          // Create the Requisition draft
+          const pr = await prService.createPurchaseRequisition({
             companyId: product.company_id,
-            vendorId,
-            date: new Date(),
-            notes: `Auto-generated Draft PO due to low stock level.`,
-            items: [{ productId, quantity: reorderQty, unitPrice: product.cost_price }],
-            userId: creatorId
-          });
+            requestedBy: creatorId,
+            department: 'Inventory / Operations',
+            requiredDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000), // 7 days from now
+            priority: 'NORMAL',
+            reason: `Automatically generated. Product stock reached reorder level (${totalStock} <= ${product.reorder_level}).`,
+            items: [{
+              productId,
+              description: `Restock of product: ${product.name}`,
+              quantity: reorderQty,
+              estimatedPrice: product.cost_price
+            }]
+          }, trx);
 
           // Send low stock notification
           await NotificationService.notifyUsersWithPermission({
             companyId: product.company_id,
             permissionCode: 'voucher.view',
-            title: 'Low Stock Detected',
-            message: `Low stock detected for "${product.name}" (SKU: ${product.sku}). Draft Purchase Order ${po.po_number} has been created.`,
+            title: 'Low Stock Alert',
+            message: `Low stock detected for "${product.name}" (SKU: ${product.sku}). Draft Requisition ${pr.requisition_number} has been created.`,
             type: 'system',
             priority: 'HIGH'
           });

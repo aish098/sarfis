@@ -24,11 +24,18 @@ const NAV_SECTIONS = [
     items: [
       { to: '/dashboard/accounts', icon: BookOpen, label: 'Chart of Accounts', permission: 'ledger.view' },
       { to: '/dashboard/vouchers', icon: FilePlus, label: 'ERP Vouchers', permission: 'voucher.view' },
-      { to: '/dashboard/purchase-orders', icon: FileText, label: 'Purchase Orders', permission: 'voucher.view' },
-      { to: '/dashboard/vendors', icon: Building2, label: 'Vendor Directory', permission: 'vendor.manage' },
       { to: '/dashboard/journal', icon: Activity, label: 'Manual Journals', permission: 'journal.view' },
       { to: '/dashboard/ledger', icon: BookMarked, label: 'General Ledger', permission: 'ledger.view' },
       { to: '/dashboard/finance/close-wizard', icon: Target, label: 'Month-End Close', permission: 'period.manage' },
+    ],
+  },
+  {
+    label: 'Procurement',
+    items: [
+      { to: '/dashboard/purchase-requisitions', icon: FileText, label: 'Requisitions', permission: 'voucher.view' },
+      { to: '/dashboard/purchase-orders', icon: FileText, label: 'Purchase Orders', permission: 'voucher.view' },
+      { to: '/dashboard/goods-receipts', icon: Package, label: 'Goods Receipts', permission: 'voucher.view' },
+      { to: '/dashboard/vendors', icon: Building2, label: 'Vendors', permission: 'vendor.manage' },
     ],
   },
   {

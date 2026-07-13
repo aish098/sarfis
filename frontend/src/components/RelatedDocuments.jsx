@@ -2,7 +2,9 @@ import { Link2, ArrowRight, User, Calendar, ArrowRightCircle } from 'lucide-reac
 import { useNavigate } from 'react-router-dom';
 
 const TYPE_CONFIG = {
+  PURCHASE_REQUISITION: { label: 'Purchase Requisition', colorClass: 'text-blue-650 bg-blue-50 border-blue-100' },
   PURCHASE_ORDER: { label: 'Purchase Order', colorClass: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
+  GOODS_RECEIPT: { label: 'Goods Receipt', colorClass: 'text-amber-650 bg-amber-50 border-amber-100' },
   VOUCHER: { label: 'ERP Voucher', colorClass: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
   DELIVERY: { label: 'Delivery Order', colorClass: 'text-amber-600 bg-amber-50 border-amber-100' }
 };
@@ -49,21 +51,26 @@ export default function RelatedDocuments({ documents = [], currentType }) {
 
   // We always show the timeline journey, even if only the current document type is here.
   // To build the journey, let's see which flow we are in.
-  const isProcurement = currentType === 'PURCHASE_ORDER' || activeDocs.some(doc => doc.type === 'PURCHASE_ORDER');
+  const isProcurement = currentType === 'PURCHASE_REQUISITION' || currentType === 'PURCHASE_ORDER' || currentType === 'GOODS_RECEIPT' || activeDocs.some(doc => doc.type === 'PURCHASE_REQUISITION' || doc.type === 'PURCHASE_ORDER' || doc.type === 'GOODS_RECEIPT');
 
+  const hasReq = currentType === 'PURCHASE_REQUISITION' || activeDocs.some(d => d.type === 'PURCHASE_REQUISITION');
   const hasPo = currentType === 'PURCHASE_ORDER' || activeDocs.some(d => d.type === 'PURCHASE_ORDER');
+  const hasGrn = currentType === 'GOODS_RECEIPT' || activeDocs.some(d => d.type === 'GOODS_RECEIPT');
   const hasVoucher = currentType === 'VOUCHER' || activeDocs.some(d => d.type === 'VOUCHER');
   const hasDelivery = currentType === 'DELIVERY' || activeDocs.some(d => d.type === 'DELIVERY');
   
   // Is it fully completed/posted?
   const isPoPosted = hasVoucher && (currentType === 'VOUCHER' || activeDocs.some(d => d.type === 'VOUCHER' && d.status === 'POSTED'));
   const isDelivered = hasDelivery && (currentType === 'DELIVERY' || activeDocs.some(d => d.type === 'DELIVERY' && d.status === 'DELIVERED'));
+  const isPaid = hasVoucher && activeDocs.some(d => d.type === 'VOUCHER' && d.status === 'PAID');
 
   const journeySteps = isProcurement 
     ? [
+        { type: 'PURCHASE_REQUISITION', label: 'Requisition', active: hasReq, current: currentType === 'PURCHASE_REQUISITION' },
         { type: 'PURCHASE_ORDER', label: 'Purchase Order', active: hasPo, current: currentType === 'PURCHASE_ORDER' },
+        { type: 'GOODS_RECEIPT', label: 'Goods Receipt', active: hasGrn, current: currentType === 'GOODS_RECEIPT' },
         { type: 'VOUCHER', label: 'Purchase Voucher', active: hasVoucher, current: currentType === 'VOUCHER' },
-        { type: 'POSTED', label: 'Inventory Restocked', active: isPoPosted, current: false }
+        { type: 'PAYMENT', label: 'Payment', active: isPaid, current: false }
       ]
     : [
         { type: 'VOUCHER', label: 'Sales Voucher', active: hasVoucher, current: currentType === 'VOUCHER' },

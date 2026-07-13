@@ -474,7 +474,20 @@ export default function VoucherDetails() {
       id: details.relatedPo.id,
       number: details.relatedPo.po_number,
       status: details.relatedPo.status,
+      created_at: details.relatedPo.created_at,
+      creator_name: details.relatedPo.creator_name,
       link: `/dashboard/purchase-orders?id=${details.relatedPo.id}`
+    });
+  }
+  if (details?.relatedRequisition) {
+    relatedDocs.push({
+      type: 'PURCHASE_REQUISITION',
+      id: details.relatedRequisition.id,
+      number: details.relatedRequisition.requisition_number,
+      status: details.relatedRequisition.status,
+      created_at: details.relatedRequisition.created_at,
+      creator_name: details.relatedRequisition.creator_name,
+      link: `/dashboard/purchase-requisitions?id=${details.relatedRequisition.id}`
     });
   }
   if (details?.relatedDeliveries && details.relatedDeliveries.length > 0) {
@@ -484,6 +497,8 @@ export default function VoucherDetails() {
         id: del.id,
         number: del.delivery_number,
         status: del.status,
+        created_at: del.created_at,
+        creator_name: del.creator_name,
         link: `/dashboard/distribution?id=${del.id}`
       });
     });

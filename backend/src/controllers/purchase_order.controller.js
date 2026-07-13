@@ -26,9 +26,20 @@ exports.getPurchaseOrderById = async (req, res) => {
       .where({ 'v.purchase_order_id': req.params.id, 'v.company_id': req.params.companyId, 'v.deleted_at': null })
       .select('v.id', 'v.voucher_number', 'v.status', 'v.created_at', 'u.name as creator_name');
 
+    // Fetch related requisition if linked
+    let relatedRequisition = null;
+    if (po.purchase_requisition_id) {
+      relatedRequisition = await db('purchase_requisitions as pr')
+        .leftJoin('users as u', 'pr.requested_by', 'u.id')
+        .where({ 'pr.id': po.purchase_requisition_id, 'pr.company_id': req.params.companyId })
+        .select('pr.id', 'pr.requisition_number', 'pr.status', 'pr.created_at', 'u.name as creator_name')
+        .first();
+    }
+
     res.json({
       ...po,
-      relatedVouchers
+      relatedVouchers,
+      relatedRequisition
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

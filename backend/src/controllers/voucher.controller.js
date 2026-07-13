@@ -23,12 +23,21 @@ exports.getVoucherById = async (req, res) => {
 
     // Fetch related PO
     let relatedPo = null;
+    let relatedRequisition = null;
     if (voucher.purchase_order_id) {
       relatedPo = await db('purchase_orders as po')
         .leftJoin('users as u', 'po.created_by', 'u.id')
         .where({ 'po.id': voucher.purchase_order_id, 'po.company_id': companyId })
-        .select('po.id', 'po.po_number', 'po.status', 'po.created_at', 'u.name as creator_name')
+        .select('po.id', 'po.po_number', 'po.status', 'po.created_at', 'po.purchase_requisition_id', 'u.name as creator_name')
         .first();
+
+      if (relatedPo && relatedPo.purchase_requisition_id) {
+        relatedRequisition = await db('purchase_requisitions as pr')
+          .leftJoin('users as u', 'pr.requested_by', 'u.id')
+          .where({ 'pr.id': relatedPo.purchase_requisition_id, 'pr.company_id': companyId })
+          .select('pr.id', 'pr.requisition_number', 'pr.status', 'pr.created_at', 'u.name as creator_name')
+          .first();
+      }
     }
 
     // Fetch related deliveries
@@ -40,7 +49,8 @@ exports.getVoucherById = async (req, res) => {
     res.json({
       ...voucher,
       relatedPo,
-      relatedDeliveries
+      relatedDeliveries,
+      relatedRequisition
     });
   } catch (err) {
     res.status(500).json({ error: err.message });

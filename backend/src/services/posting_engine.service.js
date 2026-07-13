@@ -123,6 +123,14 @@ class PostingEngineService {
             throw new Error('Default Inventory Asset or Accounts Payable mappings are missing for this company.');
           }
 
+          let isLinkedToGrn = false;
+          if (voucherId) {
+            const vRecord = await trx('vouchers').where({ id: voucherId }).first();
+            if (vRecord && vRecord.goods_receipt_id) {
+              isLinkedToGrn = true;
+            }
+          }
+
           // Process items for WAC calculation and inventory upsert
           for (const item of items) {
             const product = await inventoryModel.getProductById(item.productId, companyId);
@@ -133,44 +141,46 @@ class PostingEngineService {
             const itemTotal = qty * unitCost;
             totalCost += itemTotal;
 
-            // --- Weighted Average Cost (WAC) Calculation ---
-            // Sum of current inventory across all warehouses for the product
-            const stockSummary = await trx('inventory')
-              .where('product_id', item.productId)
-              .sum('quantity as total_qty')
-              .first();
-            
-            const q_curr = parseFloat(stockSummary?.total_qty || 0);
-            const c_curr = parseFloat(product.cost_price || 0);
-            const q_new = qty;
-            const c_new = unitCost;
+            if (!isLinkedToGrn) {
+              // --- Weighted Average Cost (WAC) Calculation ---
+              // Sum of current inventory across all warehouses for the product
+              const stockSummary = await trx('inventory')
+                .where('product_id', item.productId)
+                .sum('quantity as total_qty')
+                .first();
+              
+              const q_curr = parseFloat(stockSummary?.total_qty || 0);
+              const c_curr = parseFloat(product.cost_price || 0);
+              const q_new = qty;
+              const c_new = unitCost;
 
-            let newWAC = c_new;
-            if (q_curr + q_new > 0) {
-              newWAC = ((q_curr * c_curr) + (q_new * c_new)) / (q_curr + q_new);
+              let newWAC = c_new;
+              if (q_curr + q_new > 0) {
+                newWAC = ((q_curr * c_curr) + (q_new * c_new)) / (q_curr + q_new);
+              }
+
+              // Update product WAC cost price
+              await trx('products')
+                .where({ id: item.productId, company_id: companyId })
+                .update({ cost_price: newWAC, updated_at: trx.fn.now() });
+
+              // Upsert stock in warehouse
+              const newQty = await inventoryModel.upsertInventory(trx, item.productId, warehouseId, qty);
+
+              // Record stock log
+              await inventoryModel.insertStockLog(trx, {
+                product_id: item.productId,
+                warehouse_id: warehouseId,
+                type: 'PURCHASE',
+                quantity_change: qty,
+                quantity_after: newQty,
+                unit_cost: unitCost,
+                reference_id: voucherId || null,
+                reference_type: 'voucher',
+                notes: payload.notes || 'Purchase posted',
+                created_by: userId
+              });
             }
-
-            // Update product WAC cost price
-            await trx('products')
-              .where({ id: item.productId, company_id: companyId })
-              .update({ cost_price: newWAC, updated_at: trx.fn.now() });
-
-            // Upsert stock in warehouse
-            const newQty = await inventoryModel.upsertInventory(trx, item.productId, warehouseId, qty);
-
-            // Record stock log
-            await inventoryModel.insertStockLog(trx, {
-              product_id: item.productId,
-              warehouse_id: warehouseId,
-              type: 'PURCHASE',
-              quantity_change: qty,
-              quantity_after: newQty,
-              unit_cost: unitCost,
-              reference_id: voucherId || null,
-              reference_type: 'voucher',
-              notes: payload.notes || 'Purchase posted',
-              created_by: userId
-            });
           }
 
           const taxRate = parseFloat(settings.tax_rate || 0);

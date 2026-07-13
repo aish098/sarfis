@@ -60,6 +60,16 @@ class WorkflowRegistryService {
           })
           .returning('*');
         docType = newDoc;
+      } else if (docTypeCode === 'PURCHASE_REQUISITION') {
+        const [newDoc] = await trx('workflow_document_types')
+          .insert({
+            code: 'PURCHASE_REQUISITION',
+            name: 'Purchase Requisition Approval',
+            callback_service: 'purchase_requisition.service',
+            callback_method: 'approvePurchaseRequisition'
+          })
+          .returning('*');
+        docType = newDoc;
       } else {
         throw new Error(`Document type '${docTypeCode}' is not registered in the workflow registry.`);
       }
