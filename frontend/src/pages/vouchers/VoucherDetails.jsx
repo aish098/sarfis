@@ -15,6 +15,14 @@ import DocumentHeader from '../../components/ui/DocumentHeader';
 import NextActionCard from '../../components/ui/NextActionCard';
 import StatusBadge from '../../components/ui/StatusBadge';
 
+const TYPE_LABELS = {
+  PURCHASE: 'Purchase Voucher',
+  SALES: 'Sales Invoice',
+  RECEIPT: 'Receipt Voucher',
+  PAYMENT: 'Payment Voucher',
+  JOURNAL: 'Journal Voucher'
+};
+
 const generateMockProducts = (totalAmount, type) => {
   if (totalAmount <= 0) {
     return [{ productName: 'Standard Service Item', quantity: 1, unitPrice: 0, unitCost: 0 }];
