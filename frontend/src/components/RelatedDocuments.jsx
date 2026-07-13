@@ -6,7 +6,9 @@ const TYPE_CONFIG = {
   PURCHASE_ORDER: { label: 'Purchase Order', colorClass: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
   GOODS_RECEIPT: { label: 'Goods Receipt', colorClass: 'text-amber-650 bg-amber-50 border-amber-100' },
   VOUCHER: { label: 'ERP Voucher', colorClass: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
-  DELIVERY: { label: 'Delivery Order', colorClass: 'text-amber-600 bg-amber-50 border-amber-100' }
+  DELIVERY: { label: 'Delivery Order', colorClass: 'text-amber-600 bg-amber-50 border-amber-100' },
+  SALES_ORDER: { label: 'Sales Order', colorClass: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
+  PAYMENT_RECEIPT: { label: 'Payment Receipt', colorClass: 'text-emerald-600 bg-emerald-50 border-emerald-100' }
 };
 
 const STATUS_STYLE_MAP = {
@@ -51,13 +53,15 @@ export default function RelatedDocuments({ documents = [], currentType }) {
 
   // We always show the timeline journey, even if only the current document type is here.
   // To build the journey, let's see which flow we are in.
-  const isProcurement = currentType === 'PURCHASE_REQUISITION' || currentType === 'PURCHASE_ORDER' || currentType === 'GOODS_RECEIPT' || activeDocs.some(doc => doc.type === 'PURCHASE_REQUISITION' || doc.type === 'PURCHASE_ORDER' || doc.type === 'GOODS_RECEIPT');
+  const isSalesFlow = currentType === 'SALES_ORDER' || activeDocs.some(doc => doc.type === 'SALES_ORDER') || (!activeDocs.some(doc => doc.type === 'PURCHASE_REQUISITION' || doc.type === 'PURCHASE_ORDER' || doc.type === 'GOODS_RECEIPT') && (currentType === 'DELIVERY' || currentType === 'VOUCHER'));
+  const isProcurement = !isSalesFlow;
 
   const hasReq = currentType === 'PURCHASE_REQUISITION' || activeDocs.some(d => d.type === 'PURCHASE_REQUISITION');
   const hasPo = currentType === 'PURCHASE_ORDER' || activeDocs.some(d => d.type === 'PURCHASE_ORDER');
   const hasGrn = currentType === 'GOODS_RECEIPT' || activeDocs.some(d => d.type === 'GOODS_RECEIPT');
   const hasVoucher = currentType === 'VOUCHER' || activeDocs.some(d => d.type === 'VOUCHER');
   const hasDelivery = currentType === 'DELIVERY' || activeDocs.some(d => d.type === 'DELIVERY');
+  const hasSo = currentType === 'SALES_ORDER' || activeDocs.some(d => d.type === 'SALES_ORDER');
   
   // Is it fully completed/posted?
   const isPoPosted = hasVoucher && (currentType === 'VOUCHER' || activeDocs.some(d => d.type === 'VOUCHER' && d.status === 'POSTED'));
@@ -73,9 +77,10 @@ export default function RelatedDocuments({ documents = [], currentType }) {
         { type: 'PAYMENT', label: 'Payment', active: isPaid, current: false }
       ]
     : [
+        { type: 'SALES_ORDER', label: 'Sales Order', active: hasSo, current: currentType === 'SALES_ORDER' },
+        { type: 'DELIVERY', label: 'Delivery', active: hasDelivery, current: currentType === 'DELIVERY' },
         { type: 'VOUCHER', label: 'Sales Voucher', active: hasVoucher, current: currentType === 'VOUCHER' },
-        { type: 'DELIVERY', label: 'Delivery Order', active: hasDelivery, current: currentType === 'DELIVERY' },
-        { type: 'DELIVERED', label: 'Order Fulfilled', active: isDelivered, current: false }
+        { type: 'PAYMENT_RECEIPT', label: 'Payment Receipt', active: isPaid, current: false }
       ];
 
   const formatDocDate = (dateStr) => {

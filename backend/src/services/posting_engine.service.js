@@ -237,6 +237,14 @@ class PostingEngineService {
             throw new Error('Default AR, Revenue, Inventory, or COGS mappings are missing for this company.');
           }
 
+          let isLinkedToDelivery = false;
+          if (voucherId) {
+            const linkedDelivery = await trx('deliveries').where({ voucher_id: voucherId }).first();
+            if (linkedDelivery) {
+              isLinkedToDelivery = true;
+            }
+          }
+
           const cogsLines = [];
 
           // Process items for COGS, stock validation, and stock reductions
@@ -254,32 +262,34 @@ class PostingEngineService {
             totalRevenue += lineRevenue;
             totalCOGS += lineCOGS;
 
-            // Stock availability check
-            const stock = await trx('inventory')
-              .where({ product_id: item.productId, warehouse_id: warehouseId })
-              .first();
-            
-            const available = parseFloat(stock?.quantity || 0);
-            if (available < qty) {
-              throw new Error(`Insufficient stock for product '${product.name}' in selected warehouse. Available: ${available}, Required: ${qty}`);
+            if (!isLinkedToDelivery) {
+              // Stock availability check
+              const stock = await trx('inventory')
+                .where({ product_id: item.productId, warehouse_id: warehouseId })
+                .first();
+              
+              const available = parseFloat(stock?.quantity || 0);
+              if (available < qty) {
+                throw new Error(`Insufficient stock for product '${product.name}' in selected warehouse. Available: ${available}, Required: ${qty}`);
+              }
+
+              // Deduct inventory
+              const newQty = await inventoryModel.upsertInventory(trx, item.productId, warehouseId, -qty);
+
+              // Record stock log
+              await inventoryModel.insertStockLog(trx, {
+                product_id: item.productId,
+                warehouse_id: warehouseId,
+                type: 'SALE',
+                quantity_change: -qty,
+                quantity_after: newQty,
+                unit_cost: unitCost,
+                reference_id: voucherId || null,
+                reference_type: 'voucher',
+                notes: payload.notes || 'Sales Invoice posted',
+                created_by: userId
+              });
             }
-
-            // Deduct inventory
-            const newQty = await inventoryModel.upsertInventory(trx, item.productId, warehouseId, -qty);
-
-            // Record stock log
-            await inventoryModel.insertStockLog(trx, {
-              product_id: item.productId,
-              warehouse_id: warehouseId,
-              type: 'SALE',
-              quantity_change: -qty,
-              quantity_after: newQty,
-              unit_cost: unitCost,
-              reference_id: voucherId || null,
-              reference_type: 'voucher',
-              notes: payload.notes || 'Sales Invoice posted',
-              created_by: userId
-            });
 
             // Dr COGS, Cr Inventory lines (accrued per item)
             cogsLines.push(

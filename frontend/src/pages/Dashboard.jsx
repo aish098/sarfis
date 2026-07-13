@@ -35,6 +35,7 @@ import VouchersPage from './vouchers/VouchersPage.jsx';
 import PurchaseOrdersPage from './vouchers/PurchaseOrdersPage.jsx';
 import PurchaseRequisitionsPage from './vouchers/PurchaseRequisitionsPage.jsx';
 import GoodsReceiptsPage from './vouchers/GoodsReceiptsPage.jsx';
+import SalesOrdersPage from './vouchers/SalesOrdersPage.jsx';
 import OrderTrackingPage from './distribution/OrderTrackingPage.jsx';
 import VendorsPage from './vendors/VendorsPage.jsx';
 import SettingsPage from './settings/SettingsPage.jsx';
@@ -512,6 +513,7 @@ export default function Dashboard() {
               <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
               <Route path="purchase-requisitions" element={<PurchaseRequisitionsPage />} />
               <Route path="goods-receipts" element={<GoodsReceiptsPage />} />
+              <Route path="sales-orders" element={<SalesOrdersPage />} />
               <Route path="order-tracking" element={<OrderTrackingPage />} />
               <Route path="vendors" element={<VendorsPage />} />
               <Route path="settings" element={<SettingsPage />} />

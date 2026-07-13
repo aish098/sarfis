@@ -28,14 +28,14 @@ class ProductInquiryService {
         'i.quantity as on_hand'
       );
 
-    // Resolve reserved quantities for each warehouse
-    const reservedRes = await db('delivery_items as di')
-      .join('deliveries as d', 'di.delivery_id', 'd.id')
-      .where('di.product_id', productId)
-      .whereIn('d.status', ['PENDING', 'CONFIRMED'])
-      .select('d.warehouse_id')
-      .sum('di.quantity as qty')
-      .groupBy('d.warehouse_id');
+    // Resolve reserved quantities for each warehouse (based on confirmed but un-dispatched Sales Orders)
+    const reservedRes = await db('sales_order_items as soi')
+      .join('sales_orders as so', 'soi.sales_order_id', 'so.id')
+      .where('soi.product_id', productId)
+      .whereIn('so.status', ['CONFIRMED', 'PICKING', 'PACKED', 'READY_FOR_DISPATCH'])
+      .select('so.warehouse_id')
+      .sum('soi.quantity as qty')
+      .groupBy('so.warehouse_id');
 
     const reservedMap = {};
     for (const r of reservedRes) {

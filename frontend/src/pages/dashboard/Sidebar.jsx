@@ -39,6 +39,14 @@ const NAV_SECTIONS = [
     ],
   },
   {
+    label: 'Sales & Distribution',
+    items: [
+      { to: '/dashboard/sales-orders', icon: FileText, label: 'Sales Orders', permission: 'voucher.view' },
+      { to: '/dashboard/order-tracking', icon: Truck, label: 'Order Tracking', permission: 'voucher.view' },
+      { to: '/dashboard/distribution', icon: Truck, label: 'Customer Deliveries', permission: 'voucher.view' }
+    ],
+  },
+  {
     label: 'Reports',
     items: [
       { to: '/dashboard/reports', icon: BarChart2, label: 'Financial Reports', permission: 'report.view' },
@@ -56,8 +64,6 @@ const NAV_SECTIONS = [
     items: [
       { to: '/dashboard/inventory',    icon: Package,    label: 'Inventory', permission: 'inventory.view', moduleKey: 'inventoryEnabled' },
       { to: '/dashboard/warehouses',   icon: Building2,  label: 'Warehouses', permission: 'warehouse.manage', moduleKey: 'warehousingEnabled' },
-      { to: '/dashboard/distribution', icon: Truck,      label: 'Distribution', permission: 'analytics.view', moduleKey: 'inventoryEnabled' },
-      { to: '/dashboard/order-tracking', icon: Truck,     label: 'Order Tracking', permission: 'analytics.view', moduleKey: 'inventoryEnabled' },
       { to: '/dashboard/fixed-assets', icon: Briefcase,  label: 'Asset Management', permission: 'ledger.view', moduleKey: 'fixedAssetsEnabled' },
       { to: '/dashboard/payroll',      icon: Activity,   label: 'Payroll & HR', permission: 'ledger.view', moduleKey: 'payrollEnabled' },
     ],

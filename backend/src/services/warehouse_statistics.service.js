@@ -31,14 +31,14 @@ class WarehouseStatisticsService {
         'p.created_at as product_created_at'
       );
 
-    // 3. Resolve reserved inventory
-    const reservedRes = await db('delivery_items as di')
-      .join('deliveries as d', 'di.delivery_id', 'd.id')
-      .where('d.warehouse_id', warehouseId)
-      .whereIn('d.status', ['PENDING', 'CONFIRMED'])
-      .select('di.product_id')
-      .sum('di.quantity as reserved_qty')
-      .groupBy('di.product_id');
+    // 3. Resolve reserved inventory (based on confirmed but un-dispatched Sales Orders)
+    const reservedRes = await db('sales_order_items as soi')
+      .join('sales_orders as so', 'soi.sales_order_id', 'so.id')
+      .where('so.warehouse_id', warehouseId)
+      .whereIn('so.status', ['CONFIRMED', 'PICKING', 'PACKED', 'READY_FOR_DISPATCH'])
+      .select('soi.product_id')
+      .sum('soi.quantity as reserved_qty')
+      .groupBy('soi.product_id');
 
     const reservedMap = {};
     for (const r of reservedRes) {

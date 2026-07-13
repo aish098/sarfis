@@ -44,6 +44,7 @@ app.use('/api/workflows', require('./routes/workflow.routes'));
 app.use('/api/purchase-orders', require('./routes/purchase_order.routes'));
 app.use('/api/purchase-requisitions', require('./routes/purchase_requisition.routes'));
 app.use('/api/goods-receipts', require('./routes/goods_receipt.routes'));
+app.use('/api/sales-orders', require('./routes/sales_order.routes'));
 app.use('/api/budgets', require('./routes/budget.routes'));
 app.use('/api/payroll', require('./routes/payroll.routes'));
 app.use('/api/periods', require('./routes/period_close.routes'));
