@@ -24,14 +24,14 @@ module.exports = {
       ssl: { rejectUnauthorized: false }
     },
     pool: {
-      min: 2,
-      max: 10,
-      acquireTimeoutMillis: 10000, // 10 seconds
+      min: 0,
+      max: 4,
+      acquireTimeoutMillis: 30000,
       idleTimeoutMillis: 30000,
       reapIntervalMillis: 1000,
       propagateCreateError: false
     },
-    acquireConnectionTimeout: 10000,
+    acquireConnectionTimeout: 30000,
     migrations: {
       directory: require('path').join(__dirname, 'src/db/migrations')
     },
