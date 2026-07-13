@@ -5,6 +5,17 @@ const db = require('./src/config/db');
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
+  // 1. Initial Connectivity Check to capture raw PG driver errors
+  try {
+    console.log('[DB TEST] Verifying database connectivity...');
+    await db.raw('SELECT 1+1 AS test').timeout(5000);
+    console.log('[DB TEST] Database connection verified successfully.');
+  } catch (dbErr) {
+    console.error('[DB TEST] Database connection check FAILED:');
+    console.error(dbErr.stack || dbErr);
+    console.log('[DB TEST] Continuing boot sequence (will retry connection on demand)...');
+  }
+
   try {
     console.log('[Migrations] Unlocking migrations lock if stuck...');
     await db.migrate.unlock();
