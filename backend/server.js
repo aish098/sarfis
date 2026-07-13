@@ -6,6 +6,8 @@ const PORT = process.env.PORT || 5000;
 
 async function startServer() {
   try {
+    console.log('[Migrations] Unlocking migrations lock if stuck...');
+    await db.migrate.unlock();
     console.log('[Migrations] Running migrations...');
     await db.migrate.latest();
     console.log('[Migrations] Migrations completed successfully');
