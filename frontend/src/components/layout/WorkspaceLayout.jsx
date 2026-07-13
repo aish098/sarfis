@@ -98,15 +98,17 @@ export default function WorkspaceLayout({
           {kpis.map((kpi, idx) => {
             const KpiIcon = kpi.icon;
             return (
-              <div key={idx} className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
+              <div key={idx} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3 min-w-0">
                 {KpiIcon && (
-                  <div className={`p-2.5 rounded-xl ${kpi.iconBgClass || 'bg-blue-50'} ${kpi.iconColorClass || 'text-blue-650'}`}>
+                  <div className={`p-2.5 rounded-xl shrink-0 ${kpi.iconBgClass || 'bg-blue-50'} ${kpi.iconColorClass || 'text-blue-650'}`}>
                     <KpiIcon size={18} />
                   </div>
                 )}
-                <div>
-                  <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">{kpi.label}</span>
-                  <span className="text-[18px] font-black text-slate-800">{kpi.value}</span>
+                <div className="min-w-0 flex-1">
+                  <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider truncate">{kpi.label}</span>
+                  <span className={`font-black text-slate-800 break-all leading-tight block ${
+                    String(kpi.value).length > 15 ? 'text-[13px]' : String(kpi.value).length > 11 ? 'text-[15px]' : 'text-[18px]'
+                  }`}>{kpi.value}</span>
                 </div>
               </div>
             );

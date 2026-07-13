@@ -141,7 +141,8 @@ export default function AccountsPage({ globalSearch = "" }) {
         <div className="col-span-full mb-3 flex items-center gap-3">
           <div className="relative w-[260px]">
             <select
-              className="input-enterprise pr-10 text-[13px] cursor-pointer appearance-none pl-10"
+              style={{ paddingLeft: '38px' }}
+              className="input-enterprise pr-10 text-[13px] cursor-pointer appearance-none"
               value={filterType} onChange={e => setFilterType(e.target.value)}
             >
               <option value="All">All Categories</option>

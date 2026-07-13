@@ -3,7 +3,7 @@ import { motion as Motion, AnimatePresence } from 'framer-motion';
 import {
   Package, Plus, AlertTriangle, Search, Filter,
   TrendingDown, BarChart3, X, ChevronDown, CheckCircle2,
-  ArrowDownToLine, SlidersHorizontal, RefreshCw, Eye, Calendar, Clock
+  ArrowDownToLine, SlidersHorizontal, RefreshCw, Eye, Calendar, Clock, Edit2
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -33,6 +33,7 @@ export default function InventoryPage({ globalSearch = "" }) {
   const [loadError, setLoadError] = useState(null);
   const [loading, setLoading] = useState(true);
   const [localSearch, setLocalSearch] = useState('');
+  const [editingId, setEditingId] = useState(null);
   
   const search = globalSearch || localSearch;
   const [expandedProduct, setExpandedProduct] = useState(null);
@@ -128,12 +129,34 @@ export default function InventoryPage({ globalSearch = "" }) {
   const handleAddProduct = async (e) => {
     e.preventDefault(); setFormError(''); setSaving(true);
     try {
-      await api.post(`/products/${activeCompany.id}`, productForm);
+      if (editingId) {
+        await api.put(`/products/${activeCompany.id}/${editingId}`, productForm);
+      } else {
+        await api.post(`/products/${activeCompany.id}`, productForm);
+      }
       setProductModal(false);
+      setEditingId(null);
       setProductForm({ sku: '', name: '', description: '', unit_price: '', cost_price: '', unit_of_measure: 'unit', reorder_level: 10, inventory_account_id: '', cogs_account_id: '', revenue_account_id: '' });
       load();
-    } catch (err) { setFormError(err.response?.data?.error || 'Failed to create product'); }
+    } catch (err) { setFormError(err.response?.data?.error || 'Failed to save product'); }
     setSaving(false);
+  };
+
+  const handleEditProduct = (p) => {
+    setEditingId(p.id);
+    setProductForm({
+      sku: p.sku || '',
+      name: p.name || '',
+      description: p.description || '',
+      unit_price: p.unit_price || '',
+      cost_price: p.cost_price || '',
+      unit_of_measure: p.unit_of_measure || 'unit',
+      reorder_level: p.reorder_level || 10,
+      inventory_account_id: p.inventory_account_id || '',
+      cogs_account_id: p.cogs_account_id || '',
+      revenue_account_id: p.revenue_account_id || ''
+    });
+    setProductModal(true);
   };
 
   const handlePurchase = async (e) => {
@@ -288,38 +311,48 @@ export default function InventoryPage({ globalSearch = "" }) {
           {tab === 'products' && (
             <div className="card overflow-hidden">
               <div className="overflow-x-auto">
-                <table className="w-full">
+                <table className="w-full text-[12.5px] border-collapse">
               <thead>
                 <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
-                  <th style={{ width: 100 }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">SKU</th>
+                  <th style={{ width: 110 }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-center">SKU</th>
                   <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Product Name</th>
-                  <th style={{ width: 90 }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Unit</th>
-                  <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]" style={{ width: 120 }}>Cost Price</th>
-                  <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]" style={{ width: 120 }}>Unit Price</th>
-                  <th className="text-right px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]" style={{ width: 100 }}>Reorder At</th>
+                  <th style={{ width: 90 }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-center">Unit</th>
+                  <th className="text-center px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]" style={{ width: 140 }}>Cost Price</th>
+                  <th className="text-center px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]" style={{ width: 140 }}>Unit Price</th>
+                  <th className="text-center px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]" style={{ width: 110 }}>Reorder At</th>
+                  <th className="text-center px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]" style={{ width: 90 }}>Actions</th>
                 </tr>
               </thead>
-              <Motion.tbody variants={stagger} initial="initial" animate="animate" className="divide-y divide-[#E6EBE8]">
+              <Motion.tbody variants={stagger} initial="initial" animate="animate" className="divide-y divide-[#E6EBE8] text-slate-650">
                 {loading ? (
                   Array.from({ length: 8 }).map((_, i) => (
-                    <tr key={i}>{Array.from({ length: 6 }).map((_, j) => <td key={j}><div className="skeleton h-4 w-full" /></td>)}</tr>
+                    <tr key={i}>{Array.from({ length: 7 }).map((_, j) => <td key={j}><div className="skeleton h-4 w-full" /></td>)}</tr>
                   ))
                 ) : filteredProducts.length === 0 ? (
-                  <tr><td colSpan={6} className="text-center py-14 text-slate-400 text-[13px]">
+                  <tr><td colSpan={7} className="text-center py-14 text-slate-400 text-[13px]">
                     <Package size={28} className="mx-auto mb-2 text-slate-300" />
                     No products found. Add your first product.
                   </td></tr>
                 ) : filteredProducts.map((p) => (
-                  <Motion.tr key={p.id} variants={fadeUp}>
-                    <td className="px-4 py-3"><span className="font-mono font-semibold text-[12px] text-slate-600 bg-slate-100 px-2 py-1 rounded">{p.sku}</span></td>
+                  <Motion.tr key={p.id} variants={fadeUp} className="hover:bg-slate-50/40">
+                    <td className="px-4 py-3 text-center"><span className="font-mono font-semibold text-[11px] text-slate-600 bg-slate-100 px-2 py-0.5 rounded">{p.sku}</span></td>
                     <td className="px-4 py-3">
-                      <p className="font-semibold text-[14px] text-slate-800">{p.name}</p>
+                      <p className="font-bold text-[13.5px] text-slate-800">{p.name}</p>
                       {p.description && <p className="text-[11px] text-slate-400 mt-0.5 truncate max-w-xs">{p.description}</p>}
                     </td>
-                    <td className="px-4 py-3"><span className="text-[12px] text-slate-500">{p.unit_of_measure}</span></td>
-                    <td className="text-right font-mono text-[13px] px-4 py-3">${parseFloat(p.cost_price).toFixed(2)}</td>
-                    <td className="text-right font-mono text-[13px] font-semibold text-emerald-700 px-4 py-3">${parseFloat(p.unit_price).toFixed(2)}</td>
-                    <td className="text-right font-mono text-[13px] text-slate-500 px-4 py-3">{p.reorder_level}</td>
+                    <td className="px-4 py-3 text-center"><span className="text-[12px] text-slate-500 font-semibold">{p.unit_of_measure}</span></td>
+                    <td className="text-center font-mono text-[12.5px] px-4 py-3 font-semibold text-slate-700">PKR {parseFloat(p.cost_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="text-center font-mono text-[12.5px] font-bold text-emerald-700 px-4 py-3">PKR {parseFloat(p.unit_price).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                    <td className="text-center font-mono text-[12.5px] text-slate-500 px-4 py-3">{p.reorder_level}</td>
+                    <td className="px-4 py-3 text-center">
+                      <button
+                        onClick={() => handleEditProduct(p)}
+                        className="w-8 h-8 rounded-lg flex items-center justify-center hover:bg-slate-100 border border-slate-200 text-slate-500 transition-all cursor-pointer inline-flex"
+                        title="Edit Product"
+                      >
+                        <Edit2 size={13} />
+                      </button>
+                    </td>
                   </Motion.tr>
                 ))}
               </Motion.tbody>
@@ -477,7 +510,7 @@ export default function InventoryPage({ globalSearch = "" }) {
       {/* ─── Add Product Modal ─── */}
       <AnimatePresence>
         {productModal && (
-          <Modal title="Add Product" onClose={() => setProductModal(false)}>
+          <Modal title={editingId ? "Edit Product" : "Add Product"} onClose={() => { setProductModal(false); setEditingId(null); }}>
             <form onSubmit={handleAddProduct} className="space-y-4">
               <FormError error={formError} />
               <div className="grid grid-cols-2 gap-4">
@@ -531,7 +564,7 @@ export default function InventoryPage({ globalSearch = "" }) {
                   </Field>
                 </div>
               </div>
-              <ModalButtons onCancel={() => setProductModal(false)} saving={saving} label="Add Product" />
+              <ModalButtons onCancel={() => { setProductModal(false); setEditingId(null); }} saving={saving} label={editingId ? "Save Changes" : "Add Product"} />
             </form>
           </Modal>
         )}
