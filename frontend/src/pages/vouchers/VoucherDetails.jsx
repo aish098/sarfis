@@ -10,6 +10,7 @@ import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import RelatedDocuments from '../../components/RelatedDocuments';
 
 const generateMockProducts = (totalAmount, type) => {
   if (totalAmount <= 0) {
@@ -466,6 +467,28 @@ export default function VoucherDetails() {
     totalCostAmount = document.totalAmount;
   }
 
+  const relatedDocs = [];
+  if (details?.relatedPo) {
+    relatedDocs.push({
+      type: 'PURCHASE_ORDER',
+      id: details.relatedPo.id,
+      number: details.relatedPo.po_number,
+      status: details.relatedPo.status,
+      link: `/dashboard/purchase-orders?id=${details.relatedPo.id}`
+    });
+  }
+  if (details?.relatedDeliveries && details.relatedDeliveries.length > 0) {
+    details.relatedDeliveries.forEach(del => {
+      relatedDocs.push({
+        type: 'DELIVERY',
+        id: del.id,
+        number: del.delivery_number,
+        status: del.status,
+        link: `/dashboard/distribution?id=${del.id}`
+      });
+    });
+  }
+
   return (
     <div id="print-area" className="space-y-6 font-sans pb-20 max-w-6xl mx-auto relative">
       <style>{`
@@ -622,6 +645,8 @@ export default function VoucherDetails() {
           </div>
         </div>
       </div>
+
+      <RelatedDocuments documents={relatedDocs} />
 
       {/* 3. Document Timeline Bar */}
       <div className="no-print bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">

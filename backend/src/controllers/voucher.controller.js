@@ -20,7 +20,26 @@ exports.getVoucherById = async (req, res) => {
     const { companyId, id } = req.params;
     const voucher = await VoucherService.getVoucherById(id, companyId);
     if (!voucher) return res.status(404).json({ error: 'Voucher not found' });
-    res.json(voucher);
+
+    // Fetch related PO
+    let relatedPo = null;
+    if (voucher.purchase_order_id) {
+      relatedPo = await db('purchase_orders')
+        .where({ id: voucher.purchase_order_id, company_id: companyId })
+        .select('id', 'po_number', 'status')
+        .first();
+    }
+
+    // Fetch related deliveries
+    const relatedDeliveries = await db('deliveries')
+      .where({ voucher_id: id, company_id: companyId })
+      .select('id', 'delivery_number', 'status');
+
+    res.json({
+      ...voucher,
+      relatedPo,
+      relatedDeliveries
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

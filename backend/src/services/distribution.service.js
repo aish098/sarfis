@@ -13,7 +13,7 @@ const inventoryService = require('./inventory.service');
  */
 const createDeliveryOrder = async ({
   companyId, clientId, sectorId, warehouseId, items,
-  deliveryDate, notes, arAccountId, userId,
+  deliveryDate, notes, arAccountId, userId, voucherId,
 }) => {
   // ── Pre-validation ──────────────────────────────────────
   const client = await distModel.getClientById(clientId, companyId);
@@ -46,7 +46,8 @@ const createDeliveryOrder = async ({
       total_cost: totalCost,
       notes,
       created_by: userId,
-      ar_account_id: arAccountId // Store for later confirmation
+      ar_account_id: arAccountId, // Store for later confirmation
+      voucher_id: voucherId || null
     });
 
     // Create delivery items

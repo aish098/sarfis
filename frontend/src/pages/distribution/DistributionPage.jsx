@@ -8,6 +8,8 @@ import {
 import { ResponsiveContainer, AreaChart, Area } from 'recharts';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import { useLocation } from 'react-router-dom';
+import RelatedDocuments from '../../components/RelatedDocuments';
 import { PowerBIDonut } from '../../components/charts/PowerBIDonut';
 import { computeChartLayout, normalizeChartRows, AdaptiveChartFrame } from '../../components/charts/chartEngine';
 import { DynamicClusteredBarChart } from '../../components/charts/DynamicCharts';
@@ -37,8 +39,10 @@ const STATUS_CONFIG = {
 
 export default function DistributionPage() {
   const { activeCompany } = useAuthStore();
+  const { search: locationSearch } = useLocation();
   const [tab, setTab] = useState('deliveries'); // deliveries | clients | sectors
   const [deliveries, setDeliveries] = useState([]);
+  const [salesVouchers, setSalesVouchers] = useState([]);
   const [clients, setClients] = useState([]);
   const [sectors, setSectors] = useState([]);
   const [products, setProducts] = useState([]);
@@ -64,7 +68,7 @@ export default function DistributionPage() {
   // Forms
   const [deliveryForm, setDeliveryForm] = useState({
     clientId: '', sectorId: '', warehouseId: '', deliveryDate: new Date().toISOString().split('T')[0],
-    arAccountId: '', notes: '', items: [{ product_id: '', quantity: '', unit_price: '', unit_cost: '', discount: '0.00', offer: '' }]
+    arAccountId: '', notes: '', voucherId: '', items: [{ product_id: '', quantity: '', unit_price: '', unit_cost: '', discount: '0.00', offer: '' }]
   });
   const [clientForm, setClientForm] = useState({ name: '', email: '', phone: '', address: '', sector_id: '', credit_limit: '' });
   const [sectorForm, setSectorForm] = useState({ name: '', description: '' });
@@ -80,7 +84,7 @@ export default function DistributionPage() {
     setLoading(true);
     try {
       const params = statusFilter ? { status: statusFilter } : {};
-      const [del, cli, sec, prod, wh, accs, stats] = await Promise.all([
+      const [del, cli, sec, prod, wh, accs, stats, vouchersRes] = await Promise.all([
         api.get(`/deliveries/${activeCompany.id}`, { params }),
         api.get(`/clients/${activeCompany.id}`),
         api.get(`/sectors/${activeCompany.id}`),
@@ -88,8 +92,10 @@ export default function DistributionPage() {
         api.get(`/warehouses/${activeCompany.id}`),
         api.get('/accounts'),
         api.get(`/distribution/${activeCompany.id}/dashboard`),
+        api.get(`/vouchers/${activeCompany.id}?type=SALES`),
       ]);
       setDeliveries(del.data);
+      setSalesVouchers(vouchersRes.data || []);
       setClients(cli.data);
       setSectors(sec.data);
       setProducts(prod.data);
@@ -105,6 +111,17 @@ export default function DistributionPage() {
   }, [activeCompany, statusFilter]);
 
   useEffect(() => { load(); }, [load]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(locationSearch);
+    const id = params.get('id') || params.get('open');
+    if (id && deliveries.length > 0) {
+      const match = deliveries.find(d => String(d.id) === String(id));
+      if (match) {
+        handleSelectOrder(match);
+      }
+    }
+  }, [locationSearch, deliveries]);
 
   // Delivery form helpers
   const addDeliveryItem = () => setDeliveryForm(f => ({
@@ -151,6 +168,7 @@ export default function DistributionPage() {
         sectorId: deliveryForm.sectorId || null,
         warehouseId: deliveryForm.warehouseId,
         arAccountId: deliveryForm.arAccountId,
+        voucherId: deliveryForm.voucherId || null,
         items: validItems.map(i => ({
           ...i,
           discount: parseFloat(i.discount || 0),
@@ -166,8 +184,43 @@ export default function DistributionPage() {
 
   const resetDeliveryForm = () => setDeliveryForm({
     clientId: '', sectorId: '', warehouseId: '', deliveryDate: new Date().toISOString().split('T')[0],
-    arAccountId: '', notes: '', items: [{ product_id: '', quantity: '', unit_price: '', unit_cost: '', discount: '0.00', offer: '' }]
+    arAccountId: '', notes: '', voucherId: '', items: [{ product_id: '', quantity: '', unit_price: '', unit_cost: '', discount: '0.00', offer: '' }]
   });
+
+  const autoFillFromVoucher = async (voucherId) => {
+    if (!voucherId) return;
+    try {
+      const { data: v } = await api.get(`/vouchers/${activeCompany.id}/${voucherId}/details`);
+      if (v) {
+        const payload = v.payload || {};
+        
+        // Find default AR account
+        const arAccId = payload.ar_account_id || payload.ap_account_id || '';
+        
+        // Map items
+        const rawItems = payload.items || [];
+        const items = rawItems.map(i => ({
+          product_id: i.productId || i.product_id || '',
+          quantity: parseFloat(i.quantity || 0),
+          unit_price: parseFloat(i.unitPrice || i.unit_price || 0),
+          unit_cost: parseFloat(i.unitCost || i.avgCost || i.unitCost || 0),
+          discount: parseFloat(i.discount || 0).toFixed(2),
+          offer: i.offer || ''
+        }));
+
+        setDeliveryForm(f => ({
+          ...f,
+          clientId: payload.vendorId || payload.clientId || '',
+          warehouseId: payload.warehouseId || '',
+          arAccountId: arAccId,
+          notes: `Created from Sales Voucher ${v.voucher_number}. Notes: ${payload.notes || ''}`,
+          items: items.length > 0 ? items : f.items
+        }));
+      }
+    } catch (err) {
+      console.error('Failed to auto-fill delivery form from voucher:', err);
+    }
+  };
 
   const handleCreateClient = async (e) => {
     e.preventDefault(); setFormError(''); setSaving(true);
@@ -449,6 +502,21 @@ export default function DistributionPage() {
                       <span className="font-mono text-slate-900">${parseFloat(selectedOrder.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                     </div>
                   </div>
+
+                  {/* Related Documents */}
+                  {(() => {
+                    const relatedDocs = [];
+                    if (selectedOrder?.relatedVoucher) {
+                      relatedDocs.push({
+                        type: 'VOUCHER',
+                        id: selectedOrder.relatedVoucher.id,
+                        number: selectedOrder.relatedVoucher.voucher_number,
+                        status: selectedOrder.relatedVoucher.status,
+                        link: `/dashboard/vouchers/details/${selectedOrder.relatedVoucher.id}`
+                      });
+                    }
+                    return <RelatedDocuments documents={relatedDocs} />;
+                  })()}
 
                   {/* Tracking Progress timeline */}
                   <div className="space-y-4 pt-4 border-t border-slate-100">
@@ -753,6 +821,17 @@ export default function DistributionPage() {
               <div className="p-7 overflow-y-auto max-h-[75vh]">
                 <form onSubmit={handleCreateDelivery} className="space-y-4">
                   {formError && <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-[13px] text-red-600 font-medium"><AlertTriangle size={14} />{formError}</div>}
+                  <div>
+                    <label className="field-label">Source Sales Voucher (Optional)</label>
+                    <select className="input-enterprise mb-2" value={deliveryForm.voucherId} onChange={e => {
+                      const vId = e.target.value;
+                      setDeliveryForm(f => ({ ...f, voucherId: vId }));
+                      autoFillFromVoucher(vId);
+                    }}>
+                      <option value="">— Direct Order (No Voucher Link) —</option>
+                      {salesVouchers.map(v => <option key={v.id} value={v.id}>{v.voucher_number} - PKR {parseFloat(v.total_amount).toLocaleString()}</option>)}
+                    </select>
+                  </div>
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="field-label">Client *</label>

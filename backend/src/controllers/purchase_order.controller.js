@@ -18,7 +18,17 @@ exports.getPurchaseOrderById = async (req, res) => {
   try {
     const po = await poService.getPurchaseOrderById(req.params.id, req.params.companyId);
     if (!po) return res.status(404).json({ error: 'Purchase Order not found.' });
-    res.json(po);
+
+    // Fetch related vouchers
+    const db = require('../config/db');
+    const relatedVouchers = await db('vouchers')
+      .where({ purchase_order_id: req.params.id, company_id: req.params.companyId, deleted_at: null })
+      .select('id', 'voucher_number', 'status');
+
+    res.json({
+      ...po,
+      relatedVouchers
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }

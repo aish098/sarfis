@@ -78,7 +78,17 @@ exports.getDeliveryById = async (req, res) => {
       distModel.getDeliveryItems(req.params.id),
     ]);
     if (!delivery) return res.status(404).json({ error: 'Delivery not found' });
-    res.json({ ...delivery, items });
+
+    let relatedVoucher = null;
+    if (delivery.voucher_id) {
+      const db = require('../config/db');
+      relatedVoucher = await db('vouchers')
+        .where({ id: delivery.voucher_id, company_id: req.params.companyId, deleted_at: null })
+        .select('id', 'voucher_number', 'status')
+        .first();
+    }
+
+    res.json({ ...delivery, items, relatedVoucher });
   } catch (err) { res.status(500).json({ error: err.message }); }
 };
 

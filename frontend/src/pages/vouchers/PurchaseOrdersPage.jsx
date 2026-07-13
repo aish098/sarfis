@@ -1,9 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, FileText, CheckCircle, RefreshCw, Trash2, Calendar, ShieldAlert, ArrowRight, User, X, FilePlus, Eye, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import RelatedDocuments from '../../components/RelatedDocuments';
 
 const STATUS_CONFIG = {
   DRAFT: { label: 'Draft', bg: 'bg-amber-50 text-amber-700 border border-amber-100' },
@@ -15,6 +16,7 @@ const STATUS_CONFIG = {
 
 export default function PurchaseOrdersPage() {
   const navigate = useNavigate();
+  const { search } = useLocation();
   const { activeCompany } = useAuthStore();
 
   const [purchaseOrders, setPurchaseOrders] = useState([]);
@@ -62,6 +64,17 @@ export default function PurchaseOrdersPage() {
   useEffect(() => {
     loadData();
   }, [loadData]);
+
+  useEffect(() => {
+    const params = new URLSearchParams(search);
+    const id = params.get('id') || params.get('open');
+    if (id && purchaseOrders.length > 0) {
+      const match = purchaseOrders.find(po => String(po.id) === String(id));
+      if (match) {
+        handleSelectPo(match);
+      }
+    }
+  }, [search, purchaseOrders]);
 
   const loadTimeline = async (poId) => {
     setLoadingTimeline(true);
@@ -399,6 +412,23 @@ export default function PurchaseOrdersPage() {
                     <span className="font-mono text-slate-900">${parseFloat(selectedPo.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                   </div>
                 </div>
+
+                {/* Related Documents */}
+                {(() => {
+                  const relatedDocs = [];
+                  if (selectedPo?.relatedVouchers && selectedPo.relatedVouchers.length > 0) {
+                    selectedPo.relatedVouchers.forEach(v => {
+                      relatedDocs.push({
+                        type: 'VOUCHER',
+                        id: v.id,
+                        number: v.voucher_number,
+                        status: v.status,
+                        link: `/dashboard/vouchers/details/${v.id}`
+                      });
+                    });
+                  }
+                  return <RelatedDocuments documents={relatedDocs} />;
+                })()}
 
                 {/* Workflow timeline */}
                 <div className="space-y-3 pt-3 border-t border-slate-100">

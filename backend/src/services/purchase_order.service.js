@@ -270,6 +270,11 @@ class PurchaseOrderService {
         .where({ id, company_id: companyId })
         .update({ status: 'CONVERTED', updated_at: trx.fn.now() });
 
+      // Link voucher to PO
+      await trx('vouchers')
+        .where({ id: voucher.id })
+        .update({ purchase_order_id: id });
+
       return voucher;
     });
   }
