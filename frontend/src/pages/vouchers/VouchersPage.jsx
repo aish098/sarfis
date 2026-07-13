@@ -6,6 +6,8 @@ import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import VoucherForm from './VoucherForm';
 import VoucherDetails from './VoucherDetails';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 const STATUS_BADGES = {
   DRAFT: 'bg-amber-55 bg-amber-50 text-amber-600 border border-amber-100',
@@ -109,65 +111,59 @@ function VoucherList() {
     return matchSearch && matchType && matchStatus;
   });
 
+  const countTotal = vouchers.length;
+  const countDraft = vouchers.filter(v => v.status === 'DRAFT').length;
+  const countPending = vouchers.filter(v => v.status === 'PENDING_APPROVAL').length;
+  const countPosted = vouchers.filter(v => v.status === 'POSTED').length;
+  const countReversed = vouchers.filter(v => v.is_reversed || v.status === 'REVERSED' || v.status === 'CANCELLED').length;
+
+  const kpisList = [
+    { label: 'Total Documents', value: countTotal, icon: FileText, iconBgClass: 'bg-blue-50', iconColorClass: 'text-blue-650' },
+    { label: 'Drafts', value: countDraft, icon: FileText, iconBgClass: 'bg-slate-100', iconColorClass: 'text-slate-500' },
+    { label: 'Pending Approval', value: countPending, icon: FileText, iconBgClass: 'bg-amber-50', iconColorClass: 'text-amber-600' },
+    { label: 'Posted to Ledger', value: countPosted, icon: CheckCircle, iconBgClass: 'bg-emerald-50', iconColorClass: 'text-emerald-600' },
+    { label: 'Reversed/Cancelled', value: countReversed, icon: ShieldAlert, iconBgClass: 'bg-rose-50', iconColorClass: 'text-rose-650' }
+  ];
+
   return (
-    <div className="space-y-6">
-      {/* Top Banner Toolbar */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <FileText size={18} className="text-white fill-white/20" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">ERP Voucher Register</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Double-Entry</span>
-            </div>
-            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
-              Create and post transaction-driven business records.
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap">
-          <button onClick={() => navigate('new')} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer">
+    <>
+      <WorkspaceLayout
+        title="ERP Voucher Register"
+        subtitle="Create and post transaction-driven business records."
+        icon={FileText}
+        badgeText="Double-Entry"
+        breadcrumbs={['SARFIS', 'Finance', 'ERP Vouchers']}
+        primaryAction={
+          <button onClick={() => navigate('new')} className="flex items-center gap-2 bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer border-none">
             <Plus size={14} /> New Transaction
           </button>
-        </div>
-      </div>
-
-      {/* Tabs */}
-      <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-xl w-fit">
-        {['ALL', 'SALES', 'PURCHASE', 'RECEIPT', 'PAYMENT', 'JOURNAL'].map(t => (
-          <button
-            key={t}
-            onClick={() => setFilterType(t)}
-            className={`px-4 py-2 text-[12.5px] font-bold rounded-lg transition-all ${
-              filterType === t 
-                ? 'bg-white text-slate-800 shadow-sm' 
-                : 'text-slate-500 hover:text-slate-800'
-            }`}
-          >
-            {t === 'ALL' ? 'All Ledger Documents' : TYPE_LABELS[t]}
-          </button>
-        ))}
-      </div>
-
-      {/* Card Wrapper */}
-      <div className="card !rounded-2xl border border-slate-100 bg-white overflow-hidden">
-        {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/50 justify-between items-center">
-          <div className="relative flex-1 max-w-sm w-full">
-            <Search size={14} className="absolute left-[14px] top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              className="input-enterprise text-[13px]"
-              style={{ paddingLeft: '44px' }}
-              placeholder="Search by voucher # or remarks..."
-              value={searchQuery} onChange={e => setSearchQuery(e.target.value)}
-            />
+        }
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search by voucher # or remarks..."
+        kpis={kpisList}
+      >
+        {/* Type & Status Filters */}
+        <div className="col-span-full mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 border border-slate-100 rounded-xl w-fit">
+            {['ALL', 'SALES', 'PURCHASE', 'RECEIPT', 'PAYMENT', 'JOURNAL'].map(t => (
+              <button
+                key={t}
+                onClick={() => setFilterType(t)}
+                className={`px-4.5 py-2 text-[12.5px] font-bold rounded-lg transition-all border-none bg-transparent cursor-pointer ${
+                  filterType === t 
+                    ? 'bg-white text-slate-800 shadow-xs' 
+                    : 'text-slate-500 hover:text-slate-800'
+                }`}
+              >
+                {t === 'ALL' ? 'All Documents' : TYPE_LABELS[t]}
+              </button>
+            ))}
           </div>
-          <div className="flex items-center gap-3 w-full sm:w-auto">
+
+          <div className="relative w-[180px]">
             <select
-              className="input-enterprise text-[13px] py-1.5 w-full sm:w-[160px]"
+              className="input-enterprise pr-10 text-[13px] cursor-pointer appearance-none pl-3"
               value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
             >
               <option value="ALL">All Statuses</option>
@@ -175,11 +171,14 @@ function VoucherList() {
               <option value="PENDING_APPROVAL">Pending Approval</option>
               <option value="POSTED">Posted to Ledger</option>
             </select>
+            <ChevronDown size={14} className="absolute right-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
+        {/* Table Card */}
+        <div className="col-span-full">
+          <div className="card overflow-hidden bg-white border border-slate-100 rounded-3xl">
+            <div className="overflow-x-auto">
           <table className="w-full">
             <thead>
               <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
@@ -308,19 +307,19 @@ function VoucherList() {
           </table>
         </div>
       </div>
-    </div>
+      </div>
+      </WorkspaceLayout>
+    </>
   );
 }
 
 export default function VouchersPage() {
   return (
-    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6]">
-      <Routes>
-        <Route index element={<VoucherList />} />
-        <Route path="new" element={<VoucherForm />} />
-        <Route path="edit/:id" element={<VoucherForm />} />
-        <Route path="details/:id" element={<VoucherDetails />} />
-      </Routes>
-    </div>
+    <Routes>
+      <Route index element={<VoucherList />} />
+      <Route path="new" element={<VoucherForm />} />
+      <Route path="edit/:id" element={<VoucherForm />} />
+      <Route path="details/:id" element={<VoucherDetails />} />
+    </Routes>
   );
 }

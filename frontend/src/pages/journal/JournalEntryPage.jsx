@@ -10,6 +10,8 @@ import {
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import RequirePermission from '../../components/RequirePermission';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown }) {
   const [open, setOpen] = useState(false);
@@ -507,7 +509,7 @@ export default function JournalEntryPage() {
   );
 
   return (
-    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6]">
+    <>
       <style>{`
         /* Hide scrollbar completely by default, only show when hovering and overflow exists */
         body .sarfis-scrollbar::-webkit-scrollbar {
@@ -546,65 +548,68 @@ export default function JournalEntryPage() {
         }
       `}</style>
 
-      {/* Top Banner Toolbar */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 mb-6 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          {/* Sarfis Logo */}
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <Zap size={18} className="text-white fill-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">SARFIS</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Real-Time Edition</span>
+      <WorkspaceLayout
+        title="Journal Entry"
+        subtitle="Create and post adjustments to the General Ledger."
+        icon={BookOpen}
+        badgeText="Journal"
+        breadcrumbs={['SARFIS', 'Finance', 'Journal Entries']}
+        primaryAction={
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Posting Mode Toggle */}
+            <div className="flex items-center bg-white border border-[#C2F3DC] rounded-xl p-1.5 shadow-sm no-print">
+              <span className="text-[11px] font-bold uppercase text-slate-505 px-2.5">Engine Mode:</span>
+              <button
+                type="button"
+                onClick={() => {
+                  console.log("Toggling posting mode from click");
+                  setPostingMode(prev => prev === 'REALTIME' ? 'BATCH' : 'REALTIME');
+                }}
+                className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-extrabold uppercase transition-all cursor-pointer relative z-10 select-none border-none ${postingMode === 'REALTIME'
+                    ? 'bg-emerald-50 text-emerald-700'
+                    : 'bg-cyan-50 text-cyan-700'
+                  }`}
+              >
+                {postingMode === 'REALTIME' ? (
+                  <><Activity size={12} className="stroke-[2.5] animate-pulse" /> Real-time</>
+                ) : (
+                  <><Layers size={12} className="stroke-[2.5]" /> Batch Draft</>
+                )}
+              </button>
             </div>
-            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
-              <span className="w-2 h-2 rounded-full bg-emerald-500 animate-ping inline-block" />
-              General Ledger Sync: ONLINE
-            </p>
-          </div>
-        </div>
 
-        {/* Posting Mode & Transaction Drawer Toggle */}
-        <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap">
-          {/* Engine Mode Toggle Button */}
-          <div className="flex items-center bg-white border border-[#C2F3DC] rounded-xl p-1.5 shadow-sm">
-            <span className="text-[11px] font-bold uppercase text-slate-500 px-2.5">Engine Mode:</span>
+            {/* Recent Entries Button with Sarfis Logo Icon */}
             <button
               type="button"
-              onClick={() => {
-                console.log("Toggling posting mode from click");
-                setPostingMode(prev => prev === 'REALTIME' ? 'BATCH' : 'REALTIME');
-              }}
-              className={`flex items-center gap-1.5 px-3 py-1.5 rounded-lg text-[11px] font-extrabold uppercase transition-all cursor-pointer relative z-10 select-none ${postingMode === 'REALTIME'
-                  ? 'bg-emerald-50 text-emerald-700 border border-emerald-100 shadow-sm'
-                  : 'bg-cyan-50 text-cyan-700 border border-cyan-100 shadow-sm'
-                }`}
+              onClick={() => setRecentDrawerOpen(true)}
+              className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-705 border border-slate-200 rounded-xl px-4 py-2 text-[12px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer no-print"
             >
-              {postingMode === 'REALTIME' ? (
-                <><Activity size={12} className="stroke-[2.5] animate-pulse" /> Real-time</>
-              ) : (
-                <><Layers size={12} className="stroke-[2.5]" /> Batch Draft</>
-              )}
+              <Zap size={13} className="text-emerald-500 fill-emerald-500" />
+              <span>Recent ({recentEntries.length})</span>
             </button>
+
+            <RequirePermission permission="journal.create">
+              <button
+                onClick={() => validate(postingMode === 'REALTIME' ? (canPost ? 'post' : 'submit') : 'draft')}
+                disabled={saving}
+                className="flex items-center gap-2 bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2.5 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 disabled:opacity-50 cursor-pointer border-none no-print"
+              >
+                {saving ? (
+                  <><RefreshCw size={14} className="animate-spin" /> Syncing...</>
+                ) : (
+                  <>
+                    <Save size={14} /> 
+                    {postingMode === 'REALTIME' ? (canPost ? 'Post Journal' : 'Submit Approval') : 'Save Draft'}
+                  </>
+                )}
+              </button>
+            </RequirePermission>
           </div>
-
-          {/* Recent Entries Button with Sarfis Logo Icon */}
-          <button
-            type="button"
-            onClick={() => setRecentDrawerOpen(true)}
-            className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl px-4 py-2 text-[12px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer"
-          >
-            <div className="w-4 h-4 rounded bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white flex-shrink-0">
-              <Zap size={9} className="text-white fill-white" />
-            </div>
-            <span>Recent Entries ({recentEntries.length})</span>
-          </button>
-        </div>
-      </div>
-
-      {/* Main Form Area */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
+        }
+      >
+        <div className="col-span-full">
+          {/* Main Form Area */}
+          <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
         {/* Table & Header controls */}
         <div className="lg:col-span-3 space-y-5">
           {/* Main Action Bar */}
@@ -1430,6 +1435,8 @@ export default function JournalEntryPage() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+        </div>
+      </WorkspaceLayout>
+    </>
   );
 }

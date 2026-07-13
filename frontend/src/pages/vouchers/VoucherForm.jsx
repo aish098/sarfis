@@ -666,7 +666,7 @@ export default function VoucherForm() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6] space-y-6">
       {/* Top Banner Toolbar */}
       <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">

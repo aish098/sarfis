@@ -201,11 +201,23 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
         e.preventDefault();
         searchRef.current?.focus();
       }
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'n') {
+        e.preventDefault();
+        navigate('/dashboard/vouchers/new');
+      }
+      if ((e.ctrlKey || e.metaKey) && !e.shiftKey && e.key.toLowerCase() === 'j') {
+        e.preventDefault();
+        navigate('/dashboard/journal');
+      }
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        navigate('/dashboard/accounts');
+      }
       if (e.key === 'Escape') closeAll();
     };
     window.addEventListener('keydown', onKey);
     return () => window.removeEventListener('keydown', onKey);
-  }, [closeAll]);
+  }, [closeAll, navigate]);
 
 
 

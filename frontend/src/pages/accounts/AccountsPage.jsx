@@ -1,8 +1,10 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Filter, Trash2, X, AlertCircle, Edit2, ChevronDown, Database } from 'lucide-react';
+import { Plus, Search, Filter, Trash2, X, AlertCircle, Edit2, ChevronDown, Database, CheckCircle2, AlertTriangle } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 const TYPE_BADGES = {
   Asset: 'badge-asset', Liability: 'badge-liability', Equity: 'badge-equity',
@@ -43,6 +45,21 @@ export default function AccountsPage({ globalSearch = "" }) {
   useEffect(() => {
     Promise.resolve().then(() => load());
   }, [load]);
+
+  useEffect(() => {
+    const handleKeyDown = (e) => {
+      if ((e.ctrlKey || e.metaKey) && e.shiftKey && e.key.toLowerCase() === 'f') {
+        e.preventDefault();
+        const searchInput = document.querySelector('input[placeholder*="Find account"]');
+        if (searchInput) {
+          searchInput.focus();
+          searchInput.select();
+        }
+      }
+    };
+    window.addEventListener('keydown', handleKeyDown);
+    return () => window.removeEventListener('keydown', handleKeyDown);
+  }, []);
 
   const filtered = accounts.filter(a => {
     const q = search.toLowerCase();
@@ -88,50 +105,44 @@ export default function AccountsPage({ globalSearch = "" }) {
     try { await api.delete(`/accounts/${id}`); load(); } catch (err) { console.error('Delete failed:', err); }
   };
 
+  const countTotal = accounts.length;
+  const countActive = accounts.filter(a => a.is_active !== false).length;
+  const countInactive = accounts.filter(a => a.is_active === false).length;
+  const countAssets = accounts.filter(a => a.category === 'Asset').length;
+  const countLiabilities = accounts.filter(a => a.category === 'Liability').length;
+
+  const kpisList = [
+    { label: 'Total Accounts', value: countTotal, icon: Database, iconBgClass: 'bg-blue-50', iconColorClass: 'text-blue-650' },
+    { label: 'Active', value: countActive, icon: CheckCircle2, iconBgClass: 'bg-emerald-50', iconColorClass: 'text-emerald-600' },
+    { label: 'Inactive', value: countInactive, icon: AlertTriangle, iconBgClass: 'bg-slate-50', iconColorClass: 'text-slate-400' },
+    { label: 'Assets', value: countAssets, icon: Database, iconBgClass: 'bg-indigo-50', iconColorClass: 'text-indigo-655' },
+    { label: 'Liabilities', value: countLiabilities, icon: Database, iconBgClass: 'bg-rose-50', iconColorClass: 'text-rose-600' }
+  ];
+
   return (
-    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6] space-y-6">
-      {/* Top Banner Toolbar */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <Database size={18} className="text-white fill-white/20" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Chart of Accounts</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Master Data</span>
-            </div>
-            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
-              Manage and organize your financial structure for {activeCompany?.name}
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap">
-          <button onClick={() => setModalOpen(true)} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer">
+    <>
+      <WorkspaceLayout
+        title="Chart of Accounts"
+        subtitle={`Manage and organize your financial structure for ${activeCompany?.name || 'your company'}`}
+        icon={Database}
+        badgeText="Master Data"
+        breadcrumbs={['SARFIS', 'Finance', 'Chart of Accounts']}
+        primaryAction={
+          <button onClick={() => setModalOpen(true)} className="flex items-center gap-2 bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer border-none">
             <Plus size={14} /> Add Account
           </button>
-        </div>
-      </div>
-
-      {/* Table card */}
-      <div className="card overflow-hidden">
-        {/* Toolbar */}
-        <div className="flex flex-col sm:flex-row gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/50">
-          <div className="relative flex-1 max-w-sm">
-            <Search size={14} className="absolute left-[14px] top-1/2 -translate-y-1/2 text-slate-400" />
-            <input
-              className="input-enterprise text-[13px]"
-              style={{ paddingLeft: '44px' }}
-              placeholder="Search by name or code..."
-              value={localSearch} onChange={e => setLocalSearch(e.target.value)}
-            />
-          </div>
-          <div className="relative w-full sm:w-[260px]">
+        }
+        searchQuery={search}
+        onSearchChange={setLocalSearch}
+        searchPlaceholder="Search by name or code..."
+        kpis={kpisList}
+      >
+        {/* Category Filters */}
+        <div className="col-span-full mb-3 flex items-center gap-3">
+          <div className="relative w-[260px]">
             <select
-              className="input-enterprise pr-10 text-[13px] cursor-pointer appearance-none"
+              className="input-enterprise pr-10 text-[13px] cursor-pointer appearance-none pl-10"
               value={filterType} onChange={e => setFilterType(e.target.value)}
-              style={{ paddingLeft: '44px', paddingTop: '0px', paddingBottom: '0px' }}
             >
               <option value="All">All Categories</option>
               {['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'].map(t => (
@@ -143,8 +154,10 @@ export default function AccountsPage({ globalSearch = "" }) {
           </div>
         </div>
 
-        {/* Table */}
-        <div className="overflow-x-auto">
+        {/* Table Card */}
+        <div className="col-span-full">
+          <div className="card overflow-hidden bg-white border border-slate-100 rounded-3xl">
+            <div className="overflow-x-auto">
           <table className="data-table">
             <thead>
               <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
@@ -219,6 +232,8 @@ export default function AccountsPage({ globalSearch = "" }) {
           </div>
         )}
       </div>
+      </div>
+      </WorkspaceLayout>
 
       {/* Add Account Modal */}
       <AnimatePresence>
@@ -305,6 +320,6 @@ export default function AccountsPage({ globalSearch = "" }) {
           </Motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }

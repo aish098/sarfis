@@ -11,6 +11,9 @@ import useAuthStore from '../../store/authStore';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import RelatedDocuments from '../../components/RelatedDocuments';
+import DocumentHeader from '../../components/ui/DocumentHeader';
+import NextActionCard from '../../components/ui/NextActionCard';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 const generateMockProducts = (totalAmount, type) => {
   if (totalAmount <= 0) {
@@ -505,7 +508,7 @@ export default function VoucherDetails() {
   }
 
   return (
-    <div id="print-area" className="space-y-6 font-sans pb-20 max-w-6xl mx-auto relative">
+    <div id="print-area" className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6] space-y-6">
       <style>{`
         @media print {
           aside, header, nav, #sidebar-container, .no-print, button, form, input, textarea {
@@ -527,139 +530,38 @@ export default function VoucherDetails() {
       `}</style>
       
       {/* 1. Header Toolbar */}
-      <div className="flex flex-col md:flex-row md:items-center justify-between gap-4 border-b border-slate-100 pb-4">
-        <div className="flex items-center gap-3">
-          <button onClick={() => navigate('/dashboard/vouchers')} className="no-print w-9 h-9 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 transition-all">
-            <ChevronLeft size={16} />
-          </button>
-          <div>
-            <div className="flex items-center gap-2">
-              <span className="text-[11px] font-black uppercase tracking-wider text-slate-400 bg-slate-100 px-2 py-0.5 rounded">
-                {document.type} VOUCHER
-              </span>
-              <span className={`badge text-[10px] font-black px-2 py-0.5 rounded-full border ${
-                document.status === 'POSTED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                document.status === 'PENDING_APPROVAL' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' :
-                'bg-amber-50 text-amber-700 border-amber-100'
-              }`}>
-                {document.status}
-              </span>
-              {document.isReversed && (
-                <span className="badge text-[10px] font-black bg-rose-50 text-rose-700 border border-rose-100 px-2 py-0.5 rounded-full">
-                  REVERSED
-                </span>
-              )}
-            </div>
-            <h1 className="font-display font-extrabold text-[20px] text-slate-800 tracking-tight mt-0.5">
-              {document.voucherNumber}
-            </h1>
-          </div>
-        </div>
-
-        {/* Action Controls */}
-        <div className="no-print flex flex-wrap items-center gap-2">
-          <button onClick={handlePDF} className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm">
-            <Download size={13} /> PDF
-          </button>
-          <button onClick={handleEmail} className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm">
-            <Mail size={13} /> Email
-          </button>
-          <button onClick={handleClone} className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm">
-            <Copy size={13} /> Clone
-          </button>
-          
-          {isPosted && !document.isReversed && (
-            <button onClick={handleReverse} className="px-3 py-1.5 border border-rose-200 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm">
-              <RotateCcw size={13} /> Reverse Posted
-            </button>
-          )}
-
-          {!isPosted && (
-            <button onClick={handlePost} className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-[12px] font-black transition-all flex items-center gap-1.5 shadow-md">
-              <CheckCircle size={13} /> Approve & Post
-            </button>
-          )}
-        </div>
+      <div className="no-print flex items-center gap-2 mb-2">
+        <button onClick={() => navigate('/dashboard/vouchers')} className="w-8 h-8 rounded-lg border border-slate-200 hover:bg-slate-50 flex items-center justify-center text-slate-500 transition-all cursor-pointer bg-white">
+          <ChevronLeft size={15} />
+        </button>
+        <span className="text-[12px] font-bold text-slate-400">Back to Register</span>
       </div>
 
-      {/* 2. Summary Metric Cards */}
-      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-        {/* Card 1: Financial */}
-        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-start justify-between">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Financial Summary</span>
-            <p className="text-xl font-black text-slate-800 font-mono">
-              PKR {document.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-            </p>
-            <span className="text-[11px] text-slate-500 font-semibold flex items-center gap-1">
-              <CheckCircle size={12} className="text-emerald-500" /> Double-entry balanced
-            </span>
-          </div>
-          <div className="p-2.5 rounded-lg bg-emerald-50 text-emerald-600">
-            <DollarSign size={16} />
-          </div>
-        </div>
-
-        {/* Card 2: Inventory */}
-        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-start justify-between">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Inventory Impact</span>
-            <p className="text-xl font-black text-slate-800 font-mono">
-              {itemsCount} Item(s)
-            </p>
-            <span className="text-[11px] text-slate-500 font-semibold">
-              {isSales ? `COGS: PKR ${totalCostAmount.toLocaleString()} (${profitMargin}% Margin)` : `Cost: PKR ${totalCostAmount.toLocaleString()}`}
-            </span>
-          </div>
-          <div className="p-2.5 rounded-lg bg-blue-50 text-blue-600">
-            <Package size={16} />
-          </div>
-        </div>
-
-        {/* Card 3: Business Partner */}
-        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-start justify-between">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Business Partner</span>
-            <p className="text-[14px] font-black text-slate-800 truncate max-w-[150px]" title={business.customer?.name || business.vendor?.name || 'Cash Sale'}>
-              {business.customer?.name || business.vendor?.name || 'Cash Sale'}
-            </p>
-            {business.creditSummary ? (
-              <span className="text-[11px] text-slate-500 font-semibold block">
-                AR Bal: PKR {business.creditSummary.outstanding.toLocaleString()}
-                {business.creditSummary.creditUtilization !== undefined && ` (${business.creditSummary.creditUtilization}% Limit)`}
-              </span>
-            ) : (
-              <span className="text-[11px] text-slate-400">No linked balance</span>
-            )}
-          </div>
-          <div className="p-2.5 rounded-lg bg-purple-50 text-purple-600">
-            <User size={16} />
-          </div>
-        </div>
-
-        {/* Card 4: Governance Risk */}
-        <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm flex items-start justify-between">
-          <div className="space-y-1">
-            <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block">Risk Governance</span>
-            <div className="flex items-center gap-1.5">
-              <span className={`badge text-[9.5px] font-black px-1.5 py-0.5 rounded border ${
-                risk.status.level === 'CRITICAL' ? 'bg-red-50 text-red-700 border-red-100' :
-                risk.status.level === 'HIGH' ? 'bg-orange-50 text-orange-700 border-orange-100' :
-                risk.status.level === 'MEDIUM' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                'bg-emerald-50 text-emerald-700 border-emerald-100'
-              }`}>
-                {risk.status.level} ({risk.status.score} pts)
-              </span>
-            </div>
-            <span className="text-[11px] text-slate-500 font-semibold block">
-              Override: {risk.override ? `Approved Req #${risk.override.id}` : 'No Override Required'}
-            </span>
-          </div>
-          <div className={`p-2.5 rounded-lg ${risk.status.level === 'LOW' ? 'bg-emerald-50 text-emerald-600' : 'bg-rose-50 text-rose-600'}`}>
-            <ShieldAlert size={16} />
-          </div>
-        </div>
-      </div>
+      <DocumentHeader
+        number={document.voucherNumber}
+        title={`${TYPE_LABELS[document.type] || document.type} Details`}
+        status={document.status}
+        metadata={[
+          { label: 'Voucher Type', value: TYPE_LABELS[document.type] || document.type, icon: FileText },
+          { label: 'Created By', value: document.creatorName || 'System', icon: User },
+          { label: 'Posting Date', value: new Date(document.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }), icon: Calendar },
+          { label: 'Total Amount', value: `PKR ${document.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, icon: DollarSign },
+          { label: 'Workflow Stage', value: document.status === 'POSTED' ? 'General Ledger' : 'Draft Approval', icon: ShieldCheck }
+        ]}
+        actions={
+          <>
+            <button onClick={handlePDF} className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer">
+              <Download size={13} /> PDF
+            </button>
+            <button onClick={handleEmail} className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer">
+              <Mail size={13} /> Email
+            </button>
+            <button onClick={handleClone} className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 shadow-sm cursor-pointer">
+              <Copy size={13} /> Clone
+            </button>
+          </>
+        }
+      />
 
       <RelatedDocuments documents={relatedDocs} currentType="VOUCHER" />
 
@@ -769,6 +671,31 @@ export default function VoucherDetails() {
           </div>
         </div>
       </div>
+
+      {/* Next Recommended Workflow Actions */}
+      {!isPosted && (
+        <NextActionCard
+          status={document.status}
+          title="Approve & Post to General Ledger"
+          description="This voucher is in draft/unposted state. Review item specifications and ledger impacts. Posting this transaction will lock editing and immediately post double-entry balances to the general ledger."
+        >
+          <button onClick={handlePost} className="bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2.5 text-[12.5px] font-black rounded-xl shadow-md transition-all active:scale-95 cursor-pointer border-none flex items-center gap-1.5">
+            <CheckCircle size={14} /> Approve & Post Voucher
+          </button>
+        </NextActionCard>
+      )}
+
+      {isPosted && !document.isReversed && (
+        <NextActionCard
+          status="POSTED"
+          title="Reverse Posted Transaction"
+          description="This voucher has been fully posted and locked. To correct errors or cancel its financial impact, perform a reversal, which writes automatic offsetting ledger entries."
+        >
+          <button onClick={handleReverse} className="bg-rose-50 border border-rose-200 hover:bg-rose-100 text-rose-700 px-5 py-2.5 text-[12.5px] font-bold rounded-xl transition-all active:scale-95 cursor-pointer flex items-center gap-1.5">
+            <RotateCcw size={14} /> Reverse Posted Transaction
+          </button>
+        </NextActionCard>
+      )}
 
       {/* Grid: Main items & financial ledger details */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-start">
