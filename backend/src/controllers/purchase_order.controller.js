@@ -21,9 +21,10 @@ exports.getPurchaseOrderById = async (req, res) => {
 
     // Fetch related vouchers
     const db = require('../config/db');
-    const relatedVouchers = await db('vouchers')
-      .where({ purchase_order_id: req.params.id, company_id: req.params.companyId, deleted_at: null })
-      .select('id', 'voucher_number', 'status');
+    const relatedVouchers = await db('vouchers as v')
+      .leftJoin('users as u', 'v.created_by', 'u.id')
+      .where({ 'v.purchase_order_id': req.params.id, 'v.company_id': req.params.companyId, 'v.deleted_at': null })
+      .select('v.id', 'v.voucher_number', 'v.status', 'v.created_at', 'u.name as creator_name');
 
     res.json({
       ...po,

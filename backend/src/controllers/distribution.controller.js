@@ -82,9 +82,10 @@ exports.getDeliveryById = async (req, res) => {
     let relatedVoucher = null;
     if (delivery.voucher_id) {
       const db = require('../config/db');
-      relatedVoucher = await db('vouchers')
-        .where({ id: delivery.voucher_id, company_id: req.params.companyId, deleted_at: null })
-        .select('id', 'voucher_number', 'status')
+      relatedVoucher = await db('vouchers as v')
+        .leftJoin('users as u', 'v.created_by', 'u.id')
+        .where({ 'v.id': delivery.voucher_id, 'v.company_id': req.params.companyId, 'v.deleted_at': null })
+        .select('v.id', 'v.voucher_number', 'v.status', 'v.created_at', 'u.name as creator_name')
         .first();
     }
 

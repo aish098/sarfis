@@ -24,16 +24,18 @@ exports.getVoucherById = async (req, res) => {
     // Fetch related PO
     let relatedPo = null;
     if (voucher.purchase_order_id) {
-      relatedPo = await db('purchase_orders')
-        .where({ id: voucher.purchase_order_id, company_id: companyId })
-        .select('id', 'po_number', 'status')
+      relatedPo = await db('purchase_orders as po')
+        .leftJoin('users as u', 'po.created_by', 'u.id')
+        .where({ 'po.id': voucher.purchase_order_id, 'po.company_id': companyId })
+        .select('po.id', 'po.po_number', 'po.status', 'po.created_at', 'u.name as creator_name')
         .first();
     }
 
     // Fetch related deliveries
-    const relatedDeliveries = await db('deliveries')
-      .where({ voucher_id: id, company_id: companyId })
-      .select('id', 'delivery_number', 'status');
+    const relatedDeliveries = await db('deliveries as d')
+      .leftJoin('users as u', 'd.created_by', 'u.id')
+      .where({ 'd.voucher_id': id, 'd.company_id': companyId })
+      .select('d.id', 'd.delivery_number', 'd.status', 'd.created_at', 'u.name as creator_name');
 
     res.json({
       ...voucher,

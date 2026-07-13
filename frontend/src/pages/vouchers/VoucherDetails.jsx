@@ -646,7 +646,7 @@ export default function VoucherDetails() {
         </div>
       </div>
 
-      <RelatedDocuments documents={relatedDocs} />
+      <RelatedDocuments documents={relatedDocs} currentType="VOUCHER" />
 
       {/* 3. Document Timeline Bar */}
       <div className="no-print bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-4">

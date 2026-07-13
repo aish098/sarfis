@@ -513,10 +513,12 @@ export default function DistributionPage() {
                         id: selectedOrder.relatedVoucher.id,
                         number: selectedOrder.relatedVoucher.voucher_number,
                         status: selectedOrder.relatedVoucher.status,
+                        created_at: selectedOrder.relatedVoucher.created_at,
+                        creator_name: selectedOrder.relatedVoucher.creator_name,
                         link: `/dashboard/vouchers/details/${selectedOrder.relatedVoucher.id}`
                       });
                     }
-                    return <RelatedDocuments documents={relatedDocs} />;
+                    return <RelatedDocuments documents={relatedDocs} currentType="DELIVERY" />;
                   })()}
 
                   {/* Tracking Progress timeline */}

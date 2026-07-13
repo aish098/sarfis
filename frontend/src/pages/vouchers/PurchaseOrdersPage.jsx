@@ -423,11 +423,13 @@ export default function PurchaseOrdersPage() {
                         id: v.id,
                         number: v.voucher_number,
                         status: v.status,
+                        created_at: v.created_at,
+                        creator_name: v.creator_name,
                         link: `/dashboard/vouchers/details/${v.id}`
                       });
                     });
                   }
-                  return <RelatedDocuments documents={relatedDocs} />;
+                  return <RelatedDocuments documents={relatedDocs} currentType="PURCHASE_ORDER" />;
                 })()}
 
                 {/* Workflow timeline */}
