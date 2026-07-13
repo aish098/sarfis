@@ -6,8 +6,6 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
-import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
-import StatusBadge from '../../components/ui/StatusBadge';
 
 export default function PayrollReports({ userRole }) {
   const { activeCompany } = useAuthStore();
@@ -41,15 +39,9 @@ export default function PayrollReports({ userRole }) {
 
       let targetPeriod = selectedPeriod;
       if (!targetPeriod && runs.length > 0) {
-        // Smart Defaults: Default to current fiscal month (e.g. "2026-07") if it exists in runs
-        const currentMonth = new Date().toISOString().substring(0, 7);
-        const matchesCurrent = runs.find(r => r.period === currentMonth);
-        if (matchesCurrent) {
-          targetPeriod = matchesCurrent.period;
-        } else {
-          const latestValid = runs.find(r => r.status === 'POSTED' || r.status === 'CLOSED');
-          targetPeriod = latestValid ? latestValid.period : runs[0].period;
-        }
+        // Default to the latest POSTED/CLOSED run, or latest run
+        const latestValid = runs.find(r => r.status === 'POSTED' || r.status === 'CLOSED');
+        targetPeriod = latestValid ? latestValid.period : runs[0].period;
         setSelectedPeriod(targetPeriod);
       }
 
@@ -192,30 +184,7 @@ export default function PayrollReports({ userRole }) {
   };
 
   return (
-    <WorkspaceLayout
-      title="Payroll & Compliance Reports"
-      subtitle="Review payslip registers, tax withholding balances, cost summaries, and ledger postings."
-      icon={FileText}
-      breadcrumbs={['SARFIS', 'Payroll', 'Reports & Compliance']}
-      primaryAction={
-        availablePeriods.length > 0 ? (
-          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-3xs w-fit">
-            <span className="text-slate-450 font-extrabold text-[9px] uppercase">Active Period:</span>
-            <select
-              value={selectedPeriod}
-              onChange={(e) => setSelectedPeriod(e.target.value)}
-              className="bg-slate-55 border border-slate-205 rounded-lg px-2.5 py-1 text-slate-800 font-extrabold outline-none text-xs cursor-pointer focus:border-indigo-500 border-none"
-            >
-              {availablePeriods.map(run => (
-                <option key={run.id} value={run.period}>
-                  Period {run.period} ({run.status})
-                </option>
-              ))}
-            </select>
-          </div>
-        ) : null
-      }
-    >
+    <div className="space-y-6 text-xs font-semibold text-slate-600 relative">
       {/* Journal Voucher Double-Entry Modal */}
       {selectedVoucher && (
         <div className="fixed inset-0 bg-black/40 backdrop-blur-sm z-50 flex items-center justify-center p-4">
@@ -331,27 +300,44 @@ export default function PayrollReports({ userRole }) {
         </div>
       )}
 
-      <div className="col-span-full space-y-6">
-        {/* Sub Tabs */}
-        <div className="flex border-b border-slate-200 bg-white p-2 rounded-2xl shadow-3xs gap-1.5 w-fit">
-          {[
-            { id: 'register', label: 'Payslips & Register' },
-            { id: 'cost', label: 'Employee Cost Analysis' },
-            { id: 'departments', label: 'Budget vs Actual FP&A' },
-            { id: 'ledger', label: 'Ledger Postings' },
-            { id: 'audit', label: 'Audit Explorer Timeline' }
-          ].map(tb => (
-            <button
-              key={tb.id}
-              onClick={() => setActiveReportTab(tb.id)}
-              className={`px-4 py-2 rounded-xl transition-all uppercase tracking-wider text-[10px] font-black cursor-pointer bg-transparent border-none ${
-                activeReportTab === tb.id ? 'bg-indigo-650 text-white shadow-xs' : 'text-slate-505 hover:text-slate-850'
-              }`}
-            >
-              {tb.label}
-            </button>
-          ))}
+      {/* Sub Tabs */}
+      <div className="flex border-b border-slate-200 bg-white p-2 rounded-2xl shadow-3xs gap-1.5 w-fit">
+        {[
+          { id: 'register', label: 'Payslips & Register' },
+          { id: 'cost', label: 'Employee Cost Analysis' },
+          { id: 'departments', label: 'Budget vs Actual FP&A' },
+          { id: 'ledger', label: 'Ledger Postings' },
+          { id: 'audit', label: 'Audit Explorer Timeline' }
+        ].map(tb => (
+          <button
+            key={tb.id}
+            onClick={() => setActiveReportTab(tb.id)}
+            className={`px-4 py-2 rounded-xl transition-all uppercase tracking-wider text-[10px] font-black cursor-pointer ${
+              activeReportTab === tb.id ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'
+            }`}
+          >
+            {tb.label}
+          </button>
+        ))}
+      </div>
+
+      {/* Period Selection Workspace Header */}
+      {availablePeriods.length > 0 && (
+        <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-2xl border border-slate-100 shadow-3xs w-fit animate-in fade-in duration-100">
+          <span className="text-slate-400 font-extrabold text-[10px] uppercase">Active Period Run:</span>
+          <select
+            value={selectedPeriod}
+            onChange={(e) => setSelectedPeriod(e.target.value)}
+            className="bg-slate-50 border border-slate-200 rounded-lg px-2.5 py-1 text-slate-800 font-bold outline-none text-xs cursor-pointer focus:border-indigo-500"
+          >
+            {availablePeriods.map(run => (
+              <option key={run.id} value={run.period}>
+                Period {run.period} ({run.status})
+              </option>
+            ))}
+          </select>
         </div>
+      )}
 
       {/* Payslips & Register Tab */}
       {activeReportTab === 'register' && (
@@ -593,8 +579,7 @@ export default function PayrollReports({ userRole }) {
           </div>
         </div>
       )}
-      </div>
-    </WorkspaceLayout>
+    </div>
   );
 }
 

@@ -9,10 +9,9 @@ import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 
 // Import reusable design system components
-import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 import StatusBadge from '../../components/ui/StatusBadge';
 import RightDrawer from '../../components/ui/RightDrawer';
-import ActivityFeed from '../../components/ui/ActivityFeed';
+import Timeline from '../../components/ui/Timeline';
 import FloatingActionButton from '../../components/ui/FloatingActionButton';
 
 export default function PayrollEmployees({ userRole, onBackToDashboard }) {
@@ -508,11 +507,11 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
   );
 
   const careerTimeline = [
-    { title: 'Joined Company', description: 'Hired as Staff Associate', time: 'Jan 2023', status: 'SUCCESS' },
-    { title: 'Promotion Evaluated', description: 'Promoted to Senior Associate role', time: 'Jan 2024', status: 'SUCCESS' },
-    { title: 'Salary Increase Approved', description: 'Adjusted basic pay slab due to performance', time: 'Jan 2025', status: 'SUCCESS' },
-    { title: 'Payroll Run Calculated', description: 'Verified gross salary calculation metrics', time: 'Aug 2026', status: 'PROCESSING' },
-    { title: 'Direct Deposit Paid', description: 'Bank transfer cleared matching JV voucher', time: 'Aug 2026', status: 'PAID' }
+    { title: 'Joined Company', desc: 'Hired as Staff Associate', date: 'Jan 2023' },
+    { title: 'Promotion Evaluated', desc: 'Promoted to Senior Associate role', date: 'Jan 2024' },
+    { title: 'Salary Increase Approved', desc: 'Adjusted basic pay slab due to performance', date: 'Jan 2025' },
+    { title: 'Payroll Run Calculated', desc: 'Verified gross salary calculation metrics', date: 'Aug 2026' },
+    { title: 'Direct Deposit Paid', desc: 'Bank transfer cleared matching JV voucher', date: 'Aug 2026' }
   ];
 
   const disableActions = userRole === 'Auditor';
@@ -532,34 +531,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
   ];
 
   return (
-    <WorkspaceLayout
-      title="Employee Directory"
-      subtitle="Manage salary profiles, banking options, and contract attachments."
-      icon={Users}
-      breadcrumbs={['SARFIS', 'Payroll', 'Employees']}
-      primaryAction={
-        <div className="flex items-center gap-2">
-          {onBackToDashboard && (
-            <button
-              onClick={onBackToDashboard}
-              className="px-4 py-2 bg-white hover:bg-slate-55 border border-slate-200 text-slate-700 rounded-xl transition-all shadow-3xs flex items-center gap-1.5 cursor-pointer font-bold border-none"
-            >
-              <ChevronLeft size={12} /> Back
-            </button>
-          )}
-          <button 
-            disabled={disableActions}
-            onClick={() => setIsAdding(true)}
-            className="px-4 py-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer font-black border-none"
-          >
-            <Plus size={12} /> Add Employee
-          </button>
-        </div>
-      }
-      searchQuery={searchTerm}
-      onSearchChange={setSearchTerm}
-      searchPlaceholder="Search employees by name, role or department..."
-    >
+    <div className="space-y-6 text-xs font-semibold text-slate-600 relative">
       {/* Alert Messaging */}
       {actionMsg && (
         <div className={`p-4 rounded-xl border text-[13px] font-bold flex items-center justify-between gap-3 ${
@@ -1196,14 +1168,42 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
             {activeSubTab === 'timeline' && (
               <div className="space-y-4">
                 <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Employee Career & Payout Lifecycle</h5>
-                <ActivityFeed events={careerTimeline} />
+                <Timeline items={careerTimeline} />
               </div>
             )}
           </div>
         )}
       </RightDrawer>
 
-      <div className="col-span-full">
+      {/* Main Employee Directory Toolbar */}
+      <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs flex flex-col md:flex-row md:items-center justify-between gap-4">
+        <div className="relative flex-1 max-w-md">
+          <Search size={14} className="absolute left-[14px] top-1/2 -translate-y-1/2 text-slate-400" />
+          <input
+            className="w-full pl-10 pr-4 py-2 border border-slate-200 rounded-xl text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all font-semibold"
+            placeholder="Search employees by name, role or department..."
+            value={searchTerm}
+            onChange={e => setSearchTerm(e.target.value)}
+          />
+        </div>
+        <div className="flex items-center gap-2">
+          {onBackToDashboard && (
+            <button
+              onClick={onBackToDashboard}
+              className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl transition-all shadow-3xs flex items-center gap-1.5 cursor-pointer font-black"
+            >
+              <ChevronLeft size={12} /> Back
+            </button>
+          )}
+          <button 
+            disabled={disableActions}
+            onClick={() => setIsAdding(true)}
+            className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 disabled:cursor-not-allowed text-white rounded-xl transition-all shadow-sm flex items-center gap-1.5 cursor-pointer font-black"
+          >
+            <Plus size={12} /> Add Employee
+          </button>
+        </div>
+      </div>
 
       {/* Responsive Employee Directory: Grid of cards on Mobile, Table on Desktop */}
       {loading ? (
@@ -1327,7 +1327,6 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
           </div>
         </>
       )}
-      </div>
-    </WorkspaceLayout>
+    </div>
   );
 }
