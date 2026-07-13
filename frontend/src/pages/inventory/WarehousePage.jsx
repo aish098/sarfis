@@ -9,6 +9,8 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
+import StatusBadge from '../../components/ui/StatusBadge';
 import ProductInquiryDrawer from './ProductInquiryDrawer';
 
 const fadeUp = { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0, transition: { duration: 0.3 } } };
@@ -130,40 +132,57 @@ export default function WarehousePage({ globalSearch = "" }) {
     (w.location && w.location.toLowerCase().includes(search.toLowerCase()))
   );
 
+  const countTotal = warehouses.length;
+  const countActive = warehouses.filter(w => w.is_active).length;
+  const countCapacity = warehouses.reduce((s, w) => s + parseFloat(w.capacity_value || 0), 0);
+
+  const directoryKpis = [
+    { label: 'Total Facilities', value: countTotal, icon: Warehouse, iconBgClass: 'bg-blue-50', iconColorClass: 'text-blue-650' },
+    { label: 'Active Facilities', value: `${countActive} Active`, icon: CheckCircle2, iconBgClass: 'bg-emerald-50', iconColorClass: 'text-emerald-600' },
+    { label: 'Total Capacity', value: countCapacity.toLocaleString(), icon: Layers, iconBgClass: 'bg-slate-100', iconColorClass: 'text-slate-650' }
+  ];
+
+  const controlCenterKpis = whStats?.summary ? [
+    { label: 'Utilization', value: `${whStats.summary.utilization}%`, icon: Layers, iconBgClass: 'bg-blue-50', iconColorClass: 'text-blue-655' },
+    { label: 'Total Products', value: whStats.summary.totalProducts.toLocaleString(), icon: Package, iconBgClass: 'bg-amber-50', iconColorClass: 'text-amber-600' },
+    { label: 'Total Quantity', value: whStats.summary.totalQuantity.toLocaleString(), icon: Warehouse, iconBgClass: 'bg-indigo-50', iconColorClass: 'text-indigo-650' },
+    { label: 'Valuation', value: `PKR ${parseFloat(whStats.summary.totalValue || 0).toLocaleString(undefined, { minimumFractionDigits: 0 })}`, icon: BarChart2, iconBgClass: 'bg-emerald-50', iconColorClass: 'text-emerald-600' }
+  ] : [];
+
   return (
-    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6] space-y-6">
-      
-      {/* 1. DIRECTORY LIST VIEW (If no warehouse selected) */}
+    <>
+      {loadError && (
+        <div className="mb-6 p-4 rounded-xl bg-rose-50 border border-rose-200 flex items-center gap-3 text-rose-700 shadow-sm">
+          <AlertTriangle size={18} className="flex-shrink-0" />
+          <div className="flex-1 text-[13px] font-medium">{loadError}</div>
+          <div className="flex items-center gap-2">
+            <button onClick={() => window.location.reload()} className="px-3 py-1.5 rounded-lg bg-white border border-rose-200 text-rose-700 text-[11px] font-bold hover:bg-rose-100 transition-all flex items-center gap-1.5 border-none cursor-pointer">
+              <RefreshCw size={12} /> Retry
+            </button>
+          </div>
+        </div>
+      )}
+
       {!selectedWhId ? (
-        <div className="space-y-6">
-          <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md">
-                <Warehouse size={18} />
-              </div>
-              <div>
-                <div className="flex items-center gap-2">
-                  <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Warehouses & Locations</h1>
-                  <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Facilities</span>
-                </div>
-                <p className="text-[11px] font-semibold text-slate-500 mt-0.5">Manage physical storage facilities and inventory points.</p>
-              </div>
-            </div>
-            
-            {canManage && (
-              <button onClick={() => handleOpenModal()} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer">
+        <WorkspaceLayout
+          title="Warehouses & Locations"
+          subtitle="Manage physical storage facilities and inventory points."
+          icon={Warehouse}
+          badgeText="Facilities"
+          breadcrumbs={['SARFIS', 'Inventory', 'Warehouses']}
+          primaryAction={
+            canManage && (
+              <button onClick={() => handleOpenModal()} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer border-none">
                 <Plus size={14} /> Add Warehouse
               </button>
-            )}
-          </div>
-
-          <div className="relative max-w-sm">
-            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input className="input-enterprise pl-12 py-2.5 text-[13px]" placeholder="Search warehouses..."
-              value={localSearch} onChange={e => setLocalSearch(e.target.value)} />
-          </div>
-
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            )
+          }
+          searchQuery={search}
+          onSearchChange={setLocalSearch}
+          searchPlaceholder="Search warehouses..."
+          kpis={directoryKpis}
+        >
+          <div className="col-span-full grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             {loading ? (
               Array.from({ length: 3 }).map((_, i) => (
                 <div key={i} className="card p-6 space-y-4">
@@ -176,14 +195,14 @@ export default function WarehousePage({ globalSearch = "" }) {
               <div className="col-span-full py-20 text-center bg-white rounded-2xl border border-slate-100 shadow-3xs">
                 <Warehouse size={40} className="mx-auto text-slate-300 mb-4 animate-bounce" />
                 <p className="text-slate-500 font-medium">No warehouses found</p>
-                <button onClick={() => handleOpenModal()} className="text-emerald-600 text-[13px] font-bold mt-2 hover:underline">
+                <button onClick={() => handleOpenModal()} className="text-emerald-600 text-[13px] font-bold mt-2 hover:underline border-none bg-transparent cursor-pointer">
                   Create your first warehouse
                 </button>
               </div>
             ) : filtered.map((wh) => (
               <motion.div key={wh.id} variants={fadeUp} initial="initial" animate="animate"
                 onClick={() => setSelectedWhId(wh.id)}
-                className="card group hover:border-emerald-200 transition-all duration-300 cursor-pointer hover:shadow-md"
+                className="card group hover:border-emerald-200 transition-all duration-300 cursor-pointer hover:shadow-md bg-white border border-slate-100 rounded-3xl"
               >
                 <div className="p-6">
                   <div className="flex items-start justify-between mb-4">
@@ -191,10 +210,10 @@ export default function WarehousePage({ globalSearch = "" }) {
                       <Warehouse size={20} />
                     </div>
                     <div className="flex items-center gap-1 opacity-0 group-hover:opacity-100 transition-opacity" onClick={e => e.stopPropagation()}>
-                      <button onClick={() => handleOpenModal(wh)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors">
+                      <button onClick={() => handleOpenModal(wh)} className="p-2 hover:bg-slate-100 rounded-lg text-slate-400 hover:text-slate-600 transition-colors border-none bg-transparent cursor-pointer">
                         <Edit2 size={14} />
                       </button>
-                      <button onClick={() => handleDelete(wh.id)} className="p-2 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-500 transition-colors">
+                      <button onClick={() => handleDelete(wh.id)} className="p-2 hover:bg-rose-50 rounded-lg text-slate-400 hover:text-rose-500 transition-colors border-none bg-transparent cursor-pointer">
                         <Trash2 size={14} />
                       </button>
                     </div>
@@ -211,78 +230,71 @@ export default function WarehousePage({ globalSearch = "" }) {
                   )}
                 </div>
                 <div className="px-6 py-4 bg-slate-50/50 border-t border-slate-100 flex items-center justify-between">
-                  <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-0.5 rounded-full ${wh.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-slate-200 text-slate-600'}`}>
-                    {wh.is_active ? 'Active' : 'Inactive'}
-                  </span>
+                  <div className="mt-0.5">
+                    <StatusBadge status={wh.is_active ? 'ACTIVE' : 'INACTIVE'} />
+                  </div>
                   <span className="text-[11px] font-medium text-slate-400">Capacity: {wh.capacity_value?.toLocaleString()} {wh.capacity_type}</span>
                 </div>
               </motion.div>
             ))}
           </div>
-        </div>
+        </WorkspaceLayout>
       ) : (
-        /* 2. WAREHOUSE CONTROL CENTER (Detailed Tabbed View) */
-        <div className="space-y-6">
-          {/* Header */}
-          <div className="w-full bg-white border border-slate-100 rounded-2xl p-5 flex flex-col md:flex-row md:items-center justify-between shadow-2xs">
-            <div className="flex items-center gap-3">
-              <button onClick={() => setSelectedWhId(null)} className="p-2 hover:bg-slate-100 rounded-xl text-slate-400 hover:text-slate-600 transition-colors cursor-pointer mr-1">
-                <ArrowLeft size={16} />
+        <WorkspaceLayout
+          title={whStats?.summary?.name || 'Warehouse Details'}
+          subtitle={whStats?.summary?.location || 'No location address'}
+          icon={Warehouse}
+          badgeText="Control Center"
+          breadcrumbs={['SARFIS', 'Inventory', 'Warehouses', 'Control Center']}
+          primaryAction={
+            <div className="flex items-center gap-2 flex-wrap">
+              <button onClick={() => setSelectedWhId(null)} className="flex items-center gap-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-655 px-4 py-2 text-[12.5px] font-bold rounded-xl shadow-xs transition-all cursor-pointer">
+                <ArrowLeft size={14} /> Back
               </button>
-              <div className="w-10 h-10 rounded-xl bg-indigo-50 border border-indigo-100 flex items-center justify-center text-indigo-600">
-                <Warehouse size={20} />
-              </div>
-              <div>
-                <h1 className="font-display font-extrabold text-[15px] md:text-[17px] text-slate-800 tracking-tight uppercase">
-                  {whStats?.summary?.name || 'Warehouse Details'}
-                </h1>
-                <p className="text-[11.5px] font-semibold text-slate-500 mt-0.5">{whStats?.summary?.location || 'No location address'}</p>
-              </div>
-            </div>
-            
-            <div className="flex items-center gap-2 mt-3 md:mt-0">
               <button 
                 onClick={() => loadWarehouseStats(selectedWhId)}
-                className="p-2.5 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 transition-colors cursor-pointer"
+                className="p-2 bg-slate-50 hover:bg-slate-100 text-slate-600 rounded-xl border border-slate-200 transition-colors cursor-pointer"
                 title="Refresh stats"
               >
                 <RefreshCw size={14} className={statsLoading ? "animate-spin" : ""} />
               </button>
               <button 
                 onClick={() => handleOpenModal(warehouses.find(w => w.id === selectedWhId))}
-                className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 px-4 py-2.5 text-[12px] font-bold rounded-xl transition-all cursor-pointer"
+                className="flex items-center gap-1.5 bg-slate-50 border border-slate-200 hover:bg-slate-100 text-slate-700 px-4 py-2 text-[12px] font-bold rounded-xl transition-all cursor-pointer"
               >
-                <Settings size={14} /> Warehouse Settings
+                <Settings size={14} /> Settings
               </button>
             </div>
-          </div>
-
-          {/* Navigation Tabs */}
-          <div className="flex border-b border-slate-200 overflow-x-auto hide-scrollbar pb-1">
-            {[
-              { id: 'Overview', label: 'Overview', icon: LayoutDashboard },
-              { id: 'Products', label: 'Products Directory', icon: Package },
-              { id: 'Movements', label: 'Stock Movements', icon: History },
-              { id: 'Analytics', label: 'Inventory Intelligence', icon: BarChart2 }
-            ].map(t => {
-              const Icon = t.icon;
-              const isActive = activeTab === t.id;
-              return (
-                <button
-                  key={t.id}
-                  onClick={() => setActiveTab(t.id)}
-                  className={`flex items-center gap-1.5 px-5 py-3 text-[12px] font-bold border-b-2 transition-all cursor-pointer ${
-                    isActive 
-                      ? 'border-indigo-600 text-indigo-600 bg-white rounded-t-xl' 
-                      : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
-                  }`}
-                >
-                  <Icon size={14} />
-                  <span>{t.label}</span>
-                </button>
-              );
-            })}
-          </div>
+          }
+          kpis={controlCenterKpis}
+        >
+          <div className="col-span-full space-y-6">
+            {/* Navigation Tabs */}
+            <div className="flex border-b border-slate-200 overflow-x-auto hide-scrollbar pb-1">
+              {[
+                { id: 'Overview', label: 'Overview', icon: LayoutDashboard },
+                { id: 'Products', label: 'Products Directory', icon: Package },
+                { id: 'Movements', label: 'Stock Movements', icon: History },
+                { id: 'Analytics', label: 'Inventory Intelligence', icon: BarChart2 }
+              ].map(t => {
+                const Icon = t.icon;
+                const isActive = activeTab === t.id;
+                return (
+                  <button
+                    key={t.id}
+                    onClick={() => setActiveTab(t.id)}
+                    className={`flex items-center gap-1.5 px-5 py-3 text-[12px] font-bold border-b-2 transition-all cursor-pointer border-none bg-transparent ${
+                      isActive 
+                        ? 'border-indigo-600 text-indigo-600 bg-white rounded-t-xl border-solid' 
+                        : 'border-transparent text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                    }`}
+                  >
+                    <Icon size={14} />
+                    <span>{t.label}</span>
+                  </button>
+                );
+              })}
+            </div>
 
           {statsLoading ? (
             <div className="p-20 text-center space-y-3 bg-white rounded-2xl border border-slate-100">
@@ -585,6 +597,7 @@ export default function WarehousePage({ globalSearch = "" }) {
             </div>
           ) : null}
         </div>
+      </WorkspaceLayout>
       )}
 
       {/* 360° Product Inquiry Drawer */}
@@ -671,6 +684,6 @@ export default function WarehousePage({ globalSearch = "" }) {
           </div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }

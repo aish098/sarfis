@@ -1,9 +1,11 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Search, FileText, CheckCircle, RefreshCw, Trash2, Calendar, ShieldAlert, ArrowRight, User, X, FilePlus, Eye, Clock, CheckCircle2, AlertCircle, AlertTriangle } from 'lucide-react';
+import { Plus, Search, FileText, CheckCircle, RefreshCw, Trash2, Calendar, ShieldAlert, ArrowRight, User, X, FilePlus, Eye, Clock, CheckCircle2, AlertCircle, AlertTriangle, Clipboard } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import RelatedDocuments from '../../components/RelatedDocuments';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 const STATUS_CONFIG = {
   DRAFT: { label: 'Draft', bg: 'bg-amber-50 text-amber-700 border border-amber-100' },
@@ -200,298 +202,284 @@ export default function PurchaseRequisitionsPage() {
     const matchesStatus = statusFilter === 'ALL' || r.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+  const countTotal = requisitions.length;
+  const countPending = requisitions.filter(r => r.status === 'PENDING_APPROVAL').length;
+  const countApproved = requisitions.filter(r => r.status === 'APPROVED').length;
+  const countConverted = requisitions.filter(r => r.status === 'CONVERTED_TO_PO').length;
+
+  const kpiList = [
+    { label: 'Total Requisitions', value: countTotal, icon: FileText, iconBgClass: 'bg-blue-50', iconColorClass: 'text-blue-650' },
+    { label: 'Pending Approval', value: countPending, icon: Clock, iconBgClass: 'bg-amber-50', iconColorClass: 'text-amber-600' },
+    { label: 'Approved', value: countApproved, icon: CheckCircle2, iconBgClass: 'bg-emerald-50', iconColorClass: 'text-emerald-600' },
+    { label: 'Converted to PO', value: countConverted, icon: ArrowRight, iconBgClass: 'bg-slate-100', iconColorClass: 'text-slate-650' }
+  ];
 
   return (
-    <div className="space-y-6 font-sans pb-20">
-      {/* Top Banner Toolbar */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <FileText size={18} className="text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Purchase Requisitions</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Procurement</span>
-            </div>
-            <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
-              Request materials, track workflows, and automatically convert to Purchase Orders.
-            </p>
-          </div>
-        </div>
-
+    <>
+      <WorkspaceLayout
+      title="Purchase Requisitions"
+      subtitle="Request materials, track workflows, and automatically convert to Purchase Orders."
+      icon={FileText}
+      badgeText="Procurement"
+      breadcrumbs={['SARFIS', 'Procurement', 'Purchase Requisitions']}
+      primaryAction={
         <button 
           onClick={() => setCreateModal(true)}
-          className="mt-3 md:mt-0 flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
+          className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer border-none"
         >
           <Plus size={14} /> New Requisition
         </button>
-      </div>
-
-      {/* Filters Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input 
-            className="input-enterprise pl-9 text-[13px] py-2.5" 
-            placeholder="Search Requisition No, department, requested by..." 
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <select 
-          className="input-enterprise text-[13px] py-2.5 w-auto"
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-        >
-          <option value="ALL">All Statuses</option>
-          <option value="DRAFT">Draft</option>
-          <option value="PENDING_APPROVAL">Pending Approval</option>
-          <option value="APPROVED">Approved</option>
-          <option value="CONVERTED_TO_PO">Converted to PO</option>
-          <option value="REJECTED">Rejected</option>
-          <option value="CLOSED">Closed</option>
-        </select>
-      </div>
-
-      {/* Main Grid Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
-        {/* Table List Card */}
-        <div className="card overflow-hidden lg:col-span-8 shadow-sm">
-          <div className="overflow-x-auto">
-            <table className="w-full">
-              <thead>
-                <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
-                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Requisition No</th>
-                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Requested By</th>
-                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Department</th>
-                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Priority</th>
-                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-right">Est. Total</th>
-                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-center">Status</th>
-                  <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-center">Actions</th>
+      }
+      searchQuery={searchQuery}
+      onSearchChange={setSearchQuery}
+      searchPlaceholder="Search Requisition No, department, requested by..."
+      statusFilter={statusFilter}
+      onStatusFilterChange={setStatusFilter}
+      statusOptions={[
+        { value: 'DRAFT', label: 'Draft' },
+        { value: 'PENDING_APPROVAL', label: 'Pending Approval' },
+        { value: 'APPROVED', label: 'Approved' },
+        { value: 'CONVERTED_TO_PO', label: 'Converted to PO' },
+        { value: 'REJECTED', label: 'Rejected' },
+        { value: 'CLOSED', label: 'Closed' }
+      ]}
+      kpis={kpiList}
+    >
+      {/* Table List Card */}
+      <div className="card overflow-hidden lg:col-span-8 shadow-sm">
+        <div className="overflow-x-auto">
+          <table className="w-full">
+            <thead>
+              <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Requisition No</th>
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Requested By</th>
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Department</th>
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Priority</th>
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-right">Est. Total</th>
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-center">Status</th>
+                <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-center">Actions</th>
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E6EBE8] text-[13px] text-slate-700">
+              {isLoading ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12 text-slate-400">
+                    <RefreshCw size={20} className="animate-spin mx-auto mb-2 text-slate-355" /> Loading requisitions...
+                  </td>
                 </tr>
-              </thead>
-              <tbody className="divide-y divide-[#E6EBE8] text-[13px] text-slate-700">
-                {isLoading ? (
-                  <tr>
-                    <td colSpan={7} className="text-center py-12 text-slate-400">
-                      <RefreshCw size={20} className="animate-spin mx-auto mb-2 text-slate-350" /> Loading requisitions...
+              ) : filteredReqs.length === 0 ? (
+                <tr>
+                  <td colSpan={7} className="text-center py-12 text-slate-400 italic">No requisitions found.</td>
+                </tr>
+              ) : filteredReqs.map(req => {
+                const priorityConf = PRIORITY_CONFIG[req.priority] || { label: req.priority, bg: 'bg-slate-50 text-slate-700' };
+                
+                return (
+                  <tr key={req.id} className="hover:bg-slate-50/50 cursor-pointer" onClick={() => handleSelectReq(req)}>
+                    <td className="px-4 py-3.5 font-mono font-bold text-[#2E4D3F]">{req.requisition_number}</td>
+                    <td className="px-4 py-3.5 font-semibold text-slate-800">{req.requested_by_name || 'System Auto'}</td>
+                    <td className="px-4 py-3.5 font-medium text-slate-600">{req.department || 'General'}</td>
+                    <td className="px-4 py-3.5">
+                      <span className={`inline-block px-2 py-0.5 rounded-full text-[9.5px] font-black border ${priorityConf.bg}`}>
+                        {priorityConf.label}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-800">
+                      PKR {parseFloat(req.estimated_total).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                    </td>
+                    <td className="px-4 py-3.5 text-center">
+                      <StatusBadge status={req.status} />
+                    </td>
+                    <td className="px-4 py-3.5 text-center" onClick={e => e.stopPropagation()}>
+                      <div className="flex gap-1 justify-center">
+                        <button 
+                          onClick={() => handleSelectReq(req)}
+                          className="text-[11px] font-bold px-2 py-1 rounded bg-slate-100 text-slate-655 hover:bg-slate-200"
+                        >
+                          View
+                        </button>
+                      </div>
                     </td>
                   </tr>
-                ) : filteredReqs.length === 0 ? (
-                  <tr>
-                    <td colSpan={7} className="text-center py-12 text-slate-400 italic">No requisitions found.</td>
-                  </tr>
-                ) : filteredReqs.map(req => {
-                  const statusConf = STATUS_CONFIG[req.status] || { label: req.status, bg: 'bg-slate-50 text-slate-700 border-slate-200' };
-                  const priorityConf = PRIORITY_CONFIG[req.priority] || { label: req.priority, bg: 'bg-slate-50 text-slate-700' };
-                  
-                  return (
-                    <tr key={req.id} className="hover:bg-slate-50/50 cursor-pointer" onClick={() => handleSelectReq(req)}>
-                      <td className="px-4 py-3.5 font-mono font-bold text-[#2E4D3F]">{req.requisition_number}</td>
-                      <td className="px-4 py-3.5 font-semibold text-slate-800">{req.requested_by_name || 'System Auto'}</td>
-                      <td className="px-4 py-3.5 font-medium text-slate-600">{req.department || 'General'}</td>
-                      <td className="px-4 py-3.5">
-                        <span className={`inline-block px-2 py-0.5 rounded-full text-[9.5px] font-black border ${priorityConf.bg}`}>
-                          {priorityConf.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-right font-mono font-bold text-slate-800">
-                        PKR {parseFloat(req.estimated_total).toLocaleString('en-US', { minimumFractionDigits: 2 })}
-                      </td>
-                      <td className="px-4 py-3.5 text-center">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusConf.bg}`}>
-                          {statusConf.label}
-                        </span>
-                      </td>
-                      <td className="px-4 py-3.5 text-center" onClick={e => e.stopPropagation()}>
-                        <div className="flex gap-1 justify-center">
-                          <button 
-                            onClick={() => handleSelectReq(req)}
-                            className="text-[11px] font-bold px-2 py-1 rounded bg-slate-100 text-slate-600 hover:bg-slate-200"
-                          >
-                            View
-                          </button>
-                        </div>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          </div>
-        </div>
-
-        {/* Details Panel Sidebar Drawer */}
-        <div className="lg:col-span-4 space-y-6">
-          {selectedReq ? (
-            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-5">
-              <div className="flex justify-between items-center border-b border-slate-100 pb-3.5">
-                <div>
-                  <h3 className="font-mono font-black text-slate-850 text-[15px]">{selectedReq.requisition_number}</h3>
-                  <p className="text-[10px] font-bold uppercase text-slate-400 mt-0.5">Purchase Requisition Details</p>
-                </div>
-                <button onClick={() => setSelectedReq(null)} className="text-slate-400 hover:text-slate-600 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-50 border-none bg-transparent cursor-pointer"><X size={15} /></button>
-              </div>
-
-              {/* Meta information */}
-              <div className="grid grid-cols-2 gap-y-3.5 gap-x-2 text-[12px] text-slate-600 border-b border-slate-100 pb-4">
-                <div>
-                  <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Requested By</span>
-                  <span className="font-bold text-slate-800 flex items-center gap-1 mt-0.5">
-                    <User size={12} className="text-slate-400" />
-                    {selectedReq.requested_by_name || 'System Auto'}
-                  </span>
-                </div>
-                <div>
-                  <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Department</span>
-                  <span className="font-bold text-slate-800 mt-0.5 block">{selectedReq.department || 'General'}</span>
-                </div>
-                <div>
-                  <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Date Needed</span>
-                  <span className="font-bold text-slate-800 mt-0.5 block">{new Date(selectedReq.required_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                </div>
-                <div>
-                  <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Priority</span>
-                  <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-black border ${PRIORITY_CONFIG[selectedReq.priority]?.bg}`}>
-                    {PRIORITY_CONFIG[selectedReq.priority]?.label}
-                  </span>
-                </div>
-              </div>
-
-              {selectedReq.reason && (
-                <div className="space-y-1">
-                  <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Business Justification</span>
-                  <p className="text-[12px] italic text-slate-600 leading-relaxed bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">{selectedReq.reason}</p>
-                </div>
-              )}
-
-              {/* Items List */}
-              <div className="space-y-2">
-                <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Requested Items</span>
-                <div className="border border-slate-100 rounded-xl overflow-hidden text-[11.5px] bg-white">
-                  <table className="w-full">
-                    <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
-                      <tr>
-                        <th className="px-3 py-2 text-left">Product</th>
-                        <th className="px-3 py-2 text-right">Qty</th>
-                        <th className="px-3 py-2 text-right">Est. Cost</th>
-                      </tr>
-                    </thead>
-                    <tbody className="divide-y divide-slate-50 font-medium text-slate-700">
-                      {selectedReq.items?.map((item, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50/30">
-                          <td className="px-3 py-2">
-                            <span className="block font-bold text-slate-800">{item.product_name}</span>
-                            {item.description && <span className="block text-[9.5px] text-slate-400">{item.description}</span>}
-                          </td>
-                          <td className="px-3 py-2 text-right font-mono font-bold text-slate-800">{parseFloat(item.quantity)}</td>
-                          <td className="px-3 py-2 text-right font-mono font-bold text-slate-800">PKR {parseFloat(item.estimated_price).toLocaleString()}</td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
-                </div>
-                <div className="flex justify-between font-black text-[13px] pt-1.5 border-t border-slate-100">
-                  <span className="text-slate-850">Estimated Total</span>
-                  <span className="font-mono text-slate-900">PKR {parseFloat(selectedReq.estimated_total).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
-                </div>
-              </div>
-
-              {/* Document Journey and relationships mapping */}
-              {(() => {
-                const relatedDocs = [];
-                // Purchase order link if converted
-                if (selectedReq.relatedPos && selectedReq.relatedPos.length > 0) {
-                  selectedReq.relatedPos.forEach(po => {
-                    relatedDocs.push({
-                      type: 'PURCHASE_ORDER',
-                      id: po.id,
-                      number: po.po_number,
-                      status: po.status,
-                      link: `/dashboard/purchase-orders?id=${po.id}`
-                    });
-                  });
-                }
-                return <RelatedDocuments documents={relatedDocs} currentType="PURCHASE_REQUISITION" />;
-              })()}
-
-              {/* Approvals history timeline */}
-              <div className="space-y-3 pt-3.5 border-t border-slate-150">
-                <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Approval Workflow Timeline</span>
-                {loadingTimeline ? (
-                  <div className="text-[11px] text-slate-400 italic"><RefreshCw size={11} className="animate-spin inline mr-1" /> Loading timeline...</div>
-                ) : reqTimeline.length === 0 ? (
-                  <div className="text-[11px] text-slate-400 italic bg-slate-50 p-2.5 rounded-lg border border-dashed border-slate-200">No workflow approvals history generated yet.</div>
-                ) : (
-                  <div className="space-y-3.5 border-l-2 border-slate-100 pl-4.5 py-0.5 ml-2.5">
-                    {reqTimeline.map((item, idx) => (
-                      <div key={item.id} className="relative text-[11px]">
-                        <span className={`absolute -left-[24.5px] top-0.5 w-3.5 h-3.5 rounded-full border bg-white flex items-center justify-center ${
-                          item.action === 'SUBMITTED' ? 'border-indigo-400 text-indigo-500' :
-                          item.action === 'APPROVED' ? 'border-emerald-400 text-emerald-500' :
-                          'border-rose-400 text-rose-500'
-                        }`}>
-                          <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                        </span>
-                        <div className="space-y-0.5">
-                          <p className="font-bold text-slate-800">{item.action} — {item.stage_name}</p>
-                          <p className="text-[9px] text-slate-450 font-bold">By {item.actioned_name || 'System'} • {new Date(item.created_at).toLocaleDateString()} at {new Date(item.created_at).toLocaleTimeString()}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                )}
-              </div>
-
-              {/* Next Action Cards / Buttons */}
-              <div className="space-y-2 pt-4 border-t border-slate-100">
-                {selectedReq.status === 'DRAFT' && (
-                  <button 
-                    onClick={() => handleSubmitForApproval(selectedReq.id)}
-                    className="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-[12.5px] font-bold shadow-sm hover:bg-indigo-700 transition cursor-pointer border-none"
-                  >
-                    Submit for Approval
-                  </button>
-                )}
-                {selectedReq.status === 'APPROVED' && (
-                  <div className="bg-emerald-50/50 border border-emerald-150 p-3.5 rounded-2xl space-y-2 shadow-sm">
-                    <span className="block text-[10px] font-black uppercase text-emerald-800 tracking-wider">Next Recommended Action</span>
-                    <p className="text-[11.5px] text-slate-650 font-semibold leading-relaxed">
-                      Requisition is fully approved. Convert this requisition into a Purchase Order to send to the vendor.
-                    </p>
-                    <button 
-                      onClick={() => handleConvertToPo(selectedReq.id)}
-                      className="w-full py-2.5 bg-emerald-600 text-white rounded-xl text-[12.5px] font-bold shadow-sm hover:bg-emerald-700 transition cursor-pointer border-none mt-1"
-                    >
-                      Create Purchase Order
-                    </button>
-                  </div>
-                )}
-                {selectedReq.status === 'CONVERTED_TO_PO' && (
-                  <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-center justify-between text-[12px] font-semibold text-slate-650">
-                    <span>Requisition converted to PO</span>
-                    {selectedReq.relatedPos?.[0] && (
-                      <button 
-                        onClick={() => navigate(`/dashboard/purchase-orders?id=${selectedReq.relatedPos[0].id}`)}
-                        className="text-[11.5px] font-bold text-emerald-600 border-none bg-transparent cursor-pointer hover:underline flex items-center gap-0.5"
-                      >
-                        Open PO <ArrowRight size={12} />
-                      </button>
-                    )}
-                  </div>
-                )}
-              </div>
-            </div>
-          ) : (
-            <div className="bg-slate-50 border border-slate-200 rounded-3xl p-8 text-center text-slate-400 italic text-[12.5px] shadow-inner select-none">
-              <FileText size={30} className="mx-auto mb-2 text-slate-300 opacity-60" />
-              Select a requisition from the list to display details, timeline, and actions.
-            </div>
-          )}
+                );
+              })}
+            </tbody>
+          </table>
         </div>
       </div>
+
+      {/* Details Panel Sidebar Drawer */}
+      <div className="lg:col-span-4 space-y-6">
+        {selectedReq ? (
+          <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-5">
+            <div className="flex justify-between items-center border-b border-slate-100 pb-3.5">
+              <div>
+                <h3 className="font-mono font-black text-slate-850 text-[15px] flex items-center gap-2">
+                  {selectedReq.requisition_number}
+                  <StatusBadge status={selectedReq.status} />
+                </h3>
+                <p className="text-[10px] font-bold uppercase text-slate-400 mt-0.5">Purchase Requisition Details</p>
+              </div>
+              <button onClick={() => setSelectedReq(null)} className="text-slate-400 hover:text-slate-605 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-50 border-none bg-transparent cursor-pointer"><X size={15} /></button>
+            </div>
+
+            {/* Meta information */}
+            <div className="grid grid-cols-2 gap-y-3.5 gap-x-2 text-[12px] text-slate-600 border-b border-slate-100 pb-4">
+              <div>
+                <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Requested By</span>
+                <span className="font-bold text-slate-800 flex items-center gap-1 mt-0.5">
+                  <User size={12} className="text-slate-400" />
+                  {selectedReq.requested_by_name || 'System Auto'}
+                </span>
+              </div>
+              <div>
+                <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Department</span>
+                <span className="font-bold text-slate-800 mt-0.5 block">{selectedReq.department || 'General'}</span>
+              </div>
+              <div>
+                <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Date Needed</span>
+                <span className="font-bold text-slate-800 mt-0.5 block">{new Date(selectedReq.required_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</span>
+              </div>
+              <div>
+                <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Priority</span>
+                <span className={`inline-block mt-0.5 px-2 py-0.5 rounded-full text-[9px] font-black border ${PRIORITY_CONFIG[selectedReq.priority]?.bg}`}>
+                  {PRIORITY_CONFIG[selectedReq.priority]?.label}
+                </span>
+              </div>
+            </div>
+
+            {selectedReq.reason && (
+              <div className="space-y-1">
+                <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Business Justification</span>
+                <p className="text-[12px] italic text-slate-600 leading-relaxed bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">{selectedReq.reason}</p>
+              </div>
+            )}
+
+            {/* Items List */}
+            <div className="space-y-2">
+              <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Requested Items</span>
+              <div className="border border-slate-100 rounded-xl overflow-hidden text-[11.5px] bg-white">
+                <table className="w-full">
+                  <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
+                    <tr>
+                      <th className="px-3 py-2 text-left">Product</th>
+                      <th className="px-3 py-2 text-right">Qty</th>
+                      <th className="px-3 py-2 text-right">Est. Cost</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-50 font-medium text-slate-700">
+                    {selectedReq.items?.map((item, idx) => (
+                      <tr key={idx} className="hover:bg-slate-50/30">
+                        <td className="px-3 py-2">
+                          <span className="block font-bold text-slate-800">{item.product_name}</span>
+                          {item.description && <span className="block text-[9.5px] text-slate-400">{item.description}</span>}
+                        </td>
+                        <td className="px-3 py-2 text-right font-mono font-bold text-slate-800">{parseFloat(item.quantity)}</td>
+                        <td className="px-3 py-2 text-right font-mono font-bold text-slate-800">PKR {parseFloat(item.estimated_price).toLocaleString()}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+              <div className="flex justify-between font-black text-[13px] pt-1.5 border-t border-slate-100">
+                <span className="text-slate-850">Estimated Total</span>
+                <span className="font-mono text-slate-900">PKR {parseFloat(selectedReq.estimated_total).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+              </div>
+            </div>
+
+            {/* Document Journey and relationships mapping */}
+            {(() => {
+              const relatedDocs = [];
+              // Purchase order link if converted
+              if (selectedReq.relatedPos && selectedReq.relatedPos.length > 0) {
+                selectedReq.relatedPos.forEach(po => {
+                  relatedDocs.push({
+                    type: 'PURCHASE_ORDER',
+                    id: po.id,
+                    number: po.po_number,
+                    status: po.status,
+                    link: `/dashboard/purchase-orders?id=${po.id}`
+                  });
+                });
+              }
+              return <RelatedDocuments documents={relatedDocs} currentType="PURCHASE_REQUISITION" />;
+            })()}
+
+            {/* Approvals history timeline */}
+            <div className="space-y-3 pt-3.5 border-t border-slate-150">
+              <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Approval Workflow Timeline</span>
+              {loadingTimeline ? (
+                <div className="text-[11px] text-slate-400 italic"><RefreshCw size={11} className="animate-spin inline mr-1" /> Loading timeline...</div>
+              ) : reqTimeline.length === 0 ? (
+                <div className="text-[11px] text-slate-400 italic bg-slate-50 p-2.5 rounded-lg border border-dashed border-slate-200">No workflow approvals history generated yet.</div>
+              ) : (
+                <div className="space-y-3.5 border-l-2 border-slate-100 pl-4.5 py-0.5 ml-2.5">
+                  {reqTimeline.map((item, idx) => (
+                    <div key={item.id} className="relative text-[11px]">
+                      <span className={`absolute -left-[24.5px] top-0.5 w-3.5 h-3.5 rounded-full border bg-white flex items-center justify-center ${
+                        item.action === 'SUBMITTED' ? 'border-indigo-400 text-indigo-500' :
+                        item.action === 'APPROVED' ? 'border-emerald-400 text-emerald-500' :
+                        'border-rose-400 text-rose-500'
+                      }`}>
+                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
+                      </span>
+                      <div className="space-y-0.5">
+                        <p className="font-bold text-slate-800">{item.action} — {item.stage_name}</p>
+                        <p className="text-[9px] text-slate-450 font-bold">By {item.actioned_name || 'System'} • {new Date(item.created_at).toLocaleDateString()} at {new Date(item.created_at).toLocaleTimeString()}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+
+            {/* Next Action Cards / Buttons */}
+            <div className="space-y-2 pt-4 border-t border-slate-100">
+              {selectedReq.status === 'DRAFT' && (
+                <button 
+                  onClick={() => handleSubmitForApproval(selectedReq.id)}
+                  className="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-[12.5px] font-bold shadow-sm hover:bg-indigo-700 transition cursor-pointer border-none"
+                >
+                  Submit for Approval
+                </button>
+              )}
+              {selectedReq.status === 'APPROVED' && (
+                <div className="bg-emerald-50/50 border border-emerald-150 p-3.5 rounded-2xl space-y-2 shadow-sm">
+                  <span className="block text-[10px] font-black uppercase text-emerald-800 tracking-wider">Next Recommended Action</span>
+                  <p className="text-[11.5px] text-slate-650 font-semibold leading-relaxed">
+                    Requisition is fully approved. Convert this requisition into a Purchase Order to send to the vendor.
+                  </p>
+                  <button 
+                    onClick={() => handleConvertToPo(selectedReq.id)}
+                    className="w-full py-2.5 bg-emerald-600 text-white rounded-xl text-[12.5px] font-bold shadow-sm hover:bg-emerald-700 transition cursor-pointer border-none mt-1"
+                  >
+                    Create Purchase Order
+                  </button>
+                </div>
+              )}
+              {selectedReq.status === 'CONVERTED_TO_PO' && (
+                <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-center justify-between text-[12px] font-semibold text-slate-650">
+                  <span>Requisition converted to PO</span>
+                  {selectedReq.relatedPos?.[0] && (
+                    <button 
+                      onClick={() => navigate(`/dashboard/purchase-orders?id=${selectedReq.relatedPos[0].id}`)}
+                      className="text-[11.5px] font-bold text-emerald-600 border-none bg-transparent cursor-pointer hover:underline flex items-center gap-0.5"
+                    >
+                      Open PO <ArrowRight size={12} />
+                    </button>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
+        ) : (
+          <div className="bg-slate-50 border border-slate-200 rounded-3xl p-8 text-center text-slate-400 italic text-[12.5px] shadow-inner select-none">
+            <FileText size={30} className="mx-auto mb-2 text-slate-300 opacity-60" />
+            Select a requisition from the list to display details, timeline, and actions.
+          </div>
+        )}
+      </div>
+    </WorkspaceLayout>
 
       {/* ─── New Requisition Modal ─── */}
       {createModal && (
@@ -679,6 +667,6 @@ export default function PurchaseRequisitionsPage() {
           </div>
         </div>
       )}
-    </div>
+    </>
   );
 }

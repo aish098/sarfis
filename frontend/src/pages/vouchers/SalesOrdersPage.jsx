@@ -4,6 +4,8 @@ import { Plus, Search, FileText, CheckCircle, RefreshCw, X, Calendar, User, Arro
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import RelatedDocuments from '../../components/RelatedDocuments';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 const STATUS_CONFIG = {
   DRAFT: { label: 'Draft', bg: 'bg-slate-50 text-slate-700 border border-slate-100' },
@@ -198,9 +200,16 @@ export default function SalesOrdersPage() {
     return matchesSearch && matchesStatus;
   });
 
+  const kpiList = [
+    { label: "Today's Orders", value: todaysOrders, icon: ShoppingBag, iconBgClass: 'bg-blue-50', iconColorClass: 'text-blue-650' },
+    { label: 'Picking', value: pickingCount, icon: Clock, iconBgClass: 'bg-amber-50', iconColorClass: 'text-amber-600' },
+    { label: 'Ready to Ship', value: readyCount, icon: Layers, iconBgClass: 'bg-indigo-50', iconColorClass: 'text-indigo-655' },
+    { label: 'Partial', value: partialCount, icon: Truck, iconBgClass: 'bg-orange-50', iconColorClass: 'text-orange-655' },
+    { label: 'Delivered', value: deliveredCount, icon: CheckCircle2, iconBgClass: 'bg-emerald-50', iconColorClass: 'text-emerald-600' }
+  ];
+
   return (
-    <div className="space-y-6 font-sans pb-20">
-      
+    <>
       {/* Hidden Printable Invoice template */}
       <div style={{ display: 'none' }}>
         <div ref={printAreaRef} className="p-8 max-w-4xl mx-auto text-black font-sans text-xs space-y-6">
@@ -237,14 +246,14 @@ export default function SalesOrdersPage() {
                       <th className="p-3">Product</th>
                       <th className="p-3 text-right">Qty</th>
                       <th className="p-3 text-right">Unit Price</th>
-                      <th className="p-3 text-right">Discount</th>
+                      <th className="p-3 text-right">Disc.</th>
                       <th className="p-3 text-right">Total</th>
                     </tr>
                   </thead>
-                  <tbody className="divide-y font-medium text-slate-700">
-                    {selectedOrder.items.map((i, idx) => (
-                      <tr key={idx}>
-                        <td className="p-3">{i.product_name} ({i.product_sku})</td>
+                  <tbody className="divide-y text-slate-700">
+                    {selectedOrder.items?.map(i => (
+                      <tr key={i.id} className="border-b">
+                        <td className="p-3 font-semibold">{i.product_name}</td>
                         <td className="p-3 text-right">{parseFloat(i.quantity)}</td>
                         <td className="p-3 text-right font-mono">${parseFloat(i.unit_price).toFixed(2)}</td>
                         <td className="p-3 text-right font-mono text-red-500">-${parseFloat(i.discount || 0).toFixed(2)}</td>
@@ -280,112 +289,46 @@ export default function SalesOrdersPage() {
         </div>
       </div>
 
-      {/* Top Banner Toolbar */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <FileText size={18} className="text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Sales Orders</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Sales</span>
-            </div>
-            <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
-              Book customer orders, lock in pricing snapshots, and dispatch warehouse shipments.
-            </p>
-          </div>
-        </div>
-
-        <button 
-          onClick={() => {
-            setSoForm({
-              clientId: '',
-              warehouseId: warehouses[0]?.id || '',
-              deliveryDate: new Date().toISOString().split('T')[0],
-              notes: '',
-              items: [{ productId: '', quantity: 1, unitPrice: 0, discount: 0, notes: '' }]
-            });
-            setCreateModal(true);
-          }}
-          className="mt-3 md:mt-0 flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
-        >
-          <Plus size={14} /> New Sales Order
-        </button>
-      </div>
-
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 bg-blue-50 rounded-xl text-blue-600">
-            <ShoppingBag size={18} />
-          </div>
-          <div>
-            <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Today's Orders</span>
-            <span className="text-[17px] font-black text-slate-800">{todaysOrders}</span>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 bg-amber-50 rounded-xl text-amber-600">
-            <Clock size={18} />
-          </div>
-          <div>
-            <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Picking</span>
-            <span className="text-[17px] font-black text-slate-800">{pickingCount}</span>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 bg-indigo-50 rounded-xl text-indigo-600">
-            <Layers size={18} />
-          </div>
-          <div>
-            <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Ready to Ship</span>
-            <span className="text-[17px] font-black text-slate-800">{readyCount}</span>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 bg-orange-50 rounded-xl text-orange-655">
-            <Truck size={18} />
-          </div>
-          <div>
-            <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Partial</span>
-            <span className="text-[17px] font-black text-slate-800">{partialCount}</span>
-          </div>
-        </div>
-        <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600">
-            <CheckCircle2 size={18} />
-          </div>
-          <div>
-            <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Delivered</span>
-            <span className="text-[17px] font-black text-slate-800">{deliveredCount}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Toolbar Filters */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input 
-            className="input-enterprise pl-9 text-[13px] py-2.5" 
-            placeholder="Search SO Number, customer name, notes..." 
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <select 
-          className="input-enterprise text-[13px] py-2.5 w-auto"
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-        >
-          <option value="ALL">All Statuses</option>
-          {Object.keys(STATUS_CONFIG).map(s => <option key={s} value={s}>{STATUS_CONFIG[s].label}</option>)}
-        </select>
-      </div>
-
-      {/* Workspace Grids */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <WorkspaceLayout
+        title="Sales Orders"
+        subtitle="Book customer orders, lock in pricing snapshots, and dispatch warehouse shipments."
+        icon={FileText}
+        badgeText="Sales"
+        breadcrumbs={['SARFIS', 'Sales', 'Sales Orders']}
+        primaryAction={
+          <button 
+            onClick={() => {
+              setSoForm({
+                clientId: '',
+                warehouseId: warehouses[0]?.id || '',
+                deliveryDate: new Date().toISOString().split('T')[0],
+                notes: '',
+                items: [{ productId: '', quantity: 1, unitPrice: 0, discount: 0, notes: '' }]
+              });
+              setCreateModal(true);
+            }}
+            className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer border-none"
+          >
+            <Plus size={14} /> New Sales Order
+          </button>
+        }
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search SO Number, customer name, notes..."
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        statusOptions={[
+          { value: 'DRAFT', label: 'Draft' },
+          { value: 'CONFIRMED', label: 'Confirmed' },
+          { value: 'PICKING', label: 'Picking' },
+          { value: 'PACKED', label: 'Packed' },
+          { value: 'READY_FOR_DISPATCH', label: 'Ready for Dispatch' },
+          { value: 'PARTIALLY_DELIVERED', label: 'Partially Delivered' },
+          { value: 'DELIVERED', label: 'Delivered' },
+          { value: 'CLOSED', label: 'Closed' }
+        ]}
+        kpis={kpiList}
+      >
         
         {/* Table List Card */}
         <div className="card overflow-hidden lg:col-span-8 shadow-sm">
@@ -425,9 +368,7 @@ export default function SalesOrdersPage() {
                         PKR {parseFloat(so.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}
                       </td>
                       <td className="px-4 py-3.5 text-center">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusConf.bg}`}>
-                          {statusConf.label}
-                        </span>
+                        <StatusBadge status={so.status} />
                       </td>
                     </tr>
                   );
@@ -444,7 +385,10 @@ export default function SalesOrdersPage() {
               
               <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                 <div>
-                  <h3 className="font-mono font-black text-slate-850 text-[15px]">{selectedOrder.so_number}</h3>
+                  <h3 className="font-mono font-black text-slate-850 text-[15px] flex items-center gap-2">
+                    {selectedOrder.so_number}
+                    <StatusBadge status={selectedOrder.status} />
+                  </h3>
                   <p className="text-[10px] font-bold uppercase text-slate-400 mt-0.5">Sales Order Details</p>
                 </div>
                 <div className="flex items-center gap-1">
@@ -708,7 +652,7 @@ export default function SalesOrdersPage() {
             </div>
           )}
         </div>
-      </div>
+      </WorkspaceLayout>
 
       {/* ─── New Sales Order Modal ─── */}
       {createModal && (
@@ -900,7 +844,6 @@ export default function SalesOrdersPage() {
           </div>
         </div>
       )}
-
-    </div>
+    </>
   );
 }

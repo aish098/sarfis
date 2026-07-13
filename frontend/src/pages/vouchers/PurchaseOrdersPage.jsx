@@ -1,10 +1,14 @@
 import { useState, useEffect, useCallback } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, FileText, CheckCircle, RefreshCw, Trash2, Calendar, ShieldAlert, ArrowRight, User, X, FilePlus, Eye, Clock, CheckCircle2, AlertCircle } from 'lucide-react';
+import { Plus, Search, FileText, CheckCircle, RefreshCw, Trash2, Calendar, ShieldAlert, ArrowRight, User, X, FilePlus, Eye, Clock, CheckCircle2, AlertCircle, Building2 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import RelatedDocuments from '../../components/RelatedDocuments';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
+import StatusBadge from '../../components/ui/StatusBadge';
+import DocumentHeader from '../../components/ui/DocumentHeader';
+import NextActionCard from '../../components/ui/NextActionCard';
 
 const STATUS_CONFIG = {
   DRAFT: { label: 'Draft', bg: 'bg-amber-50 text-amber-700 border border-amber-100' },
@@ -224,64 +228,50 @@ export default function PurchaseOrdersPage() {
     return matchesStatus && matchesSearch;
   });
 
+  const countTotal = purchaseOrders.length;
+  const countPending = purchaseOrders.filter(po => po.status === 'PENDING_APPROVAL').length;
+  const countApproved = purchaseOrders.filter(po => po.status === 'APPROVED').length;
+  const countReceived = purchaseOrders.filter(po => po.status === 'GOODS_RECEIVED' || po.status === 'PARTIALLY_RECEIVED').length;
+
+  const kpiList = [
+    { label: 'Total Orders', value: countTotal, icon: FileText, iconBgClass: 'bg-blue-50', iconColorClass: 'text-blue-650' },
+    { label: 'Pending Approval', value: countPending, icon: Clock, iconBgClass: 'bg-amber-50', iconColorClass: 'text-amber-600' },
+    { label: 'Approved', value: countApproved, icon: CheckCircle2, iconBgClass: 'bg-emerald-50', iconColorClass: 'text-emerald-600' },
+    { label: 'Received / Partial', value: countReceived, icon: ArrowRight, iconBgClass: 'bg-slate-100', iconColorClass: 'text-slate-650' }
+  ];
+
   return (
-    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6] space-y-6">
-      
-      {/* Top Banner */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <FileText size={18} className="text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Purchase Orders</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Procurement</span>
-            </div>
-            <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
-              Draft, approve, and convert purchase orders cleanly.
-            </p>
-          </div>
-        </div>
-
-        <button 
-          onClick={() => { resetForm(); setShowFormModal(true); }}
-          className="mt-3 md:mt-0 flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
-        >
-          <Plus size={14} /> New Purchase Order
-        </button>
-      </div>
-
-      {/* Filters Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input 
-            className="input-enterprise pl-9 text-[13px] py-2.5" 
-            placeholder="Search PO number or vendor..." 
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <select 
-          className="input-enterprise text-[13px] py-2.5 w-auto"
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-        >
-          <option value="ALL">All Statuses</option>
-          <option value="DRAFT">Draft</option>
-          <option value="PENDING_APPROVAL">Pending Approval</option>
-          <option value="APPROVED">Approved</option>
-          <option value="REJECTED">Rejected</option>
-          <option value="CONVERTED">Converted</option>
-        </select>
-      </div>
-
-      {/* Main Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
-        
+    <>
+      <WorkspaceLayout
+        title="Purchase Orders"
+        subtitle="Draft, approve, and convert purchase orders cleanly."
+        icon={FileText}
+        badgeText="Procurement"
+        breadcrumbs={['SARFIS', 'Procurement', 'Purchase Orders']}
+        primaryAction={
+          <button 
+            onClick={() => { resetForm(); setShowFormModal(true); }}
+            className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer border-none"
+          >
+            <Plus size={14} /> New Purchase Order
+          </button>
+        }
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search PO number or vendor..."
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        statusOptions={[
+          { value: 'DRAFT', label: 'Draft' },
+          { value: 'PENDING_APPROVAL', label: 'Pending Approval' },
+          { value: 'APPROVED', label: 'Approved' },
+          { value: 'REJECTED', label: 'Rejected' },
+          { value: 'CONVERTED', label: 'Converted' }
+        ]}
+        kpis={kpiList}
+      >
         {/* Table List */}
-        <div className="card overflow-hidden lg:col-span-8">
+        <div className="card overflow-hidden lg:col-span-8 shadow-sm">
           <div className="overflow-x-auto">
             <table className="w-full">
               <thead>
@@ -294,11 +284,11 @@ export default function PurchaseOrdersPage() {
                   <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-center">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-[#E6EBE8]">
+              <tbody className="divide-y divide-[#E6EBE8] text-[13px] text-slate-700">
                 {isLoading ? (
                   <tr>
                     <td colSpan={6} className="text-center py-10 text-slate-400">
-                      <RefreshCw size={20} className="animate-spin mx-auto mb-2 text-slate-300" /> Loading...
+                      <RefreshCw size={20} className="animate-spin mx-auto mb-2 text-slate-355" /> Loading...
                     </td>
                   </tr>
                 ) : filteredOrders.length === 0 ? (
@@ -306,32 +296,29 @@ export default function PurchaseOrdersPage() {
                     <td colSpan={6} className="text-center py-12 text-slate-400 italic">No purchase orders found.</td>
                   </tr>
                 ) : filteredOrders.map(po => {
-                  const conf = STATUS_CONFIG[po.status] || { label: po.status, bg: 'bg-slate-100 text-slate-700' };
                   return (
                     <tr key={po.id} className="hover:bg-slate-50/50 cursor-pointer" onClick={() => handleSelectPo(po)}>
-                      <td className="px-4 py-3 font-mono text-[12px] font-bold text-slate-700">{po.po_number}</td>
-                      <td className="px-4 py-3 text-[13px] font-semibold text-slate-800">{po.vendor_name || 'System Auto-PO'}</td>
-                      <td className="px-4 py-3 text-[12px] text-slate-500">{new Date(po.date).toLocaleDateString()}</td>
-                      <td className="px-4 py-3 text-[13px] text-right font-mono font-bold text-slate-800">
-                        ${parseFloat(po.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
+                      <td className="px-4 py-3.5 font-mono text-[12px] font-bold text-slate-700">{po.po_number}</td>
+                      <td className="px-4 py-3.5 text-[13px] font-semibold text-slate-800">{po.vendor_name || 'System Auto-PO'}</td>
+                      <td className="px-4 py-3.5 text-[12px] text-slate-500">{new Date(po.date).toLocaleDateString()}</td>
+                      <td className="px-4 py-3.5 text-[13px] text-right font-mono font-bold text-slate-800">
+                        PKR {parseFloat(po.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}
                       </td>
-                      <td className="px-4 py-3 text-center">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${conf.bg}`}>
-                          {conf.label}
-                        </span>
+                      <td className="px-4 py-3.5 text-center">
+                        <StatusBadge status={po.status} />
                       </td>
-                      <td className="px-4 py-3 text-center" onClick={e => e.stopPropagation()}>
+                      <td className="px-4 py-3.5 text-center" onClick={e => e.stopPropagation()}>
                         <div className="flex gap-1.5 justify-center">
                           <button 
                             onClick={() => handleSelectPo(po)}
-                            className="text-[11px] font-bold px-2.5 py-1 rounded bg-slate-100 text-slate-600 hover:bg-slate-200"
+                            className="text-[11px] font-bold px-2.5 py-1 rounded bg-slate-100 text-slate-655 hover:bg-slate-200"
                           >
                             View
                           </button>
                           {po.status === 'DRAFT' && (
                             <button 
                               onClick={() => handleEditPo(po)}
-                              className="text-[11px] font-bold px-2.5 py-1 rounded bg-blue-55 text-blue-600 border border-blue-100 hover:bg-blue-50"
+                              className="text-[11px] font-bold px-2.5 py-1 rounded bg-blue-50 text-blue-600 border border-blue-100 hover:bg-blue-100/50"
                             >
                               Edit
                             </button>
@@ -339,7 +326,7 @@ export default function PurchaseOrdersPage() {
                           {po.status === 'APPROVED' && (
                             <button 
                               onClick={() => handleConvertPo(po.id)}
-                              className="text-[11px] font-bold px-2.5 py-1 rounded bg-emerald-600 text-white shadow-sm hover:bg-emerald-700"
+                              className="text-[11px] font-bold px-2.5 py-1 rounded bg-emerald-600 text-white shadow-sm hover:bg-emerald-700 border-none cursor-pointer"
                             >
                               Convert
                             </button>
@@ -367,27 +354,37 @@ export default function PurchaseOrdersPage() {
               >
                 <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                   <div>
-                    <h3 className="font-mono font-bold text-slate-800 text-[14px]">{selectedPo.po_number}</h3>
+                    <h3 className="font-mono font-bold text-slate-800 text-[14px] flex items-center gap-2">
+                      {selectedPo.po_number}
+                      <StatusBadge status={selectedPo.status} />
+                    </h3>
                     <p className="text-[10px] font-bold uppercase text-slate-400 mt-0.5">Purchase Order Details</p>
                   </div>
-                  <button onClick={() => setSelectedPo(null)} className="text-slate-400 hover:text-slate-600"><X size={15} /></button>
+                  <button onClick={() => setSelectedPo(null)} className="text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer"><X size={15} /></button>
                 </div>
 
-                <div className="space-y-2 text-[12px] text-slate-600">
-                  <div className="flex justify-between"><span>Vendor:</span><span className="font-bold text-slate-800">{selectedPo.vendor_name || 'System Auto'}</span></div>
-                  <div className="flex justify-between"><span>Date:</span><span className="font-bold text-slate-800">{new Date(selectedPo.date).toLocaleDateString()}</span></div>
-                  <div className="flex justify-between"><span>Status:</span>
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-bold uppercase ${STATUS_CONFIG[selectedPo.status]?.bg}`}>
-                      {STATUS_CONFIG[selectedPo.status]?.label}
-                    </span>
+                <DocumentHeader 
+                  title="Purchase Order"
+                  number={selectedPo.po_number}
+                  status={selectedPo.status}
+                  metadata={[
+                    { label: 'Vendor / Supplier', value: selectedPo.vendor_name || 'System Auto', icon: Building2 },
+                    { label: 'Order Date', value: new Date(selectedPo.date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' }), icon: Calendar },
+                    { label: 'Created By', value: selectedPo.creator_name || 'System', icon: User }
+                  ]}
+                />
+
+                {selectedPo.notes && (
+                  <div className="border-t border-slate-100 pt-2">
+                    <span className="block font-bold text-slate-400 text-[10px] uppercase">Notes</span>
+                    <p className="italic text-slate-500">{selectedPo.notes}</p>
                   </div>
-                  {selectedPo.notes && <div className="border-t border-slate-100 pt-2"><span className="block font-bold text-slate-400 text-[10px] uppercase">Notes</span><p className="italic text-slate-500">{selectedPo.notes}</p></div>}
-                </div>
+                )}
 
                 {/* Items */}
                 <div className="space-y-2">
                   <span className="block font-bold text-slate-400 text-[10px] uppercase tracking-wide">Ordered Items</span>
-                  <div className="border border-slate-100 rounded-xl overflow-hidden text-[11px]">
+                  <div className="border border-slate-100 rounded-xl overflow-hidden text-[11px] bg-white">
                     <table className="w-full">
                       <thead className="bg-slate-50">
                         <tr>
@@ -401,7 +398,7 @@ export default function PurchaseOrdersPage() {
                           <tr key={idx}>
                             <td className="px-3 py-1.5 text-slate-700 font-semibold">{item.product_name}</td>
                             <td className="px-3 py-1.5 text-right font-mono font-semibold text-slate-700">{parseFloat(item.quantity)} {item.unit_of_measure}</td>
-                            <td className="px-3 py-1.5 text-right font-mono font-semibold text-slate-700">${parseFloat(item.unit_price).toFixed(2)}</td>
+                            <td className="px-3 py-1.5 text-right font-mono font-semibold text-slate-700">PKR {parseFloat(item.unit_price).toLocaleString()}</td>
                           </tr>
                         ))}
                       </tbody>
@@ -409,7 +406,7 @@ export default function PurchaseOrdersPage() {
                   </div>
                   <div className="flex justify-between font-bold text-[13px] pt-1">
                     <span>Total Amount</span>
-                    <span className="font-mono text-slate-900">${parseFloat(selectedPo.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
+                    <span className="font-mono text-slate-900">PKR {parseFloat(selectedPo.total_amount).toLocaleString('en-US', { minimumFractionDigits: 2 })}</span>
                   </div>
                 </div>
 
@@ -474,37 +471,43 @@ export default function PurchaseOrdersPage() {
                 {/* Details Actions */}
                 <div className="space-y-2 pt-3 border-t border-slate-100">
                   {selectedPo.status === 'DRAFT' && (
-                    <button 
-                      onClick={() => handleSendForApproval(selectedPo.id)}
-                      className="w-full py-2.5 bg-indigo-65 bg-indigo-600 text-white rounded-xl text-[12.5px] font-bold shadow-sm hover:bg-indigo-700 transition cursor-pointer"
+                    <NextActionCard 
+                      status={selectedPo.status}
+                      description="Submit this Purchase Order draft for workflow authorization."
                     >
-                      Submit for Approval
-                    </button>
+                      <button 
+                        onClick={() => handleSendForApproval(selectedPo.id)}
+                        className="w-full py-2.5 bg-indigo-65 bg-indigo-600 text-white rounded-xl text-[12.5px] font-bold shadow-sm hover:bg-indigo-700 transition cursor-pointer border-none"
+                      >
+                        Submit for Approval
+                      </button>
+                    </NextActionCard>
                   )}
                   {['APPROVED', 'PARTIALLY_RECEIVED'].includes(selectedPo.status) && (
-                    <div className="bg-emerald-50/50 border border-emerald-150 p-3.5 rounded-2xl space-y-2 shadow-sm text-left">
-                      <span className="block text-[10px] font-black uppercase text-emerald-800 tracking-wider">Next Recommended Action</span>
-                      <p className="text-[11.5px] text-slate-650 font-semibold leading-relaxed">
-                        This Purchase Order is approved. Record the arrival of items at the warehouse using a Goods Receipt Note (GRN).
-                      </p>
+                    <NextActionCard 
+                      status={selectedPo.status}
+                      description="This Purchase Order is approved. Record the arrival of items at the warehouse using a Goods Receipt Note (GRN)."
+                    >
                       <button 
                         onClick={() => navigate(`/dashboard/goods-receipts?po_id=${selectedPo.id}`)}
                         className="w-full py-2.5 bg-emerald-600 text-white rounded-xl text-[12.5px] font-bold shadow-sm hover:bg-emerald-700 transition cursor-pointer border-none mt-1"
                       >
                         Receive Goods
                       </button>
-                    </div>
+                    </NextActionCard>
                   )}
                   {selectedPo.status === 'GOODS_RECEIVED' && (
-                    <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-center justify-between text-[12px] font-semibold text-slate-650">
-                      <span>All goods received successfully</span>
+                    <NextActionCard 
+                      status={selectedPo.status}
+                      description="All items have been received successfully. Click below to view the linked goods receipt transactions."
+                    >
                       <button 
                         onClick={() => navigate(`/dashboard/goods-receipts`)}
                         className="text-[11.5px] font-bold text-emerald-600 border-none bg-transparent cursor-pointer hover:underline flex items-center gap-0.5"
                       >
                         Open Receipts <ArrowRight size={12} />
                       </button>
-                    </div>
+                    </NextActionCard>
                   )}
                 </div>
               </Motion.div>
@@ -515,7 +518,7 @@ export default function PurchaseOrdersPage() {
             )}
           </AnimatePresence>
         </div>
-      </div>
+      </WorkspaceLayout>
 
       {/* New / Edit PO Modal */}
       <AnimatePresence>
@@ -666,6 +669,6 @@ export default function PurchaseOrdersPage() {
           </Motion.div>
         )}
       </AnimatePresence>
-    </div>
+    </>
   );
 }

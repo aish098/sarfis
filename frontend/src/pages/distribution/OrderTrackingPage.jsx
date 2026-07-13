@@ -4,6 +4,8 @@ import { Search, RefreshCw, X, Truck, Calendar, ArrowRight, User, Package, Box, 
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import RelatedDocuments from '../../components/RelatedDocuments';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 const STATUS_CONFIG = {
   DRAFT: { label: 'Draft', bg: 'bg-slate-50 text-slate-650' },
@@ -166,9 +168,16 @@ export default function OrderTrackingPage() {
   const countPartial = orders.filter(o => o.status === 'PARTIALLY_DELIVERED').length;
   const countDeliveredToday = orders.filter(o => o.status === 'DELIVERED' || o.status === 'CLOSED').length;
 
+  const kpiList = [
+    { label: 'Orders Waiting', value: countWaiting, icon: Clipboard, iconBgClass: 'bg-blue-50', iconColorClass: 'text-blue-650' },
+    { label: 'Picking', value: countPicking, icon: Box, iconBgClass: 'bg-amber-50', iconColorClass: 'text-amber-600' },
+    { label: 'Ready', value: countReady, icon: Layers, iconBgClass: 'bg-indigo-50', iconColorClass: 'text-indigo-650' },
+    { label: 'Partially Delivered', value: countPartial, icon: Truck, iconBgClass: 'bg-orange-50', iconColorClass: 'text-orange-655' },
+    { label: 'Delivered', value: countDeliveredToday, icon: CheckCircle2, iconBgClass: 'bg-emerald-50', iconColorClass: 'text-emerald-600' }
+  ];
+
   return (
-    <div className="space-y-6 font-sans pb-20">
-      
+    <>
       {/* Printable Area (Hidden by default) */}
       <div style={{ display: 'none' }}>
         <div ref={printAreaRef} className="p-8 max-w-4xl mx-auto text-black font-sans">
@@ -284,88 +293,17 @@ export default function OrderTrackingPage() {
         </div>
       </div>
 
-      {/* Top Banner Toolbar */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <Clipboard size={18} className="text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Order Tracking Console</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Logistics</span>
-            </div>
-            <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
-              Real-time warehouse operational board tracking picking, packing, and client delivery dispatch.
-            </p>
-          </div>
-        </div>
-      </div>
-
-      {/* KPI Cards */}
-      <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-        <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 bg-blue-50 rounded-xl text-blue-650">
-            <Clipboard size={18} />
-          </div>
-          <div>
-            <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Orders Waiting</span>
-            <span className="text-[18px] font-black text-slate-800">{countWaiting}</span>
-          </div>
-        </div>
-        <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 bg-amber-50 rounded-xl text-amber-600">
-            <Box size={18} />
-          </div>
-          <div>
-            <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Picking</span>
-            <span className="text-[18px] font-black text-slate-800">{countPicking}</span>
-          </div>
-        </div>
-        <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 bg-indigo-50 rounded-xl text-indigo-600">
-            <Layers size={18} />
-          </div>
-          <div>
-            <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Ready</span>
-            <span className="text-[18px] font-black text-slate-800">{countReady}</span>
-          </div>
-        </div>
-        <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 bg-orange-50 rounded-xl text-orange-650">
-            <Truck size={18} />
-          </div>
-          <div>
-            <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Partially Delivered</span>
-            <span className="text-[18px] font-black text-slate-800">{countPartial}</span>
-          </div>
-        </div>
-        <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 bg-emerald-50 rounded-xl text-emerald-600">
-            <CheckCircle2 size={18} />
-          </div>
-          <div>
-            <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Delivered</span>
-            <span className="text-[18px] font-black text-slate-800">{countDeliveredToday}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Search Filter */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input 
-            className="input-enterprise pl-9 text-[13px] py-2.5" 
-            placeholder="Search Order No, Customer..." 
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </div>
-      </div>
-
-      {/* Kanban Board Layout */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+      <WorkspaceLayout
+        title="Order Tracking Console"
+        subtitle="Real-time warehouse operational board tracking picking, packing, and client delivery dispatch."
+        icon={Clipboard}
+        badgeText="Logistics"
+        breadcrumbs={['SARFIS', 'Distribution', 'Order Tracking']}
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search Order No, Customer..."
+        kpis={kpiList}
+      >
         
         {/* Kanban Board Columns */}
         <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
@@ -386,9 +324,9 @@ export default function OrderTrackingPage() {
                   <span className="block font-mono text-[11.5px] font-bold text-indigo-600">{o.so_number}</span>
                   <span className="block text-[12px] font-bold text-slate-800 mt-1 truncate">{o.client_name}</span>
                   <span className="block text-[10px] text-slate-400 mt-0.5 font-medium">{o.warehouse_name}</span>
-                  <span className={`inline-block px-2 py-0.5 text-[9px] font-black uppercase rounded mt-2.5 ${o.status === 'CONFIRMED' ? 'bg-blue-50 text-blue-700' : 'bg-amber-50 text-amber-700'}`}>
-                    {o.status === 'CONFIRMED' ? 'Confirmed' : 'Picking'}
-                  </span>
+                  <div className="mt-2.5">
+                    <StatusBadge status={o.status} />
+                  </div>
                 </div>
               ))}
               {getOrdersByColumn('PICKING').length === 0 && <div className="text-[11px] text-slate-400 italic text-center py-6">No orders in picking.</div>}
@@ -411,9 +349,9 @@ export default function OrderTrackingPage() {
                   <span className="block font-mono text-[11.5px] font-bold text-indigo-600">{o.so_number}</span>
                   <span className="block text-[12px] font-bold text-slate-800 mt-1 truncate">{o.client_name}</span>
                   <span className="block text-[10px] text-slate-400 mt-0.5 font-medium">{o.warehouse_name}</span>
-                  <span className={`inline-block px-2 py-0.5 text-[9px] font-black uppercase rounded mt-2.5 ${o.status === 'PACKED' ? 'bg-indigo-50 text-indigo-700' : 'bg-cyan-50 text-cyan-700'}`}>
-                    {o.status === 'PACKED' ? 'Packed' : 'Ready'}
-                  </span>
+                  <div className="mt-2.5">
+                    <StatusBadge status={o.status} />
+                  </div>
                 </div>
               ))}
               {getOrdersByColumn('READY').length === 0 && <div className="text-[11px] text-slate-400 italic text-center py-6">No orders ready.</div>}
@@ -436,9 +374,9 @@ export default function OrderTrackingPage() {
                   <span className="block font-mono text-[11.5px] font-bold text-indigo-600">{o.so_number}</span>
                   <span className="block text-[12px] font-bold text-slate-800 mt-1 truncate">{o.client_name}</span>
                   <span className="block text-[10px] text-slate-400 mt-0.5 font-medium">{o.warehouse_name}</span>
-                  <span className={`inline-block px-2 py-0.5 text-[9px] font-black uppercase rounded mt-2.5 ${o.status === 'PARTIALLY_DELIVERED' ? 'bg-amber-100 text-amber-800' : 'bg-orange-50 text-orange-700'}`}>
-                    {o.status === 'PARTIALLY_DELIVERED' ? 'Partial' : 'Dispatched'}
-                  </span>
+                  <div className="mt-2.5">
+                    <StatusBadge status={o.status} />
+                  </div>
                 </div>
               ))}
               {getOrdersByColumn('DISPATCHED').length === 0 && <div className="text-[11px] text-slate-400 italic text-center py-6">No transit shipments.</div>}
@@ -461,9 +399,9 @@ export default function OrderTrackingPage() {
                   <span className="block font-mono text-[11.5px] font-bold text-indigo-600">{o.so_number}</span>
                   <span className="block text-[12px] font-bold text-slate-800 mt-1 truncate">{o.client_name}</span>
                   <span className="block text-[10px] text-slate-400 mt-0.5 font-medium">{o.warehouse_name}</span>
-                  <span className="inline-block px-2 py-0.5 text-[9px] font-black uppercase rounded bg-emerald-50 text-emerald-700 mt-2.5">
-                    Delivered
-                  </span>
+                  <div className="mt-2.5">
+                    <StatusBadge status={o.status} />
+                  </div>
                 </div>
               ))}
               {getOrdersByColumn('DELIVERED').length === 0 && <div className="text-[11px] text-slate-400 italic text-center py-6">No delivered orders.</div>}
@@ -479,7 +417,10 @@ export default function OrderTrackingPage() {
               
               <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                 <div>
-                  <h3 className="font-mono font-black text-slate-850 text-[15px]">{selectedOrder.so_number}</h3>
+                  <h3 className="font-mono font-black text-slate-850 text-[15px] flex items-center gap-2">
+                    {selectedOrder.so_number}
+                    <StatusBadge status={selectedOrder.status} />
+                  </h3>
                   <p className="text-[10px] font-bold uppercase text-slate-400 mt-0.5">Fulfillment Details</p>
                 </div>
                 <button onClick={() => setSelectedOrder(null)} className="text-slate-400 hover:text-slate-600 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-50 border-none bg-transparent cursor-pointer"><X size={15} /></button>
@@ -696,8 +637,7 @@ export default function OrderTrackingPage() {
             </div>
           )}
         </div>
-
-      </div>
+      </WorkspaceLayout>
 
       {/* ─── Dispatch Details & Quantities Modal ─── */}
       {dispatchModal && (
@@ -840,7 +780,6 @@ export default function OrderTrackingPage() {
           </div>
         </div>
       )}
-
-    </div>
+    </>
   );
 }

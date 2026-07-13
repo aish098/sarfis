@@ -3,10 +3,12 @@ import { motion as Motion, AnimatePresence } from 'framer-motion';
 import {
   Package, Plus, AlertTriangle, Search, Filter,
   TrendingDown, BarChart3, X, ChevronDown, CheckCircle2,
-  ArrowDownToLine, SlidersHorizontal, RefreshCw, Eye
+  ArrowDownToLine, SlidersHorizontal, RefreshCw, Eye, Calendar, Clock
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 const stagger = { animate: { transition: { staggerChildren: 0.05 } } };
 const fadeUp = { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
@@ -194,8 +196,14 @@ export default function InventoryPage({ globalSearch = "" }) {
   const revenueAccounts = accounts.filter(a => getAccountTypeKey(a) === 'revenue');
   const liabilityAccounts = accounts.filter(a => getAccountTypeKey(a) === 'liability');
 
+  const kpiList = dashStats ? [
+    { label: 'Total Products', value: dashStats.totalProducts, icon: Package, iconBgClass: 'bg-blue-50', iconColorClass: 'text-blue-650' },
+    { label: 'Low Stock Alerts', value: dashStats.lowStockCount, icon: AlertTriangle, iconBgClass: 'bg-amber-50', iconColorClass: 'text-amber-600' },
+    { label: 'Total Stock Value', value: `PKR ${parseFloat(dashStats.totalStockValue).toLocaleString('en-US', { minimumFractionDigits: 2 })}`, icon: BarChart3, iconBgClass: 'bg-emerald-50', iconColorClass: 'text-emerald-600' }
+  ] : [];
+
   return (
-    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6] space-y-6">
+    <>
       <AnimatePresence>
         {loadError && (
           <Motion.div initial={{ opacity: 0, y: -10 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, y: -10 }}
@@ -203,10 +211,10 @@ export default function InventoryPage({ globalSearch = "" }) {
             <AlertTriangle size={18} className="flex-shrink-0" />
             <div className="flex-1 text-[13px] font-medium">{loadError}</div>
             <div className="flex items-center gap-2">
-              <button onClick={() => window.location.reload()} className="px-3 py-1.5 rounded-lg bg-white border border-rose-200 text-rose-700 text-[11px] font-bold hover:bg-rose-100 transition-all flex items-center gap-1.5">
+              <button onClick={() => window.location.reload()} className="px-3 py-1.5 rounded-lg bg-white border border-rose-200 text-rose-700 text-[11px] font-bold hover:bg-rose-100 transition-all flex items-center gap-1.5 border-none cursor-pointer">
                 <RefreshCw size={12} /> Retry
               </button>
-              <button onClick={() => { logout(); window.location.href = '/login'; }} className="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-[11px] font-bold hover:bg-rose-700 shadow-md transition-all flex items-center gap-1.5">
+              <button onClick={() => { logout(); window.location.href = '/login'; }} className="px-3 py-1.5 rounded-lg bg-rose-600 text-white text-[11px] font-bold hover:bg-rose-700 shadow-md transition-all flex items-center gap-1.5 border-none cursor-pointer">
                 <X size={12} /> Reset Session
               </button>
             </div>
@@ -214,106 +222,73 @@ export default function InventoryPage({ globalSearch = "" }) {
         )}
       </AnimatePresence>
 
-      {/* Top Banner Toolbar */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <Package size={18} className="text-white fill-white/20" />
+      <WorkspaceLayout
+        title="Inventory Management"
+        subtitle="Track products, stock levels, and movements."
+        icon={Package}
+        badgeText="Supply Chain"
+        breadcrumbs={['SARFIS', 'Inventory', 'Management']}
+        primaryAction={
+          <div className="flex items-center gap-2 flex-wrap">
+            <button onClick={() => { setFormError(''); setAdjustModal(true); }} className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-655 px-4 py-2 text-[12.5px] font-bold rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer">
+              <SlidersHorizontal size={14} /> Adjust Stock
+            </button>
+            <button onClick={() => { setFormError(''); setPurchaseModal(true); }} className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-655 px-4 py-2 text-[12.5px] font-bold rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer">
+              <ArrowDownToLine size={14} /> Record Purchase
+            </button>
+            <button onClick={() => { setFormError(''); setProductModal(true); }} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer border-none">
+              <Plus size={14} /> Add Product
+            </button>
           </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Inventory Management</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Supply Chain</span>
-            </div>
-            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
-              Track products, stock levels, and movements.
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap">
-          <button onClick={() => { setFormError(''); setAdjustModal(true); }} className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-4 py-2 text-[12.5px] font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer">
-            <SlidersHorizontal size={14} /> Adjust Stock
-          </button>
-          <button onClick={() => { setFormError(''); setPurchaseModal(true); }} className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-600 px-4 py-2 text-[12.5px] font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer">
-            <ArrowDownToLine size={14} /> Record Purchase
-          </button>
-          <button onClick={() => { setFormError(''); setProductModal(true); }} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer">
-            <Plus size={14} /> Add Product
-          </button>
-        </div>
-      </div>
-
-      {/* KPI row */}
-      {dashStats && (
-        <Motion.div variants={stagger} initial="initial" animate="animate"
-          className="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-7">
-          {[
-            { label: 'Total Products', value: dashStats.totalProducts, icon: Package, color: '#2563eb', bg: '#dbeafe' },
-            { label: 'Low Stock Alerts', value: dashStats.lowStockCount, icon: AlertTriangle, color: '#d97706', bg: '#fef3c7' },
-            { label: 'Total Stock Value', value: `$${dashStats.totalStockValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, icon: BarChart3, color: '#059669', bg: '#d1fae5' },
-          ].map((s, i) => (
-            <Motion.div key={i} variants={fadeUp} whileHover={{ y: -2 }}
-              className="card kpi-card p-5" style={{ borderLeft: `3px solid ${s.color}` }}>
-              <div className="flex items-start justify-between mb-3">
-                <p className="text-[11px] font-bold uppercase tracking-widest text-slate-500">{s.label}</p>
-                <div className="w-9 h-9 rounded-lg flex items-center justify-center" style={{ background: s.bg }}>
-                  <s.icon size={16} style={{ color: s.color }} />
+        }
+        searchQuery={tab !== 'logs' ? localSearch : undefined}
+        onSearchChange={tab !== 'logs' ? setLocalSearch : undefined}
+        searchPlaceholder={`Search ${tab}...`}
+        kpis={kpiList}
+      >
+        {/* Low stock warning bar */}
+        {lowStock.length > 0 && (
+          <div className="col-span-full">
+            <Motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
+              className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50 mb-4 animate-slide-up">
+              <AlertTriangle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
+              <div>
+                <p className="text-[13px] font-semibold text-amber-800">
+                  {lowStock.length} product{lowStock.length > 1 ? 's' : ''} below reorder level:
+                </p>
+                <div className="flex flex-wrap gap-2 mt-1.5">
+                  {lowStock.map(p => (
+                    <span key={p.product_id} className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
+                      {p.sku} — {p.product_name} ({p.total_qty} left)
+                    </span>
+                  ))}
                 </div>
               </div>
-              <p className="font-display font-extrabold text-[22px] text-slate-900">{s.value}</p>
             </Motion.div>
-          ))}
-        </Motion.div>
-      )}
-
-      {/* Low stock warning bar */}
-      {lowStock.length > 0 && (
-        <Motion.div initial={{ opacity: 0, y: -8 }} animate={{ opacity: 1, y: 0 }}
-          className="flex items-start gap-3 p-4 rounded-xl border border-amber-200 bg-amber-50 mb-6">
-          <AlertTriangle size={16} className="text-amber-500 flex-shrink-0 mt-0.5" />
-          <div>
-            <p className="text-[13px] font-semibold text-amber-800">
-              {lowStock.length} product{lowStock.length > 1 ? 's' : ''} below reorder level:
-            </p>
-            <div className="flex flex-wrap gap-2 mt-1.5">
-              {lowStock.map(p => (
-                <span key={p.product_id} className="text-[11px] font-semibold px-2.5 py-1 rounded-full bg-amber-100 text-amber-700 border border-amber-200">
-                  {p.sku} — {p.product_name} ({p.total_qty} left)
-                </span>
-              ))}
-            </div>
           </div>
-        </Motion.div>
-      )}
+        )}
 
-      {/* Tabs */}
-      <div className="tab-bar bg-white border border-slate-100 rounded-xl p-1 flex w-fit mb-5 shadow-sm">
-        {[
-          { id: 'products', label: 'Products' },
-          { id: 'stock', label: 'Stock Levels' },
-          { id: 'logs', label: 'Movement Log' },
-        ].map(t => (
-          <button key={t.id} onClick={() => setTab(t.id)} className={`tab-item px-3 py-1.5 text-[12px] font-bold rounded-lg flex items-center gap-1.5 transition-all ${tab === t.id ? 'bg-emerald-50 text-emerald-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Search */}
-      {tab !== 'logs' && (
-        <div className="relative max-w-sm mb-4">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input className="input-enterprise pl-12 text-[13px] py-2.5" placeholder={`Search ${tab}...`}
-            value={localSearch} onChange={e => setLocalSearch(e.target.value)} />
+        {/* Tab Selection */}
+        <div className="col-span-full mb-2">
+          <div className="tab-bar bg-white border border-slate-100 rounded-xl p-1 flex w-fit shadow-xs">
+            {[
+              { id: 'products', label: 'Products' },
+              { id: 'stock', label: 'Stock Levels' },
+              { id: 'logs', label: 'Movement Log' },
+            ].map(t => (
+              <button key={t.id} onClick={() => setTab(t.id)} className={`tab-item px-4.5 py-2 text-[12.5px] font-bold rounded-lg flex items-center gap-1.5 transition-all border-none bg-transparent cursor-pointer ${tab === t.id ? 'bg-emerald-50 text-emerald-700 shadow-xs' : 'text-slate-500 hover:text-slate-700'}`}>
+                {t.label}
+              </button>
+            ))}
+          </div>
         </div>
-      )}
 
-      {/* Products Table */}
-      {tab === 'products' && (
-        <div className="card overflow-hidden">
-          <div className="overflow-x-auto">
-            <table className="w-full">
+        {/* Main Content Area */}
+        <div className="col-span-full">
+          {tab === 'products' && (
+            <div className="card overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full">
               <thead>
                 <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
                   <th style={{ width: 100 }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">SKU</th>
@@ -678,7 +653,9 @@ export default function InventoryPage({ globalSearch = "" }) {
           </Modal>
         )}
       </AnimatePresence>
-    </div>
+        </div>
+      </WorkspaceLayout>
+    </>
   );
 }
 

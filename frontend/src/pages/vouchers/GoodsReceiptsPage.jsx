@@ -4,6 +4,8 @@ import { Plus, Search, FileText, CheckCircle, RefreshCw, Trash2, Calendar, Shiel
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import RelatedDocuments from '../../components/RelatedDocuments';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 const STATUS_CONFIG = {
   DRAFT: { label: 'Draft', bg: 'bg-amber-50 text-amber-700 border border-amber-100' },
@@ -237,109 +239,51 @@ export default function GoodsReceiptsPage() {
     return matchesSearch && matchesStatus;
   });
 
+  const kpiList = [
+    { label: 'Pending Receipts', value: pendingReceipts, icon: Clock, iconBgClass: 'bg-amber-50', iconColorClass: 'text-amber-600' },
+    { label: 'Received Today', value: receivedToday, icon: CheckCircle2, iconBgClass: 'bg-emerald-50', iconColorClass: 'text-emerald-600' },
+    { label: 'Partial Receipts', value: partialReceipts, icon: Layers, iconBgClass: 'bg-blue-50', iconColorClass: 'text-blue-650' },
+    { label: 'Awaiting Invoice', value: awaitingInvoice, icon: FileText, iconBgClass: 'bg-indigo-50', iconColorClass: 'text-indigo-650' }
+  ];
+
   return (
-    <div className="space-y-6 font-sans pb-20">
-      
-      {/* Top Banner Toolbar */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <FileText size={18} className="text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Goods Receipts (GRN)</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Operations</span>
-            </div>
-            <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
-              Verify vendor shipments, manage warehouse intake quantities, and restock inventory.
-            </p>
-          </div>
-        </div>
-
-        <button 
-          onClick={() => {
-            setGrnForm({
-              purchaseOrderId: '',
-              vendorId: '',
-              warehouseId: warehouses[0]?.id || '',
-              receivedDate: new Date().toISOString().split('T')[0],
-              supplierReference: '',
-              notes: '',
-              items: []
-            });
-            setCreateModal(true);
-          }}
-          className="mt-3 md:mt-0 flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
-        >
-          <Plus size={14} /> Receive Goods
-        </button>
-      </div>
-
-      {/* KPI Cards Grid */}
-      <div className="grid grid-cols-2 lg:grid-cols-4 gap-4">
-        <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-amber-50 rounded-xl text-amber-600">
-            <Clock size={20} />
-          </div>
-          <div>
-            <span className="block text-[10.5px] font-bold text-slate-400 uppercase tracking-wider">Pending Receipts</span>
-            <span className="text-[20px] font-black text-slate-800">{pendingReceipts}</span>
-          </div>
-        </div>
-        <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-emerald-50 rounded-xl text-emerald-600">
-            <CheckCircle2 size={20} />
-          </div>
-          <div>
-            <span className="block text-[10.5px] font-bold text-slate-400 uppercase tracking-wider">Received Today</span>
-            <span className="text-[20px] font-black text-slate-800">{receivedToday}</span>
-          </div>
-        </div>
-        <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-blue-50 rounded-xl text-blue-600">
-            <Layers size={20} />
-          </div>
-          <div>
-            <span className="block text-[10.5px] font-bold text-slate-400 uppercase tracking-wider">Partial Receipts</span>
-            <span className="text-[20px] font-black text-slate-800">{partialReceipts}</span>
-          </div>
-        </div>
-        <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-4">
-          <div className="p-3 bg-indigo-50 rounded-xl text-indigo-600">
-            <FileText size={20} />
-          </div>
-          <div>
-            <span className="block text-[10.5px] font-bold text-slate-400 uppercase tracking-wider">Awaiting Invoice</span>
-            <span className="text-[20px] font-black text-slate-800">{awaitingInvoice}</span>
-          </div>
-        </div>
-      </div>
-
-      {/* Filters Toolbar */}
-      <div className="flex flex-col sm:flex-row gap-3">
-        <div className="relative flex-1 max-w-sm">
-          <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-          <input 
-            className="input-enterprise pl-9 text-[13px] py-2.5" 
-            placeholder="Search GRN No, supplier ref, vendor name..." 
-            value={searchQuery}
-            onChange={e => setSearchQuery(e.target.value)}
-          />
-        </div>
-        <select 
-          className="input-enterprise text-[13px] py-2.5 w-auto"
-          value={statusFilter}
-          onChange={e => setStatusFilter(e.target.value)}
-        >
-          <option value="ALL">All Statuses</option>
-          <option value="DRAFT">Draft</option>
-          <option value="RECEIVED">Goods Received</option>
-        </select>
-      </div>
-
-      {/* Main Layout Grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-12 gap-6 items-start">
+    <>
+      <WorkspaceLayout
+        title="Goods Receipts (GRN)"
+        subtitle="Verify vendor shipments, manage warehouse intake quantities, and restock inventory."
+        icon={FileText}
+        badgeText="Operations"
+        breadcrumbs={['SARFIS', 'Procurement', 'Goods Receipts']}
+        primaryAction={
+          <button 
+            onClick={() => {
+              setGrnForm({
+                purchaseOrderId: '',
+                vendorId: '',
+                warehouseId: warehouses[0]?.id || '',
+                receivedDate: new Date().toISOString().split('T')[0],
+                supplierReference: '',
+                notes: '',
+                items: []
+              });
+              setCreateModal(true);
+            }}
+            className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer border-none"
+          >
+            <Plus size={14} /> Receive Goods
+          </button>
+        }
+        searchQuery={searchQuery}
+        onSearchChange={setSearchQuery}
+        searchPlaceholder="Search GRN No, supplier ref, vendor name..."
+        statusFilter={statusFilter}
+        onStatusFilterChange={setStatusFilter}
+        statusOptions={[
+          { value: 'DRAFT', label: 'Draft' },
+          { value: 'RECEIVED', label: 'Goods Received' }
+        ]}
+        kpis={kpiList}
+      >
         
         {/* Table List Card */}
         <div className="card overflow-hidden lg:col-span-8 shadow-sm">
@@ -377,9 +321,7 @@ export default function GoodsReceiptsPage() {
                       <td className="px-4 py-3.5 font-mono">{new Date(gr.received_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}</td>
                       <td className="px-4 py-3.5 text-slate-600 font-semibold">{gr.supplier_reference || 'N/A'}</td>
                       <td className="px-4 py-3.5 text-center">
-                        <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-bold uppercase tracking-wider ${statusConf.bg}`}>
-                          {statusConf.label}
-                        </span>
+                        <StatusBadge status={gr.status} />
                       </td>
                     </tr>
                   );
@@ -395,7 +337,10 @@ export default function GoodsReceiptsPage() {
             <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-5">
               <div className="flex justify-between items-center border-b border-slate-100 pb-3.5">
                 <div>
-                  <h3 className="font-mono font-black text-slate-850 text-[15px]">{selectedGrn.grn_number}</h3>
+                  <h3 className="font-mono font-black text-slate-850 text-[15px] flex items-center gap-2">
+                    {selectedGrn.grn_number}
+                    <StatusBadge status={selectedGrn.status} />
+                  </h3>
                   <p className="text-[10px] font-bold uppercase text-slate-400 mt-0.5">Goods Receipt Note</p>
                 </div>
                 <button onClick={() => setSelectedGrn(null)} className="text-slate-400 hover:text-slate-600 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-50 border-none bg-transparent cursor-pointer"><X size={15} /></button>
@@ -559,7 +504,7 @@ export default function GoodsReceiptsPage() {
             </div>
           )}
         </div>
-      </div>
+      </WorkspaceLayout>
 
       {/* ─── New Goods Receipt Modal ─── */}
       {createModal && (
@@ -739,7 +684,6 @@ export default function GoodsReceiptsPage() {
           </div>
         </div>
       )}
-
-    </div>
+    </>
   );
 }
