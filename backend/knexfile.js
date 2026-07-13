@@ -21,7 +21,14 @@ module.exports = {
     client: 'pg',
     connection: {
       connectionString: process.env.DATABASE_URL,
-      ssl: { rejectUnauthorized: false }
+      ssl: (process.env.DB_SSL === 'false' || process.env.PGSSLMODE === 'disable' || (
+        process.env.DATABASE_URL && (
+          process.env.DATABASE_URL.includes('railway.internal') ||
+          process.env.DATABASE_URL.includes('127.0.0.1') ||
+          process.env.DATABASE_URL.includes('localhost') ||
+          process.env.DATABASE_URL.includes('sslmode=disable')
+        )
+      )) ? false : { rejectUnauthorized: false }
     },
     pool: {
       min: 0,
