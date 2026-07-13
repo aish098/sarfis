@@ -236,6 +236,11 @@ body {
   align-items: center;
 }
 
+/* Overlap fix for search inputs with icons */
+.input-enterprise.pl-9, .input-enterprise-icon {
+  padding-left: 2.5rem !important;
+}
+
 /* Components: Tables */
 .data-table {
   @apply w-full text-left border-collapse;

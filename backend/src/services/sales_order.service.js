@@ -118,6 +118,13 @@ exports.getSalesOrderById = async (id, companyId, trx = db) => {
     .select('v.id', 'v.voucher_number', 'v.status', 'v.created_at', 'u.name as creator_name')
     .first();
 
+  const timeline = await trx('transaction_audit_logs as tal')
+    .leftJoin('users as u', 'tal.user_id', 'u.id')
+    .where('tal.company_id', companyId)
+    .where('tal.description', 'like', `%${order.so_number}%`)
+    .select('tal.id', 'tal.action', 'tal.description', 'tal.created_at', 'u.name as user_name')
+    .orderBy('tal.created_at', 'asc');
+
   let totalOrdered = 0;
   let totalDispatched = 0;
   for (const item of items) {
@@ -133,6 +140,7 @@ exports.getSalesOrderById = async (id, companyId, trx = db) => {
     relatedDelivery: deliveriesList[0] || null, // Keep for backward compatibility
     deliveriesList,
     relatedVoucher,
+    timeline,
     total_ordered: totalOrdered,
     total_dispatched: totalDispatched,
     total_remaining: totalRemaining,
@@ -366,6 +374,15 @@ exports.updateStatus = async (id, companyId, newStatus, userId, dispatchPayload 
           delivery_id: delivery.id
         }))
       );
+
+      // Log dispatch timeline audit event
+      const unitsCount = deliveryItems.reduce((s, i) => s + parseFloat(i.quantity), 0);
+      await trx('transaction_audit_logs').insert({
+        company_id: companyId,
+        action: 'DISPATCH',
+        user_id: userId,
+        description: `Dispatched shipment ${deliveryNumber} containing ${unitsCount} units for Sales Order ${order.so_number}.`
+      });
 
       // Check if all items are fully dispatched now
       const updatedItems = await trx('sales_order_items').where({ sales_order_id: id });

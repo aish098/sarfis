@@ -160,10 +160,11 @@ export default function OrderTrackingPage() {
       o.client_name.toLowerCase().includes(searchQuery.toLowerCase());
   });
 
-  const colPicking = orders.filter(o => ['CONFIRMED', 'PICKING'].includes(o.status)).length;
-  const colReady = orders.filter(o => ['PACKED', 'READY_FOR_DISPATCH'].includes(o.status)).length;
-  const colDispatched = orders.filter(o => ['DISPATCHED', 'PARTIALLY_DELIVERED'].includes(o.status)).length;
-  const colDelivered = orders.filter(o => ['DELIVERED', 'CLOSED'].includes(o.status)).length;
+  const countWaiting = orders.filter(o => o.status === 'CONFIRMED').length;
+  const countPicking = orders.filter(o => o.status === 'PICKING').length;
+  const countReady = orders.filter(o => ['PACKED', 'READY_FOR_DISPATCH'].includes(o.status)).length;
+  const countPartial = orders.filter(o => o.status === 'PARTIALLY_DELIVERED').length;
+  const countDeliveredToday = orders.filter(o => o.status === 'DELIVERED' || o.status === 'CLOSED').length;
 
   return (
     <div className="space-y-6 font-sans pb-20">
@@ -298,8 +299,8 @@ export default function OrderTrackingPage() {
             <Clipboard size={18} />
           </div>
           <div>
-            <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Active Orders</span>
-            <span className="text-[18px] font-black text-slate-800">{filteredOrders.length}</span>
+            <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Orders Waiting</span>
+            <span className="text-[18px] font-black text-slate-800">{countWaiting}</span>
           </div>
         </div>
         <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
@@ -308,7 +309,7 @@ export default function OrderTrackingPage() {
           </div>
           <div>
             <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Picking</span>
-            <span className="text-[18px] font-black text-slate-800">{colPicking}</span>
+            <span className="text-[18px] font-black text-slate-800">{countPicking}</span>
           </div>
         </div>
         <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
@@ -317,7 +318,7 @@ export default function OrderTrackingPage() {
           </div>
           <div>
             <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Ready</span>
-            <span className="text-[18px] font-black text-slate-800">{colReady}</span>
+            <span className="text-[18px] font-black text-slate-800">{countReady}</span>
           </div>
         </div>
         <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
@@ -325,8 +326,8 @@ export default function OrderTrackingPage() {
             <Truck size={18} />
           </div>
           <div>
-            <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">In Transit</span>
-            <span className="text-[18px] font-black text-slate-800">{colDispatched}</span>
+            <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Partially Delivered</span>
+            <span className="text-[18px] font-black text-slate-800">{countPartial}</span>
           </div>
         </div>
         <div className="bg-white p-4.5 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
@@ -335,7 +336,7 @@ export default function OrderTrackingPage() {
           </div>
           <div>
             <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Delivered</span>
-            <span className="text-[18px] font-black text-slate-800">{colDelivered}</span>
+            <span className="text-[18px] font-black text-slate-800">{countDeliveredToday}</span>
           </div>
         </div>
       </div>
