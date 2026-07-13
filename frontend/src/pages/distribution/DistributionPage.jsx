@@ -54,6 +54,7 @@ export default function DistributionPage() {
   const [loading, setLoading] = useState(true);
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');
+  const [creationMode, setCreationMode] = useState('voucher'); // 'voucher' | 'manual'
 
   // Modals
   const [deliveryModal, setDeliveryModal] = useState(false);
@@ -821,17 +822,54 @@ export default function DistributionPage() {
               <div className="p-7 overflow-y-auto max-h-[75vh]">
                 <form onSubmit={handleCreateDelivery} className="space-y-4">
                   {formError && <div className="flex items-center gap-2 p-3 rounded-lg bg-red-50 border border-red-100 text-[13px] text-red-600 font-medium"><AlertTriangle size={14} />{formError}</div>}
-                  <div>
-                    <label className="field-label">Source Sales Voucher (Optional)</label>
-                    <select className="input-enterprise mb-2" value={deliveryForm.voucherId} onChange={e => {
-                      const vId = e.target.value;
-                      setDeliveryForm(f => ({ ...f, voucherId: vId }));
-                      autoFillFromVoucher(vId);
-                    }}>
-                      <option value="">— Direct Order (No Voucher Link) —</option>
-                      {salesVouchers.map(v => <option key={v.id} value={v.id}>{v.voucher_number} - PKR {parseFloat(v.total_amount).toLocaleString()}</option>)}
-                    </select>
+                  <div className="mb-4">
+                    <label className="field-label block mb-2">Create Delivery From</label>
+                    <div className="flex gap-2 p-1 bg-slate-50 border rounded-lg max-w-sm">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCreationMode('voucher');
+                          setDeliveryForm(f => ({ ...f, voucherId: '' }));
+                        }}
+                        className={`flex-1 py-1.5 px-3 rounded-md text-[12px] font-bold transition-all border-none ${
+                          creationMode === 'voucher'
+                            ? 'bg-white text-emerald-800 shadow-sm'
+                            : 'bg-transparent text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        Existing Sales Voucher
+                      </button>
+                      <button
+                        type="button"
+                        onClick={() => {
+                          setCreationMode('manual');
+                          resetDeliveryForm();
+                        }}
+                        className={`flex-1 py-1.5 px-3 rounded-md text-[12px] font-bold transition-all border-none ${
+                          creationMode === 'manual'
+                            ? 'bg-white text-emerald-800 shadow-sm'
+                            : 'bg-transparent text-slate-500 hover:text-slate-700'
+                        }`}
+                      >
+                        Manual Delivery
+                      </button>
+                    </div>
                   </div>
+
+                  {creationMode === 'voucher' && (
+                    <div className="mb-4">
+                      <label className="field-label">Source Sales Voucher *</label>
+                      <select required className="input-enterprise" value={deliveryForm.voucherId} onChange={e => {
+                        const vId = e.target.value;
+                        setDeliveryForm(f => ({ ...f, voucherId: vId }));
+                        autoFillFromVoucher(vId);
+                      }}>
+                        <option value="">— Select Source Voucher —</option>
+                        {salesVouchers.map(v => <option key={v.id} value={v.id}>{v.voucher_number} - PKR {parseFloat(v.total_amount).toLocaleString()}</option>)}
+                      </select>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     <div>
                       <label className="field-label">Client *</label>
