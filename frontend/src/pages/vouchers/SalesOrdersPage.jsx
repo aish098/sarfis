@@ -280,12 +280,23 @@ export default function SalesOrdersPage() {
         </div>
       </div>
 
-      {/* Title Block */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="font-display font-extrabold text-[22px] text-slate-900 tracking-tight">Sales Orders</h1>
-          <p className="text-[12.5px] text-slate-500 mt-1">Book customer orders, lock in pricing snapshots, and dispatch warehouse shipments.</p>
+      {/* Top Banner Toolbar */}
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
+            <FileText size={18} className="text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Sales Orders</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Sales</span>
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
+              Book customer orders, lock in pricing snapshots, and dispatch warehouse shipments.
+            </p>
+          </div>
         </div>
+
         <button 
           onClick={() => {
             setSoForm({
@@ -297,7 +308,7 @@ export default function SalesOrdersPage() {
             });
             setCreateModal(true);
           }}
-          className="btn btn-primary px-4.5 py-2.5 rounded-xl shadow-sm text-[12.5px] font-bold flex items-center gap-1.5 cursor-pointer hover:shadow"
+          className="mt-3 md:mt-0 flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer"
         >
           <Plus size={14} /> New Sales Order
         </button>

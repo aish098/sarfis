@@ -284,11 +284,21 @@ export default function OrderTrackingPage() {
         </div>
       </div>
 
-      {/* Main UI Header */}
-      <div className="flex justify-between items-center">
-        <div>
-          <h1 className="font-display font-extrabold text-[22px] text-slate-900 tracking-tight">Order Tracking Console</h1>
-          <p className="text-[12.5px] text-slate-500 mt-1">Real-time warehouse operational board tracking picking, packing, and client delivery dispatch.</p>
+      {/* Top Banner Toolbar */}
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
+        <div className="flex items-center gap-3">
+          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
+            <Clipboard size={18} className="text-white" />
+          </div>
+          <div>
+            <div className="flex items-center gap-2">
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Order Tracking Console</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Logistics</span>
+            </div>
+            <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
+              Real-time warehouse operational board tracking picking, packing, and client delivery dispatch.
+            </p>
+          </div>
         </div>
       </div>
 
