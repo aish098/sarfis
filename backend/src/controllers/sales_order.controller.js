@@ -47,8 +47,8 @@ exports.confirmSalesOrder = async (req, res) => {
 
 exports.updateStatus = async (req, res) => {
   try {
-    const { status } = req.body;
-    const order = await soService.updateStatus(req.params.id, req.params.companyId, status, req.user?.id);
+    const { status, dispatchPayload } = req.body;
+    const order = await soService.updateStatus(req.params.id, req.params.companyId, status, req.user?.id, dispatchPayload);
     res.json(order);
   } catch (err) {
     res.status(400).json({ error: err.message });

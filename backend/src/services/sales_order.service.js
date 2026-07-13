@@ -86,15 +86,30 @@ exports.getSalesOrderById = async (id, companyId, trx = db) => {
     .select(
       'soi.*',
       'p.name as product_name',
-      'p.sku as product_sku'
+      'p.sku as product_sku',
+      'p.shelf_location'
     );
 
-  // Fetch linked delivery if any
-  const relatedDelivery = await trx('deliveries as d')
+  // Fetch ALL deliveries for this order (so we can see multiple partial dispatches)
+  const deliveriesList = await trx('deliveries as d')
     .leftJoin('users as u', 'd.created_by', 'u.id')
     .where({ 'd.sales_order_id': id })
-    .select('d.id', 'd.delivery_number', 'd.status', 'd.created_at', 'u.name as creator_name')
-    .first();
+    .select(
+      'd.id',
+      'd.delivery_number',
+      'd.status',
+      'd.created_at',
+      'd.driver_name',
+      'd.vehicle_number',
+      'd.courier_name',
+      'd.tracking_number',
+      'd.dispatch_time',
+      'd.arrival_time',
+      'd.receiver_name',
+      'd.receiver_signature',
+      'd.remarks',
+      'u.name as creator_name'
+    );
 
   // Fetch linked invoice if any
   const relatedVoucher = await trx('vouchers as v')
@@ -103,11 +118,25 @@ exports.getSalesOrderById = async (id, companyId, trx = db) => {
     .select('v.id', 'v.voucher_number', 'v.status', 'v.created_at', 'u.name as creator_name')
     .first();
 
+  let totalOrdered = 0;
+  let totalDispatched = 0;
+  for (const item of items) {
+    totalOrdered += parseFloat(item.quantity || 0);
+    totalDispatched += parseFloat(item.quantity_dispatched || 0);
+  }
+  const totalRemaining = totalOrdered - totalDispatched;
+  const completionRate = totalOrdered > 0 ? Math.round((totalDispatched / totalOrdered) * 100) : 0;
+
   return {
     ...order,
     items,
-    relatedDelivery,
-    relatedVoucher
+    relatedDelivery: deliveriesList[0] || null, // Keep for backward compatibility
+    deliveriesList,
+    relatedVoucher,
+    total_ordered: totalOrdered,
+    total_dispatched: totalDispatched,
+    total_remaining: totalRemaining,
+    completion_rate: completionRate
   };
 };
 
@@ -202,9 +231,9 @@ exports.confirmSalesOrder = async (id, companyId, userId) => {
   });
 };
 
-exports.updateStatus = async (id, companyId, newStatus, userId) => {
-  const VALID_STATUSES = ['DRAFT', 'CONFIRMED', 'PICKING', 'PACKED', 'READY_FOR_DISPATCH', 'DISPATCHED', 'DELIVERED', 'CLOSED', 'CANCELLED'];
-  if (!VALID_STATUSES.includes(newStatus)) {
+exports.updateStatus = async (id, companyId, newStatus, userId, dispatchPayload = {}) => {
+  const VALID_STATUSES = ['DRAFT', 'CONFIRMED', 'PICKING', 'PACKED', 'READY_FOR_DISPATCH', 'DISPATCHED', 'PARTIALLY_DELIVERED', 'DELIVERED', 'CLOSED', 'CANCELLED'];
+  if (!VALID_STATUSES.includes(newStatus) && newStatus !== 'DISPATCHED') {
     throw new Error(`Invalid status: ${newStatus}`);
   }
 
@@ -213,31 +242,88 @@ exports.updateStatus = async (id, companyId, newStatus, userId) => {
     if (!order) throw new Error('Sales Order not found.');
 
     // Prevent updates on terminal statuses unless moving to Cancelled (from non-delivered states)
-    if (['DELIVERED', 'CLOSED', 'CANCELLED'].includes(order.status) && newStatus !== 'CANCELLED') {
+    if (['DELIVERED', 'CLOSED', 'CANCELLED'].includes(order.status) && newStatus !== 'CANCELLED' && newStatus !== 'DELIVERED') {
       throw new Error(`Cannot change status of a ${order.status} Sales Order.`);
     }
 
     const items = await trx('sales_order_items').where({ sales_order_id: id });
 
     // Handle Dispatch logic (creating read-only delivery order)
-    if (newStatus === 'DISPATCHED') {
-      if (order.status !== 'READY_FOR_DISPATCH' && order.status !== 'PACKED') {
-        throw new Error('Order must be packed or ready for dispatch before dispatching.');
+    if (newStatus === 'DISPATCHED' || (newStatus === 'DELIVERED' && dispatchPayload.dispatchItems)) {
+      if (order.status !== 'READY_FOR_DISPATCH' && order.status !== 'PACKED' && order.status !== 'PARTIALLY_DELIVERED') {
+        throw new Error('Order must be packed, ready for dispatch, or partially delivered before dispatching.');
       }
 
-      // Check stock availability
-      for (const item of items) {
+      const dispatchItems = dispatchPayload.dispatchItems || items.map(item => ({
+        productId: item.product_id,
+        quantityToDispatch: parseFloat(item.quantity) - parseFloat(item.quantity_dispatched || 0)
+      }));
+
+      const deliveryItems = [];
+      let totalDeliveryAmount = 0;
+
+      // 1. Process items for dispatch and check stock
+      for (const dispatchItem of dispatchItems) {
+        const item = items.find(i => String(i.product_id) === String(dispatchItem.productId));
+        if (!item) continue;
+
+        const qtyToDispatch = parseFloat(dispatchItem.quantityToDispatch || 0);
+        if (qtyToDispatch <= 0) continue;
+
+        const remaining = parseFloat(item.quantity) - parseFloat(item.quantity_dispatched || 0);
+        if (qtyToDispatch > remaining) {
+          throw new Error(`Cannot dispatch ${qtyToDispatch} units of product ID ${item.product_id}. Only ${remaining} units remaining.`);
+        }
+
+        // Check stock availability
         const stock = await trx('inventory')
           .where({ product_id: item.product_id, warehouse_id: order.warehouse_id })
           .first();
         const qtyAvailable = parseFloat(stock?.quantity || 0);
-        if (qtyAvailable < parseFloat(item.quantity)) {
+        if (qtyAvailable < qtyToDispatch) {
           const prod = await trx('products').where('id', item.product_id).first();
-          throw new Error(`Insufficient stock for ${prod?.name}. Available: ${qtyAvailable}, Required: ${item.quantity}`);
+          throw new Error(`Insufficient stock for ${prod?.name}. Available: ${qtyAvailable}, Required: ${qtyToDispatch}`);
         }
+
+        // Deduct stock from warehouse
+        const newQty = await inventoryModel.upsertInventory(trx, item.product_id, order.warehouse_id, -qtyToDispatch);
+        
+        // Log stock log
+        await inventoryModel.insertStockLog(trx, {
+          product_id: item.product_id,
+          warehouse_id: order.warehouse_id,
+          type: 'SALE',
+          quantity_change: -qtyToDispatch,
+          quantity_after: newQty,
+          reference_id: id,
+          reference_type: 'delivery',
+          notes: `Dispatched ${qtyToDispatch} units for Sales Order ${order.so_number}`,
+          created_by: userId
+        });
+
+        // Increment quantity_dispatched
+        await trx('sales_order_items')
+          .where({ id: item.id })
+          .update({
+            quantity_dispatched: parseFloat(item.quantity_dispatched || 0) + qtyToDispatch
+          });
+
+        const lineTotal = qtyToDispatch * parseFloat(item.unit_price) - (parseFloat(item.discount || 0) * (qtyToDispatch / parseFloat(item.quantity)));
+        totalDeliveryAmount += lineTotal;
+
+        deliveryItems.push({
+          product_id: item.product_id,
+          quantity: qtyToDispatch,
+          unit_price: item.unit_price,
+          unit_cost: item.unit_price * 0.7
+        });
       }
 
-      // Automatically create a Delivery Note (status: DISPATCHED)
+      if (deliveryItems.length === 0) {
+        throw new Error('No items selected for dispatch.');
+      }
+
+      // Generate Delivery Note number
       const lastDelivery = await trx('deliveries')
         .where('company_id', companyId)
         .orderBy('delivery_number', 'desc')
@@ -250,26 +336,6 @@ exports.updateStatus = async (id, companyId, newStatus, userId) => {
       }
       const deliveryNumber = `DO-${new Date().getFullYear()}-${String(delNum).padStart(5, '0')}`;
 
-      // Deduct stock from warehouse
-      for (const item of items) {
-        const newQty = await inventoryModel.upsertInventory(trx, item.product_id, order.warehouse_id, -parseFloat(item.quantity));
-        
-        // Log stock log
-        await inventoryModel.insertStockLog(trx, {
-          product_id: item.product_id,
-          warehouse_id: order.warehouse_id,
-          type: 'SALE',
-          quantity_change: -parseFloat(item.quantity),
-          quantity_after: newQty,
-          reference_id: id,
-          reference_type: 'delivery',
-          notes: `Dispatched Sales Order ${order.so_number}`,
-          created_by: userId
-        });
-      }
-
-      const totalCost = items.reduce((s, i) => s + (parseFloat(i.quantity) * parseFloat(i.unit_price * 0.7)), 0); // Approximate COGS
-
       // Insert delivery record
       const [delivery] = await trx('deliveries').insert({
         company_id: companyId,
@@ -278,32 +344,43 @@ exports.updateStatus = async (id, companyId, newStatus, userId) => {
         delivery_number: deliveryNumber,
         delivery_date: new Date(),
         status: 'DISPATCHED',
-        total_amount: order.total_amount,
-        total_cost: totalCost,
-        notes: `Automatically generated from Sales Order ${order.so_number}.`,
+        total_amount: totalDeliveryAmount,
+        total_cost: deliveryItems.reduce((s, i) => s + (i.quantity * i.unit_cost), 0),
+        notes: dispatchPayload.remarks || `Automatically generated from Sales Order ${order.so_number}.`,
         created_by: userId,
-        sales_order_id: id
+        sales_order_id: id,
+        driver_name: dispatchPayload.driverName || null,
+        vehicle_number: dispatchPayload.vehicleNumber || null,
+        courier_name: dispatchPayload.courierName || null,
+        tracking_number: dispatchPayload.trackingNumber || null,
+        receiver_name: dispatchPayload.receiverName || null,
+        receiver_signature: dispatchPayload.receiverSignature || null,
+        dispatch_time: new Date(),
+        remarks: dispatchPayload.remarks || null
       }).returning('*');
 
       // Insert delivery items
       await trx('delivery_items').insert(
-        items.map(item => ({
-          delivery_id: delivery.id,
-          product_id: item.product_id,
-          quantity: item.quantity,
-          unit_price: item.unit_price,
-          unit_cost: item.unit_price * 0.7
+        deliveryItems.map(item => ({
+          ...item,
+          delivery_id: delivery.id
         }))
       );
+
+      // Check if all items are fully dispatched now
+      const updatedItems = await trx('sales_order_items').where({ sales_order_id: id });
+      const fullyDispatched = updatedItems.every(i => parseFloat(i.quantity_dispatched) >= parseFloat(i.quantity));
+      newStatus = fullyDispatched ? 'DELIVERED' : 'PARTIALLY_DELIVERED';
     }
 
-    // Handle Deliver status
-    if (newStatus === 'DELIVERED') {
-      if (order.status !== 'DISPATCHED') {
-        throw new Error('Order must be dispatched before marking as delivered.');
-      }
+    // Handle manual Deliver status confirmation (e.g. marking DO delivered)
+    if (newStatus === 'DELIVERED' && (!dispatchPayload || !dispatchPayload.dispatchItems)) {
       // Update linked delivery status to DELIVERED
-      await trx('deliveries').where({ sales_order_id: id }).update({ status: 'DELIVERED', updated_at: trx.fn.now() });
+      await trx('deliveries').where({ sales_order_id: id, status: 'DISPATCHED' }).update({
+        status: 'DELIVERED',
+        arrival_time: new Date(),
+        updated_at: trx.fn.now()
+      });
     }
 
     // Update Sales Order status

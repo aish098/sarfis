@@ -1,6 +1,6 @@
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { Plus, Search, FileText, CheckCircle, RefreshCw, X, Calendar, User, ArrowRight, Package, AlertTriangle, ChevronRight, ShoppingBag, Layers, Truck, CheckCircle2, Clock } from 'lucide-react';
+import { Plus, Search, FileText, CheckCircle, RefreshCw, X, Calendar, User, ArrowRight, Package, AlertTriangle, ChevronRight, ShoppingBag, Layers, Truck, CheckCircle2, Clock, Printer } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import RelatedDocuments from '../../components/RelatedDocuments';
@@ -11,7 +11,7 @@ const STATUS_CONFIG = {
   PICKING: { label: 'Picking', bg: 'bg-amber-50 text-amber-700 border border-amber-100' },
   PACKED: { label: 'Packed', bg: 'bg-amber-50 text-amber-700 border border-amber-100' },
   READY_FOR_DISPATCH: { label: 'Ready for Dispatch', bg: 'bg-orange-50 text-orange-700 border border-orange-100' },
-  DISPATCHED: { label: 'Dispatched', bg: 'bg-orange-50 text-orange-700 border border-orange-100' },
+  PARTIALLY_DELIVERED: { label: 'Partially Delivered', bg: 'bg-amber-100 text-amber-800 border border-amber-200' },
   DELIVERED: { label: 'Delivered', bg: 'bg-emerald-50 text-emerald-700 border border-emerald-100' },
   CLOSED: { label: 'Closed', bg: 'bg-slate-100 text-slate-600 border border-slate-200' },
   CANCELLED: { label: 'Cancelled', bg: 'bg-rose-50 text-rose-700 border border-rose-150' }
@@ -46,6 +46,8 @@ export default function SalesOrdersPage() {
     notes: '',
     items: [{ productId: '', quantity: 1, unitPrice: 0, discount: 0, notes: '' }]
   });
+
+  const printAreaRef = useRef(null);
 
   const loadData = useCallback(async () => {
     if (!activeCompany) return;
@@ -170,12 +172,21 @@ export default function SalesOrdersPage() {
     }
   };
 
+  const triggerPrintInvoice = () => {
+    const printContent = printAreaRef.current.innerHTML;
+    const originalContent = document.body.innerHTML;
+    document.body.innerHTML = printContent;
+    window.print();
+    document.body.innerHTML = originalContent;
+    window.location.reload();
+  };
+
   // KPI summaries
   const todayStr = new Date().toISOString().split('T')[0];
   const todaysOrders = orders.filter(o => o.delivery_date.split('T')[0] === todayStr || o.created_at.split('T')[0] === todayStr).length;
   const pickingCount = orders.filter(o => o.status === 'PICKING').length;
   const readyCount = orders.filter(o => o.status === 'READY_FOR_DISPATCH' || o.status === 'PACKED').length;
-  const dispatchedCount = orders.filter(o => o.status === 'DISPATCHED').length;
+  const partialCount = orders.filter(o => o.status === 'PARTIALLY_DELIVERED').length;
   const deliveredCount = orders.filter(o => o.status === 'DELIVERED').length;
 
   const filteredOrders = orders.filter(o => {
@@ -190,6 +201,85 @@ export default function SalesOrdersPage() {
   return (
     <div className="space-y-6 font-sans pb-20">
       
+      {/* Hidden Printable Invoice template */}
+      <div style={{ display: 'none' }}>
+        <div ref={printAreaRef} className="p-8 max-w-4xl mx-auto text-black font-sans text-xs space-y-6">
+          {selectedOrder && (
+            <>
+              <div className="flex justify-between border-b pb-5">
+                <div>
+                  <h1 className="text-xl font-bold uppercase tracking-wider">{activeCompany?.name || 'SARFIS ERP'}</h1>
+                  <p className="text-slate-500">Corporate Sales Invoice</p>
+                </div>
+                <div className="text-right">
+                  <h2 className="text-lg font-black text-indigo-750">SALES INVOICE</h2>
+                  <p className="font-mono">Invoice #: INV-{selectedOrder.so_number.replace('SO-', '')}</p>
+                  <p className="text-slate-500">Date: {new Date().toLocaleDateString()}</p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 gap-4">
+                <div>
+                  <span className="block font-bold text-slate-400 uppercase">Customer Billing Address</span>
+                  <span className="font-bold text-slate-800 text-sm">{selectedOrder.client_name}</span>
+                </div>
+                <div>
+                  <span className="block font-bold text-slate-400 uppercase">Source Details</span>
+                  <span className="text-slate-700">Order Reference: {selectedOrder.so_number}</span>
+                  <span className="block text-slate-700">Fulfillment Warehouse: {selectedOrder.warehouse_name}</span>
+                </div>
+              </div>
+
+              <div className="border rounded-lg overflow-hidden">
+                <table className="w-full text-left">
+                  <thead className="bg-slate-100 font-bold border-b">
+                    <tr>
+                      <th className="p-3">Product</th>
+                      <th className="p-3 text-right">Qty</th>
+                      <th className="p-3 text-right">Unit Price</th>
+                      <th className="p-3 text-right">Discount</th>
+                      <th className="p-3 text-right">Total</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y font-medium text-slate-700">
+                    {selectedOrder.items.map((i, idx) => (
+                      <tr key={idx}>
+                        <td className="p-3">{i.product_name} ({i.product_sku})</td>
+                        <td className="p-3 text-right">{parseFloat(i.quantity)}</td>
+                        <td className="p-3 text-right font-mono">${parseFloat(i.unit_price).toFixed(2)}</td>
+                        <td className="p-3 text-right font-mono text-red-500">-${parseFloat(i.discount || 0).toFixed(2)}</td>
+                        <td className="p-3 text-right font-mono font-bold">${parseFloat(i.line_total).toFixed(2)}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
+
+              <div className="flex justify-end pt-4">
+                <div className="w-64 space-y-1.5 text-right font-bold text-sm">
+                  <div className="flex justify-between border-b pb-1 text-slate-500">
+                    <span>Subtotal</span>
+                    <span>${parseFloat(selectedOrder.total_amount).toFixed(2)}</span>
+                  </div>
+                  <div className="flex justify-between border-b pb-1 text-slate-500">
+                    <span>Tax (0%)</span>
+                    <span>$0.00</span>
+                  </div>
+                  <div className="flex justify-between text-base font-black text-slate-900">
+                    <span>Total Invoice Amount</span>
+                    <span>PKR {parseFloat(selectedOrder.total_amount).toLocaleString(undefined, { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </div>
+              </div>
+
+              <div className="pt-20 text-center text-slate-400 text-[10px]">
+                Thank you for your business! Please pay within payment term agreements.
+              </div>
+            </>
+          )}
+        </div>
+      </div>
+
       {/* Title Block */}
       <div className="flex justify-between items-center">
         <div>
@@ -243,12 +333,12 @@ export default function SalesOrdersPage() {
           </div>
         </div>
         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
-          <div className="p-2.5 bg-orange-50 rounded-xl text-orange-600">
+          <div className="p-2.5 bg-orange-50 rounded-xl text-orange-655">
             <Truck size={18} />
           </div>
           <div>
-            <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Dispatched</span>
-            <span className="text-[17px] font-black text-slate-800">{dispatchedCount}</span>
+            <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider">Partial</span>
+            <span className="text-[17px] font-black text-slate-800">{partialCount}</span>
           </div>
         </div>
         <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3">
@@ -346,7 +436,16 @@ export default function SalesOrdersPage() {
                   <h3 className="font-mono font-black text-slate-850 text-[15px]">{selectedOrder.so_number}</h3>
                   <p className="text-[10px] font-bold uppercase text-slate-400 mt-0.5">Sales Order Details</p>
                 </div>
-                <button onClick={() => setSelectedOrder(null)} className="text-slate-400 hover:text-slate-600 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-50 border-none bg-transparent cursor-pointer"><X size={15} /></button>
+                <div className="flex items-center gap-1">
+                  <button 
+                    onClick={triggerPrintInvoice}
+                    className="text-slate-500 hover:text-slate-750 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-50 border-none bg-transparent cursor-pointer"
+                    title="Print Invoice"
+                  >
+                    <Printer size={15} />
+                  </button>
+                  <button onClick={() => setSelectedOrder(null)} className="text-slate-400 hover:text-slate-600 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-50 border-none bg-transparent cursor-pointer"><X size={15} /></button>
+                </div>
               </div>
 
               {/* Meta details */}
@@ -356,7 +455,7 @@ export default function SalesOrdersPage() {
                   <span className="font-bold text-slate-800 mt-0.5 block">{selectedOrder.client_name}</span>
                 </div>
                 <div>
-                  <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Fulfillment Warehouse</span>
+                  <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Warehouse</span>
                   <span className="font-bold text-slate-800 mt-0.5 block">{selectedOrder.warehouse_name}</span>
                 </div>
                 <div>
@@ -374,38 +473,69 @@ export default function SalesOrdersPage() {
               {selectedOrder.notes && (
                 <div className="space-y-1">
                   <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Order Notes</span>
-                  <p className="text-[12px] italic text-slate-650 leading-relaxed bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">{selectedOrder.notes}</p>
+                  <p className="text-[12px] italic text-slate-655 leading-relaxed bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">{selectedOrder.notes}</p>
                 </div>
               )}
 
-              {/* Items List */}
+              {/* Fulfillment Summary with Progress Bar */}
+              <div className="bg-slate-50/50 p-3.5 rounded-2xl border border-slate-100 space-y-2.5">
+                <span className="block text-[10px] font-bold uppercase text-slate-400 tracking-wider">Fulfillment Summary</span>
+                <div className="grid grid-cols-3 text-center text-[12px] font-bold text-slate-700">
+                  <div>
+                    <span className="block text-[9px] uppercase font-medium text-slate-400">Ordered</span>
+                    <span>{selectedOrder.total_ordered}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[9px] uppercase font-medium text-slate-400">Dispatched</span>
+                    <span className="text-emerald-600">{selectedOrder.total_dispatched}</span>
+                  </div>
+                  <div>
+                    <span className="block text-[9px] uppercase font-medium text-slate-400">Remaining</span>
+                    <span className="text-amber-605">{selectedOrder.total_remaining}</span>
+                  </div>
+                </div>
+                <div className="space-y-1">
+                  <div className="flex justify-between text-[10px] font-bold text-slate-650">
+                    <span>Fulfillment Completion Rate</span>
+                    <span>{selectedOrder.completion_rate}%</span>
+                  </div>
+                  <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
+                    <div className="bg-emerald-500 h-full rounded-full transition-all duration-300" style={{ width: `${selectedOrder.completion_rate}%` }}></div>
+                  </div>
+                </div>
+              </div>
+
+              {/* Items List with Ordered, Dispatched, Remaining columns */}
               <div className="space-y-2">
-                <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Order Items</span>
-                <div className="border border-slate-100 rounded-xl overflow-hidden text-[11.5px] bg-white">
+                <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Order Line Items</span>
+                <div className="border border-slate-100 rounded-xl overflow-hidden text-[11px] bg-white">
                   <table className="w-full">
                     <thead className="bg-slate-50 text-slate-500 font-bold border-b border-slate-100">
                       <tr>
                         <th className="px-2.5 py-2 text-left">Product</th>
-                        <th className="px-2 py-2 text-right">Qty</th>
-                        <th className="px-2 py-2 text-right">Price</th>
-                        <th className="px-2 py-2 text-right">Total</th>
+                        <th className="px-2 py-2 text-right">Ord</th>
+                        <th className="px-2 py-2 text-right">Disp</th>
+                        <th className="px-2 py-2 text-right">Rem</th>
+                        <th className="px-2.5 py-2 text-right">Total</th>
                       </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-50 font-medium text-slate-700">
-                      {selectedOrder.items?.map((item, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50/30">
-                          <td className="px-2.5 py-2">
-                            <span className="block font-bold text-slate-800">{item.product_name}</span>
-                            <span className="block text-[9px] text-slate-400 font-mono">{item.product_sku}</span>
-                          </td>
-                          <td className="px-2 py-2 text-right font-mono">{parseFloat(item.quantity)}</td>
-                          <td className="px-2 py-2 text-right font-mono">
-                            {parseFloat(item.unit_price).toFixed(2)}
-                            {parseFloat(item.discount) > 0 && <span className="block text-[9.5px] text-red-500 font-bold font-sans">-${parseFloat(item.discount).toFixed(2)}</span>}
-                          </td>
-                          <td className="px-2 py-2 text-right font-mono font-bold text-slate-800">{parseFloat(item.line_total).toFixed(2)}</td>
-                        </tr>
-                      ))}
+                      {selectedOrder.items?.map((item, idx) => {
+                        const remaining = parseFloat(item.quantity) - parseFloat(item.quantity_dispatched || 0);
+
+                        return (
+                          <tr key={idx} className="hover:bg-slate-50/30">
+                            <td className="px-2.5 py-2">
+                              <span className="block font-bold text-slate-800">{item.product_name}</span>
+                              <span className="block text-[9px] text-slate-400 font-mono">{item.product_sku}</span>
+                            </td>
+                            <td className="px-2 py-2 text-right font-mono">{parseFloat(item.quantity)}</td>
+                            <td className="px-2 py-2 text-right font-mono text-emerald-600">{parseFloat(item.quantity_dispatched)}</td>
+                            <td className="px-2 py-2 text-right font-mono text-amber-600">{remaining}</td>
+                            <td className="px-2.5 py-2 text-right font-mono font-bold text-slate-800">${parseFloat(item.line_total).toFixed(2)}</td>
+                          </tr>
+                        );
+                      })}
                     </tbody>
                   </table>
                 </div>
@@ -419,7 +549,7 @@ export default function SalesOrdersPage() {
               {(() => {
                 const relatedDocs = [];
                 relatedDocs.push({
-                  type: 'PURCHASE_ORDER', // visual map to sales order
+                  type: 'SALES_ORDER',
                   id: selectedOrder.id,
                   number: selectedOrder.so_number,
                   status: selectedOrder.status,
@@ -428,15 +558,17 @@ export default function SalesOrdersPage() {
                   link: `/dashboard/sales-orders?id=${selectedOrder.id}`
                 });
 
-                if (selectedOrder.relatedDelivery) {
-                  relatedDocs.push({
-                    type: 'DELIVERY',
-                    id: selectedOrder.relatedDelivery.id,
-                    number: selectedOrder.relatedDelivery.delivery_number,
-                    status: selectedOrder.relatedDelivery.status,
-                    created_at: selectedOrder.relatedDelivery.created_at,
-                    creator_name: selectedOrder.relatedDelivery.creator_name,
-                    link: `/dashboard/distribution?id=${selectedOrder.relatedDelivery.id}`
+                if (selectedOrder.deliveriesList) {
+                  selectedOrder.deliveriesList.forEach(d => {
+                    relatedDocs.push({
+                      type: 'DELIVERY',
+                      id: d.id,
+                      number: d.delivery_number,
+                      status: d.status,
+                      created_at: d.created_at,
+                      creator_name: d.creator_name,
+                      link: `/dashboard/distribution?id=${d.id}`
+                    });
                   });
                 }
                 if (selectedOrder.relatedVoucher) {
@@ -450,7 +582,7 @@ export default function SalesOrdersPage() {
                     link: `/dashboard/vouchers/details/${selectedOrder.relatedVoucher.id}`
                   });
                 }
-                return <RelatedDocuments documents={relatedDocs} currentType="PURCHASE_ORDER" />; // Injected as purchase order to map Sales Order correctly
+                return <RelatedDocuments documents={relatedDocs} currentType="SALES_ORDER" />;
               })()}
 
               {/* Next Action CTA Card */}
@@ -463,11 +595,11 @@ export default function SalesOrdersPage() {
                     Confirm Order
                   </button>
                 )}
-                {['CONFIRMED', 'PICKING', 'PACKED', 'READY_FOR_DISPATCH'].includes(selectedOrder.status) && (
+                {['CONFIRMED', 'PICKING', 'PACKED', 'READY_FOR_DISPATCH', 'PARTIALLY_DELIVERED'].includes(selectedOrder.status) && (
                   <div className="bg-amber-50/50 border border-amber-150 p-3.5 rounded-2xl space-y-2.5 shadow-sm text-left">
                     <span className="block text-[10px] font-black uppercase text-amber-800 tracking-wider">Next Recommended Action</span>
                     <p className="text-[11.5px] text-slate-650 font-semibold leading-relaxed">
-                      This order is ready for logistics preparation. Go to the warehouse **Order Tracking** workspace to perform picking, packing, and dispatch operations.
+                      Order is in logistics processing stage. Go to the warehouse **Order Tracking** workspace to update picking, packing, or dispatch shipping.
                     </p>
                     <button 
                       onClick={() => navigate('/dashboard/order-tracking')}
@@ -477,24 +609,10 @@ export default function SalesOrdersPage() {
                     </button>
                   </div>
                 )}
-                {selectedOrder.status === 'DISPATCHED' && (
-                  <div className="bg-orange-50/50 border border-orange-150 p-3.5 rounded-2xl space-y-2 shadow-sm text-left">
-                    <span className="block text-[10px] font-black uppercase text-orange-800 tracking-wider">Next Recommended Action</span>
-                    <p className="text-[11.5px] text-slate-650 font-semibold leading-relaxed">
-                      Order is in transit. Go to the **Order Tracking** workspace to confirm receipt and mark as Delivered.
-                    </p>
-                    <button 
-                      onClick={() => navigate('/dashboard/order-tracking')}
-                      className="w-full py-2 bg-orange-600 text-white rounded-xl text-[12px] font-bold shadow-sm hover:bg-orange-700 transition cursor-pointer border-none mt-1"
-                    >
-                      Open Order Tracking
-                    </button>
-                  </div>
-                )}
                 {selectedOrder.status === 'DELIVERED' && !selectedOrder.relatedVoucher && (
                   <div className="bg-indigo-50/50 border border-indigo-150 p-3.5 rounded-2xl space-y-2 shadow-sm text-left">
                     <span className="block text-[10px] font-black uppercase text-indigo-800 tracking-wider">Next Recommended Action</span>
-                    <p className="text-[11.5px] text-slate-650 font-semibold leading-relaxed">
+                    <p className="text-[11.5px] text-slate-655 font-semibold leading-relaxed">
                       Fulfillment is complete. Generate the financial Sales Invoice Voucher to post revenue and account receivables to the General Ledger.
                     </p>
                     <button 
