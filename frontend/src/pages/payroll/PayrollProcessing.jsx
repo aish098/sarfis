@@ -9,6 +9,11 @@ import {
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import WizardFlow from '../../components/ui/WizardFlow';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
+import DocumentHeader from '../../components/ui/DocumentHeader';
+import NextActionCard from '../../components/ui/NextActionCard';
+import ActivityFeed from '../../components/ui/ActivityFeed';
+import StatusBadge from '../../components/ui/StatusBadge';
 
 export default function PayrollProcessing({ userRole, onBackToDashboard, onNavigateToTab }) {
   const navigate = useNavigate();
@@ -272,53 +277,134 @@ export default function PayrollProcessing({ userRole, onBackToDashboard, onNavig
     }
   };
 
-  return (
-    <div className="space-y-6 text-xs font-semibold text-slate-600">
-      {/* Alert Messaging */}
-      {actionMsg && (
-        <div className={`p-4 rounded-xl border text-[13px] font-bold flex items-center justify-between gap-3 ${
-          actionMsg.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
-        }`}>
-          <span className="flex items-center gap-2">
-            <CheckCircle size={16} />
-            {actionMsg.text}
-          </span>
-          <button onClick={() => setActionMsg(null)} className="text-slate-400 hover:text-slate-600">
-            <X size={15} />
-          </button>
-        </div>
-      )}
+  const getNextActionProps = () => {
+    switch (activeStep) {
+      case 0:
+        return {
+          title: "Period Selected",
+          description: "Initialize the period calculation and prepare the employee list.",
+          buttonLabel: "Initialize Period Run",
+          onClick: handleGeneratePeriod
+        };
+      case 1:
+        return {
+          title: "Employees Validated",
+          description: "Compliance exceptions resolved. Proceed to pre-posting simulation calculations.",
+          buttonLabel: "Proceed to Simulation",
+          onClick: handleCompleteValidation
+        };
+      case 2:
+        return {
+          title: "Simulation Pre-check",
+          description: "Run pre-posting simulation calculations to verify components ledger impact.",
+          buttonLabel: "Run Simulation Pre-check",
+          onClick: handleSimulateRun
+        };
+      case 3:
+        if (currentRun?.status === 'PENDING' || currentRun?.status === 'PENDING_APPROVAL') {
+          return {
+            title: "Approval sign-off Pending",
+            description: "Awaiting Finance Director authorization to release the payroll run.",
+            buttonLabel: "Finance sign-off (Simulate)",
+            onClick: async () => {
+              if (window.confirm("Approve this payroll run?")) {
+                setLoading(true);
+                try {
+                  await api.post(`/payroll/${activeCompany.id}/runs/${currentRun.id}/approve`);
+                  setActionMsg({ type: 'success', text: 'Payroll run successfully approved and authorized for ledger posting.' });
+                  await fetchActiveAndArchiveRuns();
+                  setActiveStep(4);
+                } catch(err) {
+                  setActionMsg({ type: 'error', text: err.response?.data?.error || 'Approval failed' });
+                }
+                setLoading(false);
+              }
+            }
+          };
+        }
+        return {
+          title: "HR Sign-off Complete",
+          description: "Submit payroll calculations to the Finance Director for approval.",
+          buttonLabel: "Submit for Approval",
+          onClick: handleSubmitApproval
+        };
+      case 4:
+        return {
+          title: "Run Approved",
+          description: "Post the authorized payroll calculations to the General Ledger.",
+          buttonLabel: "Post to General Ledger",
+          onClick: handlePostGL
+        };
+      case 5:
+        return {
+          title: "Salaries Posted",
+          description: "Proceed to Treasury portal to release direct bank disbursements.",
+          buttonLabel: "Disburse Salaries",
+          onClick: handleCompletePayments
+        };
+      case 6:
+        return {
+          title: "Bank Statement Reconciliation",
+          description: "Auto-reconcile cleared payment lines against FBR bank statement logs.",
+          buttonLabel: "Auto-Match Statement",
+          onClick: handleAutoReconcile
+        };
+      case 7:
+        if (currentRun?.status === 'CLOSED') {
+          return null;
+        }
+        return {
+          title: "All Processes Complete",
+          description: "Lock calculations and close the period to prevent auditing changes.",
+          buttonLabel: "Close Period",
+          onClick: handleClosePayrollPeriod
+        };
+      default:
+        return null;
+    }
+  };
 
-      {/* Workspace Menu Bar & Navigation Controls */}
-      <div className="flex justify-between items-center flex-wrap gap-4">
-        <div className="flex border-b border-slate-200 bg-white p-2 rounded-2xl shadow-3xs gap-1.5 w-fit">
+  return (
+    <WorkspaceLayout
+      title="Payroll Processing Wizard"
+      subtitle="Initialize calculations, resolve compliance checks, post entries, and clear disbursements."
+      icon={Layers}
+      breadcrumbs={['SARFIS', 'Payroll', 'Processing Runs']}
+      primaryAction={
+        <div className="flex border border-slate-200 bg-white p-1 rounded-xl shadow-3xs gap-1 w-fit">
           <button
             onClick={() => setViewMode('wizard')}
-            className={`px-4 py-2 rounded-xl transition-all uppercase tracking-wider text-[10px] font-black cursor-pointer ${
-              viewMode === 'wizard' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'
+            className={`px-3.5 py-1.5 rounded-lg transition-all uppercase tracking-wider text-[9px] font-black cursor-pointer border-none ${
+              viewMode === 'wizard' ? 'bg-indigo-650 text-white shadow-3xs' : 'text-slate-500 hover:text-slate-800 bg-transparent'
             }`}
           >
             Processing Wizard
           </button>
           <button
             onClick={() => setViewMode('archive')}
-            className={`px-4 py-2 rounded-xl transition-all uppercase tracking-wider text-[10px] font-black cursor-pointer ${
-              viewMode === 'archive' ? 'bg-indigo-600 text-white shadow-xs' : 'text-slate-500 hover:text-slate-800'
+            className={`px-3.5 py-1.5 rounded-lg transition-all uppercase tracking-wider text-[9px] font-black cursor-pointer border-none ${
+              viewMode === 'archive' ? 'bg-indigo-650 text-white shadow-3xs' : 'text-slate-500 hover:text-slate-800 bg-transparent'
             }`}
           >
             Historical Archives
           </button>
         </div>
-
-        {onBackToDashboard && (
-          <button
-            onClick={onBackToDashboard}
-            className="px-4 py-2 bg-white hover:bg-slate-50 border border-slate-200 text-slate-700 rounded-xl transition-all shadow-3xs flex items-center gap-1.5 cursor-pointer font-black text-[10px] uppercase animate-in fade-in duration-100"
-          >
-            <ChevronLeft size={14} className="text-slate-500" /> Back to Dashboard
+      }
+    >
+      {/* Alert Messaging */}
+      {actionMsg && (
+        <div className={`col-span-full p-4 rounded-xl border text-[13px] font-bold flex items-center justify-between gap-3 ${
+          actionMsg.type === 'success' ? 'bg-emerald-50 border-emerald-200 text-emerald-800' : 'bg-rose-50 border-rose-200 text-rose-800'
+        }`}>
+          <span className="flex items-center gap-2">
+            <CheckCircle size={16} />
+            {actionMsg.text}
+          </span>
+          <button onClick={() => setActionMsg(null)} className="text-slate-400 hover:text-slate-600 border-none bg-transparent cursor-pointer">
+            <X size={15} />
           </button>
-        )}
-      </div>
+        </div>
+      )}
 
       {viewMode === 'wizard' ? (
         <div className="grid grid-cols-1 lg:grid-cols-4 gap-6 items-start">
@@ -338,6 +424,19 @@ export default function PayrollProcessing({ userRole, onBackToDashboard, onNavig
 
           {/* Right: Step Workspaces Panel */}
           <div className="lg:col-span-3 space-y-6">
+            {currentRun && (
+              <DocumentHeader
+                title={`Payroll Run: ${currentRun.period}`}
+                number={`RUN-00${currentRun.id}`}
+                status={currentRun.status}
+                metadata={[
+                  { label: 'Fiscal Month', value: currentRun.period, icon: Calendar },
+                  { label: 'Total Headcount', value: `${stats.totalHeadcount} Employees`, icon: Users },
+                  { label: 'Total Net Payout', value: `PKR ${stats.totalPayroll.toLocaleString()}`, icon: DollarSign },
+                  { label: 'Employer Cost', value: `PKR ${stats.employerCost.toLocaleString()}`, icon: TrendingUp }
+                ]}
+              />
+            )}
             {/* Step 1 Workspace: Select Period */}
             {activeStep === 0 && (
               <div className="bg-white p-6 rounded-3xl border border-slate-100 shadow-xs space-y-5">
@@ -681,6 +780,45 @@ export default function PayrollProcessing({ userRole, onBackToDashboard, onNavig
                 </div>
               </div>
             )}
+
+            {(() => {
+              const actionProps = getNextActionProps();
+              if (!actionProps) return null;
+              return (
+                <NextActionCard
+                  status={currentRun?.status || 'DRAFT'}
+                  title={actionProps.title}
+                  description={actionProps.description}
+                >
+                  <button
+                    onClick={actionProps.onClick}
+                    disabled={loading || (activeStep === 3 && currentRun?.status !== 'PENDING' && currentRun?.status !== 'PENDING_APPROVAL' && userRole === 'Auditor')}
+                    className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-600 hover:from-emerald-600 hover:to-teal-700 text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer border-none disabled:opacity-40"
+                  >
+                    {actionProps.buttonLabel} <ArrowRight size={14} />
+                  </button>
+                </NextActionCard>
+              );
+            })()}
+
+            {currentRun && (
+              <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-4">
+                <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Payroll Run Audit Timeline</h3>
+                <ActivityFeed events={[
+                  { title: 'Payroll Run Created', description: `Period run ${period} initialized`, time: '1 hr ago', status: 'SUCCESS' },
+                  activeStep >= 2 ? { title: 'Employees Validated', description: 'No critical compliance exceptions found', time: '45 mins ago', status: 'SUCCESS' } : null,
+                  activeStep >= 3 ? { title: 'Pre-check Simulated', description: 'Calculations verified without ledger discrepancy', time: '30 mins ago', status: 'SUCCESS' } : null,
+                  currentRun.status === 'SUBMITTED' || currentRun.status === 'APPROVED' || currentRun.status === 'POSTED' || currentRun.status === 'CLOSED'
+                    ? { title: 'Submitted for Approval', description: 'HR payroll sign-off complete', time: '20 mins ago', status: 'SUCCESS' } : null,
+                  currentRun.status === 'APPROVED' || currentRun.status === 'POSTED' || currentRun.status === 'CLOSED'
+                    ? { title: 'Approved by Finance Director', description: 'Authorized matching treasury payout release', time: '15 mins ago', status: 'SUCCESS' } : null,
+                  currentRun.status === 'POSTED' || currentRun.status === 'CLOSED'
+                    ? { title: 'Posted to General Ledger', description: 'Voucher journal entries written', time: '10 mins ago', status: 'POSTED' } : null,
+                  currentRun.status === 'CLOSED'
+                    ? { title: 'Closed & Locked', description: 'Calculations locked for editing', time: 'Just Now', status: 'CLOSED' } : null
+                ].filter(Boolean)} />
+              </div>
+            )}
           </div>
         </div>
       ) : (
@@ -753,6 +891,6 @@ export default function PayrollProcessing({ userRole, onBackToDashboard, onNavig
           </div>
         </div>
       )}
-    </div>
+    </WorkspaceLayout>
   );
 }

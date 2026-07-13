@@ -1,6 +1,7 @@
 import React from 'react';
 import { ChevronRight } from 'lucide-react';
 import FilterBar from '../ui/FilterBar';
+import KPIGrid from '../ui/KPIGrid';
 
 export default function WorkspaceLayout({
   title,
@@ -94,26 +95,7 @@ export default function WorkspaceLayout({
 
       {/* 4. KPI Cards Grid (Responsive Layout) */}
       {kpis.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
-          {kpis.map((kpi, idx) => {
-            const KpiIcon = kpi.icon;
-            return (
-              <div key={idx} className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex items-center gap-3 min-w-0">
-                {KpiIcon && (
-                  <div className={`p-2.5 rounded-xl shrink-0 ${kpi.iconBgClass || 'bg-blue-50'} ${kpi.iconColorClass || 'text-blue-650'}`}>
-                    <KpiIcon size={18} />
-                  </div>
-                )}
-                <div className="min-w-0 flex-1">
-                  <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider truncate">{kpi.label}</span>
-                  <span className={`font-black text-slate-800 break-all leading-tight block ${
-                    String(kpi.value).length > 15 ? 'text-[13px]' : String(kpi.value).length > 11 ? 'text-[15px]' : 'text-[18px]'
-                  }`}>{kpi.value}</span>
-                </div>
-              </div>
-            );
-          })}
-        </div>
+        <KPIGrid items={kpis} />
       )}
 
       {/* 5. Main Content Area */}
