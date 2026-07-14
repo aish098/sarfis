@@ -108,10 +108,17 @@ const SPAN_CLASSES = {
   "one-third": "lg:col-span-1 col-span-full"
 };
 
-function PBIChartCard({ title, subtitle, children, height, style = {}, className, span }) {
+const WIDTH_CLASSES = {
+  compact: "max-w-[520px] mx-auto w-full",
+  medium: "max-w-[720px] mx-auto w-full",
+  full: "max-w-none w-full"
+};
+
+function PBIChartCard({ title, subtitle, children, height, style = {}, className, span, widthVariant }) {
   const spanClass = span ? (SPAN_CLASSES[span] || "") : "";
+  const widthClass = widthVariant ? (WIDTH_CLASSES[widthVariant] || "") : "";
   return (
-    <div className={`pbi-card ${spanClass} ${className || ""}`} style={{ padding: "18px 20px", ...style }}>
+    <div className={`pbi-card ${spanClass} ${widthClass} ${className || ""}`} style={{ padding: "18px 20px", ...style }}>
       {title && <p className="pbi-chart-title">{title}</p>}
       {subtitle && <p className="pbi-chart-sub">{subtitle}</p>}
       <div style={{ width: "100%", height: height || "auto" }}>{children}</div>
@@ -138,10 +145,11 @@ function Spinner() {
 }
 
 /* ── White Card ── */
-function Card({ title, subtitle, children, actions, style = {}, className, span }) {
+function Card({ title, subtitle, children, actions, style = {}, className, span, widthVariant }) {
   const spanClass = span ? (SPAN_CLASSES[span] || "") : "";
+  const widthClass = widthVariant ? (WIDTH_CLASSES[widthVariant] || "") : "";
   return (
-    <div className={`${spanClass} ${className || ""}`} style={{
+    <div className={`${spanClass} ${widthClass} ${className || ""}`} style={{
       background: W.card, border: `1px solid ${W.border}`,
       borderRadius: 16, padding: "20px 24px",
       boxShadow: "0 1px 4px rgba(0,0,0,0.06)",
@@ -324,6 +332,7 @@ function TrendTab({ companyId }) {
 
       {/* Main area chart — like reference image */}
       <Card title="Revenue & Profit Trend"
+        widthVariant={trendLayout.widthVariant}
         actions={<span style={{ fontSize: 11, color: W.textDim }}>Last {months} months · {trendLayout.orientation} layout</span>}>
         <AdaptiveChartFrame layout={trendLayout} variant={trendLayout.recommendedHeight}>
           <AreaChart data={data} margin={buildChartMargins(trendLayout)}>
@@ -350,7 +359,7 @@ function TrendTab({ companyId }) {
         </AdaptiveChartFrame>
       </Card>
 
-      <Card title="Monthly Profit">
+      <Card title="Monthly Profit" widthVariant={profitLayout.widthVariant}>
         <AdaptiveChartFrame layout={profitLayout} variant={profitLayout.recommendedHeight}>
           <BarChart data={data} margin={buildChartMargins(profitLayout)}>
             <CartesianGrid stroke={W.gridLine} vertical={false} strokeDasharray="3 3" />
@@ -483,6 +492,7 @@ function ComparativeTab({ companyId }) {
             subtitle={`${p1Label} vs ${p2Label}`}
             height={layout.chartHeight + 20}
             span={layout.recommendedSpan}
+            widthVariant={layout.widthVariant}
           >
             <AdaptiveChartFrame layout={layout} variant={layout.recommendedHeight}>
               <DynamicClusteredBarChart chartRows={chartRows} layout={layout} lookup={chartRows} series={series} />
@@ -494,6 +504,7 @@ function ComparativeTab({ companyId }) {
             subtitle="Bars + variance % trend"
             height={layout.chartHeight + 20}
             span={layout.recommendedSpan}
+            widthVariant={layout.widthVariant}
           >
             <AdaptiveChartFrame layout={layout} variant={layout.recommendedHeight}>
               <DynamicComboChart
@@ -514,6 +525,7 @@ function ComparativeTab({ companyId }) {
               subtitle="Period-over-period change bridge"
               height={wfLayout.chartHeight + 20}
               span={wfLayout.recommendedSpan}
+              widthVariant={wfLayout.widthVariant}
             >
               <AdaptiveChartFrame layout={wfLayout} variant={wfLayout.recommendedHeight}>
                 <DynamicWaterfallChart waterfall={waterfall} layout={wfLayout} lookup={waterfall} />
@@ -780,6 +792,7 @@ function SectorTab({ companyId }) {
             <Card
               title="Sector Revenue Comparison"
               span={isSmall ? "half" : "two-thirds"}
+              widthVariant={sectorLayout.widthVariant}
             >
               <AdaptiveChartFrame layout={sectorLayout} variant={isSmall ? "standard" : "landscape"}>
                 <DynamicBarSeries
@@ -1424,6 +1437,7 @@ function VarianceTab({ companyId }) {
                       subtitle={`Clustered · ${varianceLayout.orientation} · ${chartItems.length} accounts`}
                       height={varianceLayout.chartHeight + 20}
                       span={varianceLayout.recommendedSpan}
+                      widthVariant={varianceLayout.widthVariant}
                     >
                       <AdaptiveChartFrame layout={varianceLayout} variant={varianceLayout.recommendedHeight}>
                         <DynamicClusteredBarChart
@@ -1443,6 +1457,7 @@ function VarianceTab({ companyId }) {
                       subtitle="Favorable vs unfavorable"
                       height={varianceLayout.chartHeight + 20}
                       span={varianceLayout.recommendedSpan}
+                      widthVariant={varianceLayout.widthVariant}
                     >
                       <AdaptiveChartFrame layout={varianceLayout} variant={varianceLayout.recommendedHeight}>
                         <DynamicVarianceBarChart chartRows={chartItems} layout={varianceLayout} lookup={chartItems} />
@@ -1455,6 +1470,7 @@ function VarianceTab({ companyId }) {
                         subtitle="Cumulative budget variance decomposition"
                         height={wfLayout.chartHeight + 20}
                         span={wfLayout.recommendedSpan}
+                        widthVariant={wfLayout.widthVariant}
                       >
                         <AdaptiveChartFrame layout={wfLayout} variant={wfLayout.recommendedHeight}>
                           <DynamicWaterfallChart waterfall={waterfall} layout={wfLayout} lookup={waterfall} />
