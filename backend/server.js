@@ -26,7 +26,11 @@ async function startServer() {
     // 2. Run migrations and seed data
     try {
       console.log('[Migrations] Unlocking migrations lock if stuck...');
-      await db.migrate.unlock();
+      try {
+        await db.migrate.forceFreeConnection();
+      } catch (lockErr) {
+        console.log('[Migrations] Note: forceFreeConnection was skipped or not supported:', lockErr.message);
+      }
       console.log('[Migrations] Running migrations...');
       await db.migrate.latest();
       console.log('[Migrations] Migrations completed successfully');
