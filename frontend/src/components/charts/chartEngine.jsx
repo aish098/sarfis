@@ -78,7 +78,9 @@ export function computeChartLayout(categories = [], options = {}) {
   if (useHorizontal) {
     const labelWidth = Math.min(260, Math.max(100, maxLen * 6.8));
     const rowH = count > 20 ? 28 : count > 12 ? 32 : 38;
-    const chartHeight = Math.min(maxHeight, Math.max(minHeight, count * rowH + (seriesCount >= 2 ? 88 : 72)));
+    const minRequiredHeight = count * rowH + (seriesCount >= 2 ? 88 : 72);
+    const dynamicMaxHeight = Math.max(maxHeight, minRequiredHeight);
+    const chartHeight = Math.min(dynamicMaxHeight, Math.max(minHeight, minRequiredHeight));
     return {
       orientation: "horizontal",
       count,
