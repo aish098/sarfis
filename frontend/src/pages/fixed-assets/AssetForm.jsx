@@ -141,7 +141,7 @@ export default function AssetForm({ onClose, onSuccess, categories }) {
                 placeholder="e.g. AST-VHC-001"
                 value={formData.asset_code}
                 onChange={(e) => setFormData({ ...formData, asset_code: e.target.value })}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono font-bold uppercase"
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white font-mono font-bold uppercase"
               />
             </div>
 
@@ -154,7 +154,7 @@ export default function AssetForm({ onClose, onSuccess, categories }) {
                 placeholder="e.g. Toyota Corolla (Active)"
                 value={formData.asset_name}
                 onChange={(e) => setFormData({ ...formData, asset_name: e.target.value })}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-bold"
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white font-bold"
               />
             </div>
 
@@ -165,7 +165,7 @@ export default function AssetForm({ onClose, onSuccess, categories }) {
                 required
                 value={formData.category_id}
                 onChange={(e) => handleCategoryChange(e.target.value)}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-bold"
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold"
               >
                 <option value="">Select Category Class...</option>
                 {categories.map(cat => (
@@ -182,7 +182,7 @@ export default function AssetForm({ onClose, onSuccess, categories }) {
                 placeholder="e.g. S/N 49829"
                 value={formData.serial_number}
                 onChange={(e) => setFormData({ ...formData, serial_number: e.target.value })}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono"
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white font-mono"
               />
             </div>
 
@@ -194,7 +194,7 @@ export default function AssetForm({ onClose, onSuccess, categories }) {
                 required
                 value={formData.purchase_date}
                 onChange={(e) => setFormData({ ...formData, purchase_date: e.target.value })}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono"
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white font-mono"
               />
             </div>
 
@@ -206,7 +206,7 @@ export default function AssetForm({ onClose, onSuccess, categories }) {
                 required
                 value={formData.placed_in_service_date}
                 onChange={(e) => setFormData({ ...formData, placed_in_service_date: e.target.value })}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono"
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white font-mono"
               />
             </div>
 
@@ -219,7 +219,7 @@ export default function AssetForm({ onClose, onSuccess, categories }) {
                 placeholder="0.00"
                 value={formData.purchase_cost}
                 onChange={(e) => handleCostChange(e.target.value)}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono font-bold"
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white font-mono font-bold"
               />
             </div>
 
@@ -231,7 +231,7 @@ export default function AssetForm({ onClose, onSuccess, categories }) {
                 placeholder="0.00"
                 value={formData.salvage_value}
                 onChange={(e) => setFormData({ ...formData, salvage_value: e.target.value })}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono font-bold"
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white font-mono font-bold"
               />
             </div>
 
@@ -244,7 +244,7 @@ export default function AssetForm({ onClose, onSuccess, categories }) {
                 placeholder="5"
                 value={formData.useful_life_years}
                 onChange={(e) => setFormData({ ...formData, useful_life_years: e.target.value })}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono"
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white font-mono"
               />
             </div>
 
@@ -255,7 +255,7 @@ export default function AssetForm({ onClose, onSuccess, categories }) {
                 required
                 value={formData.depreciation_method}
                 onChange={(e) => setFormData({ ...formData, depreciation_method: e.target.value })}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-bold"
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold"
               >
                 <option value="STRAIGHT_LINE">Straight Line</option>
                 <option value="REDUCING_BALANCE">Reducing Balance (Double Declining)</option>
@@ -266,14 +266,14 @@ export default function AssetForm({ onClose, onSuccess, categories }) {
             {/* Units Capacity (Conditional) */}
             {formData.depreciation_method === 'UNITS_OF_PRODUCTION' && (
               <div className="space-y-1 md:col-span-2">
-                <label className="text-indigo-600 font-black">Estimated Total Capacity Units (KM / Hrs / Cycles)</label>
+                <label className="text-emerald-600 font-black">Estimated Total Capacity Units (KM / Hrs / Cycles)</label>
                 <input
                   type="number"
                   required
                   placeholder="e.g. 500000"
                   value={formData.estimated_total_units}
                   onChange={(e) => setFormData({ ...formData, estimated_total_units: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-indigo-50/20 border border-indigo-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono font-bold"
+                  className="w-full px-3 py-1.5 bg-emerald-50/20 border border-emerald-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white font-mono font-bold"
                 />
               </div>
             )}
@@ -284,7 +284,7 @@ export default function AssetForm({ onClose, onSuccess, categories }) {
               <select
                 value={formData.location_id}
                 onChange={(e) => setFormData({ ...formData, location_id: e.target.value })}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600"
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600"
               >
                 <option value="">No Location Assigned...</option>
                 {warehouses.map(w => (
@@ -299,7 +299,7 @@ export default function AssetForm({ onClose, onSuccess, categories }) {
               <select
                 value={formData.custodian_employee_id}
                 onChange={(e) => setFormData({ ...formData, custodian_employee_id: e.target.value })}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600"
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600"
               >
                 <option value="">No Custodian Assigned...</option>
                 {employees.map(emp => (
@@ -316,7 +316,7 @@ export default function AssetForm({ onClose, onSuccess, categories }) {
                 placeholder="Acquisition parameters, warranty, or insurance details..."
                 value={formData.notes}
                 onChange={(e) => setFormData({ ...formData, notes: e.target.value })}
-                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white"
+                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white"
               />
             </div>
           </div>
@@ -333,7 +333,7 @@ export default function AssetForm({ onClose, onSuccess, categories }) {
             <button
               type="submit"
               disabled={submitting}
-              className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black transition-all flex items-center gap-1.5 shadow-md disabled:opacity-50"
+              className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black transition-all flex items-center gap-1.5 shadow-md disabled:opacity-50"
             >
               <Save size={14} /> {submitting ? 'Capitalizing...' : 'Capitalize Asset'}
             </button>

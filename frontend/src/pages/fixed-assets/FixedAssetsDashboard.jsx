@@ -14,6 +14,7 @@ import {
 } from 'recharts';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 
 export default function FixedAssetsDashboard() {
   const navigate = useNavigate();
@@ -445,35 +446,23 @@ export default function FixedAssetsDashboard() {
   if (loading) {
     return (
       <div className="p-8 flex items-center justify-center min-h-[500px]">
-        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600"></div>
+        <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600"></div>
       </div>
     );
   }
 
   return (
-    <div className="p-4 lg:p-7 pb-20 max-w-[1600px] mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4F5FB] via-[#FAF9F8] to-[#F3F5FA] space-y-6">
-      {/* Top Banner Control Center */}
-      <div className="w-full bg-[#EEF2FF] border border-[#C7D2FE] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-indigo-500 to-cyan-500 flex items-center justify-center text-white shadow-md shadow-indigo-500/10">
-            <Briefcase size={18} className="text-white fill-white/20" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-indigo-900 tracking-tight uppercase">Asset Control Center</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-indigo-500/15 text-indigo-800 px-2 py-0.5 rounded-full border border-indigo-500/20">Fixed Assets</span>
-            </div>
-            <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
-              Centralized command center for calculations, validations, lending control, and lifecycle forecasts.
-            </p>
-          </div>
-        </div>
-        
-        {/* Toggle between Operations and Analytics */}
+    <WorkspaceLayout
+      title="Asset Control Center"
+      subtitle="Centralized command center for calculations, validations, lending control, and lifecycle forecasts."
+      icon={Briefcase}
+      badgeText="Fixed Assets"
+      breadcrumbs={['SARFIS', 'Fixed Assets', 'Dashboard']}
+      primaryAction={
         <div className="flex items-center gap-1.5 bg-slate-200/50 p-1 rounded-xl">
           <button 
             onClick={() => setActiveTab('operations')} 
-            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 border-none outline-none ${
               activeTab === 'operations' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
@@ -481,14 +470,16 @@ export default function FixedAssetsDashboard() {
           </button>
           <button 
             onClick={() => setActiveTab('analytics')} 
-            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 border-none outline-none ${
               activeTab === 'analytics' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
             <BarChart3 size={13} /> Analytics & Forecasts
           </button>
         </div>
-      </div>
+      }
+    >
+      <div className="col-span-full space-y-6">
 
       {/* Main Tab Views */}
       {activeTab === 'operations' ? (
@@ -639,10 +630,10 @@ export default function FixedAssetsDashboard() {
               <div className="space-y-3.5">
                 <div className="flex justify-between items-center text-xs font-bold text-slate-700">
                   <span>{verificationProgress.sessionName}</span>
-                  <span className="text-indigo-600 font-black">{verificationProgress.percent}% Complete</span>
+                  <span className="text-emerald-600 font-black">{verificationProgress.percent}% Complete</span>
                 </div>
                 <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden">
-                  <div className="bg-indigo-600 h-full rounded-full transition-all duration-300" style={{ width: `${verificationProgress.percent}%` }} />
+                  <div className="bg-emerald-600 h-full rounded-full transition-all duration-300" style={{ width: `${verificationProgress.percent}%` }} />
                 </div>
                 <div className="grid grid-cols-4 gap-2 text-center text-[10px] font-bold text-slate-500">
                   <div className="bg-slate-50 p-2 rounded-lg border border-slate-100">
@@ -678,7 +669,7 @@ export default function FixedAssetsDashboard() {
                       key={mode}
                       onClick={() => setDistMode(mode)}
                       className={`px-2 py-0.5 rounded text-[9.5px] font-extrabold uppercase transition-all ${
-                        distMode === mode ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-400 border border-slate-100 hover:text-slate-600'
+                        distMode === mode ? 'bg-emerald-600 text-white' : 'bg-slate-50 text-slate-400 border border-slate-100 hover:text-slate-600'
                       }`}
                     >
                       {mode}
@@ -742,7 +733,7 @@ export default function FixedAssetsDashboard() {
                             <div>
                               <p className="text-xs text-slate-600 font-bold">
                                 {event.description}{' '}
-                                <Link to={`/dashboard/fixed-assets/register?assetId=${event.asset_id}`} className="text-indigo-600 hover:underline">
+                                <Link to={`/dashboard/fixed-assets/register?assetId=${event.asset_id}`} className="text-emerald-600 hover:underline">
                                   ({event.assetCode})
                                 </Link>
                               </p>
@@ -924,6 +915,7 @@ export default function FixedAssetsDashboard() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </WorkspaceLayout>
   );
 }

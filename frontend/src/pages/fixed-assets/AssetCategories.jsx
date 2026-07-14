@@ -5,6 +5,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 
 export default function AssetCategories() {
   const { activeCompany } = useAuthStore();
@@ -195,22 +196,30 @@ export default function AssetCategories() {
   const impact = getLiveImpact();
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-        <div className="flex items-center gap-3">
-          <Link to="/dashboard/fixed-assets" className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-all">
-            <ArrowLeft size={16} />
+    <WorkspaceLayout
+      title="Category Settings"
+      subtitle="Establish default rules and map asset accounts to General Ledger postings."
+      icon={Settings}
+      badgeText="Fixed Assets"
+      breadcrumbs={['SARFIS', 'Fixed Assets', 'Category Settings']}
+      primaryAction={
+        <div className="flex gap-2">
+          <Link 
+            to="/dashboard/fixed-assets"
+            className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+          >
+            <ArrowLeft size={14} /> Back to Dashboard
           </Link>
-          <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Category Settings</h1>
-            <p className="text-slate-500 text-sm font-semibold">Establish default rules and map asset accounts to General Ledger postings.</p>
-          </div>
+          <button 
+            onClick={handleAddClick} 
+            className="px-4 py-2 bg-[#10b981] hover:bg-[#059669] text-white rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-md border-none cursor-pointer"
+          >
+            <PlusCircle size={14} /> Create Category
+          </button>
         </div>
-        <button onClick={handleAddClick} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-md">
-          <PlusCircle size={14} /> Create Category
-        </button>
-      </div>
+      }
+    >
+      <div className="col-span-full space-y-6">
 
       {/* Main Grid split-view */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -218,13 +227,13 @@ export default function AssetCategories() {
         <div className="lg:col-span-1 bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden flex flex-col h-fit">
           <div className="p-4 bg-slate-50 border-b border-slate-100 flex items-center justify-between">
             <span className="text-[10px] font-extrabold uppercase tracking-wider text-slate-500">Asset Classes</span>
-            <span className="text-[9px] bg-indigo-50 text-indigo-600 font-bold px-2 py-0.5 rounded-full border border-indigo-100">
+            <span className="text-[9px] bg-emerald-50 text-emerald-600 font-bold px-2 py-0.5 rounded-full border border-emerald-100">
               {categories.length} Classes
             </span>
           </div>
           {loading ? (
             <div className="p-8 text-center">
-              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto"></div>
+              <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600 mx-auto"></div>
             </div>
           ) : (
             <div className="divide-y divide-slate-100 overflow-y-auto max-h-[500px]">
@@ -233,7 +242,7 @@ export default function AssetCategories() {
                   key={cat.id}
                   onClick={() => handleSelectCategory(cat)}
                   className={`w-full p-4 text-left transition-all flex items-center justify-between ${
-                    selectedCat?.id === cat.id ? 'bg-indigo-50/40 text-indigo-700 font-bold border-l-4 border-indigo-600' : 'text-slate-600 hover:bg-slate-50/30'
+                    selectedCat?.id === cat.id ? 'bg-emerald-50/40 text-emerald-700 font-bold border-l-4 border-emerald-600' : 'text-slate-600 hover:bg-slate-50/30'
                   }`}
                 >
                   <div>
@@ -259,7 +268,7 @@ export default function AssetCategories() {
               <div className="px-5 py-4 border-b border-slate-100 flex items-center justify-between bg-slate-50/50">
                 <div>
                   <h3 className="text-xs font-black text-slate-800 uppercase flex items-center gap-1.5">
-                    <Settings size={14} className="text-indigo-600" />
+                    <Settings size={14} className="text-emerald-600" />
                     {isEditing ? (selectedCat ? 'Configure category policies' : 'New category setup') : selectedCat.category_name}
                   </h3>
                   <p className="text-[10px] text-slate-400 font-semibold">Verify asset definitions and accounting journals before saving.</p>
@@ -277,13 +286,13 @@ export default function AssetCategories() {
               {/* Detail Tabs menu */}
               {!isEditing && (
                 <div className="px-5 border-b border-slate-100 flex items-center gap-4 text-xs font-bold text-slate-500 bg-white">
-                  <button onClick={() => setActiveTab('general')} className={`py-3 border-b-2 transition-all ${activeTab === 'general' ? 'border-indigo-600 text-indigo-700 font-extrabold' : 'border-transparent hover:text-slate-700'}`}>
+                  <button onClick={() => setActiveTab('general')} className={`py-3 border-b-2 transition-all ${activeTab === 'general' ? 'border-emerald-600 text-emerald-700 font-extrabold' : 'border-transparent hover:text-slate-700'}`}>
                     General Parameters
                   </button>
-                  <button onClick={() => setActiveTab('accounting')} className={`py-3 border-b-2 transition-all ${activeTab === 'accounting' ? 'border-indigo-600 text-indigo-700 font-extrabold' : 'border-transparent hover:text-slate-700'}`}>
+                  <button onClick={() => setActiveTab('accounting')} className={`py-3 border-b-2 transition-all ${activeTab === 'accounting' ? 'border-emerald-600 text-emerald-700 font-extrabold' : 'border-transparent hover:text-slate-700'}`}>
                     Accounting GL Rules
                   </button>
-                  <button onClick={() => setActiveTab('statistics')} className={`py-3 border-b-2 transition-all ${activeTab === 'statistics' ? 'border-indigo-600 text-indigo-700 font-extrabold' : 'border-transparent hover:text-slate-700'}`}>
+                  <button onClick={() => setActiveTab('statistics')} className={`py-3 border-b-2 transition-all ${activeTab === 'statistics' ? 'border-emerald-600 text-emerald-700 font-extrabold' : 'border-transparent hover:text-slate-700'}`}>
                     Statistics
                   </button>
                 </div>
@@ -310,7 +319,7 @@ export default function AssetCategories() {
                               required
                               value={formData.category_name}
                               onChange={(e) => setFormData({ ...formData, category_name: e.target.value })}
-                              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-bold"
+                              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white font-bold"
                             />
                           </div>
                         )}
@@ -323,7 +332,7 @@ export default function AssetCategories() {
                                 required
                                 value={testLife}
                                 onChange={(e) => setTestLife(e.target.value)}
-                                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono"
+                                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white font-mono"
                               />
                             ) : (
                               <p className="p-2 bg-slate-50 rounded border border-slate-100 font-bold text-slate-800">{selectedCat.default_useful_life_years} Years</p>
@@ -337,7 +346,7 @@ export default function AssetCategories() {
                                 required
                                 value={testSalvage}
                                 onChange={(e) => setTestSalvage(e.target.value)}
-                                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono"
+                                className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white font-mono"
                               />
                             ) : (
                               <p className="p-2 bg-slate-50 rounded border border-slate-100 font-bold text-slate-800">{selectedCat.default_salvage_percent}%</p>
@@ -351,7 +360,7 @@ export default function AssetCategories() {
                             <select
                               value={testMethod}
                               onChange={(e) => setTestMethod(e.target.value)}
-                              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-bold"
+                              className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold"
                             >
                               <option value="STRAIGHT_LINE">Straight Line</option>
                               <option value="REDUCING_BALANCE">Reducing Balance (Double Declining)</option>
@@ -366,7 +375,7 @@ export default function AssetCategories() {
                       {/* Live Impact Preview Card */}
                       <div className="md:col-span-1 bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col justify-between">
                         <div>
-                          <h4 className="text-[10px] font-black text-indigo-700 uppercase tracking-wider flex items-center gap-1">
+                          <h4 className="text-[10px] font-black text-emerald-700 uppercase tracking-wider flex items-center gap-1">
                             <TrendingDown size={12} /> Live Impact Preview
                           </h4>
                           <p className="text-[9px] text-slate-400 font-semibold mt-0.5">Estimated monthly cost on PKR 1,000,000 asset.</p>
@@ -376,8 +385,8 @@ export default function AssetCategories() {
                               <span className="font-mono text-slate-600">PKR {selectedCat ? impact.oldDep.toLocaleString() : '0'}</span>
                             </div>
                             <div className="flex justify-between">
-                              <span className="text-indigo-600 font-bold">New Dep:</span>
-                              <span className="font-mono text-indigo-700 font-bold">PKR {impact.newDep.toLocaleString()}</span>
+                              <span className="text-emerald-600 font-bold">New Dep:</span>
+                              <span className="font-mono text-emerald-700 font-bold">PKR {impact.newDep.toLocaleString()}</span>
                             </div>
                           </div>
                         </div>
@@ -401,7 +410,7 @@ export default function AssetCategories() {
                           <select
                             value={formData.asset_account_id}
                             onChange={(e) => setFormData({ ...formData, asset_account_id: e.target.value })}
-                            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-mono"
+                            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-mono"
                           >
                             <option value="">Select Asset Account...</option>
                             {assetAccounts.map(a => (
@@ -421,7 +430,7 @@ export default function AssetCategories() {
                           <select
                             value={formData.accumulated_depreciation_account_id}
                             onChange={(e) => setFormData({ ...formData, accumulated_depreciation_account_id: e.target.value })}
-                            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-mono"
+                            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-mono"
                           >
                             <option value="">Select Contra-Asset Account...</option>
                             {contraAccounts.map(a => (
@@ -441,7 +450,7 @@ export default function AssetCategories() {
                           <select
                             value={formData.depreciation_expense_account_id}
                             onChange={(e) => setFormData({ ...formData, depreciation_expense_account_id: e.target.value })}
-                            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-mono"
+                            className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-mono"
                           >
                             <option value="">Select Expense Account...</option>
                             {expenseAccounts.map(a => (
@@ -493,7 +502,7 @@ export default function AssetCategories() {
                     <button
                       type="submit"
                       disabled={submitting}
-                      className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all shadow-md flex items-center gap-1"
+                      className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black transition-all shadow-md flex items-center gap-1"
                     >
                       <Save size={13} /> {submitting ? 'Saving...' : 'Save Settings'}
                     </button>
@@ -509,6 +518,7 @@ export default function AssetCategories() {
           )}
         </div>
       </div>
-    </div>
+      </div>
+    </WorkspaceLayout>
   );
 }

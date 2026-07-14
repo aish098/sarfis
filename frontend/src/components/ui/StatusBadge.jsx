@@ -19,7 +19,8 @@ export default function StatusBadge({ status }) {
     normalized === 'PENDING' || 
     normalized === 'PENDING_APPROVAL' || 
     normalized === 'AWAITING' || 
-    normalized === 'AWAITING SIGN-OFF'
+    normalized === 'AWAITING SIGN-OFF' ||
+    normalized === 'UNDER_MAINTENANCE'
   ) {
     classes = 'bg-amber-50 text-amber-700 border-amber-100';
   } else if (
@@ -30,7 +31,9 @@ export default function StatusBadge({ status }) {
     normalized === 'PICKING' ||
     normalized === 'PACKED' ||
     normalized === 'READY_FOR_DISPATCH' ||
-    normalized === 'DISPATCHED'
+    normalized === 'DISPATCHED' ||
+    normalized === 'IN_USE' ||
+    normalized === 'TRANSFERRED'
   ) {
     classes = 'bg-blue-50 text-blue-700 border-blue-100';
   } else if (
@@ -44,14 +47,18 @@ export default function StatusBadge({ status }) {
     normalized === 'ERROR' || 
     normalized === 'CRITICAL' || 
     normalized === 'REJECTED' || 
-    normalized === 'CANCELLED'
+    normalized === 'CANCELLED' ||
+    normalized === 'LOST' ||
+    normalized === 'DAMAGED'
   ) {
     classes = 'bg-rose-50 text-rose-700 border-rose-100';
   } else if (
     normalized === 'CLOSED' || 
     normalized === 'ARCHIVED' || 
     normalized === 'DRAFT' ||
-    normalized === 'CONVERTED_TO_PO'
+    normalized === 'CONVERTED_TO_PO' ||
+    normalized === 'DISPOSED' ||
+    normalized === 'SOLD'
   ) {
     classes = 'bg-slate-100 text-slate-500 border-slate-200';
   }

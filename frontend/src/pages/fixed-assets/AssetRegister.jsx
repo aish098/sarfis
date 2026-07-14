@@ -10,6 +10,9 @@ import {
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import AssetForm from './AssetForm';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
+import StatusBadge from '../../components/ui/StatusBadge';
+import NextActionCard from '../../components/ui/NextActionCard';
 
 export default function AssetRegister() {
   const navigate = useNavigate();
@@ -451,36 +454,36 @@ export default function AssetRegister() {
   const dispPreview = getDisposalPreview();
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <div className="flex justify-between items-center border-b border-slate-100 pb-4">
-        <div className="flex items-center gap-3">
-          <Link to="/dashboard/fixed-assets" className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-all">
-            <ArrowLeft size={16} />
-          </Link>
-          <div>
-            <h1 className="text-2xl font-black text-slate-800 tracking-tight">Asset Registry</h1>
-            <p className="text-slate-500 text-sm font-semibold">Verify asset details, print codes, transfer locations, or retire obsolete assets.</p>
-          </div>
-        </div>
+    <WorkspaceLayout
+      title="Asset Registry"
+      subtitle="Verify asset details, print codes, transfer locations, or retire obsolete assets."
+      icon={ClipboardList}
+      badgeText="Fixed Assets"
+      breadcrumbs={['SARFIS', 'Fixed Assets', 'Registry']}
+      primaryAction={
         <div className="flex gap-2">
           <button 
             onClick={() => setShowVerificationWorkspace(!showVerificationWorkspace)} 
-            className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-sm"
+            className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
           >
             <ClipboardList size={14} className="text-amber-500" /> Physical Audit sessions
           </button>
           <button 
             onClick={() => setShowRequestQueue(!showRequestQueue)} 
-            className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-sm"
+            className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
           >
             <MapPin size={14} className="text-blue-500" /> Transfer Requests ({transferRequests.filter(r => r.status === 'PENDING').length})
           </button>
-          <button onClick={() => setShowAddForm(true)} className="px-4 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-md">
+          <button 
+            onClick={() => setShowAddForm(true)} 
+            className="px-4 py-2 bg-[#10b981] hover:bg-[#059669] text-white rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-md border-none cursor-pointer"
+          >
             <Plus size={14} /> Capitalize Asset
           </button>
         </div>
-      </div>
+      }
+    >
+      <div className="col-span-full space-y-6">
 
       {/* Physical Audit Workspace */}
       {showVerificationWorkspace && (
@@ -514,7 +517,7 @@ export default function AssetRegister() {
                     className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none"
                   />
                 </div>
-                <button type="submit" className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg font-black transition-all">
+                <button type="submit" className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg font-black transition-all">
                   Initialize Session
                 </button>
               </form>
@@ -526,7 +529,7 @@ export default function AssetRegister() {
                     <button
                       key={session.id}
                       onClick={() => handleSelectVerificationSession(session)}
-                      className="w-full p-2.5 bg-slate-50 hover:bg-indigo-50 border border-slate-100 rounded-lg text-left flex justify-between items-center transition-all"
+                      className="w-full p-2.5 bg-slate-50 hover:bg-emerald-50 border border-slate-100 rounded-lg text-left flex justify-between items-center transition-all"
                     >
                       <div>
                         <p className="font-bold text-slate-700">{session.session_name}</p>
@@ -542,7 +545,7 @@ export default function AssetRegister() {
             <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm space-y-4">
               <div className="flex justify-between items-center">
                 <div>
-                  <h4 className="font-black text-indigo-700 text-xs">{activeSession.session_name}</h4>
+                  <h4 className="font-black text-emerald-700 text-xs">{activeSession.session_name}</h4>
                   <p className="text-[10px] text-slate-400">Auditor verified list items checkoff</p>
                 </div>
                 <button onClick={() => { setActiveSession(null); setSessionItems([]); }} className="text-slate-400 hover:text-slate-600 text-xs font-bold">
@@ -565,7 +568,7 @@ export default function AssetRegister() {
                       const item = sessionItems.find(x => x.asset_id === asset.id);
                       return (
                         <tr key={asset.id} className="hover:bg-slate-50/50">
-                          <td className="px-3 py-2 font-mono font-bold text-indigo-600">{asset.asset_code}</td>
+                          <td className="px-3 py-2 font-mono font-bold text-emerald-600">{asset.asset_code}</td>
                           <td className="px-3 py-2">{asset.asset_name}</td>
                           <td className="px-3 py-2 text-center">
                             {item ? (
@@ -582,7 +585,7 @@ export default function AssetRegister() {
                                   key={status}
                                   onClick={() => handleLogVerifyItem(asset.id, status)}
                                   className={`px-1.5 py-0.5 rounded text-[8px] font-extrabold uppercase transition-all ${
-                                    item?.status === status ? 'bg-indigo-600 text-white' : 'bg-slate-50 text-slate-400 border border-slate-100 hover:text-slate-600'
+                                    item?.status === status ? 'bg-emerald-600 text-white' : 'bg-slate-50 text-slate-400 border border-slate-100 hover:text-slate-600'
                                   }`}
                                 >
                                   {status}
@@ -630,7 +633,7 @@ export default function AssetRegister() {
                       <div className="flex items-center gap-1 text-[11px]">
                         <span className="text-slate-500 font-bold">{req.from_location_name || 'Office'}</span>
                         <ArrowRight size={10} className="text-slate-300" />
-                        <span className="text-indigo-600 font-black">{req.to_location_name || 'Warehouse'}</span>
+                        <span className="text-emerald-600 font-black">{req.to_location_name || 'Warehouse'}</span>
                       </div>
                     </td>
                     <td className="px-4 py-2.5 text-slate-500">
@@ -678,18 +681,18 @@ export default function AssetRegister() {
           {/* Scan Barcode Simulated Scanner */}
           <div className="md:col-span-2 relative flex gap-2">
             <div className="relative flex-1">
-              <Scan className="absolute left-3 top-2.5 text-indigo-600" size={14} />
+              <Scan className="absolute left-3 top-2.5 text-emerald-600" size={14} />
               <input
                 type="text"
                 placeholder="Scan Asset Code..."
                 value={scanTerm}
                 onChange={(e) => setScanTerm(e.target.value)}
-                className="pl-9 pr-4 py-1.5 w-full bg-indigo-50/30 border border-indigo-200 rounded-lg text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all font-mono font-bold text-indigo-700"
+                className="pl-9 pr-4 py-1.5 w-full bg-emerald-50/30 border border-emerald-200 rounded-lg text-xs outline-none focus:border-emerald-500 focus:bg-white transition-all font-mono font-bold text-emerald-700"
               />
             </div>
             <button 
               onClick={handleScanLookup}
-              className="px-3 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all"
+              className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black transition-all"
             >
               Verify Scan
             </button>
@@ -702,13 +705,13 @@ export default function AssetRegister() {
               placeholder="Search registry..."
               value={searchTerm}
               onChange={(e) => setSearchTerm(e.target.value)}
-              className="pl-9 pr-4 py-1.5 w-full bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500 focus:bg-white transition-all font-semibold"
+              className="pl-9 pr-4 py-1.5 w-full bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-emerald-500 focus:bg-white transition-all font-semibold"
             />
           </div>
           <select
             value={filterCategory}
             onChange={(e) => setFilterCategory(e.target.value)}
-            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500 transition-all font-semibold text-slate-600"
+            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-emerald-500 transition-all font-semibold text-slate-600"
           >
             <option value="">All Categories</option>
             {categories.map(c => (
@@ -718,7 +721,7 @@ export default function AssetRegister() {
           <select
             value={filterLocation}
             onChange={(e) => setFilterLocation(e.target.value)}
-            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500 transition-all font-semibold text-slate-600"
+            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-emerald-500 transition-all font-semibold text-slate-600"
           >
             <option value="">All Locations</option>
             {warehouses.map(w => (
@@ -728,7 +731,7 @@ export default function AssetRegister() {
           <select
             value={filterStatus}
             onChange={(e) => setFilterStatus(e.target.value)}
-            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-indigo-500 transition-all font-semibold text-slate-600"
+            className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg text-xs outline-none focus:border-emerald-500 transition-all font-semibold text-slate-600"
           >
             <option value="">All Statuses</option>
             <option value="ACTIVE">Active</option>
@@ -741,9 +744,9 @@ export default function AssetRegister() {
 
       {/* Context-Aware Action Drawer */}
       {scanAssetResult && (
-        <div className="bg-indigo-50 border border-indigo-200 p-4 rounded-2xl flex items-center justify-between text-xs font-semibold text-indigo-900 animate-in slide-in-from-bottom-2 duration-200">
+        <div className="bg-emerald-50 border border-emerald-200 p-4 rounded-2xl flex items-center justify-between text-xs font-semibold text-emerald-900 animate-in slide-in-from-bottom-2 duration-200">
           <div className="flex items-center gap-3">
-            <div className="p-2.5 bg-indigo-600 text-white rounded-xl shadow-md font-mono font-black uppercase text-[10px]">
+            <div className="p-2.5 bg-emerald-600 text-white rounded-xl shadow-md font-mono font-black uppercase text-[10px]">
               Scanned: {scanAssetResult.asset_code}
             </div>
             <div>
@@ -754,25 +757,25 @@ export default function AssetRegister() {
           <div className="flex items-center gap-1.5">
             <button 
               onClick={() => { handleOpenInquiry(scanAssetResult.id); setScanAssetResult(null); }} 
-              className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 rounded text-[10px] font-black text-indigo-600 shadow-sm"
+              className="px-2.5 py-1 bg-white hover:bg-emerald-50 border border-emerald-200 rounded text-[10px] font-black text-emerald-600 shadow-sm"
             >
               View 360°
             </button>
             <button 
               onClick={() => { setSelectedAssetId(scanAssetResult.id); setLendingData({ employee_id: '', checkout_date: new Date().toISOString().split('T')[0], expected_return: '', notes: '', isReservation: false }); setShowLendingForm(true); setScanAssetResult(null); }} 
-              className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 rounded text-[10px] font-black text-indigo-600 shadow-sm"
+              className="px-2.5 py-1 bg-white hover:bg-emerald-50 border border-emerald-200 rounded text-[10px] font-black text-emerald-600 shadow-sm"
             >
               Checkout/Lend
             </button>
             <button 
               onClick={() => { setSelectedAssetId(scanAssetResult.id); setMaintenanceData({ maintenance_type: 'PREVENTIVE', description: '', technician_name: '', parts_used: '', labor_cost: 0, maintenance_cost: 0, maintenance_date: new Date().toISOString().split('T')[0], next_scheduled_date: '', status: 'OPEN' }); setShowMaintenanceForm(true); setScanAssetResult(null); }} 
-              className="px-2.5 py-1 bg-white hover:bg-indigo-50 border border-indigo-200 rounded text-[10px] font-black text-indigo-600 shadow-sm"
+              className="px-2.5 py-1 bg-white hover:bg-emerald-50 border border-emerald-200 rounded text-[10px] font-black text-emerald-600 shadow-sm"
             >
               Work Order
             </button>
             <button 
               onClick={() => { setScanAssetResult(null); setScanTerm(''); }} 
-              className="p-1 hover:bg-indigo-100 rounded text-slate-400"
+              className="p-1 hover:bg-emerald-100 rounded text-slate-400"
             >
               <X size={14} />
             </button>
@@ -784,7 +787,7 @@ export default function AssetRegister() {
       <div className="bg-white rounded-2xl border border-slate-100 shadow-sm overflow-hidden">
         {loading ? (
           <div className="p-8 text-center">
-            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto font-mono"></div>
+            <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600 mx-auto font-mono"></div>
           </div>
         ) : filteredAssets.length > 0 ? (
           <div className="overflow-x-auto">
@@ -796,7 +799,7 @@ export default function AssetRegister() {
                       type="checkbox"
                       checked={selectedIds.length === filteredAssets.length}
                       onChange={toggleSelectAll}
-                      className="w-4 h-4 rounded text-indigo-600"
+                      className="w-4 h-4 rounded text-emerald-600"
                     />
                   </th>
                   <th className="px-4 py-3">Asset Code</th>
@@ -816,10 +819,10 @@ export default function AssetRegister() {
                         type="checkbox"
                         checked={selectedIds.includes(asset.id)}
                         onChange={() => toggleSelect(asset.id)}
-                        className="w-4 h-4 rounded text-indigo-600"
+                        className="w-4 h-4 rounded text-emerald-600"
                       />
                     </td>
-                    <td className="px-4 py-3.5 font-mono text-indigo-600 font-black">
+                    <td className="px-4 py-3.5 font-mono text-emerald-600 font-black">
                       <button onClick={() => handleOpenInquiry(asset.id)} className="hover:underline text-left">
                         {asset.asset_code}
                       </button>
@@ -851,7 +854,7 @@ export default function AssetRegister() {
                     </td>
                     <td className="px-4 py-3.5 text-center">
                       <div className="flex items-center justify-center gap-1">
-                        <button onClick={() => handleOpenInquiry(asset.id)} title="360° Inquiry" className="p-1 text-slate-400 hover:text-indigo-600 hover:bg-slate-100 rounded transition-all">
+                        <button onClick={() => handleOpenInquiry(asset.id)} title="360° Inquiry" className="p-1 text-slate-400 hover:text-emerald-600 hover:bg-slate-100 rounded transition-all">
                           <Eye size={14} />
                         </button>
                         {asset.status === 'ACTIVE' && (
@@ -962,7 +965,7 @@ export default function AssetRegister() {
             
             <button 
               onClick={() => window.print()}
-              className="w-full py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all print:hidden"
+              className="w-full py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black transition-all print:hidden"
             >
               Print Label
             </button>
@@ -1009,7 +1012,7 @@ export default function AssetRegister() {
                 <select
                   value={lendingData.employee_id}
                   onChange={(e) => setLendingData({ ...lendingData, employee_id: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-bold"
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold"
                 >
                   <option value="">Select Employee...</option>
                   {employees.map(emp => (
@@ -1025,7 +1028,7 @@ export default function AssetRegister() {
                   required
                   value={lendingData.checkout_date}
                   onChange={(e) => setLendingData({ ...lendingData, checkout_date: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-semibold font-mono"
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white font-semibold font-mono"
                 />
               </div>
 
@@ -1036,7 +1039,7 @@ export default function AssetRegister() {
                   required
                   value={lendingData.expected_return}
                   onChange={(e) => setLendingData({ ...lendingData, expected_return: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-semibold font-mono"
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white font-semibold font-mono"
                 />
               </div>
 
@@ -1047,7 +1050,7 @@ export default function AssetRegister() {
                   rows={2}
                   value={lendingData.notes}
                   onChange={(e) => setLendingData({ ...lendingData, notes: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white"
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white"
                 />
               </div>
             </div>
@@ -1074,7 +1077,7 @@ export default function AssetRegister() {
       {showTransferForm && selectedAssetId && (
         <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
           <form onSubmit={handleTransferRequestSubmit} className="bg-white rounded-xl border border-slate-100 shadow-2xl max-w-sm w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
-            <h3 className="text-sm font-black text-indigo-700 flex items-center gap-1.5 uppercase">
+            <h3 className="text-sm font-black text-emerald-700 flex items-center gap-1.5 uppercase">
               <MapPin size={16} /> Asset Transfer Request
             </h3>
             <p className="text-[10px] text-slate-400 font-semibold font-mono">
@@ -1086,7 +1089,7 @@ export default function AssetRegister() {
                 <select
                   value={transferData.location_id}
                   onChange={(e) => setTransferData({ ...transferData, location_id: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-bold"
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold"
                 >
                   <option value="">No Location / Unassigned...</option>
                   {warehouses.map(w => (
@@ -1100,7 +1103,7 @@ export default function AssetRegister() {
                 <select
                   value={transferData.custodian_employee_id}
                   onChange={(e) => setTransferData({ ...transferData, custodian_employee_id: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white text-slate-600 font-bold"
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold"
                 >
                   <option value="">No Custodian / Unassigned...</option>
                   {employees.map(emp => (
@@ -1116,7 +1119,7 @@ export default function AssetRegister() {
                   required
                   value={transferData.transfer_date}
                   onChange={(e) => setTransferData({ ...transferData, transfer_date: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-semibold font-mono"
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white font-semibold font-mono"
                 />
               </div>
 
@@ -1127,7 +1130,7 @@ export default function AssetRegister() {
                   rows={2}
                   value={transferData.notes}
                   onChange={(e) => setTransferData({ ...transferData, notes: e.target.value })}
-                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white"
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white"
                 />
               </div>
             </div>
@@ -1141,7 +1144,7 @@ export default function AssetRegister() {
               </button>
               <button 
                 type="submit" 
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all shadow-md"
+                className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black transition-all shadow-md"
               >
                 Submit Request
               </button>
@@ -1172,7 +1175,7 @@ export default function AssetRegister() {
               
               {disposalStep === 1 && (
                 <div className="space-y-3">
-                  <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Step 1: Asset Specs Verification</h4>
+                  <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-emerald-600">Step 1: Asset Specs Verification</h4>
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-2">
                     <p><span className="text-slate-400">Asset:</span> <strong className="text-slate-800">{assets.find(a => a.id === selectedAssetId)?.asset_name}</strong></p>
                     <p><span className="text-slate-400">Code:</span> <strong className="text-slate-800 font-mono">{assets.find(a => a.id === selectedAssetId)?.asset_code}</strong></p>
@@ -1183,7 +1186,7 @@ export default function AssetRegister() {
 
               {disposalStep === 2 && (
                 <div className="space-y-3">
-                  <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Step 2: Select Disposal Type</h4>
+                  <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-emerald-600">Step 2: Select Disposal Type</h4>
                   <p className="text-[10px] text-slate-400 mt-1">Different disposal methods maps separate ledger accounts templates.</p>
                   <div className="grid grid-cols-2 gap-2 pt-2">
                     {['Sale', 'Scrap', 'Donation', 'Write-off', 'Loss', 'Insurance Claim'].map(type => (
@@ -1204,7 +1207,7 @@ export default function AssetRegister() {
 
               {disposalStep === 3 && (
                 <div className="space-y-3.5">
-                  <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Step 3: Sale/Disposal Details</h4>
+                  <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-emerald-600">Step 3: Sale/Disposal Details</h4>
                   
                   <div className="space-y-1">
                     <label className="text-slate-500">Retirement Date</label>
@@ -1244,7 +1247,7 @@ export default function AssetRegister() {
 
               {disposalStep === 4 && (
                 <div className="space-y-3">
-                  <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Step 4: Gain / Loss Preview</h4>
+                  <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-emerald-600">Step 4: Gain / Loss Preview</h4>
                   <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3 font-mono">
                     <div className="flex justify-between">
                       <span className="text-slate-400">Acquisition Cost:</span>
@@ -1260,7 +1263,7 @@ export default function AssetRegister() {
                     </div>
                     <div className="flex justify-between font-sans">
                       <span className="text-slate-500 font-bold">Proceeds Cash value:</span>
-                      <span className="text-indigo-600 font-black">PKR {disposalData.proceeds_amount.toLocaleString()}</span>
+                      <span className="text-emerald-600 font-black">PKR {disposalData.proceeds_amount.toLocaleString()}</span>
                     </div>
                     <div className={`p-2 rounded text-center text-xs font-black ${dispPreview.gainLoss >= 0 ? 'bg-emerald-50 text-emerald-700' : 'bg-rose-50 text-rose-700'}`}>
                       Estimated {dispPreview.gainLoss >= 0 ? 'Disposal Gain' : 'Disposal Loss'}: PKR {Math.abs(dispPreview.gainLoss).toLocaleString()}
@@ -1271,7 +1274,7 @@ export default function AssetRegister() {
 
               {disposalStep === 5 && (
                 <div className="space-y-3">
-                  <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Step 5: Ledger Accounting Preview</h4>
+                  <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-emerald-600">Step 5: Ledger Accounting Preview</h4>
                   <div className="border border-slate-200 rounded-xl overflow-hidden font-mono text-[11px]">
                     <table className="w-full text-left border-collapse">
                       <thead className="bg-slate-50 border-b border-slate-200 text-[9px] uppercase text-slate-400 font-black">
@@ -1323,7 +1326,7 @@ export default function AssetRegister() {
 
               {disposalStep === 6 && (
                 <div className="space-y-4">
-                  <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Step 6: Posting Authorization</h4>
+                  <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-emerald-600">Step 6: Posting Authorization</h4>
                   <div className="flex items-center gap-3 p-4 bg-rose-50/50 border border-rose-100 rounded-xl">
                     <input
                       type="checkbox"
@@ -1372,7 +1375,7 @@ export default function AssetRegister() {
                   <button
                     type="button"
                     onClick={() => setDisposalStep(prev => prev + 1)}
-                    className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all shadow-md"
+                    className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black transition-all shadow-md"
                   >
                     Next
                   </button>
@@ -1399,7 +1402,7 @@ export default function AssetRegister() {
             {/* Modal Header */}
             <div className="p-4 border-b border-slate-100 flex items-center justify-between bg-slate-50">
               <div className="flex items-center gap-2">
-                <div className="p-2 bg-indigo-50 text-indigo-600 rounded-lg">
+                <div className="p-2 bg-emerald-50 text-emerald-600 rounded-lg">
                   <Info size={16} />
                 </div>
                 <div>
@@ -1414,7 +1417,7 @@ export default function AssetRegister() {
 
             {inquiryLoading ? (
               <div className="p-16 text-center flex-1">
-                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-indigo-600 mx-auto"></div>
+                <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto"></div>
                 <p className="text-slate-400 text-xs mt-4">Retrieving sub-ledger records...</p>
               </div>
             ) : inquiryDetails ? (
@@ -1447,43 +1450,43 @@ export default function AssetRegister() {
                 <div className="border-b border-slate-100 px-5 flex gap-4 text-xs font-bold bg-white sticky top-0 z-10">
                   <button 
                     onClick={() => setActiveTab('general')} 
-                    className={`py-3 border-b-2 transition-all ${activeTab === 'general' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                    className={`py-3 border-b-2 transition-all ${activeTab === 'general' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                   >
                     General Specs
                   </button>
                   <button 
                     onClick={() => setActiveTab('books')} 
-                    className={`py-3 border-b-2 transition-all ${activeTab === 'books' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                    className={`py-3 border-b-2 transition-all ${activeTab === 'books' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                   >
                     Depreciation Books
                   </button>
                   <button 
                     onClick={() => setActiveTab('ledger')} 
-                    className={`py-3 border-b-2 transition-all ${activeTab === 'ledger' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                    className={`py-3 border-b-2 transition-all ${activeTab === 'ledger' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                   >
                     Asset Ledger History
                   </button>
                   <button 
                     onClick={() => setActiveTab('transfers')} 
-                    className={`py-3 border-b-2 transition-all ${activeTab === 'transfers' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                    className={`py-3 border-b-2 transition-all ${activeTab === 'transfers' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                   >
                     Transfer Timeline ({inquiryDetails.transfers?.length || 0})
                   </button>
                   <button 
                     onClick={() => setActiveTab('lending')} 
-                    className={`py-3 border-b-2 transition-all ${activeTab === 'lending' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                    className={`py-3 border-b-2 transition-all ${activeTab === 'lending' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                   >
                     Lending Checkout ({inquiryDetails.assignments?.length || 0})
                   </button>
                   <button 
                     onClick={() => setActiveTab('verifications')} 
-                    className={`py-3 border-b-2 transition-all ${activeTab === 'verifications' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                    className={`py-3 border-b-2 transition-all ${activeTab === 'verifications' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                   >
                     Verifications Audits ({inquiryDetails.verifications?.length || 0})
                   </button>
                   <button 
                     onClick={() => setActiveTab('maintenance')} 
-                    className={`py-3 border-b-2 transition-all ${activeTab === 'maintenance' ? 'border-indigo-600 text-indigo-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
+                    className={`py-3 border-b-2 transition-all ${activeTab === 'maintenance' ? 'border-emerald-600 text-emerald-600' : 'border-transparent text-slate-400 hover:text-slate-600'}`}
                   >
                     Work Orders ({inquiryDetails.maintenance?.length || 0})
                   </button>
@@ -1495,7 +1498,7 @@ export default function AssetRegister() {
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                       <div className="space-y-4">
                         <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3.5 text-xs">
-                          <h4 className="font-black text-slate-800 flex items-center gap-1.5 uppercase text-[10px] tracking-wider text-indigo-600">
+                          <h4 className="font-black text-slate-800 flex items-center gap-1.5 uppercase text-[10px] tracking-wider text-emerald-600">
                             <Info size={13} /> Asset Metadata Cards
                           </h4>
                           <div className="grid grid-cols-2 gap-3.5 font-semibold text-slate-600">
@@ -1520,7 +1523,7 @@ export default function AssetRegister() {
 
                         {/* Explainable Health Score Card */}
                         <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3 text-xs">
-                          <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-indigo-600">Asset Health Score Detail</h4>
+                          <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-emerald-600">Asset Health Score Detail</h4>
                           <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100">
                             <span className="font-bold text-slate-600">Carrying Health Rating:</span>
                             <span className="px-2 py-0.5 rounded text-[11px] font-black bg-emerald-50 text-emerald-700 border border-emerald-100">82% (Good Condition)</span>
@@ -1544,7 +1547,7 @@ export default function AssetRegister() {
 
                       <div className="space-y-4">
                         <div className="bg-slate-50 p-4 rounded-xl border border-slate-100 space-y-3.5 text-xs">
-                          <h4 className="font-black text-slate-800 flex items-center gap-1.5 uppercase text-[10px] tracking-wider text-indigo-600">
+                          <h4 className="font-black text-slate-800 flex items-center gap-1.5 uppercase text-[10px] tracking-wider text-emerald-600">
                             <MapPin size={13} /> Location & Custodian Specs
                           </h4>
                           <div className="space-y-2.5 font-semibold text-slate-600">
@@ -1614,7 +1617,7 @@ export default function AssetRegister() {
                                 <td className="px-4 py-3">
                                   <span className={`px-2 py-0.5 rounded text-[9px] font-black uppercase tracking-wider ${
                                     log.event_type === 'ACQUISITION' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
-                                    log.event_type === 'DEPRECIATION' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
+                                    log.event_type === 'DEPRECIATION' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
                                     log.event_type === 'TRANSFER' ? 'bg-blue-50 text-blue-700 border border-blue-100' :
                                     log.event_type === 'MAINTENANCE' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
                                     'bg-rose-50 text-rose-700 border border-rose-100'
@@ -1651,8 +1654,8 @@ export default function AssetRegister() {
                         {inquiryDetails.transfers?.map((node, index) => (
                           <React.Fragment key={index}>
                             <ArrowRight size={16} className="text-slate-300 shrink-0" />
-                            <div className="p-3 bg-white border border-indigo-200 rounded-xl flex flex-col items-center min-w-[150px] shadow-sm">
-                              <span className="text-[10px] uppercase tracking-wider text-indigo-500 font-black mb-1">Transfer {index + 1}</span>
+                            <div className="p-3 bg-white border border-emerald-200 rounded-xl flex flex-col items-center min-w-[150px] shadow-sm">
+                              <span className="text-[10px] uppercase tracking-wider text-emerald-500 font-black mb-1">Transfer {index + 1}</span>
                               <span className="font-bold text-slate-800">{node.to_location_name || 'Warehouse'}</span>
                               <span className="text-[9px] text-slate-500 font-semibold mt-1">Owner: {node.to_custodian_name || 'Unassigned'}</span>
                               <span className="text-[8px] text-slate-400 mt-0.5">{new Date(node.transfer_date).toLocaleDateString()}</span>
@@ -1698,7 +1701,7 @@ export default function AssetRegister() {
                                 <td className="px-4 py-3 text-center font-sans">
                                   <span className={`px-2 py-0.5 rounded text-[9px] font-black ${
                                     log.status === 'CHECKED_OUT' ? 'bg-amber-50 text-amber-700 border border-amber-100' :
-                                    log.status === 'RESERVED' ? 'bg-indigo-50 text-indigo-700 border border-indigo-100' :
+                                    log.status === 'RESERVED' ? 'bg-emerald-50 text-emerald-700 border border-emerald-100' :
                                     'bg-emerald-50 text-emerald-700 border border-emerald-100'
                                   }`}>{log.status}</span>
                                 </td>
@@ -1830,6 +1833,7 @@ export default function AssetRegister() {
           </div>
         </div>
       )}
-    </div>
+      </div>
+    </WorkspaceLayout>
   );
 }

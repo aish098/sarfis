@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 
 export default function DepreciationWizard() {
   const navigate = useNavigate();
@@ -109,17 +110,22 @@ export default function DepreciationWizard() {
   ];
 
   return (
-    <div className="space-y-6 max-w-4xl mx-auto">
-      {/* Header */}
-      <div className="flex items-center gap-3 border-b border-slate-100 pb-4">
-        <Link to={fromClose ? "/dashboard/finance/close-wizard" : "/dashboard/fixed-assets"} className="p-1 hover:bg-slate-100 rounded text-slate-400 hover:text-slate-600 transition-all">
-          <ArrowLeft size={16} />
+    <WorkspaceLayout
+      title="Depreciation Wizard"
+      subtitle="Step-by-step pipeline to run and post period calculations."
+      icon={TrendingDown}
+      badgeText="Fixed Assets"
+      breadcrumbs={['SARFIS', 'Fixed Assets', 'Depreciation Wizard']}
+      primaryAction={
+        <Link 
+          to={fromClose ? "/dashboard/finance/close-wizard" : "/dashboard/fixed-assets"}
+          className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+        >
+          <ArrowLeft size={14} /> Back to Dashboard
         </Link>
-        <div>
-          <h1 className="text-2xl font-black text-slate-800 tracking-tight">Depreciation Wizard</h1>
-          <p className="text-slate-500 text-sm font-semibold">Step-by-step pipeline to run and post period calculations.</p>
-        </div>
-      </div>
+      }
+    >
+      <div className="col-span-full space-y-6">
 
       {/* Stepper Timeline Progress */}
       <div className="flex items-center justify-between bg-white p-4 rounded-xl border border-slate-100 shadow-sm text-xs font-bold text-slate-400">
@@ -127,13 +133,13 @@ export default function DepreciationWizard() {
           <React.Fragment key={s.num}>
             <div className="flex items-center gap-2">
               <span className={`w-6 h-6 rounded-full flex items-center justify-center border font-mono ${
-                currentStep === s.num ? 'bg-indigo-600 border-indigo-600 text-white' :
+                currentStep === s.num ? 'bg-emerald-600 border-emerald-600 text-white' :
                 currentStep > s.num ? 'bg-emerald-50 border-emerald-200 text-emerald-600' :
                 'bg-slate-50 border-slate-200'
               }`}>
                 {s.num}
               </span>
-              <span className={currentStep === s.num ? 'text-indigo-600 font-extrabold' : ''}>{s.label}</span>
+              <span className={currentStep === s.num ? 'text-emerald-600 font-extrabold' : ''}>{s.label}</span>
             </div>
             {idx !== steps.length - 1 && <ChevronRight size={14} className="text-slate-200" />}
           </React.Fragment>
@@ -159,7 +165,7 @@ export default function DepreciationWizard() {
                   type="month"
                   value={period}
                   onChange={(e) => setPeriod(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-indigo-500 focus:bg-white font-mono font-bold text-xs"
+                  className="w-full px-3 py-2 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white font-mono font-bold text-xs"
                 />
               </div>
             </div>
@@ -176,7 +182,7 @@ export default function DepreciationWizard() {
                     key={book}
                     onClick={() => setSelectedBook(book)}
                     className={`p-4 rounded-xl border text-left transition-all ${
-                      selectedBook === book ? 'border-indigo-600 bg-indigo-50/20 text-indigo-700 font-bold' : 'border-slate-200 hover:bg-slate-50'
+                      selectedBook === book ? 'border-emerald-600 bg-emerald-50/20 text-emerald-700 font-bold' : 'border-slate-200 hover:bg-slate-50'
                     }`}
                   >
                     <p className="text-xs font-black">{book} Book</p>
@@ -198,7 +204,7 @@ export default function DepreciationWizard() {
               <p className="text-xs text-slate-400 font-semibold">Filter or exclude specific active asset cards from this calculation run.</p>
               
               {loadingAssets ? (
-                <div className="py-8 text-center"><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-indigo-600 mx-auto" /></div>
+                <div className="py-8 text-center"><div className="animate-spin rounded-full h-5 w-5 border-b-2 border-emerald-600 mx-auto" /></div>
               ) : (
                 <div className="overflow-y-auto max-h-60 border border-slate-100 rounded-xl mt-4 divide-y divide-slate-100 text-xs">
                   {availableAssets.map(a => (
@@ -208,7 +214,7 @@ export default function DepreciationWizard() {
                           type="checkbox"
                           checked={selectedAssetIds.includes(a.id)}
                           onChange={() => toggleAsset(a.id)}
-                          className="w-4 h-4 rounded text-indigo-600"
+                          className="w-4 h-4 rounded text-emerald-600"
                         />
                         <div>
                           <p className="font-bold text-slate-700">{a.asset_name}</p>
@@ -234,7 +240,7 @@ export default function DepreciationWizard() {
               
               {loadingPreview ? (
                 <div className="py-12 text-center">
-                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-indigo-600 mx-auto" />
+                  <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-emerald-600 mx-auto" />
                   <p className="text-xs text-slate-400 mt-2">Computing depreciation book balances...</p>
                 </div>
               ) : (
@@ -252,7 +258,7 @@ export default function DepreciationWizard() {
                     <tbody className="divide-y divide-slate-100 font-mono text-slate-600">
                       {previewLines.map((l, i) => (
                         <tr key={i} className="hover:bg-slate-50/20">
-                          <td className="px-4 py-2 text-indigo-600 font-bold">{l.asset_code}</td>
+                          <td className="px-4 py-2 text-emerald-600 font-bold">{l.asset_code}</td>
                           <td className="px-4 py-2 font-sans text-slate-700">{l.asset_name}</td>
                           <td className="px-4 py-2 text-right">PKR {l.opening_book_value.toLocaleString()}</td>
                           <td className="px-4 py-2 text-right text-rose-600 font-bold">PKR {l.depreciation_amount.toLocaleString()}</td>
@@ -309,16 +315,16 @@ export default function DepreciationWizard() {
           {/* STEP 6: Approval */}
           {currentStep === 6 && (
             <div className="space-y-4 max-w-lg">
-              <h3 className="text-sm font-black text-slate-800 uppercase flex items-center gap-1.5"><ShieldCheck size={14} className="text-indigo-600" /> Post Authorization Confirmation</h3>
+              <h3 className="text-sm font-black text-slate-800 uppercase flex items-center gap-1.5"><ShieldCheck size={14} className="text-emerald-600" /> Post Authorization Confirmation</h3>
               <p className="text-xs text-slate-400 font-semibold">Authorizing this step commits the calculated allocations to the ledger database permanently.</p>
               
-              <div className="mt-6 flex items-center gap-3 p-4 bg-indigo-50/30 border border-indigo-100 rounded-xl">
+              <div className="mt-6 flex items-center gap-3 p-4 bg-emerald-50/30 border border-emerald-100 rounded-xl">
                 <input
                   type="checkbox"
                   id="auth-check"
                   checked={authorized}
                   onChange={(e) => setAuthorized(e.target.checked)}
-                  className="w-5 h-5 rounded text-indigo-600 outline-none"
+                  className="w-5 h-5 rounded text-emerald-600 outline-none"
                 />
                 <label htmlFor="auth-check" className="text-xs font-bold text-slate-700 cursor-pointer select-none">
                   I confirm that all depreciation calculations and journal entries are validated and authorized for ledger posting.
@@ -340,7 +346,7 @@ export default function DepreciationWizard() {
               <div className="pt-2">
                 <button 
                   onClick={() => navigate(fromClose ? '/dashboard/finance/close-wizard' : '/dashboard/fixed-assets')}
-                  className="px-5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all shadow-md"
+                  className="px-5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black transition-all shadow-md"
                 >
                   Return to Dashboard
                 </button>
@@ -373,7 +379,7 @@ export default function DepreciationWizard() {
                     setCurrentStep(prev => prev + 1);
                   }
                 }}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all flex items-center gap-1 shadow-md disabled:opacity-50"
+                className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black transition-all flex items-center gap-1 shadow-md disabled:opacity-50"
               >
                 Next <ChevronRight size={14} />
               </button>
@@ -382,7 +388,7 @@ export default function DepreciationWizard() {
                 type="button"
                 disabled={!authorized || submitting}
                 onClick={handlePostRun}
-                className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-md disabled:opacity-50"
+                className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-md disabled:opacity-50"
               >
                 <Play size={13} /> {submitting ? 'Posting Ledger...' : 'Approve & Post'}
               </button>
@@ -390,6 +396,7 @@ export default function DepreciationWizard() {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </WorkspaceLayout>
   );
 }
