@@ -1,5 +1,6 @@
 const db = require('../config/db');
 const sseConnections = new Map();
+let isProcessingQueue = false;
 
 class NotificationService {
   static getConnections() {
@@ -238,70 +239,107 @@ class NotificationService {
    * Scans queue and runs transactional sending loop.
    */
   static async processQueue() {
+    if (isProcessingQueue) {
+      console.log('[Notification Queue] Connection guard active (processing in progress). Skipping run...');
+      return;
+    }
+    isProcessingQueue = true;
+
     try {
       const pendingItems = await db('notification_queue')
         .whereIn('status', ['PENDING', 'RETRY'])
         .andWhere('attempts', '<', db.ref('max_attempts'))
         .limit(30);
 
+      if (pendingItems.length === 0) {
+        return;
+      }
+
+      console.log(`[Notification Queue] Processing ${pendingItems.length} items...`);
+      const updates = [];
+      const MailProvider = require('./mail/mail.provider');
+
       for (const item of pendingItems) {
         const nextAttempts = item.attempts + 1;
-        await db('notification_queue')
-          .where({ id: item.id })
-          .update({
-            attempts: nextAttempts,
-            last_attempt_at: db.fn.now()
-          });
+        let success = false;
+        let errorMsg = null;
 
         try {
-          const MailProvider = require('./mail/mail.provider');
           await MailProvider.send({
             companyId: item.company_id,
             to: item.recipient_email,
             subject: item.subject,
             html: item.body
           });
-          
-          await db('notification_queue')
-            .where({ id: item.id })
-            .update({
-              status: 'SENT',
-              sent_at: db.fn.now(),
-              error_log: null
-            });
-
-          // Sync communication status
-          if (item.event_code === 'CUSTOM_COMMUNICATION') {
-            await db('communications')
-              .where({
-                company_id: item.company_id,
-                subject: item.subject,
-                status: 'QUEUED'
-              })
-              .update({ status: 'SENT' });
-          }
+          success = true;
         } catch (err) {
-          const reachedLimit = nextAttempts >= item.max_attempts;
-          await db('notification_queue')
-            .where({ id: item.id })
-            .update({
-              status: reachedLimit ? 'FAILED' : 'RETRY',
-              error_log: err.message
-            });
+          errorMsg = err.message;
+        }
 
-          if (item.event_code === 'CUSTOM_COMMUNICATION' && reachedLimit) {
-            await db('communications')
-              .where({
-                company_id: item.company_id,
-                subject: item.subject,
-                status: 'QUEUED'
-              })
-              .update({ status: 'FAILED' });
+        updates.push({
+          id: item.id,
+          companyId: item.company_id,
+          subject: item.subject,
+          eventCode: item.event_code,
+          nextAttempts,
+          maxAttempts: item.max_attempts,
+          success,
+          errorMsg
+        });
+      }
+
+      // Perform all database updates inside a single batch transaction to release connections immediately
+      await db.transaction(async (trx) => {
+        for (const update of updates) {
+          if (update.success) {
+            await trx('notification_queue')
+              .where({ id: update.id })
+              .update({
+                attempts: update.nextAttempts,
+                last_attempt_at: trx.fn.now(),
+                status: 'SENT',
+                sent_at: trx.fn.now(),
+                error_log: null
+              });
+
+            if (update.eventCode === 'CUSTOM_COMMUNICATION') {
+              await trx('communications')
+                .where({
+                  company_id: update.companyId,
+                  subject: update.subject,
+                  status: 'QUEUED'
+                })
+                .update({ status: 'SENT' });
+            }
+          } else {
+            const reachedLimit = update.nextAttempts >= update.maxAttempts;
+            await trx('notification_queue')
+              .where({ id: update.id })
+              .update({
+                attempts: update.nextAttempts,
+                last_attempt_at: trx.fn.now(),
+                status: reachedLimit ? 'FAILED' : 'RETRY',
+                error_log: update.errorMsg
+              });
+
+            if (update.eventCode === 'CUSTOM_COMMUNICATION' && reachedLimit) {
+              await trx('communications')
+                .where({
+                  company_id: update.companyId,
+                  subject: update.subject,
+                  status: 'QUEUED'
+                })
+                .update({ status: 'FAILED' });
+            }
           }
         }
-      }
+      });
+      console.log('[Notification Queue] Batch updates committed successfully.');
+
     } catch (err) {
-      console.error('Queue runner failed:', err);
+      console.error('[Notification Queue] Queue processing failed:', err);
+    } finally {
+      isProcessingQueue = false;
     }
   }
 
