@@ -75,6 +75,7 @@ exports.seedKhaanUser = async (req, res) => {
       
       if (companyId) {
         // Delete existing records linked to this company/user in correct order
+        await db('user_roles').where({ user_id: userId }).del();
         await db('company_users').where({ user_id: userId }).del();
         await db('journal_lines').whereIn('entry_id', function() {
           this.select('id').from('journal_entries').where({ company_id: companyId });
@@ -121,6 +122,13 @@ exports.seedKhaanUser = async (req, res) => {
       user_id: userId,
       company_id: companyId,
       role: 'Company Admin'
+    });
+
+    // 4b. Link User to Admin role (role_id: 1) in user_roles table
+    await db('user_roles').insert({
+      user_id: userId,
+      company_id: companyId,
+      role_id: 1 // Admin role
     });
 
     // 5. Enable all features in settings table
