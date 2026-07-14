@@ -101,9 +101,9 @@ function WhiteTooltip({ active, payload, label }) {
   return <ChartTooltip active={active} payload={payload} label={label} formatter={(v) => `PKR ${fmt(v)}`} />;
 }
 
-function PBIChartCard({ title, subtitle, children, height, style = {} }) {
+function PBIChartCard({ title, subtitle, children, height, style = {}, className }) {
   return (
-    <div className="pbi-card" style={{ padding: "18px 20px", ...style }}>
+    <div className={`pbi-card ${className || ""}`} style={{ padding: "18px 20px", ...style }}>
       {title && <p className="pbi-chart-title">{title}</p>}
       {subtitle && <p className="pbi-chart-sub">{subtitle}</p>}
       <div style={{ width: "100%", height: height || "auto" }}>{children}</div>
@@ -316,7 +316,7 @@ function TrendTab({ companyId }) {
       {/* Main area chart — like reference image */}
       <Card title="Revenue & Profit Trend"
         actions={<span style={{ fontSize: 11, color: W.textDim }}>Last {months} months · {trendLayout.orientation} layout</span>}>
-        <AdaptiveChartFrame layout={trendLayout}>
+        <AdaptiveChartFrame layout={trendLayout} variant="landscape">
           <AreaChart data={data} margin={buildChartMargins(trendLayout)}>
             <defs>
               <linearGradient id="wgRev" x1="0" y1="0" x2="0" y2="1">
@@ -342,7 +342,7 @@ function TrendTab({ companyId }) {
       </Card>
 
       <Card title="Monthly Profit">
-        <AdaptiveChartFrame layout={profitLayout}>
+        <AdaptiveChartFrame layout={profitLayout} variant="landscape">
           <BarChart data={data} margin={buildChartMargins(profitLayout)}>
             <CartesianGrid stroke={W.gridLine} vertical={false} strokeDasharray="3 3" />
             <XAxis dataKey="label" interval={profitLayout.tickInterval} height={profitLayout.bottomMargin}
@@ -468,15 +468,25 @@ function ComparativeTab({ companyId }) {
           </span>
         </div>
 
-        <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-          <PBIChartCard title="Clustered Column Chart" subtitle={`${p1Label} vs ${p2Label}`} height={layout.chartHeight + 20}>
-            <AdaptiveChartFrame layout={layout}>
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+          <PBIChartCard
+            title="Clustered Column Chart"
+            subtitle={`${p1Label} vs ${p2Label}`}
+            height={layout.chartHeight + 20}
+            className={layout.orientation === "horizontal" ? "col-span-full" : "lg:col-span-1"}
+          >
+            <AdaptiveChartFrame layout={layout} variant={layout.orientation === "horizontal" ? "landscape" : "standard"}>
               <DynamicClusteredBarChart chartRows={chartRows} layout={layout} lookup={chartRows} series={series} />
             </AdaptiveChartFrame>
           </PBIChartCard>
 
-          <PBIChartCard title="Period Combo Analysis" subtitle="Bars + variance % trend" height={layout.chartHeight + 20}>
-            <AdaptiveChartFrame layout={layout}>
+          <PBIChartCard
+            title="Period Combo Analysis"
+            subtitle="Bars + variance % trend"
+            height={layout.chartHeight + 20}
+            className={layout.orientation === "horizontal" ? "col-span-full" : "lg:col-span-1"}
+          >
+            <AdaptiveChartFrame layout={layout} variant={layout.orientation === "horizontal" ? "landscape" : "standard"}>
               <DynamicComboChart
                 chartRows={chartRows}
                 layout={layout}
@@ -492,7 +502,7 @@ function ComparativeTab({ companyId }) {
 
         {waterfall.length > 0 && (
           <PBIChartCard title="Variance Waterfall" subtitle="Period-over-period change bridge" height={wfLayout.chartHeight + 20}>
-            <AdaptiveChartFrame layout={wfLayout}>
+            <AdaptiveChartFrame layout={wfLayout} variant="landscape">
               <DynamicWaterfallChart waterfall={waterfall} layout={wfLayout} lookup={waterfall} />
             </AdaptiveChartFrame>
           </PBIChartCard>
@@ -1387,31 +1397,46 @@ function VarianceTab({ companyId }) {
           {/* Render Single Month detailed view */}
           {mode === "month" && items.length > 0 && (
             <>
-              <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: 16 }}>
-                <PBIChartCard title="Budget vs Actual" subtitle={`Clustered · ${varianceLayout.orientation} · ${chartItems.length} accounts`} height={varianceLayout.chartHeight + 20} style={{ gridColumn: chartItems.length > 6 ? "1 / -1" : undefined }}>
-                  <AdaptiveChartFrame layout={varianceLayout}>
-                    <DynamicClusteredBarChart
-                      chartRows={chartItems}
-                      layout={varianceLayout}
-                      lookup={chartItems}
-                      series={[
-                        { dataKey: "budget", name: "Budget", fill: PBI.budget },
-                        { dataKey: "actual", name: "Actual", fill: PBI.actual },
-                      ]}
-                    />
-                  </AdaptiveChartFrame>
-                </PBIChartCard>
+              {(() => {
+                const isFullWidth = varianceLayout.orientation === "horizontal";
+                return (
+                  <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
+                    <PBIChartCard
+                      title="Budget vs Actual"
+                      subtitle={`Clustered · ${varianceLayout.orientation} · ${chartItems.length} accounts`}
+                      height={varianceLayout.chartHeight + 20}
+                      className={isFullWidth ? "col-span-full" : "lg:col-span-1"}
+                    >
+                      <AdaptiveChartFrame layout={varianceLayout} variant={isFullWidth ? "landscape" : "standard"}>
+                        <DynamicClusteredBarChart
+                          chartRows={chartItems}
+                          layout={varianceLayout}
+                          lookup={chartItems}
+                          series={[
+                            { dataKey: "budget", name: "Budget", fill: PBI.budget },
+                            { dataKey: "actual", name: "Actual", fill: PBI.actual },
+                          ]}
+                        />
+                      </AdaptiveChartFrame>
+                    </PBIChartCard>
 
-                <PBIChartCard title="Variance by Account" subtitle="Favorable vs unfavorable" height={varianceLayout.chartHeight + 20}>
-                  <AdaptiveChartFrame layout={varianceLayout}>
-                    <DynamicVarianceBarChart chartRows={chartItems} layout={varianceLayout} lookup={chartItems} />
-                  </AdaptiveChartFrame>
-                </PBIChartCard>
-              </div>
+                    <PBIChartCard
+                      title="Variance by Account"
+                      subtitle="Favorable vs unfavorable"
+                      height={varianceLayout.chartHeight + 20}
+                      className={isFullWidth ? "col-span-full" : "lg:col-span-1"}
+                    >
+                      <AdaptiveChartFrame layout={varianceLayout} variant={isFullWidth ? "landscape" : "standard"}>
+                        <DynamicVarianceBarChart chartRows={chartItems} layout={varianceLayout} lookup={chartItems} />
+                      </AdaptiveChartFrame>
+                    </PBIChartCard>
+                  </div>
+                );
+              })()}
 
               {waterfall.length > 0 && (
                 <PBIChartCard title="Variance Waterfall Bridge" subtitle="Cumulative budget variance decomposition" height={wfLayout.chartHeight + 20}>
-                  <AdaptiveChartFrame layout={wfLayout}>
+                  <AdaptiveChartFrame layout={wfLayout} variant="landscape">
                     <DynamicWaterfallChart waterfall={waterfall} layout={wfLayout} lookup={waterfall} />
                   </AdaptiveChartFrame>
                 </PBIChartCard>

@@ -252,7 +252,13 @@ export function ChartTooltip({ active, payload, label, formatter, fullLabel }) {
   );
 }
 
-export function AdaptiveChartFrame({ layout, children, fallbackHeight = 280, className }) {
+const HEIGHT_VARIANTS = {
+  landscape: "h-[220px] sm:h-[260px] md:h-[280px] lg:h-[320px] w-full",
+  standard: "h-[260px] sm:h-[320px] md:h-[360px] lg:h-[420px] w-full",
+  tall: "h-[280px] sm:h-[340px] md:h-[380px] lg:h-[460px] w-full",
+};
+
+export function AdaptiveChartFrame({ layout, children, fallbackHeight = 280, className, variant = "standard" }) {
   const isHorizontal = layout?.orientation === "horizontal";
 
   if (isHorizontal) {
@@ -263,8 +269,10 @@ export function AdaptiveChartFrame({ layout, children, fallbackHeight = 280, cla
     );
   }
 
+  const heightClass = HEIGHT_VARIANTS[variant] || HEIGHT_VARIANTS.standard;
+
   return (
-    <div className={className || "h-[260px] sm:h-[320px] md:h-[360px] lg:h-[420px] w-full"}>
+    <div className={className || heightClass}>
       <ResponsiveContainer width="100%" height="100%" minWidth={0}>
         {children}
       </ResponsiveContainer>
