@@ -84,7 +84,16 @@ export function DynamicWaterfallChart({ waterfall, layout, lookup }) {
 }
 
 /** Combo bars + line — horizontal when layout says so (fixes label overlap) */
-export function DynamicComboChart({ chartRows, layout, lookup, barSeries, lineKey, lineName, lineFormatter }) {
+export function DynamicComboChart({
+  chartRows,
+  layout,
+  lookup,
+  barSeries,
+  lineKey,
+  lineName,
+  lineFormatter,
+  lineColor = "#e66c37",
+}) {
   const margins = buildChartMargins(layout);
   const tip = (p) => <ChartTooltip {...p} fullLabel={resolveFullName(p.label, lookup)} formatter={lineFormatter} />;
 
@@ -100,7 +109,7 @@ export function DynamicComboChart({ chartRows, layout, lookup, barSeries, lineKe
         {barSeries.map((s) => (
           <Bar key={s.dataKey} xAxisId="amount" dataKey={s.dataKey} name={s.name} fill={s.fill} barSize={Math.min(12, layout.maxBarSize)} radius={[0, 3, 3, 0]} />
         ))}
-        <Line xAxisId="pct" type="monotone" dataKey={lineKey} name={lineName} stroke={PBI.accent} strokeWidth={2.5} dot={{ r: 3, fill: PBI.accent, strokeWidth: 0 }} />
+        <Line xAxisId="pct" type="monotone" dataKey={lineKey} name={lineName} stroke={lineColor} strokeWidth={2.5} dot={{ r: 3, fill: lineColor, strokeWidth: 0 }} />
       </ComposedChart>
     );
   }
@@ -116,7 +125,7 @@ export function DynamicComboChart({ chartRows, layout, lookup, barSeries, lineKe
       {barSeries.map((s) => (
         <Bar key={s.dataKey} yAxisId="left" dataKey={s.dataKey} name={s.name} fill={s.fill} barSize={Math.min(12, layout.maxBarSize)} radius={[2, 2, 0, 0]} />
       ))}
-      <Line yAxisId="right" type="monotone" dataKey={lineKey} name={lineName} stroke={PBI.accent} strokeWidth={2.5} dot={{ r: 3, fill: PBI.accent, strokeWidth: 0 }} activeDot={{ r: 5 }} />
+      <Line yAxisId="right" type="monotone" dataKey={lineKey} name={lineName} stroke={lineColor} strokeWidth={2.5} dot={{ r: 3, fill: lineColor, strokeWidth: 0 }} activeDot={{ r: 5 }} />
     </ComposedChart>
   );
 }

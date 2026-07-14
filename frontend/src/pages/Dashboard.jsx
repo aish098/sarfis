@@ -340,7 +340,7 @@ function DashboardOverview() {
 
       {/* Cash flow — full width */}
       <PowerBICard title="Operating Cash Flow" subtitle={`Monthly contribution through ${periodLabel}`}>
-        <AdaptiveChartFrame layout={cashLayout} fallbackHeight={220} variant="landscape">
+        <AdaptiveChartFrame layout={cashLayout} fallbackHeight={220} variant={cashLayout.recommendedHeight}>
           <BarChart data={chartData} margin={buildChartMargins(cashLayout)}>
             <defs>
               <linearGradient id="barFlow" x1="0" y1="0" x2="0" y2="1">

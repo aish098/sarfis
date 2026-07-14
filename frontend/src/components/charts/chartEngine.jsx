@@ -85,6 +85,8 @@ export function computeChartLayout(categories = [], options = {}) {
     const chartHeight = Math.min(dynamicMaxHeight, Math.max(minHeight, minRequiredHeight));
     return {
       orientation: "horizontal",
+      recommendedSpan: "full",
+      recommendedHeight: "landscape",
       count,
       chartHeight,
       yAxisWidth: labelWidth,
@@ -139,6 +141,8 @@ export function computeChartLayout(categories = [], options = {}) {
 
   return {
     orientation: "vertical",
+    recommendedSpan: count > 6 ? "full" : "half",
+    recommendedHeight: count > 6 ? "standard" : "landscape",
     count,
     chartHeight,
     yAxisWidth,
