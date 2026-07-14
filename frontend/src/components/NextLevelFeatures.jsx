@@ -1,221 +1,140 @@
-import { useState, useEffect } from 'react';
+import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { Sparkles, Send, Hourglass, DollarSign, Calculator, RefreshCw, BarChart2 } from 'lucide-react';
+import { Building2, Calculator, Hourglass, DollarSign, CheckCircle2, ChevronRight, BarChart2 } from 'lucide-react';
 
-const AI_PROMPTS = [
-  { 
-    q: "Analyze salaries expense variance for Q2", 
-    a: "Here is the salaries expense breakdown for Q2 2026. Salaries increased by 12% in June due to seasonal payroll additions. Total variance is within the 95% warning threshold.",
-    type: 'chart',
-    data: [
-      { label: 'Apr 2026', value: 'PKR 180K' },
-      { label: 'May 2026', value: 'PKR 180K' },
-      { label: 'Jun 2026', value: 'PKR 202K' }
-    ]
-  },
-  { 
-    q: "List all blacklisted vendors under Watchlist", 
-    a: "Found 1 vendor matching 'Watchlist' status with high credit risk parameters:",
-    type: 'table',
-    data: [
-      { code: 'VND-209', name: 'Apex Wholesale Corp', score: '75/100', status: 'Watchlist', limit: 'Cash Only' }
-    ]
-  },
-  { 
-    q: "What is our current cash-to-liability ratio?", 
-    a: "Your current liquidity ratio is 1.84. This indicates a healthy short-term solvency position. Cash reserves (PKR 7.5M) cover immediate current liabilities (PKR 4.05M).",
-    type: 'text',
-    data: null
-  }
-];
+const COMPANIES_DATA = {
+  khaan: { name: "Khaan Tech Solutions", cash: 2500000, ar: 1200000, assets: 1500000, eliminations: 0 },
+  sarfis: { name: "Sarfis Global Ltd", cash: 5000000, ar: 2400000, assets: 3200000, eliminations: -500000 }, // Intercompany AR
+  ayesha: { name: "Ayesha Labs (Subsidiary)", cash: 1800000, ar: 800000, assets: 1200050, eliminations: -300000 }  // Intercompany AR
+};
 
 export default function NextLevelFeatures() {
-  const [selectedPrompt, setSelectedPrompt] = useState(null);
-  const [isTyping, setIsTyping] = useState(false);
-  const [chatHistory, setChatHistory] = useState([
-    { role: 'assistant', text: "Hello! I am your SARFIS AI assistant. Click one of the quick queries below to see how I can analyze your ledger, payroll, and compliance status in real-time." }
-  ]);
+  // Consolidation States
+  const [selectedCompanies, setSelectedCompanies] = useState({
+    khaan: true,
+    sarfis: true,
+    ayesha: false
+  });
 
   // Savings Calculator States
-  const [employees, setEmployees] = useState(25);
   const [hoursSpent, setHoursSpent] = useState(15);
   const [hourlyRate, setHourlyRate] = useState(1500); // PKR per hour
 
-  // Calculator computations
+  // Toggle company consolidation check
+  const toggleCompany = (key) => {
+    setSelectedCompanies(prev => ({
+      ...prev,
+      [key]: !prev[key]
+    }));
+  };
+
+  // Consolidation computations
+  const consolidatedMetrics = Object.keys(selectedCompanies).reduce((totals, key) => {
+    if (selectedCompanies[key]) {
+      const data = COMPANIES_DATA[key];
+      totals.cash += data.cash;
+      totals.ar += data.ar;
+      totals.assets += data.assets;
+      totals.eliminations += data.eliminations;
+    }
+    return totals;
+  }, { cash: 0, ar: 0, assets: 0, eliminations: 0 });
+
+  const totalConsolidatedAssets = consolidatedMetrics.cash + consolidatedMetrics.ar + consolidatedMetrics.assets + consolidatedMetrics.eliminations;
+
+  // ROI Calculator computations
   const weeklySavings = hoursSpent * 0.8 * hourlyRate; // 80% automation gain
   const annualSavings = weeklySavings * 52;
   const hoursGained = Math.round(hoursSpent * 0.8 * 52);
-
-  const handlePromptClick = (prompt) => {
-    if (isTyping) return;
-    
-    // Add user query to chat
-    setChatHistory(prev => [...prev, { role: 'user', text: prompt.q }]);
-    setIsTyping(true);
-
-    setTimeout(() => {
-      setIsTyping(false);
-      setChatHistory(prev => [...prev, { 
-        role: 'assistant', 
-        text: prompt.a,
-        type: prompt.type,
-        data: prompt.data
-      }]);
-    }, 1200);
-  };
-
-  const clearChat = () => {
-    setChatHistory([
-      { role: 'assistant', text: "Hello! I am your SARFIS AI assistant. Click one of the quick queries below to see how I can analyze your ledger, payroll, and compliance status in real-time." }
-    ]);
-  };
 
   return (
     <section className="py-28 px-5 sm:px-8 relative overflow-hidden bg-[#030b1a] border-y border-slate-900">
       
       {/* Background spotlights */}
-      <div className="absolute inset-0 pointer-events-none">
+      <div className="absolute inset-0 pointer-events-none opacity-20">
         <div className="absolute top-1/2 right-1/4 w-[600px] h-[300px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(16,185,129,0.04) 0%, transparent 70%)', filter: 'blur(80px)' }} />
-        <div className="absolute top-1/3 left-1/4 w-[500px] h-[300px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(236,72,153,0.03) 0%, transparent 70%)', filter: 'blur(90px)' }} />
+        <div className="absolute top-1/3 left-1/4 w-[500px] h-[300px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.03) 0%, transparent 70%)', filter: 'blur(90px)' }} />
       </div>
 
       <div className="max-w-7xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
         
-        {/* Left Side: Interactive AI Assistant Simulator */}
+        {/* Left Side: Multi-Company Consolidation Dashboard Simulator */}
         <div className="space-y-6">
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-semibold mb-5 uppercase tracking-wider"
-              style={{ background: 'rgba(236,72,153,0.07)', borderColor: 'rgba(236,72,153,0.22)', color: '#f472b6' }}>
-              <Sparkles size={13} className="text-pink-400 fill-pink-400 animate-pulse" /> AI-Ready ERP
+              style={{ background: 'rgba(6,182,212,0.07)', borderColor: 'rgba(6,182,212,0.22)', color: '#67e8f9' }}>
+              <Building2 size={13} className="text-cyan-400" /> Multi-Company Architecture
             </div>
             <h2 className="text-4xl font-black text-white tracking-tight leading-tight mb-4"
               style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
-              Conversational AI Ledger Assistant
+              Consolidated Balance Sheet Engine
             </h2>
             <p className="text-slate-400 text-sm leading-relaxed max-w-lg">
-              SARFIS features structured API endpoints that enable semantic AI queries. Finance managers can audit ledgers, verify payroll variances, and check vendor risks using plain language.
+              SARFIS supports multi-tenant, multi-branch, and multi-company consolidation. Toggle which subsidiaries to combine below and watch intercompany balances reconcile automatically.
             </p>
           </div>
 
-          {/* Interactive Chat Mockup */}
-          <div className="bg-[#050f21] border border-slate-800 rounded-3xl overflow-hidden shadow-2xl flex flex-col h-[420px]">
-            {/* Header bar */}
-            <div className="px-5 py-4 border-b border-slate-800 bg-slate-950/60 flex items-center justify-between">
-              <div className="flex items-center gap-2.5">
-                <div className="w-8 h-8 rounded-xl bg-pink-500/10 flex items-center justify-center text-pink-400">
-                  <Sparkles size={15} />
-                </div>
-                <div>
-                  <h4 className="text-xs font-bold text-white leading-none">SARFIS AI Assistant</h4>
-                  <span className="text-[9px] text-emerald-400 font-bold uppercase tracking-wider block mt-1">Ready</span>
-                </div>
+          {/* Interactive Consolidation Simulator Panel */}
+          <div className="bg-[#050f21] border border-slate-800 rounded-3xl overflow-hidden shadow-2xl p-5 sm:p-6 space-y-5">
+            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
+              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Subsidiaries</span>
+              <span className="text-[10px] text-cyan-400 bg-cyan-950/40 border border-cyan-800/30 px-2 py-0.5 rounded font-bold uppercase">Consolidation Mode</span>
+            </div>
+
+            {/* Checkboxes */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+              {Object.keys(COMPANIES_DATA).map(key => (
+                <button
+                  key={key}
+                  onClick={() => toggleCompany(key)}
+                  className={`p-3 rounded-xl border text-left transition active:scale-95 cursor-pointer ${
+                    selectedCompanies[key]
+                      ? 'bg-cyan-950/20 border-cyan-500/30 text-white'
+                      : 'bg-slate-950/40 border-slate-850 text-slate-500'
+                  }`}
+                >
+                  <div className="text-[10px] font-bold uppercase tracking-wider mb-1">Company Entity</div>
+                  <div className="text-xs font-extrabold truncate">{COMPANIES_DATA[key].name}</div>
+                  <div className="mt-2 text-[10px] font-semibold text-slate-400">
+                    {selectedCompanies[key] ? '🟢 Combined' : '⚪ Excluded'}
+                  </div>
+                </button>
+              ))}
+            </div>
+
+            {/* Live Consolidated Ledger */}
+            <div className="border border-slate-850 rounded-2xl bg-black/40 overflow-hidden text-xs">
+              <div className="grid grid-cols-2 bg-slate-900/60 p-3 font-bold border-b border-slate-800 text-slate-400 text-[10.5px] uppercase tracking-wider">
+                <span>Account Segment</span>
+                <span className="text-right">Consolidated Balance</span>
               </div>
-              <button 
-                onClick={clearChat}
-                className="text-slate-500 hover:text-slate-300 text-[10px] font-bold bg-transparent border-none cursor-pointer flex items-center gap-1"
-              >
-                <RefreshCw size={10} /> Clear
-              </button>
-            </div>
-
-            {/* Chat Body */}
-            <div className="flex-1 overflow-y-auto p-5 space-y-4 font-sans text-xs scrollbar-thin scrollbar-thumb-slate-800">
-              <AnimatePresence>
-                {chatHistory.map((chat, idx) => (
-                  <motion.div 
-                    key={idx}
-                    initial={{ opacity: 0, y: 10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className={`flex ${chat.role === 'user' ? 'justify-end' : 'justify-start'}`}
-                  >
-                    <div 
-                      className={`max-w-[85%] p-3.5 rounded-2xl leading-relaxed text-left ${
-                        chat.role === 'user' 
-                          ? 'bg-pink-600 text-white font-semibold' 
-                          : 'bg-slate-900 border border-slate-800 text-slate-300'
-                      }`}
-                    >
-                      <p>{chat.text}</p>
-                      
-                      {/* Dynamic Chart response */}
-                      {chat.type === 'chart' && chat.data && (
-                        <div className="mt-4 pt-3 border-t border-slate-800 space-y-2">
-                          {chat.data.map((bar, i) => (
-                            <div key={i} className="space-y-1">
-                              <div className="flex justify-between text-[10px] text-slate-400">
-                                <span>{bar.label}</span>
-                                <span className="font-bold text-white">{bar.value}</span>
-                              </div>
-                              <div className="h-2 bg-slate-950 rounded-full overflow-hidden">
-                                <motion.div 
-                                  initial={{ width: 0 }}
-                                  animate={{ width: i === 2 ? '100%' : '88%' }}
-                                  transition={{ duration: 0.6 }}
-                                  className="h-full bg-pink-500" 
-                                />
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Dynamic Table response */}
-                      {chat.type === 'table' && chat.data && (
-                        <div className="mt-4 border border-slate-800 rounded-xl overflow-hidden bg-slate-950 text-[10.5px]">
-                          {chat.data.map((row, i) => (
-                            <div key={i} className="p-3 space-y-1 text-slate-300">
-                              <div className="flex justify-between border-b border-slate-900 pb-1">
-                                <span className="text-slate-500">Name</span>
-                                <span className="font-bold text-white">{row.name}</span>
-                              </div>
-                              <div className="flex justify-between border-b border-slate-900 pb-1">
-                                <span className="text-slate-500">Score</span>
-                                <span className="text-amber-400 font-bold">{row.score}</span>
-                              </div>
-                              <div className="flex justify-between">
-                                <span className="text-slate-500">Restriction</span>
-                                <span className="bg-rose-950 text-rose-400 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider">{row.limit}</span>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-                  </motion.div>
-                ))}
-
-                {isTyping && (
-                  <motion.div 
-                    initial={{ opacity: 0 }} 
-                    animate={{ opacity: 1 }} 
-                    className="flex justify-start"
-                  >
-                    <div className="bg-slate-900 border border-slate-800 p-3 rounded-2xl flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-bounce" />
-                      <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '0.15s' }} />
-                      <span className="w-1.5 h-1.5 rounded-full bg-pink-400 animate-bounce" style={{ animationDelay: '0.3s' }} />
-                    </div>
-                  </motion.div>
-                )}
-              </AnimatePresence>
-            </div>
-
-            {/* Prompt Selector footer */}
-            <div className="p-4 bg-slate-950/80 border-t border-slate-850 space-y-2">
-              <span className="text-[10px] text-slate-500 font-bold uppercase tracking-wider block">Suggested Queries:</span>
-              <div className="flex flex-wrap gap-2">
-                {AI_PROMPTS.map((p, i) => (
-                  <button
-                    key={i}
-                    onClick={() => handlePromptClick(p)}
-                    className="bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white px-3 py-2 rounded-xl text-[10.5px] font-medium border border-slate-800 transition active:scale-95 cursor-pointer"
-                  >
-                    "{p.q}"
-                  </button>
-                ))}
+              <div className="p-3 space-y-2.5">
+                <div className="flex justify-between border-b border-slate-900 pb-1.5">
+                  <span className="text-slate-400">1000 - Cash & Bank Balance</span>
+                  <span className="font-mono text-white font-semibold">PKR {consolidatedMetrics.cash.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-900 pb-1.5">
+                  <span className="text-slate-400">1100 - Accounts Receivable</span>
+                  <span className="font-mono text-white font-semibold">PKR {consolidatedMetrics.ar.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-900 pb-1.5">
+                  <span className="text-slate-400">1500 - Plant & Equipment Assets</span>
+                  <span className="font-mono text-white font-semibold">PKR {consolidatedMetrics.assets.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between border-b border-slate-900 pb-1.5">
+                  <span className="text-slate-500 italic">Intercompany Elimination Adjustments</span>
+                  <span className="font-mono text-rose-400 font-bold">PKR {consolidatedMetrics.eliminations.toLocaleString()}</span>
+                </div>
+                <div className="flex justify-between pt-1.5 font-bold text-white text-[13px]">
+                  <span>Total Consolidated Capital Assets</span>
+                  <span className="font-mono text-cyan-400 font-black">PKR {totalConsolidatedAssets.toLocaleString()}</span>
+                </div>
               </div>
             </div>
 
+            <div className="p-3.5 bg-cyan-950/20 border border-cyan-500/20 rounded-2xl text-[11px] text-cyan-300 leading-relaxed font-semibold">
+              ℹ️ Intercompany balances are eliminated automatically on consolidation (IFRS 10 guidelines) to prevent double counting of asset valuation.
+            </div>
           </div>
         </div>
 
