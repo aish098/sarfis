@@ -260,8 +260,8 @@ function TrendTab({ companyId }) {
 
   const labels = useMemo(() => data.map((d) => d.label), [data]);
   const magnitudes = useMemo(() => data.flatMap((d) => [d.revenue, d.expenses, d.profit]), [data]);
-  const trendLayout = useMemo(() => computeChartLayout(labels, { seriesCount: 3, valueMagnitudes: magnitudes, minHeight: 280 }), [labels, magnitudes]);
-  const profitLayout = useMemo(() => computeChartLayout(labels, { valueMagnitudes: data.map((d) => d.profit), minHeight: 200 }), [labels, data]);
+  const trendLayout = useMemo(() => computeChartLayout(labels, { seriesCount: 3, valueMagnitudes: magnitudes, minHeight: 280, forceVertical: true }), [labels, magnitudes]);
+  const profitLayout = useMemo(() => computeChartLayout(labels, { valueMagnitudes: data.map((d) => d.profit), minHeight: 200, forceVertical: true }), [labels, data]);
 
   if (loading && !data.length) return <Spinner />;
   const latest = data[data.length - 1] || {};
@@ -1103,7 +1103,7 @@ function VarianceTab({ companyId }) {
 
   const wfLayout = useMemo(() => computeChartLayout(
     waterfall.map((w) => w.fullName),
-    { valueMagnitudes: waterfall.map((w) => w.variance), minHeight: 260 }
+    { valueMagnitudes: waterfall.map((w) => w.variance), minHeight: 260, forceVertical: true }
   ), [waterfall]);
 
   const radarItems = useMemo(() => rawVarianceRows.slice(0, Math.min(12, rawVarianceRows.length)), [rawVarianceRows]);

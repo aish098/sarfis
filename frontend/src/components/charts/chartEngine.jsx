@@ -55,6 +55,8 @@ export function computeChartLayout(categories = [], options = {}) {
     forceHorizontal = false,
     forceVertical = false,
     valueMagnitudes = [],
+    bottomMargin: customBottomMargin,
+    rotation: customRotation,
   } = options;
 
   const count = Math.max(categories.length, 1);
@@ -89,14 +91,14 @@ export function computeChartLayout(categories = [], options = {}) {
       leftMargin: 8,
       rightMargin: seriesCount >= 2 ? 48 : 24,
       topMargin: seriesCount >= 2 ? 52 : 16,
-      bottomMargin: 12,
+      bottomMargin: customBottomMargin !== undefined ? customBottomMargin : 12,
       maxBarSize: count > 20 ? 12 : count > 12 ? 16 : 22,
       tickFontSize: count > 20 ? 9 : 10,
       labelMaxChars: Math.floor(labelWidth / 6.2),
       tickInterval: 0,
       categoryGap: "18%",
       barGap: 2,
-      rotation: 0,
+      rotation: customRotation !== undefined ? customRotation : 0,
     };
   }
 
@@ -143,14 +145,14 @@ export function computeChartLayout(categories = [], options = {}) {
     leftMargin: 0,
     rightMargin: seriesCount >= 2 ? 44 : 16,
     topMargin,
-    bottomMargin,
+    bottomMargin: customBottomMargin !== undefined ? customBottomMargin : bottomMargin,
     maxBarSize,
     tickFontSize,
     labelMaxChars,
     tickInterval,
     categoryGap,
     barGap: seriesCount > 1 ? 2 : 4,
-    rotation,
+    rotation: customRotation !== undefined ? customRotation : rotation,
   };
 }
 
@@ -172,9 +174,23 @@ export function resolveFullName(payloadValue, lookup = []) {
   return row?.fullName || row?.name || row?.label || payloadValue;
 }
 
+export function formatShortMonth(str) {
+  if (!str) return "";
+  const s = String(str).trim();
+  // Match full month or short month + 4 digit year, e.g. "August 2025" or "Aug 2025"
+  const match = s.match(/^([A-Za-z]+)\s+(\d{4})$/);
+  if (match) {
+    const m = match[1].slice(0, 3); // "Jan", "Feb", etc.
+    const y = match[2].slice(2);    // "25", "26", etc.
+    return `${m} '${y}`;
+  }
+  return s;
+}
+
 export function DynamicXTick({ x, y, payload, layout, lookup = [] }) {
   const full = resolveFullName(payload?.value, lookup);
-  const display = wrapLabel(full, layout?.labelMaxChars ?? 12);
+  const displayVal = formatShortMonth(full);
+  const display = wrapLabel(displayVal, layout?.labelMaxChars ?? 12);
   const rot = layout?.rotation ?? 0;
   const fs = layout?.tickFontSize ?? 10;
 
@@ -236,11 +252,23 @@ export function ChartTooltip({ active, payload, label, formatter, fullLabel }) {
   );
 }
 
-export function AdaptiveChartFrame({ layout, children, fallbackHeight = 280 }) {
+export function AdaptiveChartFrame({ layout, children, fallbackHeight = 280, className }) {
+  const isHorizontal = layout?.orientation === "horizontal";
+
+  if (isHorizontal) {
+    return (
+      <ResponsiveContainer width="100%" height={layout?.chartHeight ?? fallbackHeight} minWidth={0}>
+        {children}
+      </ResponsiveContainer>
+    );
+  }
+
   return (
-    <ResponsiveContainer width="100%" height={layout?.chartHeight ?? fallbackHeight} minWidth={0}>
-      {children}
-    </ResponsiveContainer>
+    <div className={className || "h-[260px] sm:h-[320px] md:h-[360px] lg:h-[420px] w-full"}>
+      <ResponsiveContainer width="100%" height="100%" minWidth={0}>
+        {children}
+      </ResponsiveContainer>
+    </div>
   );
 }
 

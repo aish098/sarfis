@@ -265,8 +265,8 @@ function DashboardOverview() {
   }
 
   const cashLabels = chartData.map(d => d.month);
-  const cashLayout = computeChartLayout(cashLabels, { valueMagnitudes: chartData.map(d => d.cashFlow), minHeight: 220 });
-  const trendLayout = computeChartLayout(cashLabels, { valueMagnitudes: chartData.flatMap(d => [d.revenue, d.expenses]), minHeight: 220 });
+  const cashLayout = computeChartLayout(cashLabels, { valueMagnitudes: chartData.map(d => d.cashFlow), minHeight: 220, forceVertical: true });
+  const trendLayout = computeChartLayout(cashLabels, { valueMagnitudes: chartData.flatMap(d => [d.revenue, d.expenses]), minHeight: 220, forceVertical: true });
 
   const totalRev = parseFloat(metrics?.revenue || 0);
   const netProfit = parseFloat(metrics?.netIncome || 0);
@@ -292,45 +292,50 @@ function DashboardOverview() {
         <PowerBIKpi label="Cash Balance" value={fmt(cashBal)} sub={`As of ${periodLabel}`} icon={Wallet} accent="#E66C37" loading={isLoading} />
       </Motion.div>
 
-      {/* Primary visuals — 2-column Power BI grid */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-4">
-        <PowerBICard title="Financial Breakdown" subtitle="Profit vs expense share">
-          <PowerBIDonut
-            data={[
-              { name: 'Net Profit', value: pieProfit },
-              { name: 'Expenses', value: chartData.reduce((a, c) => a + (c.expenses || 0), 0) },
-            ]}
-            colors={[PBI.positive, PBI.negative]}
-            centerLabel="Net Profit"
-            centerValue={fmt(pieProfit).replace('PKR ', '')}
-            height={240}
-            currency="PKR"
-          />
-        </PowerBICard>
+      {/* Primary visuals — Adaptive grid */}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
+        <div className="lg:col-span-1">
+          <PowerBICard title="Financial Breakdown" subtitle="Profit vs expense share">
+            <PowerBIDonut
+              data={[
+                { name: 'Net Profit', value: pieProfit },
+                { name: 'Expenses', value: chartData.reduce((a, c) => a + (c.expenses || 0), 0) },
+              ]}
+              colors={[PBI.positive, PBI.negative]}
+              centerLabel="Net Profit"
+              centerValue={fmt(pieProfit).replace('PKR ', '')}
+              height={240}
+              currency="PKR"
+              hideLargestSegment={true}
+            />
+          </PowerBICard>
+        </div>
 
-        <PowerBICard title="Revenue Trend" subtitle={`12 months ending ${periodLabel}`}>
-          <AdaptiveChartFrame layout={trendLayout} fallbackHeight={220}>
-            <AreaChart data={chartData} margin={buildChartMargins(trendLayout)}>
-              <defs>
-                <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#118DFF" stopOpacity={0.35} />
-                  <stop offset="100%" stopColor="#118DFF" stopOpacity={0.02} />
-                </linearGradient>
-                <linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="0%" stopColor="#E81123" stopOpacity={0.25} />
-                  <stop offset="100%" stopColor="#E81123" stopOpacity={0.02} />
-                </linearGradient>
-              </defs>
-              <CartesianGrid {...pbiGridProps} />
-              <XAxis dataKey="month" interval={trendLayout.tickInterval} height={trendLayout.bottomMargin}
-                tick={(p) => <DynamicXTick {...p} layout={trendLayout} lookup={chartData.map(d => ({ name: d.month, fullName: d.month }))} />} axisLine={false} tickLine={false} />
-              <YAxis {...yAxisProps(trendLayout, v => `PKR ${(v / 1000).toFixed(0)}k`)} />
-              <Tooltip content={(p) => <ChartTooltip {...p} fullLabel={p.label} formatter={(v) => fmt(v)} />} />
-              <Area type="monotone" dataKey="revenue" name="Revenue" stroke={PBI.revenue} strokeWidth={2.5} fill="url(#revGrad)" dot={false} />
-              <Area type="monotone" dataKey="expenses" name="Expenses" stroke={PBI.negative} strokeWidth={2} fill="url(#expGrad)" dot={false} />
-            </AreaChart>
-          </AdaptiveChartFrame>
-        </PowerBICard>
+        <div className="lg:col-span-2">
+          <PowerBICard title="Revenue Trend" subtitle={`12 months ending ${periodLabel}`}>
+            <AdaptiveChartFrame layout={trendLayout} fallbackHeight={220}>
+              <AreaChart data={chartData} margin={buildChartMargins(trendLayout)}>
+                <defs>
+                  <linearGradient id="revGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#118DFF" stopOpacity={0.35} />
+                    <stop offset="100%" stopColor="#118DFF" stopOpacity={0.02} />
+                  </linearGradient>
+                  <linearGradient id="expGrad" x1="0" y1="0" x2="0" y2="1">
+                    <stop offset="0%" stopColor="#E81123" stopOpacity={0.25} />
+                    <stop offset="100%" stopColor="#E81123" stopOpacity={0.02} />
+                  </linearGradient>
+                </defs>
+                <CartesianGrid {...pbiGridProps} />
+                <XAxis dataKey="month" interval={trendLayout.tickInterval} height={trendLayout.bottomMargin}
+                  tick={(p) => <DynamicXTick {...p} layout={trendLayout} lookup={chartData.map(d => ({ name: d.month, fullName: d.month }))} />} axisLine={false} tickLine={false} />
+                <YAxis {...yAxisProps(trendLayout, v => `PKR ${(v / 1000).toFixed(0)}k`)} />
+                <Tooltip content={(p) => <ChartTooltip {...p} fullLabel={p.label} formatter={(v) => fmt(v)} />} />
+                <Area type="monotone" dataKey="revenue" name="Revenue" stroke={PBI.revenue} strokeWidth={2.5} fill="url(#revGrad)" dot={false} />
+                <Area type="monotone" dataKey="expenses" name="Expenses" stroke={PBI.negative} strokeWidth={2} fill="url(#expGrad)" dot={false} />
+              </AreaChart>
+            </AdaptiveChartFrame>
+          </PowerBICard>
+        </div>
       </div>
 
       {/* Cash flow — full width */}

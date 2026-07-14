@@ -27,6 +27,7 @@ export function PowerBIDonut({
   centerValue,
   height = 200,
   currency = "PKR",
+  hideLargestSegment = false,
 }) {
   const pieData = useMemo(() => normalizePieData(mergePieByName(data)), [data]);
   const total = useMemo(() => pieData.reduce((s, d) => s + (d.value || 0), 0), [pieData]);
@@ -104,7 +105,7 @@ export function PowerBIDonut({
           paddingRight: 4,
         }}
       >
-        {topSlice && (
+        {topSlice && !hideLargestSegment && (
           <div style={{ padding: "0 0 8px", borderBottom: "1px solid #edebe9", marginBottom: 3 }}>
             <span style={{ display: "block", fontSize: 10, color: "#8a8886", fontWeight: 700 }}>
               Largest segment
