@@ -1,4 +1,4 @@
-import { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
+import React, { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import {
   Activity, AlertTriangle, Building2, Calendar, Check, CheckCircle2,
@@ -8,6 +8,7 @@ import {
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import { useSearchParams } from 'react-router-dom';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 
 const ROLE_NOTES = {
   Admin: 'Full control over users, settings, roles, and company data.',
@@ -790,30 +791,23 @@ export default function AdminPage() {
   };
 
   return (
-    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6] space-y-6">
-      {/* Top Banner Toolbar */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4.5 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <ShieldCheck size={18} className="text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Administration Workspace</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Admin</span>
-            </div>
-            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5 font-sans">
-              Configure permissions, audit sessions, manage periods, and lock data for {activeCompanyName || 'active company'}. <RoleBadge role={effectiveRole} />
-            </p>
-          </div>
-        </div>
-        
-        <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap">
-          <button onClick={loadData} disabled={loading} className="flex items-center gap-2 bg-[#10b981] hover:bg-[#059669] disabled:opacity-50 text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer border-none outline-none">
-            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Force Sync
-          </button>
-        </div>
-      </div>
+    <WorkspaceLayout
+      title="Administration Workspace"
+      subtitle={`Configure permissions, audit sessions, manage periods, and lock data for ${activeCompanyName || 'active company'}`}
+      icon={ShieldCheck}
+      badgeText="Admin"
+      breadcrumbs={['SARFIS', 'Admin', 'Overview']}
+      primaryAction={
+        <button 
+          onClick={loadData} 
+          disabled={loading} 
+          className="flex items-center gap-2 bg-[#10b981] hover:bg-[#059669] disabled:opacity-50 text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer border-none outline-none"
+        >
+          <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Force Sync
+        </button>
+      }
+    >
+      <div className="col-span-full space-y-6">
 
       {/* Message Notifications */}
       {message && (
@@ -1994,6 +1988,7 @@ export default function AdminPage() {
           </div>
         )}
       </AnimatePresence>
-    </div>
+      </div>
+    </WorkspaceLayout>
   );
 }

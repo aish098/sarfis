@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
-
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 export default function WorkflowConfigPage() {
   const { activeCompany } = useAuthStore();
 
@@ -213,36 +213,14 @@ export default function WorkflowConfigPage() {
   };
 
   return (
-    <div className="space-y-6 max-w-6xl mx-auto pb-12">
-      {/* Breadcrumbs */}
-      <nav className="flex items-center gap-1.5 text-[11.5px] text-slate-400 font-semibold no-print mb-3">
-        {['SARFIS', 'Admin', 'Workflow Config'].map((crumb, idx) => (
-          <React.Fragment key={idx}>
-            {idx > 0 && <ChevronRight size={11} className="text-slate-350" />}
-            <span className={idx === 2 ? 'text-slate-650 font-bold' : ''}>
-              {crumb}
-            </span>
-          </React.Fragment>
-        ))}
-      </nav>
-
-      {/* Top Banner Toolbar */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4.5 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <Settings size={18} className="text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Workflow Configurations</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Configurations</span>
-            </div>
-            <p className="text-[11px] font-semibold text-slate-500 flex items-center mt-0.5 font-sans">
-              Define role hierarchies, approval thresholds, conditions, and manager delegations.
-            </p>
-          </div>
-        </div>
-      </div>
+    <WorkspaceLayout
+      title="Workflow Configurations"
+      subtitle="Define role hierarchies, approval thresholds, conditions, and manager delegations."
+      icon={Settings}
+      badgeText="Configurations"
+      breadcrumbs={['SARFIS', 'Admin', 'Workflow Config']}
+    >
+      <div className="col-span-full space-y-6">
 
       {/* Tabs */}
       <div className="flex gap-2 bg-white p-3 rounded-2xl border border-slate-100 shadow-sm w-fit">
@@ -575,6 +553,7 @@ export default function WorkflowConfigPage() {
           </motion.div>
         )}
       </AnimatePresence>
-    </div>
+      </div>
+    </WorkspaceLayout>
   );
 }

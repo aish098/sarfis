@@ -6,6 +6,7 @@ import useAuthStore from '../../store/authStore';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import KPIGrid from '../../components/ui/KPIGrid';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 
 export default function LedgerPage({ globalSearch = "" }) {
   const { activeCompany } = useAuthStore();
@@ -115,7 +116,22 @@ export default function LedgerPage({ globalSearch = "" }) {
   };
 
   return (
-    <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6]">
+    <WorkspaceLayout
+      title="General Ledger"
+      subtitle="Chronological transaction history & accounts audit logs"
+      icon={Zap}
+      badgeText="Finance"
+      breadcrumbs={['SARFIS', 'Finance', 'General Ledger']}
+      primaryAction={
+        <button 
+          onClick={exportPDF} 
+          disabled={!selectedAcc || !ledgerData.entries.length}
+          className="flex items-center gap-1.5 bg-[#10b981] hover:bg-[#059669] text-white disabled:opacity-40 disabled:pointer-events-none px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer uppercase tracking-wider border-none outline-none"
+        >
+          <Download size={14} /> Export PDF Report
+        </button>
+      }
+    >
       <style>{`
         /* Hide scrollbar completely by default, only show when hovering and overflow exists */
         body .sarfis-scrollbar::-webkit-scrollbar {
@@ -145,45 +161,7 @@ export default function LedgerPage({ globalSearch = "" }) {
         }
       `}</style>
 
-      {/* Breadcrumbs */}
-      <nav className="flex items-center gap-1.5 text-[11.5px] text-slate-400 font-semibold no-print mb-3">
-        {['SARFIS', 'Finance', 'General Ledger'].map((crumb, idx) => (
-          <React.Fragment key={idx}>
-            {idx > 0 && <ChevronRight size={11} className="text-slate-350" />}
-            <span className={idx === 2 ? 'text-slate-650 font-bold' : ''}>
-              {crumb}
-            </span>
-          </React.Fragment>
-        ))}
-      </nav>
-
-      {/* Top Banner Toolbar */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4.5 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          {/* Logo */}
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <Zap size={18} className="text-white" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">General Ledger</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Finance</span>
-            </div>
-            <p className="text-[11px] font-semibold text-slate-500 mt-0.5 font-sans">Chronological transaction history & accounts audit logs</p>
-          </div>
-        </div>
-        
-        <div className="flex gap-2.5 mt-3 md:mt-0">
-          <motion.button 
-            whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
-            onClick={exportPDF} 
-            disabled={!selectedAcc || !ledgerData.entries.length}
-            className="flex items-center gap-1.5 bg-[#10b981] hover:bg-[#059669] text-white disabled:opacity-40 disabled:pointer-events-none px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer uppercase tracking-wider border-none outline-none"
-          >
-            <Download size={14} /> Export PDF Report
-          </motion.button>
-        </div>
-      </div>
+      <div className="col-span-full space-y-6">
 
       {/* Select Account & Filters Grid */}
       <div className="flex flex-col lg:flex-row gap-4 items-stretch bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
@@ -337,6 +315,7 @@ export default function LedgerPage({ globalSearch = "" }) {
           </div>
         )}
       </div>
-    </div>
+      </div>
+    </WorkspaceLayout>
   );
 }
