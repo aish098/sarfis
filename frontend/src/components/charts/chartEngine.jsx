@@ -323,7 +323,14 @@ export function pieRadii(sliceCount) {
 export const legendStyle = { fontSize: 11, fontWeight: 600, paddingTop: 8, lineHeight: "18px" };
 
 export function yAxisProps(layout, formatter = fmtChart) {
-  return { tick: { fill: PBI.axis, fontSize: layout?.tickFontSize ?? 10, fontWeight: 500 }, axisLine: false, tickLine: false, tickFormatter: formatter, width: layout?.yAxisWidth ?? 52 };
+  return {
+    tick: { fill: PBI.axis, fontSize: layout?.tickFontSize ?? 10, fontWeight: 500 },
+    axisLine: false,
+    tickLine: false,
+    tickFormatter: formatter,
+    width: layout?.yAxisWidth ?? 52,
+    domain: [(dataMin) => Math.min(0, dataMin), "auto"]
+  };
 }
 
 export function xAxisPropsVertical(layout) {

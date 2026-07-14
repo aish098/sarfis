@@ -1264,7 +1264,7 @@ function VarianceTab({ companyId }) {
                         </defs>
                         <CartesianGrid stroke="#edebe9" vertical={false} strokeDasharray="3 3" />
                         <XAxis dataKey="period" tick={{ fill: "#605e5c", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
-                        <YAxis tick={{ fill: "#605e5c", fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} width={45} />
+                        <YAxis tick={{ fill: "#605e5c", fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} width={45} domain={[(dataMin) => Math.min(0, dataMin), "auto"]} />
                         <Tooltip content={<WhiteTooltip />} />
                         <Legend iconType="circle" wrapperStyle={{ fontSize: 11, fontWeight: "bold" }} />
                         <Area type="monotone" dataKey="actual_amount" name="Actual" stroke="#118DFF" strokeWidth={3.5} fillOpacity={1} fill="url(#colorActualTrend)" dot={{ r: 4, fill: "#118DFF" }} />
@@ -1279,7 +1279,7 @@ function VarianceTab({ companyId }) {
                     <BarChart data={data.trend} margin={{ top: 12, right: 10, left: 10, bottom: 0 }}>
                       <CartesianGrid stroke="#edebe9" vertical={false} strokeDasharray="3 3" />
                       <XAxis dataKey="period" tick={{ fill: "#605e5c", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: "#605e5c", fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} width={45} />
+                      <YAxis tick={{ fill: "#605e5c", fontSize: 11 }} tickFormatter={(v) => `${(v / 1000).toFixed(0)}k`} axisLine={false} tickLine={false} width={45} domain={[(dataMin) => Math.min(0, dataMin), "auto"]} />
                       <Tooltip content={<WhiteTooltip />} />
                       <Bar dataKey="variance" name="Variance" radius={[4, 4, 0, 0]}>
                         {data.trend.map((entry, idx) => (
@@ -1295,7 +1295,7 @@ function VarianceTab({ companyId }) {
                     <LineChart data={data.trend} margin={{ top: 12, right: 10, left: 10, bottom: 0 }}>
                       <CartesianGrid stroke="#edebe9" vertical={false} strokeDasharray="3 3" />
                       <XAxis dataKey="period" tick={{ fill: "#605e5c", fontSize: 11, fontWeight: 600 }} axisLine={false} tickLine={false} />
-                      <YAxis tick={{ fill: "#605e5c", fontSize: 11 }} tickFormatter={(v) => `${v.toFixed(0)}%`} axisLine={false} tickLine={false} width={35} />
+                      <YAxis tick={{ fill: "#605e5c", fontSize: 11 }} tickFormatter={(v) => `${v.toFixed(0)}%`} axisLine={false} tickLine={false} width={35} domain={[(dataMin) => Math.min(0, dataMin), "auto"]} />
                       <Tooltip content={(p) => {
                         if (!p.active || !p.payload?.length) return null;
                         const val = p.payload[0].value;
