@@ -2,6 +2,7 @@ import { motion } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import Features from '../components/Features';
+import InteractiveDemo from '../components/InteractiveDemo';
 import HowItWorks from '../components/HowItWorks';
 import Pricing from '../components/Pricing';
 import AdvancedFeatures from '../components/AdvancedFeatures';
@@ -27,6 +28,7 @@ export default function LandingPage() {
       <div className="h-px w-full" style={{ background: 'linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent)' }} />
 
       <Features />
+      <InteractiveDemo />
       <HowItWorks />
       <Pricing />
       <AdvancedFeatures />
