@@ -13,7 +13,7 @@ router.get('/system/health', async (req, res) => {
     let dbStatus = 'UP';
     let dbError = null;
     try {
-      await db.raw('SELECT 1');
+      await db.raw('SELECT 1').timeout(1500);
     } catch (err) {
       dbStatus = 'DOWN';
       dbError = err.message;
@@ -21,22 +21,26 @@ router.get('/system/health', async (req, res) => {
 
     // 2. Query Knex Migration Version
     let migrationVersion = 'Unknown';
-    try {
-      migrationVersion = await db.migrate.currentVersion();
-    } catch (err) {
-      console.error(err);
+    if (dbStatus === 'UP') {
+      try {
+        migrationVersion = await db.migrate.currentVersion();
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     // 3. Count Pending/Failed Queue Items
     let pendingQueueCount = 0;
     let failedQueueCount = 0;
-    try {
-      const pending = await db('notification_queue').where({ status: 'PENDING' }).count('id as count').first();
-      const failed = await db('notification_queue').where({ status: 'FAILED' }).count('id as count').first();
-      pendingQueueCount = parseInt(pending?.count || 0);
-      failedQueueCount = parseInt(failed?.count || 0);
-    } catch (err) {
-      console.error(err);
+    if (dbStatus === 'UP') {
+      try {
+        const pending = await db('notification_queue').where({ status: 'PENDING' }).count('id as count').first().timeout(1500);
+        const failed = await db('notification_queue').where({ status: 'FAILED' }).count('id as count').first().timeout(1500);
+        pendingQueueCount = parseInt(pending?.count || 0);
+        failedQueueCount = parseInt(failed?.count || 0);
+      } catch (err) {
+        console.error(err);
+      }
     }
 
     // 4. Memory Metrics
