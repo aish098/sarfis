@@ -107,6 +107,22 @@ export default function Hero() {
         opacity: 0;
         animation: blurFadeUp 1s cubic-bezier(0.22, 1, 0.36, 1) forwards;
       }
+
+      @keyframes kenBurns {
+        0% { transform: scale(1.0); }
+        100% { transform: scale(1.06); }
+      }
+      .animate-ken-burns {
+        animation: kenBurns 35s ease-in-out infinite alternate;
+      }
+
+      @keyframes softPulse {
+        0% { transform: translate(-50%, -50%) scale(1.0); opacity: 0.55; }
+        100% { transform: translate(-50%, -50%) scale(1.12); opacity: 0.95; }
+      }
+      .animate-soft-pulse {
+        animation: softPulse 20s ease-in-out infinite alternate;
+      }
     `;
     document.head.appendChild(s);
   }
@@ -123,8 +139,15 @@ export default function Hero() {
           loop
           muted
           playsInline
-          className="w-full h-full object-cover"
+          className="w-full h-full object-cover animate-ken-burns"
           style={{ filter: 'brightness(0.92) contrast(1.02)' }}
+        />
+        {/* Cinematic Vignette Overlay */}
+        <div
+          className="absolute inset-0 z-1 pointer-events-none"
+          style={{
+            background: 'radial-gradient(circle at 50% 50%, transparent 35%, rgba(3, 11, 26, 0.82) 100%)',
+          }}
         />
         {/* SCAFIS Branding Overlay (radial gradient) */}
         <div
@@ -133,19 +156,14 @@ export default function Hero() {
             background: 'radial-gradient(circle at 50% 50%, rgba(3, 11, 26, 0.08) 0%, rgba(3, 11, 26, 0.42) 100%)',
           }}
         />
-        {/* Interactive Grid overlay */}
-        <motion.div
-          style={{ y: bgY }}
-          className="absolute inset-0 opacity-[0.03] pointer-events-none"
-        >
-          <div
-            className="w-full h-full"
-            style={{
-              backgroundImage: 'linear-gradient(rgba(255,255,255,1) 1px, transparent 1px), linear-gradient(90deg, rgba(255,255,255,1) 1px, transparent 1px)',
-              backgroundSize: '52px 52px',
-            }}
-          />
-        </motion.div>
+        {/* Subtle Dot Matrix Micro Grid */}
+        <div
+          className="absolute inset-0 pointer-events-none opacity-[0.06]"
+          style={{
+            backgroundImage: 'radial-gradient(rgba(110, 231, 183, 0.8) 1.2px, transparent 1.2px)',
+            backgroundSize: '28px 28px',
+          }}
+        />
       </div>
 
       {/* Bottom Blur Overlay */}
@@ -164,6 +182,15 @@ export default function Hero() {
         style={{ opacity: contentOpacity, y: contentY }}
         className="relative z-20 w-full max-w-6xl mx-auto px-5 sm:px-8 text-center flex flex-col justify-center h-full"
       >
+        {/* Very Soft Emerald Glow */}
+        <div 
+          className="absolute left-1/2 top-[40%] -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] rounded-full pointer-events-none -z-10 animate-soft-pulse"
+          style={{
+            background: 'radial-gradient(circle, rgba(16, 185, 129, 0.04) 0%, transparent 70%)',
+            filter: 'blur(160px)',
+          }}
+        />
+
         {/* Badge */}
         <div className="flex justify-center mb-8">
           <div
