@@ -56,6 +56,7 @@ export default function Hero() {
 
   useEffect(() => {
     if (videoRef.current) {
+      videoRef.current.playbackRate = 0.55; // Slower playback for an elegant background transition
       const playPromise = videoRef.current.play();
       if (playPromise !== undefined) {
         playPromise.catch(error => {
