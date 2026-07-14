@@ -160,7 +160,7 @@ export default function NextLevelFeatures() {
           <div className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl flex-1 flex flex-col justify-between">
             <div>
               {/* Sliders */}
-              <div className="space-y-5 text-xs mb-6">
+              <div className="space-y-5 text-xs mb-5">
                 <div>
                   <div className="flex justify-between text-slate-300 font-semibold mb-2">
                     <span>Weekly Manual Accounting Hours</span>
@@ -190,6 +190,28 @@ export default function NextLevelFeatures() {
                     value={hourlyRate}
                     onChange={e => setHourlyRate(parseInt(e.target.value, 10))}
                   />
+                </div>
+              </div>
+
+              {/* Savings Breakdown */}
+              <div className="border border-slate-850 rounded-2xl bg-black/40 overflow-hidden text-xs mb-5">
+                <div className="grid grid-cols-2 bg-slate-900/60 p-3 font-bold border-b border-slate-800 text-slate-400 text-[10.5px] uppercase tracking-wider">
+                  <span>Savings Category</span>
+                  <span className="text-right">Estimated Gain</span>
+                </div>
+                <div className="p-3 space-y-2.5">
+                  <div className="flex justify-between border-b border-slate-900 pb-1.5">
+                    <span className="text-slate-400">Manual Entry & Ledgers (40%)</span>
+                    <span className="font-mono text-white font-semibold">PKR {Math.round(annualSavings * 0.4).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-900 pb-1.5">
+                    <span className="text-slate-400">Bank Reconciliations (30%)</span>
+                    <span className="font-mono text-white font-semibold">PKR {Math.round(annualSavings * 0.3).toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span className="text-slate-400">Payroll Runs & Auditing (30%)</span>
+                    <span className="font-mono text-white font-semibold">PKR {Math.round(annualSavings * 0.3).toLocaleString()}</span>
+                  </div>
                 </div>
               </div>
 
