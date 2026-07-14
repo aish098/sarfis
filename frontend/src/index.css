@@ -358,3 +358,34 @@ body {
   margin-bottom: 6px;
 }
 
+/* Power BI style dashboard primitives */
+.pbi-card {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 16px;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+}
+.pbi-chart-title {
+  font-size: 13.5px;
+  font-weight: 700;
+  color: #0f172a;
+  margin: 0 0 2px;
+}
+.pbi-chart-sub {
+  font-size: 11px;
+  color: #64748b;
+  margin: 0 0 16px;
+}
+.pbi-databar {
+  height: 6px;
+  border-radius: 3px;
+  background: #f1f5f9;
+  overflow: hidden;
+  margin-top: 4px;
+}
+.pbi-databar-fill {
+  height: 100%;
+  border-radius: 3px;
+  transition: width .4s ease;
+}
+

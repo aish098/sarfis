@@ -320,23 +320,23 @@ function TrendTab({ companyId }) {
           <AreaChart data={data} margin={buildChartMargins(trendLayout)}>
             <defs>
               <linearGradient id="wgRev" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#118DFF" stopOpacity={0.18} />
-                <stop offset="95%" stopColor="#118DFF" stopOpacity={0.01} />
+                <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.15} />
+                <stop offset="95%" stopColor="#3b82f6" stopOpacity={0.01} />
               </linearGradient>
               <linearGradient id="wgExp" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="#ef4444" stopOpacity={0.08} />
-                <stop offset="95%" stopColor="#ef4444" stopOpacity={0.01} />
+                <stop offset="5%" stopColor="#f43f5e" stopOpacity={0.06} />
+                <stop offset="95%" stopColor="#f43f5e" stopOpacity={0.01} />
               </linearGradient>
             </defs>
-            <CartesianGrid stroke={W.gridLine} vertical={false} strokeDasharray="3 3" />
+            <CartesianGrid stroke="#f1f5f9" vertical={false} strokeDasharray="3 3" />
             <XAxis dataKey="label" interval={trendLayout.tickInterval} height={trendLayout.bottomMargin}
               tick={(p) => <DynamicXTick {...p} layout={trendLayout} lookup={data.map(d => ({ name: d.label, fullName: d.label }))} />} axisLine={false} tickLine={false} />
             <YAxis {...yAxisProps(trendLayout)} />
-            <Tooltip content={<WhiteTooltip />} cursor={{ stroke: W.border, strokeWidth: 1 }} />
+            <Tooltip content={<WhiteTooltip />} cursor={{ stroke: "#e2e8f0", strokeWidth: 1 }} />
             <Legend iconType="circle" verticalAlign="top" align="right" wrapperStyle={{ paddingBottom: 16, fontSize: 11, fontWeight: "bold" }} />
-            <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#118DFF" strokeWidth={3} fill="url(#wgRev)" dot={false} activeDot={{ r: 6, fill: "#118DFF", stroke: "#fff", strokeWidth: 2 }} />
-            <Area type="monotone" dataKey="expenses" name="Expenses" stroke="#ef4444" strokeWidth={2} fill="url(#wgExp)" strokeDasharray="5 5" dot={false} />
-            <Line type="monotone" dataKey="profit" name="Net Profit" stroke="#10b981" strokeWidth={2.5} dot={false} />
+            <Area type="monotone" dataKey="revenue" name="Revenue" stroke="#3b82f6" strokeWidth={2.5} fill="url(#wgRev)" dot={false} activeDot={{ r: 5, fill: "#3b82f6", stroke: "#fff", strokeWidth: 2 }} />
+            <Area type="monotone" dataKey="expenses" name="Expenses" stroke="#f43f5e" strokeWidth={1.5} fill="url(#wgExp)" strokeDasharray="4 4" dot={false} />
+            <Line type="monotone" dataKey="profit" name="Net Profit" stroke="var(--brand-primary, #10b981)" strokeWidth={3} dot={false} activeDot={{ r: 5, fill: "var(--brand-primary, #10b981)", stroke: "#fff", strokeWidth: 2 }} />
           </AreaChart>
         </AdaptiveChartFrame>
       </Card>

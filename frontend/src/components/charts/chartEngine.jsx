@@ -7,22 +7,22 @@ import { useMemo } from "react";
 import { ResponsiveContainer } from "recharts";
 
 export const PBI = {
-  p1: "#118DFF",
-  p2: "#12239E",
+  p1: "var(--brand-primary, #10b981)",
+  p2: "#1e293b",
   budget: "#94a3b8",
-  actual: "#118DFF",
-  positive: "#107C10",
-  negative: "#E81123",
-  accent: "#744EC2",
-  grid: "#edebe9",
-  axis: "#605e5c",
-  label: "#252423",
-  muted: "#8a8886",
+  actual: "var(--brand-primary, #10b981)",
+  positive: "#10b981",
+  negative: "#f43f5e",
+  accent: "var(--brand-primary, #10b981)",
+  grid: "#f1f5f9",
+  axis: "#94a3b8",
+  label: "#0f172a",
+  muted: "#64748b",
   surface: "#ffffff",
-  border: "#edebe9",
-  revenue: "#118DFF",
-  expense: "#E81123",
-  profit: "#107C10",
+  border: "#f1f5f9",
+  revenue: "var(--brand-primary, #10b981)",
+  expense: "#f43f5e",
+  profit: "#10b981",
 };
 
 export const PBI_PALETTE = [
