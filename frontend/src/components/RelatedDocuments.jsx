@@ -2,6 +2,7 @@ import { Link2, ArrowRight, User, Calendar, ArrowRightCircle } from 'lucide-reac
 import { useNavigate } from 'react-router-dom';
 
 const TYPE_CONFIG = {
+  OPENING_BALANCE: { label: 'Opening Balances', colorClass: 'text-indigo-650 bg-indigo-50 border-indigo-100' },
   PURCHASE_REQUISITION: { label: 'Purchase Requisition', colorClass: 'text-blue-650 bg-blue-50 border-blue-100' },
   PURCHASE_ORDER: { label: 'Purchase Order', colorClass: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
   GOODS_RECEIPT: { label: 'Goods Receipt', colorClass: 'text-amber-650 bg-amber-50 border-amber-100' },
@@ -53,9 +54,11 @@ export default function RelatedDocuments({ documents = [], currentType }) {
 
   // We always show the timeline journey, even if only the current document type is here.
   // To build the journey, let's see which flow we are in.
-  const isSalesFlow = currentType === 'SALES_ORDER' || activeDocs.some(doc => doc.type === 'SALES_ORDER') || (!activeDocs.some(doc => doc.type === 'PURCHASE_REQUISITION' || doc.type === 'PURCHASE_ORDER' || doc.type === 'GOODS_RECEIPT') && (currentType === 'DELIVERY' || currentType === 'VOUCHER'));
-  const isProcurement = !isSalesFlow;
+  const isOpeningBalanceFlow = currentType === 'OPENING_BALANCE' || activeDocs.some(doc => doc.type === 'OPENING_BALANCE');
+  const isSalesFlow = !isOpeningBalanceFlow && (currentType === 'SALES_ORDER' || activeDocs.some(doc => doc.type === 'SALES_ORDER') || (!activeDocs.some(doc => doc.type === 'PURCHASE_REQUISITION' || doc.type === 'PURCHASE_ORDER' || doc.type === 'GOODS_RECEIPT') && (currentType === 'DELIVERY' || currentType === 'VOUCHER')));
+  const isProcurement = !isSalesFlow && !isOpeningBalanceFlow;
 
+  const hasOpening = currentType === 'OPENING_BALANCE' || activeDocs.some(d => d.type === 'OPENING_BALANCE');
   const hasReq = currentType === 'PURCHASE_REQUISITION' || activeDocs.some(d => d.type === 'PURCHASE_REQUISITION');
   const hasPo = currentType === 'PURCHASE_ORDER' || activeDocs.some(d => d.type === 'PURCHASE_ORDER');
   const hasGrn = currentType === 'GOODS_RECEIPT' || activeDocs.some(d => d.type === 'GOODS_RECEIPT');
@@ -68,20 +71,27 @@ export default function RelatedDocuments({ documents = [], currentType }) {
   const isDelivered = hasDelivery && (currentType === 'DELIVERY' || activeDocs.some(d => d.type === 'DELIVERY' && d.status === 'DELIVERED'));
   const isPaid = hasVoucher && activeDocs.some(d => d.type === 'VOUCHER' && d.status === 'PAID');
 
-  const journeySteps = isProcurement 
+  const journeySteps = isOpeningBalanceFlow
     ? [
-        { type: 'PURCHASE_REQUISITION', label: 'Requisition', active: hasReq, current: currentType === 'PURCHASE_REQUISITION' },
-        { type: 'PURCHASE_ORDER', label: 'Purchase Order', active: hasPo, current: currentType === 'PURCHASE_ORDER' },
-        { type: 'GOODS_RECEIPT', label: 'Goods Receipt', active: hasGrn, current: currentType === 'GOODS_RECEIPT' },
-        { type: 'VOUCHER', label: 'Purchase Voucher', active: hasVoucher, current: currentType === 'VOUCHER' },
-        { type: 'PAYMENT', label: 'Payment', active: isPaid, current: false }
+        { type: 'OPENING_BALANCE', label: 'Opening Balances', active: hasOpening, current: currentType === 'OPENING_BALANCE' },
+        { type: 'VOUCHER', label: 'Journal Entry', active: hasVoucher, current: currentType === 'VOUCHER' },
+        { type: 'LEDGER', label: 'General Ledger', active: hasVoucher, current: false },
+        { type: 'REPORT', label: 'Trial Balance', active: hasVoucher, current: false }
       ]
-    : [
-        { type: 'SALES_ORDER', label: 'Sales Order', active: hasSo, current: currentType === 'SALES_ORDER' },
-        { type: 'DELIVERY', label: 'Delivery', active: hasDelivery, current: currentType === 'DELIVERY' },
-        { type: 'VOUCHER', label: 'Sales Voucher', active: hasVoucher, current: currentType === 'VOUCHER' },
-        { type: 'PAYMENT_RECEIPT', label: 'Payment Receipt', active: isPaid, current: false }
-      ];
+    : isProcurement 
+      ? [
+          { type: 'PURCHASE_REQUISITION', label: 'Requisition', active: hasReq, current: currentType === 'PURCHASE_REQUISITION' },
+          { type: 'PURCHASE_ORDER', label: 'Purchase Order', active: hasPo, current: currentType === 'PURCHASE_ORDER' },
+          { type: 'GOODS_RECEIPT', label: 'Goods Receipt', active: hasGrn, current: currentType === 'GOODS_RECEIPT' },
+          { type: 'VOUCHER', label: 'Purchase Voucher', active: hasVoucher, current: currentType === 'VOUCHER' },
+          { type: 'PAYMENT', label: 'Payment', active: isPaid, current: false }
+        ]
+      : [
+          { type: 'SALES_ORDER', label: 'Sales Order', active: hasSo, current: currentType === 'SALES_ORDER' },
+          { type: 'DELIVERY', label: 'Delivery', active: hasDelivery, current: currentType === 'DELIVERY' },
+          { type: 'VOUCHER', label: 'Sales Voucher', active: hasVoucher, current: currentType === 'VOUCHER' },
+          { type: 'PAYMENT_RECEIPT', label: 'Payment Receipt', active: isPaid, current: false }
+        ];
 
   const formatDocDate = (dateStr) => {
     if (!dateStr) return '';
@@ -102,7 +112,7 @@ export default function RelatedDocuments({ documents = [], currentType }) {
           <h3 className="text-[12px] font-black uppercase text-slate-800 tracking-wider">Document Journey & Relationships</h3>
         </div>
         <span className="text-[9.5px] font-bold text-slate-400 uppercase tracking-widest bg-slate-50 px-2 py-0.5 rounded border">
-          {isProcurement ? 'Procurement Flow' : 'Sales Flow'}
+          {isOpeningBalanceFlow ? 'Opening Balance Migration' : isProcurement ? 'Procurement Flow' : 'Sales Flow'}
         </span>
       </div>
 

@@ -24,6 +24,7 @@ import { PowerBICard, PowerBIKpi, PowerBIHeader } from '../components/charts/PBI
 import { pbiStagger } from '../components/charts/pbiAnimations';
 
 import AccountsPage from './accounts/AccountsPage.jsx';
+import BeginningBalancesPage from './accounts/BeginningBalancesPage.jsx';
 import JournalEntryPage from './journal/JournalEntryPage.jsx';
 import LedgerPage from './ledger/LedgerPage.jsx';
 import ReportsPage from './reports/ReportsPage.jsx';
@@ -107,6 +108,7 @@ function DashboardOverview() {
     recentLeaves: [],
     recentMsgs: []
   });
+  const [obStatus, setObStatus] = useState('POSTED');
 
   const loadEmployeeData = useCallback(async () => {
     if (!activeCompany) return;
@@ -169,13 +171,30 @@ function DashboardOverview() {
     setIsLoading(false);
   }, [activeCompany, month, periodParam, year]);
 
+  const loadObStatus = useCallback(async () => {
+    if (!activeCompany) return;
+    try {
+      const fyRes = await api.get('/opening-balances/fiscal-years');
+      const matchingFy = fyRes.data.find(f => String(f.year_name) === String(year));
+      if (matchingFy) {
+        const balRes = await api.get(`/opening-balances?fiscal_year_id=${matchingFy.id}`);
+        setObStatus(balRes.data.status);
+      } else {
+        setObStatus('POSTED');
+      }
+    } catch (err) {
+      console.error("Failed to load opening balance status:", err);
+    }
+  }, [activeCompany, year]);
+
   useEffect(() => {
     if (isEmployee) {
       loadEmployeeData();
     } else {
       load();
+      loadObStatus();
     }
-  }, [isEmployee, load, loadEmployeeData]);
+  }, [isEmployee, load, loadEmployeeData, loadObStatus]);
 
   if (isEmployee) {
     return (
@@ -283,6 +302,24 @@ function DashboardOverview() {
         subtitle={activeCompany?.name ? `${activeCompany.name} - financial & operations overview` : 'Financial & operations overview'}
         meta={periodLabel}
       />
+
+      {obStatus !== 'POSTED' && (
+        <div className="p-4 bg-amber-50 border border-amber-200 rounded-2xl flex flex-wrap items-center justify-between gap-4 shadow-3xs select-none">
+          <div className="flex items-center gap-3">
+            <span className="text-[18px]">⚠️</span>
+            <div className="text-left">
+              <h4 className="text-[13.5px] font-bold text-amber-900">Opening Balances Not Configured</h4>
+              <p className="text-[12px] text-amber-750 mt-0.5">Opening balances have not been finalized/posted for the current fiscal year {year}. Setup starting balances to ensure report accuracy.</p>
+            </div>
+          </div>
+          <button 
+            onClick={() => navigate('/dashboard/accounts/opening-balances')}
+            className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4.5 py-2 text-[12px] rounded-xl border-none cursor-pointer transition active:scale-95"
+          >
+            Configure Opening Balances
+          </button>
+        </div>
+      )}
 
       {/* KPI row — Power BI callout cards */}
       <Motion.div variants={pbiStagger} initial="initial" animate="animate" className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
@@ -486,6 +523,7 @@ export default function Dashboard() {
             <Routes>
               <Route index element={<DashboardOverview />} />
               <Route path="accounts" element={<AccountsPage globalSearch={globalSearch} />} />
+              <Route path="accounts/opening-balances" element={<BeginningBalancesPage />} />
               <Route path="journal" element={<JournalEntryPage />} />
               <Route path="ledger" element={<LedgerPage globalSearch={globalSearch} />} />
               <Route path="reports" element={<ReportsPage />} />

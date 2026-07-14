@@ -23,6 +23,7 @@ const NAV_SECTIONS = [
     label: 'Transactions',
     items: [
       { to: '/dashboard/accounts', icon: BookOpen, label: 'Chart of Accounts', permission: 'ledger.view' },
+      { to: '/dashboard/accounts/opening-balances', icon: Sliders, label: 'Opening Balances', permission: 'opening_balances.view' },
       { to: '/dashboard/vouchers', icon: FilePlus, label: 'ERP Vouchers', permission: 'voucher.view' },
       { to: '/dashboard/journal', icon: Activity, label: 'Manual Journals', permission: 'journal.view' },
       { to: '/dashboard/ledger', icon: BookMarked, label: 'General Ledger', permission: 'ledger.view' },

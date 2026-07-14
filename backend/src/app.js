@@ -25,6 +25,7 @@ app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/companies', require('./routes/company.routes'));
 app.use('/api/accounts', require('./routes/account.routes'));
 app.use('/api/journal', require('./routes/journal.routes'));
+app.use('/api/opening-balances', require('./routes/opening_balances.routes'));
 app.use('/api/ledger', require('./routes/ledger.routes'));
 app.use('/api/reports', require('./routes/report.routes'));
 app.use('/api/analytics', require('./routes/analytics.routes'));
