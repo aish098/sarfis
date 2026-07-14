@@ -408,7 +408,7 @@ export default function RiskDashboard() {
           { id: 'settings', label: 'Scoring Policy Settings' }
         ].map(tab => (
           <button key={tab.id} onClick={() => setActiveSubTab(tab.id)}
-            className={`px-4 py-1.5 text-[12px] font-bold rounded-lg transition-all cursor-pointer border-none ${activeSubTab === tab.id ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}>
+            className={`px-4 py-1.5 text-[12px] font-bold rounded-lg transition-all cursor-pointer border-none ${activeSubTab === tab.id ? 'bg-[#10b981] text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}>
             {tab.label}
           </button>
         ))}
@@ -435,7 +435,7 @@ export default function RiskDashboard() {
                           <p className="text-[12.5px] font-bold text-slate-700">{req.partner_name} ({req.entity_type})</p>
                           <p className="text-[11.5px] text-slate-400 mt-0.5">Requested: {new Date(req.request_date).toLocaleDateString()}</p>
                         </div>
-                        <button onClick={() => setSelectedRequest(req)} className="text-[11px] font-bold px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg transition-colors flex items-center gap-1">
+                        <button onClick={() => setSelectedRequest(req)} className="text-[11px] font-bold px-3 py-1.5 bg-[#10b981] hover:bg-[#059669] text-white rounded-lg transition-colors flex items-center gap-1 border-none cursor-pointer shadow-sm">
                           Review <ChevronRight size={12} />
                         </button>
                       </div>
@@ -594,7 +594,7 @@ export default function RiskDashboard() {
                       <td className="px-4 py-3 text-right">
                         {r.status === 'PENDING' && (
                           <button onClick={() => setSelectedRequest(r)}
-                            className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-blue-600 hover:bg-blue-700 text-white transition-colors">
+                            className="text-[11px] font-bold px-3 py-1.5 rounded-lg bg-[#10b981] hover:bg-[#059669] text-white transition-colors border-none cursor-pointer shadow-sm">
                             Audit Request
                           </button>
                         )}
@@ -717,19 +717,19 @@ export default function RiskDashboard() {
               {/* 2. Sub Tab Navigation Buttons */}
               <div className="flex border-b border-slate-100 bg-slate-50/50 p-1 rounded-xl w-fit gap-1">
                 <button type="button" onClick={() => setSettingsSubTab('rules')}
-                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'rules' ? 'bg-white text-amber-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
+                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'rules' ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
                   <Sliders size={14} /> Incident Rules
                 </button>
                 <button type="button" onClick={() => setSettingsSubTab('thresholds')}
-                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'thresholds' ? 'bg-white text-amber-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
+                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'thresholds' ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
                   <Activity size={14} /> Thresholds Config
                 </button>
                 <button type="button" onClick={() => setSettingsSubTab('history')}
-                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'history' ? 'bg-white text-amber-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
+                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'history' ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
                   <History size={14} /> Audit History
                 </button>
                 <button type="button" onClick={() => setSettingsSubTab('preview')}
-                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'preview' ? 'bg-white text-amber-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
+                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'preview' ? 'bg-white text-emerald-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
                   <FileText size={14} /> Preview Impact
                 </button>
               </div>
@@ -1029,7 +1029,7 @@ export default function RiskDashboard() {
                         <p className="text-[11px] text-slate-500 font-semibold mt-0.5">Analyze the score variations and classification shifts for active relationships prior to saving changes.</p>
                       </div>
                       <button type="button" onClick={runImpactPreview} disabled={calculatingPreview}
-                        className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[12px] transition-all flex items-center gap-1.5 shadow-sm">
+                        className="px-4 py-2 rounded-lg bg-[#10b981] hover:bg-[#059669] text-white font-bold text-[12px] transition-all flex items-center gap-1.5 shadow-sm border-none cursor-pointer">
                         {calculatingPreview ? 'Running Simulation...' : 'Run Preview Simulation'}
                       </button>
                     </div>
@@ -1185,7 +1185,7 @@ export default function RiskDashboard() {
                     Reset to Defaults
                   </button>
                   <button type="button" onClick={handleValidatePolicy} disabled={saving}
-                    className="px-4 py-2 border border-slate-200 bg-white hover:bg-amber-50 hover:text-amber-700 text-slate-600 rounded-lg text-[12px] font-bold transition-all shadow-sm">
+                    className="px-4 py-2 border border-slate-200 bg-white hover:bg-emerald-50 hover:text-emerald-700 text-slate-600 rounded-lg text-[12px] font-bold transition-all shadow-sm">
                     Validate Policy
                   </button>
                 </div>
@@ -1261,11 +1261,11 @@ export default function RiskDashboard() {
                 </h3>
                 {jobProgress !== null ? (
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-3">
-                      <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                    <div className="flex items-center gap-2 text-emerald-700 bg-emerald-50 border border-emerald-100 rounded-xl p-3">
+                      <div className="w-4 h-4 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
                       <div className="text-[11.5px] font-bold">
                         <p>Recalculation in Progress...</p>
-                        <p className="text-[10px] text-amber-400 font-medium mt-0.5">Updating partner credit terms...</p>
+                        <p className="text-[10px] text-emerald-500 font-medium mt-0.5">Updating partner credit terms...</p>
                       </div>
                     </div>
                     <div className="space-y-1">
@@ -1274,7 +1274,7 @@ export default function RiskDashboard() {
                         <span>{jobProgress}%</span>
                       </div>
                       <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200/50">
-                        <div className="bg-amber-600 h-full transition-all duration-300" style={{ width: `${jobProgress}%` }} />
+                        <div className="bg-emerald-600 h-full transition-all duration-300" style={{ width: `${jobProgress}%` }} />
                       </div>
                     </div>
                   </div>
