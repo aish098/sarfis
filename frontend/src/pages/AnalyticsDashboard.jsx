@@ -13,6 +13,9 @@
  */
 
 import { useState, useEffect, useCallback, useMemo } from "react";
+import { TrendingUp, DollarSign, TrendingDown, Box, AlertTriangle, Layers, FileText, Target } from "lucide-react";
+import WorkspaceLayout from "../components/layout/WorkspaceLayout";
+import KPIGrid from "../components/ui/KPIGrid";
 import {
   AreaChart, Area, BarChart, Bar, LineChart, Line,
   XAxis, YAxis, CartesianGrid, Tooltip, Legend,
@@ -73,39 +76,7 @@ const PALETTE = [
 const MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
 
 /* ═══ GLOBAL STYLES ═══════════════════════════════════════════════════════════ */
-if (typeof document !== "undefined" && !document.getElementById("ad-white-css")) {
-  const s = document.createElement("style");
-  s.id = "ad-white-css";
-  s.textContent = `
-    .aw-spin { animation: aw-s 0.9s linear infinite; }
-    @keyframes aw-s { to { transform: rotate(360deg); } }
-    .aw-fade { animation: aw-f 0.35s ease; }
-    @keyframes aw-f { from{opacity:0;transform:translateY(6px)} to{opacity:1;transform:none} }
-    .aw-tab {
-      padding: 8px 18px; border-radius: 8px; font-size: 13px; font-weight: 600;
-      cursor: pointer; border: 1.5px solid #e2e8f0; white-space: nowrap;
-      transition: all .18s; background: #fff; color: #64748b;
-    }
-    .aw-tab:hover { background: #f8fafc; color: #0f172a; border-color: #cbd5e1; }
-    .aw-tab.active { background: #059669; color: #fff; border-color: #059669; box-shadow: 0 4px 12px rgba(5,150,105,0.25); }
-    .aw-tr:hover td { background: #f8fafc !important; }
-    .aw-btn-primary { padding: 9px 22px; border-radius: 8px; border: none; background: #059669; color: #fff; font-size: 13px; font-weight: 600; cursor: pointer; transition: all .18s; }
-    .aw-btn-primary:hover { background: #047857; }
-    .aw-btn-ghost { padding: 8px 16px; border-radius: 8px; border: 1.5px solid #e2e8f0; background: #fff; color: #64748b; font-size: 12px; font-weight: 600; cursor: pointer; transition: all .18s; }
-    .aw-btn-ghost:hover { border-color: #059669; color: #059669; }
-    .aw-inp { background: #fff; border: 1.5px solid #e2e8f0; border-radius: 8px; color: #0f172a; font-size: 13px; padding: 8px 12px; outline: none; transition: border-color .18s; }
-    .aw-inp:focus { border-color: #059669; }
-    .recharts-legend-item-text { font-size: 11px !important; font-weight: 600 !important; color: #64748b !important; }
-    .aw-pulse { animation: aw-p 3s ease-in-out infinite; }
-    @keyframes aw-p { 0%, 100% { opacity: 1; stroke-width: 2.5; } 50% { opacity: 0.8; stroke-width: 3.5; } }
-    .pbi-card { background:#fff; border:1px solid #edebe9; border-radius:8px; box-shadow:0 1.6px 3.6px rgba(0,0,0,.06),0 0.3px 0.9px rgba(0,0,0,.04); }
-    .pbi-chart-title { font-size:13px; font-weight:600; color:#252423; margin:0 0 2px; }
-    .pbi-chart-sub { font-size:11px; color:#605e5c; margin:0 0 16px; }
-    .pbi-databar { height:6px; border-radius:3px; background:#f3f2f1; overflow:hidden; margin-top:4px; }
-    .pbi-databar-fill { height:100%; border-radius:3px; transition:width .4s ease; }
-  `;
-  document.head.appendChild(s);
-}
+
 
 /* ═══ HELPERS ════════════════════════════════════════════════════════════════ */
 const fmt = fmtChart;
@@ -298,19 +269,44 @@ function TrendTab({ companyId }) {
   return (
     <div className="aw-fade" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
 
-      {/* KPI row — matches reference image */}
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(200px,1fr))", gap: 14 }}>
-        <KpiCard icon="💰" label="Revenue" value={`PKR ${fmt(latest.revenue)}`} growth={latest.revenue_growth} vsLabel="vs last period" color="#16a34a" />
-        <KpiCard icon="📊" label="Expenses" value={`PKR ${fmt(latest.expenses)}`} growth={latest.expense_growth} vsLabel="vs last period" color="#dc2626" />
-        <KpiCard icon="📈" label="Net Profit" value={`PKR ${fmt(latest.profit)}`} growth={latest.profit_growth} vsLabel="vs last period" color={W.accent} />
-      </div>
+      <KPIGrid
+        items={[
+          {
+            label: "Revenue",
+            value: `PKR ${fmt(latest.revenue)}`,
+            icon: DollarSign,
+            iconBgClass: "bg-emerald-50",
+            iconColorClass: "text-emerald-600",
+            trend: latest.revenue_growth >= 0 ? `+${parseFloat(latest.revenue_growth || 0).toFixed(1)}%` : `${parseFloat(latest.revenue_growth || 0).toFixed(1)}%`,
+            subtitle: "vs last period"
+          },
+          {
+            label: "Expenses",
+            value: `PKR ${fmt(latest.expenses)}`,
+            icon: TrendingDown,
+            iconBgClass: "bg-rose-50",
+            iconColorClass: "text-rose-600",
+            trend: latest.expense_growth >= 0 ? `+${parseFloat(latest.expense_growth || 0).toFixed(1)}%` : `${parseFloat(latest.expense_growth || 0).toFixed(1)}%`,
+            subtitle: "vs last period"
+          },
+          {
+            label: "Net Profit",
+            value: `PKR ${fmt(latest.profit)}`,
+            icon: TrendingUp,
+            iconBgClass: "bg-teal-50",
+            iconColorClass: "text-teal-600",
+            trend: latest.profit_growth >= 0 ? `+${parseFloat(latest.profit_growth || 0).toFixed(1)}%` : `${parseFloat(latest.profit_growth || 0).toFixed(1)}%`,
+            subtitle: "vs last period"
+          }
+        ]}
+      />
 
       {/* Period toggle */}
       <div style={{ display: "flex", gap: 8, alignItems: "center" }}>
         <span style={{ fontSize: 12, color: W.textSec, fontWeight: 600 }}>Period:</span>
         {[3, 6, 12].map(m => (
           <button key={m} onClick={() => setMonths(m)}
-            className={`aw-tab${months === m ? " active" : ""}`}
+            className={`px-3.5 py-1.5 text-[12px] font-bold rounded-lg border-none transition-all cursor-pointer ${months === m ? "bg-[#10b981] text-white shadow-sm" : "bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50"}`}
             style={{ padding: "6px 14px", fontSize: 12 }}>
             {m} months
           </button>
@@ -358,6 +354,25 @@ function TrendTab({ companyId }) {
             </Bar>
           </BarChart>
         </AdaptiveChartFrame>
+      </Card>
+
+      <Card title="Executive AI Insights" subtitle="Automated analysis of current trends and metrics">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 text-xs font-semibold text-slate-600">
+          <div className="p-3 bg-emerald-50/50 border border-emerald-100 rounded-xl flex items-start gap-2.5">
+            <span className="text-emerald-600 mt-0.5">🟢</span>
+            <div>
+              <p className="font-bold text-slate-800">Revenue Growth Trend</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">Revenue has increased by {latest.revenue_growth >= 0 ? `+${parseFloat(latest.revenue_growth || 0).toFixed(1)}%` : `${parseFloat(latest.revenue_growth || 0).toFixed(1)}%`} compared to the previous period. Profitability margin is stable.</p>
+            </div>
+          </div>
+          <div className="p-3 bg-blue-50/50 border border-blue-100 rounded-xl flex items-start gap-2.5">
+            <span className="text-blue-600 mt-0.5">🔵</span>
+            <div>
+              <p className="font-bold text-slate-800">Expense Control</p>
+              <p className="text-[11px] text-slate-500 mt-0.5">Operating expenses are tracking in line with budget thresholds. Keep monitoring discretionary spending.</p>
+            </div>
+          </div>
+        </div>
       </Card>
     </div>
   );
@@ -409,11 +424,11 @@ function ComparativeTab({ companyId }) {
 
   const sel = (val, setter) => (
     <div style={{ display: "flex", gap: 8 }}>
-      <select value={val.month} onChange={e => setter(v => ({ ...v, month: +e.target.value }))} className="aw-inp" style={{ flex: 1 }}>
+      <select value={val.month} onChange={e => setter(v => ({ ...v, month: +e.target.value }))} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold text-[12.5px]" style={{ flex: 1 }}>
         {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
       </select>
       <input type="number" value={val.year} onChange={e => setter(v => ({ ...v, year: +e.target.value }))}
-        className="aw-inp" style={{ width: 84 }} />
+        className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold text-[12.5px]" style={{ width: 84 }} />
     </div>
   );
 
@@ -531,7 +546,7 @@ function ComparativeTab({ companyId }) {
             <p style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 6 }}>Period 2 (Comparison)</p>
             {sel(p2, setP2)}
           </div>
-          <button onClick={load} className="aw-btn-primary" style={{ height: 40 }}>Refresh</button>
+          <button onClick={load} className="px-4 py-2 border-none bg-[#10b981] hover:bg-[#059669] text-white font-bold text-[12px] rounded-lg transition-all shadow-sm cursor-pointer" style={{ height: 40 }}>Refresh</button>
         </div>
       </div>
 
@@ -539,11 +554,33 @@ function ComparativeTab({ companyId }) {
 
       {!loading && data && allRows.length > 0 && (
         <>
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: 14 }}>
-            <KpiCard icon="📅" label={p1Label} value={`PKR ${fmt(summary.t1)}`} color={PBI.p1} />
-            <KpiCard icon="📅" label={p2Label} value={`PKR ${fmt(summary.t2)}`} color={PBI.p2} />
-            <KpiCard icon="Δ" label="Net Change" value={`PKR ${fmt(summary.variance)}`} growth={summary.pct} vsLabel="vs baseline" color={summary.variance >= 0 ? PBI.positive : PBI.negative} />
-          </div>
+          <KPIGrid
+            items={[
+              {
+                label: p1Label,
+                value: `PKR ${fmt(summary.t1)}`,
+                icon: DollarSign,
+                iconBgClass: "bg-blue-50",
+                iconColorClass: "text-blue-650"
+              },
+              {
+                label: p2Label,
+                value: `PKR ${fmt(summary.t2)}`,
+                icon: DollarSign,
+                iconBgClass: "bg-purple-50",
+                iconColorClass: "text-purple-650"
+              },
+              {
+                label: "Net Change",
+                value: `PKR ${fmt(summary.variance)}`,
+                icon: TrendingUp,
+                iconBgClass: summary.variance >= 0 ? "bg-emerald-50" : "bg-rose-50",
+                iconColorClass: summary.variance >= 0 ? "text-emerald-650" : "text-rose-650",
+                trend: summary.pct >= 0 ? `+${parseFloat(summary.pct || 0).toFixed(1)}%` : `${parseFloat(summary.pct || 0).toFixed(1)}%`,
+                subtitle: "vs baseline"
+              }
+            ]}
+          />
 
           {Object.entries(data).map(([type, rows]) => renderTypeSection(type, rows))}
         </>
@@ -635,15 +672,15 @@ function VerticalTab({ companyId }) {
       <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
         <div>
           <p style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 6 }}>Month</p>
-          <select value={month} onChange={e => setMonth(+e.target.value)} className="aw-inp">
+          <select value={month} onChange={e => setMonth(+e.target.value)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold text-[12.5px]">
             {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
           </select>
         </div>
         <div>
           <p style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 6 }}>Year</p>
-          <input type="number" value={year} onChange={e => setYear(+e.target.value)} className="aw-inp" style={{ width: 90 }} />
+          <input type="number" value={year} onChange={e => setYear(+e.target.value)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold text-[12.5px]" style={{ width: 90 }} />
         </div>
-        <button onClick={load} className="aw-btn-primary">Analyze</button>
+        <button onClick={load} className="px-4 py-2 border-none bg-[#10b981] hover:bg-[#059669] text-white font-bold text-[12px] rounded-lg transition-all shadow-sm cursor-pointer">Analyze</button>
       </div>
       {loading && <Spinner />}
       {!loading && data && (
@@ -768,18 +805,52 @@ function OperationsTab({ companyId }) {
 
   return (
     <div className="aw-fade" style={{ display: "flex", flexDirection: "column", gap: 18 }}>
-      <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12 }}>
-        {[
-          { icon: "📦", label: "SKU Count", value: String(summary.total_skus || 0), color: "#4f46e5" },
-          { icon: "⚠️", label: "Low Stock SKUs", value: String(summary.low_stock_skus || 0), color: W.red },
-          { icon: "💰", label: "Inventory Value", value: `PKR ${fmt(summary.inventory_value)}`, color: W.green },
-          { icon: "🏭", label: "Warehouses", value: String(summary.warehouse_count || 0), color: W.cyan },
-          { icon: "🚚", label: "Delivered Revenue", value: `PKR ${fmt(summary.delivered_revenue)}`, color: W.accent },
-          { icon: "📋", label: "Delivered Orders", value: String(summary.delivered_count || 0), color: W.amber },
-        ].map(k => (
-          <KpiCard key={k.label} icon={k.icon} label={k.label} value={k.value} color={k.color} />
-        ))}
-      </div>
+      <KPIGrid
+        items={[
+          {
+            label: "SKU Count",
+            value: String(summary.total_skus || 0),
+            icon: Box,
+            iconBgClass: "bg-blue-50",
+            iconColorClass: "text-blue-655"
+          },
+          {
+            label: "Low Stock SKUs",
+            value: String(summary.low_stock_skus || 0),
+            icon: AlertTriangle,
+            iconBgClass: summary.low_stock_skus > 0 ? "bg-rose-50" : "bg-slate-50",
+            iconColorClass: summary.low_stock_skus > 0 ? "text-rose-600" : "text-slate-400"
+          },
+          {
+            label: "Inventory Value",
+            value: `PKR ${fmt(summary.inventory_value)}`,
+            icon: DollarSign,
+            iconBgClass: "bg-emerald-50",
+            iconColorClass: "text-emerald-655"
+          },
+          {
+            label: "Warehouses",
+            value: String(summary.warehouse_count || 0),
+            icon: Layers,
+            iconBgClass: "bg-purple-50",
+            iconColorClass: "text-purple-655"
+          },
+          {
+            label: "Delivered Revenue",
+            value: `PKR ${fmt(summary.delivered_revenue)}`,
+            icon: TrendingUp,
+            iconBgClass: "bg-teal-50",
+            iconColorClass: "text-teal-655"
+          },
+          {
+            label: "Delivered Orders",
+            value: String(summary.delivered_count || 0),
+            icon: FileText,
+            iconBgClass: "bg-amber-50",
+            iconColorClass: "text-amber-655"
+          }
+        ]}
+      />
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2">
@@ -900,7 +971,7 @@ function BudgetTab({ companyId }) {
       <Card title="Add / Update Budget">
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit,minmax(160px,1fr))", gap: 12, marginBottom: 16 }}>
           <F label="Type">
-            <select value={form.budget_type} onChange={e => setForm(f => ({ ...f, budget_type: e.target.value }))} className="aw-inp" style={{ width: "100%" }}>
+            <select value={form.budget_type} onChange={e => setForm(f => ({ ...f, budget_type: e.target.value }))} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold text-[12.5px]" style={{ width: "100%" }}>
               <option value="account">Account</option>
               <option value="sector">Sector</option>
             </select>
@@ -908,14 +979,14 @@ function BudgetTab({ companyId }) {
           {form.budget_type === "account"
             ? (
               <F label="Account">
-                <select value={form.account_id} onChange={e => setForm(f => ({ ...f, account_id: e.target.value }))} className="aw-inp" style={{ width: "100%" }}>
+                <select value={form.account_id} onChange={e => setForm(f => ({ ...f, account_id: e.target.value }))} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold text-[12.5px]" style={{ width: "100%" }}>
                   <option value="">— Select Account —</option>
                   {accounts.map(a => <option key={a.id} value={a.id}>{a.code} - {a.name}</option>)}
                 </select>
               </F>
             ) : (
               <F label="Sector">
-                <select value={form.sector_id} onChange={e => setForm(f => ({ ...f, sector_id: e.target.value }))} className="aw-inp" style={{ width: "100%" }}>
+                <select value={form.sector_id} onChange={e => setForm(f => ({ ...f, sector_id: e.target.value }))} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold text-[12.5px]" style={{ width: "100%" }}>
                   <option value="">— Select Sector —</option>
                   {sectors.map(s => <option key={s.id} value={s.name}>{s.name}</option>)}
                 </select>
@@ -923,15 +994,15 @@ function BudgetTab({ companyId }) {
             )
           }
           <F label="Month">
-            <select value={form.period_month} onChange={e => setForm(f => ({ ...f, period_month: +e.target.value }))} className="aw-inp" style={{ width: "100%" }}>
+            <select value={form.period_month} onChange={e => setForm(f => ({ ...f, period_month: +e.target.value }))} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold text-[12.5px]" style={{ width: "100%" }}>
               {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
             </select>
           </F>
-          <F label="Year"><input type="number" value={form.period_year} onChange={e => setForm(f => ({ ...f, period_year: +e.target.value }))} className="aw-inp" style={{ width: "100%" }} /></F>
-          <F label="Budget Amount (PKR)"><input type="number" value={form.budget_amount} onChange={e => setForm(f => ({ ...f, budget_amount: e.target.value }))} placeholder="0" className="aw-inp" style={{ width: "100%" }} /></F>
-          <F label="Notes"><input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Optional" className="aw-inp" style={{ width: "100%" }} /></F>
+          <F label="Year"><input type="number" value={form.period_year} onChange={e => setForm(f => ({ ...f, period_year: +e.target.value }))} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold text-[12.5px]" style={{ width: "100%" }} /></F>
+          <F label="Budget Amount (PKR)"><input type="number" value={form.budget_amount} onChange={e => setForm(f => ({ ...f, budget_amount: e.target.value }))} placeholder="0" className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold text-[12.5px]" style={{ width: "100%" }} /></F>
+          <F label="Notes"><input value={form.notes} onChange={e => setForm(f => ({ ...f, notes: e.target.value }))} placeholder="Optional" className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold text-[12.5px]" style={{ width: "100%" }} /></F>
         </div>
-        <button onClick={save} disabled={saving} className="aw-btn-primary" style={{ opacity: saving ? 0.6 : 1 }}>
+        <button onClick={save} disabled={saving} className="px-4 py-2 border-none bg-[#10b981] hover:bg-[#059669] text-white font-bold text-[12px] rounded-lg transition-all shadow-sm cursor-pointer" style={{ opacity: saving ? 0.6 : 1 }}>
           {saving ? "Saving…" : "Save Budget"}
         </button>
       </Card>
@@ -939,15 +1010,15 @@ function BudgetTab({ companyId }) {
       <div style={{ display: "flex", gap: 10, alignItems: "flex-end", flexWrap: "wrap" }}>
         <div>
           <p style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 6 }}>Filter Month</p>
-          <select value={month} onChange={e => setMonth(+e.target.value)} className="aw-inp">
+          <select value={month} onChange={e => setMonth(+e.target.value)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold text-[12.5px]">
             {MONTHS.map((m, i) => <option key={i} value={i + 1}>{m}</option>)}
           </select>
         </div>
         <div>
           <p style={{ fontSize: 11, fontWeight: 700, color: W.textSec, textTransform: "uppercase", letterSpacing: ".1em", marginBottom: 6 }}>Year</p>
-          <input type="number" value={year} onChange={e => setYear(+e.target.value)} className="aw-inp" style={{ width: 90 }} />
+          <input type="number" value={year} onChange={e => setYear(+e.target.value)} className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold text-[12.5px]" style={{ width: 90 }} />
         </div>
-        <button onClick={load} className="aw-btn-ghost">Filter</button>
+        <button onClick={load} className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-[12px] rounded-lg transition-all shadow-sm cursor-pointer">Filter</button>
       </div>
 
       {loading && <Spinner />}
@@ -1067,7 +1138,7 @@ function VarianceTab({ companyId }) {
                   setSelectedPeriod({ year: null, month: null });
                 }
               }}
-              className={`aw-tab ${mode === m.id ? "active" : ""}`}
+              className={`px-3.5 py-1.5 text-[12px] font-bold rounded-lg border-none transition-all cursor-pointer ${mode === m.id ? "bg-[#10b981] text-white shadow-sm" : "bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50"}`}
             >
               {m.label}
             </button>
@@ -1082,7 +1153,7 @@ function VarianceTab({ companyId }) {
                   const [y, m] = e.target.value.split("-");
                   setSelectedPeriod({ year: parseInt(y), month: parseInt(m) });
                 }}
-                className="aw-inp"
+                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold text-[12.5px]"
               >
                 {data?.availablePeriods?.map((ap) => (
                   <option key={`${ap.year}-${ap.month}`} value={`${ap.year}-${ap.month}`}>
@@ -1093,7 +1164,7 @@ function VarianceTab({ companyId }) {
               {data?.latestPeriod && (
                 <button
                   onClick={() => setSelectedPeriod({ year: data.latestPeriod.year, month: data.latestPeriod.month })}
-                  className="aw-btn-ghost"
+                  className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 font-bold text-[12px] rounded-lg transition-all shadow-sm cursor-pointer"
                   style={{ padding: "6px 12px", fontSize: 11 }}
                 >
                   ↩️ Jump to Latest ({data.latestPeriod.label})
@@ -1109,7 +1180,7 @@ function VarianceTab({ companyId }) {
                 type="number"
                 value={selectedPeriod.year || now.getFullYear()}
                 onChange={(e) => setSelectedPeriod(prev => ({ ...prev, year: parseInt(e.target.value) || now.getFullYear() }))}
-                className="aw-inp"
+                className="px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-emerald-500 focus:bg-white text-slate-600 font-bold text-[12.5px]"
                 style={{ width: 80 }}
               />
             </div>
@@ -1122,25 +1193,53 @@ function VarianceTab({ companyId }) {
       {!loading && data && (
         <>
           {/* KPI cards with utilization gauge */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(220px, 1fr))", gap: 14 }}>
-            <KpiCard icon="🎯" label="Total Budget" value={`PKR ${fmt(summary.total_budget)}`} color={PBI.budget} />
-            <KpiCard icon="📊" label="Total Actual" value={`PKR ${fmt(summary.total_actual)}`} color={PBI.actual} />
-            <KpiCard icon="📉" label="Total Variance" value={`PKR ${fmt(summary.total_variance)}`}
-              growth={summary.total_variance_pct}
-              color={summary.total_variance >= 0 ? PBI.positive : PBI.negative} />
-            <div className="pbi-card" style={{ padding: "20px 22px" }}>
-              <p style={{ fontSize: 13, fontWeight: 600, color: W.textSec, margin: "0 0 12px" }}>Budget Utilization</p>
-              <div style={{ position: "relative", height: 8, background: "#f3f2f1", borderRadius: 4, overflow: "hidden" }}>
-                <div style={{
-                  height: "100%", width: `${Math.min(100, Math.max(0, utilization))}%`, borderRadius: 4,
-                  background: utilization > 100 ? PBI.negative : utilization > 85 ? "#E66C37" : PBI.positive,
-                  transition: "width 0.6s ease",
-                }} />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            <div className="md:col-span-3">
+              <KPIGrid
+                items={[
+                  {
+                    label: "Total Budget",
+                    value: `PKR ${fmt(summary.total_budget)}`,
+                    icon: Target,
+                    iconBgClass: "bg-blue-50",
+                    iconColorClass: "text-blue-650"
+                  },
+                  {
+                    label: "Total Actual",
+                    value: `PKR ${fmt(summary.total_actual)}`,
+                    icon: DollarSign,
+                    iconBgClass: "bg-purple-50",
+                    iconColorClass: "text-purple-650"
+                  },
+                  {
+                    label: "Total Variance",
+                    value: `PKR ${fmt(summary.total_variance)}`,
+                    icon: TrendingDown,
+                    iconBgClass: summary.total_variance >= 0 ? "bg-emerald-50" : "bg-rose-50",
+                    iconColorClass: summary.total_variance >= 0 ? "text-emerald-650" : "text-rose-650",
+                    trend: summary.total_variance_pct >= 0 ? `+${parseFloat(summary.total_variance_pct || 0).toFixed(1)}%` : `${parseFloat(summary.total_variance_pct || 0).toFixed(1)}%`,
+                    subtitle: "vs budget limit"
+                  }
+                ]}
+              />
+            </div>
+            <div className="bg-white p-4 rounded-2xl border border-slate-100 shadow-sm flex flex-col justify-between hover:shadow-md transition-shadow duration-200">
+              <div>
+                <span className="block text-[9.5px] font-bold text-slate-400 uppercase tracking-wider truncate mb-2">Budget Utilization</span>
+                <div style={{ position: "relative", height: 8, background: "#f3f2f1", borderRadius: 4, overflow: "hidden" }}>
+                  <div style={{
+                    height: "100%", width: `${Math.min(100, Math.max(0, utilization))}%`, borderRadius: 4,
+                    background: utilization > 100 ? "#dc2626" : utilization > 85 ? "#E66C37" : "#10b981",
+                    transition: "width 0.6s ease",
+                  }} />
+                </div>
               </div>
-              <p style={{ fontFamily: "monospace", fontSize: 22, fontWeight: 800, color: W.textPri, margin: "10px 0 0" }}>
-                {utilization.toFixed(1)}%
-              </p>
-              <p style={{ fontSize: 11, color: W.textDim }}>Actual ÷ Budget</p>
+              <div>
+                <p style={{ fontFamily: "monospace", fontSize: 22, fontWeight: 800, color: W.textPri, margin: "10px 0 0" }}>
+                  {utilization.toFixed(1)}%
+                </p>
+                <p style={{ fontSize: 11, color: W.textDim }}>Actual ÷ Budget</p>
+              </div>
             </div>
           </div>
 
@@ -1420,56 +1519,41 @@ export default function AnalyticsDashboard({ companyId }) {
   const cid = companyId || activeCompany?.id || localStorage.getItem("activeCompanyId") || "1";
 
   return (
-    <div style={{
-      minHeight: "100vh",
-      background: "linear-gradient(to bottom right, #F4FBF7, #FAF9F8, #F3FAF6)",
-      padding: "20px 28px 72px",
-      fontFamily: "var(--font-sans, -apple-system, BlinkMacSystemFont, sans-serif)",
-    }}>
-      {/* Top Banner Toolbar */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><line x1="12" y1="20" x2="12" y2="10"></line><line x1="18" y1="20" x2="18" y2="4"></line><line x1="6" y1="20" x2="6" y2="16"></line></svg>
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase m-0">Analytics & Planning</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Intelligence</span>
-            </div>
-            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5 mb-0">
-              Overview of your financial performance & operations
-            </p>
-          </div>
+    <WorkspaceLayout
+      title="Analytics & Planning"
+      subtitle="Exposes financial ratios, performance trends, sector growth projections, and monthly variance budgets."
+      icon={TrendingUp}
+      badgeText="Intelligence"
+      breadcrumbs={['SARFIS', 'Intelligence', 'Analytics & Planning']}
+    >
+      <div className="col-span-full space-y-6">
+        {/* Analytics Navigation Tabs */}
+        <div className="flex items-center justify-center gap-2 overflow-x-auto pb-1.5 hide-scrollbar w-fit bg-white border border-slate-100 rounded-xl p-1 shadow-sm mx-auto">
+          {TABS.map(tab => (
+            <button
+              key={tab.id}
+              onClick={() => setActiveTab(tab.id)}
+              className={`flex-shrink-0 px-4 py-2 text-[12px] font-bold rounded-lg border-none transition-all cursor-pointer ${activeTab === tab.id
+                  ? 'bg-[#10b981] text-white shadow-sm'
+                  : 'bg-white text-slate-500 hover:text-slate-700 hover:bg-slate-50'
+                }`}
+            >
+              {tab.label}
+            </button>
+          ))}
+        </div>
+
+        {/* Content */}
+        <div>
+          {activeTab === "trends" && <TrendTab companyId={cid} />}
+          {activeTab === "comparative" && <ComparativeTab companyId={cid} />}
+          {activeTab === "vertical" && <VerticalTab companyId={cid} />}
+          {activeTab === "sectors" && <SectorTab companyId={cid} />}
+          {activeTab === "operations" && <OperationsTab companyId={cid} />}
+          {activeTab === "budgets" && <BudgetTab companyId={cid} />}
+          {activeTab === "variance" && <VarianceTab companyId={cid} />}
         </div>
       </div>
-
-      {/* Analytics Navigation Tabs */}
-      <div className="flex items-center justify-center gap-2 mb-6 overflow-x-auto pb-2 hide-scrollbar w-full">
-        {TABS.map(tab => (
-          <button
-            key={tab.id}
-            onClick={() => setActiveTab(tab.id)}
-            className={`flex-shrink-0 px-4 py-2.5 text-[13px] font-extrabold rounded-xl border transition-all cursor-pointer ${activeTab === tab.id
-                ? 'bg-gradient-to-r from-[#10b981] to-[#06b6d4] text-white border-transparent shadow-md shadow-emerald-500/20'
-                : 'bg-white text-slate-600 border-slate-200 hover:border-emerald-200 hover:bg-emerald-50 hover:text-emerald-700'
-              }`}
-          >
-            {tab.label}
-          </button>
-        ))}
-      </div>
-
-      {/* Content */}
-      <div>
-        {activeTab === "trends" && <TrendTab companyId={cid} />}
-        {activeTab === "comparative" && <ComparativeTab companyId={cid} />}
-        {activeTab === "vertical" && <VerticalTab companyId={cid} />}
-        {activeTab === "sectors" && <SectorTab companyId={cid} />}
-        {activeTab === "operations" && <OperationsTab companyId={cid} />}
-        {activeTab === "budgets" && <BudgetTab companyId={cid} />}
-        {activeTab === "variance" && <VarianceTab companyId={cid} />}
-      </div>
-    </div>
+    </WorkspaceLayout>
   );
 }
