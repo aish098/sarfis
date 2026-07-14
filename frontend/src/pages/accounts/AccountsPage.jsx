@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback } from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
-import { Plus, Search, Filter, Trash2, X, AlertCircle, Edit2, ChevronDown, Database, CheckCircle2, AlertTriangle } from 'lucide-react';
+import { Plus, Search, Filter, Trash2, X, AlertCircle, Edit2, ChevronDown, Database, CheckCircle2, AlertTriangle, Sliders } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
@@ -18,6 +19,7 @@ const row = {
 };
 
 export default function AccountsPage({ globalSearch = "" }) {
+  const navigate = useNavigate();
   const { activeCompany } = useAuthStore();
   const [accounts, setAccounts] = useState([]);
   const [isLoading, setIsLoading] = useState(true);
@@ -128,9 +130,20 @@ export default function AccountsPage({ globalSearch = "" }) {
         badgeText="Master Data"
         breadcrumbs={['SARFIS', 'Finance', 'Chart of Accounts']}
         primaryAction={
-          <button onClick={() => setModalOpen(true)} className="flex items-center gap-2 bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer border-none">
-            <Plus size={14} /> Add Account
-          </button>
+          <div className="flex items-center gap-3">
+            <button 
+              onClick={() => navigate('/dashboard/accounts/opening-balances')}
+              className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 px-4.5 py-2 text-[12.5px] font-bold rounded-xl transition cursor-pointer select-none"
+            >
+              <Sliders size={14} /> Opening Balances
+            </button>
+            <button 
+              onClick={() => setModalOpen(true)} 
+              className="flex items-center gap-2 bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer border-none"
+            >
+              <Plus size={14} /> Add Account
+            </button>
+          </div>
         }
         searchQuery={search}
         onSearchChange={setLocalSearch}

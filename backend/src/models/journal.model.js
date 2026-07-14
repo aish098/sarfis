@@ -47,6 +47,9 @@ class JournalModel {
         db.raw('COALESCE(SUM(jl.debit), 0) as total_amount')
       )
       .where('je.company_id', companyId)
+      .andWhere(function() {
+        this.where('je.type', 'NORMAL').orWhereNull('je.type');
+      })
       .groupBy('je.id', 'u.id', 'u.name')
       .orderBy('je.entry_date', 'desc');
   }
