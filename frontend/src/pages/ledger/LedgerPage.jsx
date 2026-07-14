@@ -158,18 +158,18 @@ export default function LedgerPage({ globalSearch = "" }) {
       </nav>
 
       {/* Top Banner Toolbar */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 mb-6 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4.5 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
-          {/* Sarfis Logo */}
+          {/* Logo */}
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <Zap size={18} className="text-white fill-white" />
+            <Zap size={18} className="text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">SARFIS</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">General Ledger</span>
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">General Ledger</h1>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Finance</span>
             </div>
-            <p className="text-[11.5px] font-semibold text-slate-500 mt-0.5 font-sans">Chronological transaction history & accounts audit logs</p>
+            <p className="text-[11px] font-semibold text-slate-500 mt-0.5 font-sans">Chronological transaction history & accounts audit logs</p>
           </div>
         </div>
         
@@ -178,7 +178,7 @@ export default function LedgerPage({ globalSearch = "" }) {
             whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
             onClick={exportPDF} 
             disabled={!selectedAcc || !ledgerData.entries.length}
-            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-40 disabled:pointer-events-none px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer uppercase tracking-wider"
+            className="flex items-center gap-1.5 bg-[#10b981] hover:bg-[#059669] text-white disabled:opacity-40 disabled:pointer-events-none px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer uppercase tracking-wider border-none outline-none"
           >
             <Download size={14} /> Export PDF Report
           </motion.button>

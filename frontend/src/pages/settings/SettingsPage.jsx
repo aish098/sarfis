@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import {
   Building2, Calculator, Palette, Globe, Settings, Mail,
   UploadCloud, ShieldCheck, Save, AlertTriangle, RefreshCw,
   Plus, Trash2, Download, Eye, Check, CheckSquare,
   FileSpreadsheet, Play, ArrowRight, Lock, Key, FileText,
-  User, Computer, Info, ArrowLeftRight, Bell, Calendar
+  User, Computer, Info, ArrowLeftRight, Bell, Calendar, ChevronRight
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -1184,25 +1184,37 @@ export default function SettingsPage() {
 
   return (
     <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6] space-y-6">
+      {/* Breadcrumbs */}
+      <nav className="flex items-center gap-1.5 text-[11.5px] text-slate-400 font-semibold no-print mb-3">
+        {['SARFIS', 'Admin', 'Settings'].map((crumb, idx) => (
+          <React.Fragment key={idx}>
+            {idx > 0 && <ChevronRight size={11} className="text-slate-350" />}
+            <span className={idx === 2 ? 'text-slate-650 font-bold' : ''}>
+              {crumb}
+            </span>
+          </React.Fragment>
+        ))}
+      </nav>
+
       {/* Top Banner Toolbar */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm mb-6">
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4.5 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <Settings size={18} className="text-white fill-white/20" />
+            <Settings size={18} className="text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Settings & Preferences</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">System Wide</span>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Settings</span>
             </div>
-            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5">
+            <p className="text-[11px] font-semibold text-slate-500 flex items-center gap-1.5 mt-0.5 font-sans">
               Manage configuration for {activeCompany?.name || 'your workspace'}. Role: {effectiveRole} ({canEdit ? 'Editable' : 'Read-only'})
             </p>
           </div>
         </div>
         
         <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap">
-          <button onClick={saveSettings} disabled={!canSave} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] disabled:opacity-50 text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer">
+          <button onClick={saveSettings} disabled={!canSave} className="flex items-center gap-2 bg-[#10b981] hover:bg-[#059669] disabled:opacity-50 text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer border-none outline-none">
             {saving ? <RefreshCw size={14} className="animate-spin" /> : <Save size={14} />}
             {saving ? 'Saving...' : 'Save Changes'}
           </button>

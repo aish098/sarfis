@@ -355,10 +355,10 @@ export default function EmailCenterPage() {
       </nav>
 
       {/* Top Header Banner */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4.5 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <Mail size={18} className="text-white fill-white/20" />
+            <Mail size={18} className="text-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
@@ -374,7 +374,7 @@ export default function EmailCenterPage() {
         <div className="flex items-center gap-4 mt-3 md:mt-0">
           <button
             onClick={() => setIsComposing(true)}
-            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md shadow-emerald-500/10 transition-all cursor-pointer flex items-center gap-1.5 text-xs uppercase tracking-wider"
+            className="px-4 py-2.5 bg-[#10b981] hover:bg-[#059669] text-white rounded-xl font-bold shadow-md transition-all cursor-pointer flex items-center gap-1.5 text-xs uppercase tracking-wider border-none outline-none"
           >
             <Send size={13} /> Compose Message
           </button>

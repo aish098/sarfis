@@ -227,7 +227,7 @@ export default function WorkflowConfigPage() {
       </nav>
 
       {/* Top Banner Toolbar */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
+      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4.5 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
             <Settings size={18} className="text-white" />
@@ -235,7 +235,7 @@ export default function WorkflowConfigPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Workflow Configurations</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">System Gates</span>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Configurations</span>
             </div>
             <p className="text-[11px] font-semibold text-slate-500 flex items-center mt-0.5 font-sans">
               Define role hierarchies, approval thresholds, conditions, and manager delegations.
