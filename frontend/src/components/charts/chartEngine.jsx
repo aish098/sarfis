@@ -108,18 +108,18 @@ export function computeChartLayout(categories = [], options = {}) {
   let tickInterval = 0;
   const topMargin = seriesCount >= 2 ? 52 : 24;
 
-  if (count > 24 || avgLen > 16) {
+  if (count > 20 || avgLen > 16) {
     rotation = -45;
     bottomMargin = Math.min(130, 44 + maxLen * 2.2);
     tickFontSize = 8;
     maxBarSize = Math.min(14, maxBarSize);
     tickInterval = count > 30 ? Math.max(0, Math.floor(count / 18)) : 0;
-  } else if (count > 14 || avgLen > 12) {
+  } else if (count > 10 || avgLen > 11) {
     rotation = -35;
     bottomMargin = Math.min(110, 40 + maxLen * 1.8);
     tickFontSize = 9;
     maxBarSize = Math.min(20, maxBarSize);
-  } else if (count > 7 || avgLen > 9) {
+  } else if (count > 5 || avgLen > 7) {
     rotation = -25;
     bottomMargin = Math.min(88, 36 + maxLen * 1.4);
     tickFontSize = 10;
