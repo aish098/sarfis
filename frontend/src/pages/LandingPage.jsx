@@ -3,6 +3,7 @@ import Navbar from '../components/Navbar';
 import Hero from '../components/Hero';
 import Features from '../components/Features';
 import InteractiveDemo from '../components/InteractiveDemo';
+import NextLevelFeatures from '../components/NextLevelFeatures';
 import HowItWorks from '../components/HowItWorks';
 import Pricing from '../components/Pricing';
 import AdvancedFeatures from '../components/AdvancedFeatures';
@@ -29,6 +30,7 @@ export default function LandingPage() {
 
       <Features />
       <InteractiveDemo />
+      <NextLevelFeatures />
       <HowItWorks />
       <Pricing />
       <AdvancedFeatures />
