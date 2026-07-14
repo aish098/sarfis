@@ -56,10 +56,10 @@ export default function NextLevelFeatures() {
         <div className="absolute top-1/3 left-1/4 w-[500px] h-[300px] rounded-full" style={{ background: 'radial-gradient(circle, rgba(6,182,212,0.03) 0%, transparent 70%)', filter: 'blur(90px)' }} />
       </div>
 
-      <div className="max-w-7xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-start">
+      <div className="max-w-7xl mx-auto relative z-10 grid grid-cols-1 lg:grid-cols-2 gap-16 items-stretch">
         
         {/* Left Side: Multi-Company Consolidation Dashboard Simulator */}
-        <div className="space-y-6">
+        <div className="flex flex-col h-full space-y-6">
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-semibold mb-5 uppercase tracking-wider"
               style={{ background: 'rgba(6,182,212,0.07)', borderColor: 'rgba(6,182,212,0.22)', color: '#67e8f9' }}>
@@ -75,71 +75,73 @@ export default function NextLevelFeatures() {
           </div>
 
           {/* Interactive Consolidation Simulator Panel */}
-          <div className="bg-[#050f21] border border-slate-800 rounded-3xl overflow-hidden shadow-2xl p-5 sm:p-6 space-y-5">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Subsidiaries</span>
-              <span className="text-[10px] text-cyan-400 bg-cyan-950/40 border border-cyan-800/30 px-2 py-0.5 rounded font-bold uppercase">Consolidation Mode</span>
-            </div>
+          <div className="bg-[#050f21] border border-slate-800 rounded-3xl overflow-hidden shadow-2xl p-5 sm:p-6 space-y-5 flex-1 flex flex-col justify-between">
+            <div>
+              <div className="flex items-center justify-between border-b border-slate-800 pb-3 mb-4">
+                <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Active Subsidiaries</span>
+                <span className="text-[10px] text-cyan-400 bg-cyan-950/40 border border-cyan-800/30 px-2 py-0.5 rounded font-bold uppercase">Consolidation Mode</span>
+              </div>
 
-            {/* Checkboxes */}
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-              {Object.keys(COMPANIES_DATA).map(key => (
-                <button
-                  key={key}
-                  onClick={() => toggleCompany(key)}
-                  className={`p-3 rounded-xl border text-left transition active:scale-95 cursor-pointer ${
-                    selectedCompanies[key]
-                      ? 'bg-cyan-950/20 border-cyan-500/30 text-white'
-                      : 'bg-slate-950/40 border-slate-850 text-slate-500'
-                  }`}
-                >
-                  <div className="text-[10px] font-bold uppercase tracking-wider mb-1">Company Entity</div>
-                  <div className="text-xs font-extrabold truncate">{COMPANIES_DATA[key].name}</div>
-                  <div className="mt-2 text-[10px] font-semibold text-slate-400">
-                    {selectedCompanies[key] ? '🟢 Combined' : '⚪ Excluded'}
+              {/* Checkboxes */}
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-4">
+                {Object.keys(COMPANIES_DATA).map(key => (
+                  <button
+                    key={key}
+                    onClick={() => toggleCompany(key)}
+                    className={`p-3 rounded-xl border text-left transition active:scale-95 cursor-pointer ${
+                      selectedCompanies[key]
+                        ? 'bg-cyan-950/20 border-cyan-500/30 text-white'
+                        : 'bg-slate-950/40 border-slate-850 text-slate-500'
+                    }`}
+                  >
+                    <div className="text-[10px] font-bold uppercase tracking-wider mb-1">Company Entity</div>
+                    <div className="text-xs font-extrabold truncate">{COMPANIES_DATA[key].name}</div>
+                    <div className="mt-2 text-[10px] font-semibold text-slate-400">
+                      {selectedCompanies[key] ? '🟢 Combined' : '⚪ Excluded'}
+                    </div>
+                  </button>
+                ))}
+              </div>
+
+              {/* Live Consolidated Ledger */}
+              <div className="border border-slate-850 rounded-2xl bg-black/40 overflow-hidden text-xs">
+                <div className="grid grid-cols-2 bg-slate-900/60 p-3 font-bold border-b border-slate-800 text-slate-400 text-[10.5px] uppercase tracking-wider">
+                  <span>Account Segment</span>
+                  <span className="text-right">Consolidated Balance</span>
+                </div>
+                <div className="p-3 space-y-2.5">
+                  <div className="flex justify-between border-b border-slate-900 pb-1.5">
+                    <span className="text-slate-400">1000 - Cash & Bank Balance</span>
+                    <span className="font-mono text-white font-semibold">PKR {consolidatedMetrics.cash.toLocaleString()}</span>
                   </div>
-                </button>
-              ))}
-            </div>
-
-            {/* Live Consolidated Ledger */}
-            <div className="border border-slate-850 rounded-2xl bg-black/40 overflow-hidden text-xs">
-              <div className="grid grid-cols-2 bg-slate-900/60 p-3 font-bold border-b border-slate-800 text-slate-400 text-[10.5px] uppercase tracking-wider">
-                <span>Account Segment</span>
-                <span className="text-right">Consolidated Balance</span>
-              </div>
-              <div className="p-3 space-y-2.5">
-                <div className="flex justify-between border-b border-slate-900 pb-1.5">
-                  <span className="text-slate-400">1000 - Cash & Bank Balance</span>
-                  <span className="font-mono text-white font-semibold">PKR {consolidatedMetrics.cash.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between border-b border-slate-900 pb-1.5">
-                  <span className="text-slate-400">1100 - Accounts Receivable</span>
-                  <span className="font-mono text-white font-semibold">PKR {consolidatedMetrics.ar.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between border-b border-slate-900 pb-1.5">
-                  <span className="text-slate-400">1500 - Plant & Equipment Assets</span>
-                  <span className="font-mono text-white font-semibold">PKR {consolidatedMetrics.assets.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between border-b border-slate-900 pb-1.5">
-                  <span className="text-slate-500 italic">Intercompany Elimination Adjustments</span>
-                  <span className="font-mono text-rose-400 font-bold">PKR {consolidatedMetrics.eliminations.toLocaleString()}</span>
-                </div>
-                <div className="flex justify-between pt-1.5 font-bold text-white text-[13px]">
-                  <span>Total Consolidated Capital Assets</span>
-                  <span className="font-mono text-cyan-400 font-black">PKR {totalConsolidatedAssets.toLocaleString()}</span>
+                  <div className="flex justify-between border-b border-slate-900 pb-1.5">
+                    <span className="text-slate-400">1100 - Accounts Receivable</span>
+                    <span className="font-mono text-white font-semibold">PKR {consolidatedMetrics.ar.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-900 pb-1.5">
+                    <span className="text-slate-400">1500 - Plant & Equipment Assets</span>
+                    <span className="font-mono text-white font-semibold">PKR {consolidatedMetrics.assets.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between border-b border-slate-900 pb-1.5">
+                    <span className="text-slate-500 italic">Intercompany Elimination Adjustments</span>
+                    <span className="font-mono text-rose-400 font-bold">PKR {consolidatedMetrics.eliminations.toLocaleString()}</span>
+                  </div>
+                  <div className="flex justify-between pt-1.5 font-bold text-white text-[13px]">
+                    <span>Total Consolidated Capital Assets</span>
+                    <span className="font-mono text-cyan-400 font-black">PKR {totalConsolidatedAssets.toLocaleString()}</span>
+                  </div>
                 </div>
               </div>
             </div>
 
-            <div className="p-3.5 bg-cyan-950/20 border border-cyan-500/20 rounded-2xl text-[11px] text-cyan-300 leading-relaxed font-semibold">
+            <div className="p-3.5 bg-cyan-950/20 border border-cyan-500/20 rounded-2xl text-[11.5px] text-cyan-300 leading-relaxed font-semibold mt-4">
               ℹ️ Intercompany balances are eliminated automatically on consolidation (IFRS 10 guidelines) to prevent double counting of asset valuation.
             </div>
           </div>
         </div>
 
         {/* Right Side: Enterprise Savings & ROI Calculator */}
-        <div className="space-y-6">
+        <div className="flex flex-col h-full space-y-6">
           <div>
             <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-semibold mb-5 uppercase tracking-wider"
               style={{ background: 'rgba(16,185,129,0.07)', borderColor: 'rgba(16,185,129,0.22)', color: '#6ee7b7' }}>
@@ -155,65 +157,66 @@ export default function NextLevelFeatures() {
           </div>
 
           {/* Interactive Calculator */}
-          <div className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl">
-            
-            {/* Sliders */}
-            <div className="space-y-5 text-xs">
-              <div>
-                <div className="flex justify-between text-slate-300 font-semibold mb-2">
-                  <span>Weekly Manual Accounting Hours</span>
-                  <span className="text-emerald-400 font-bold">{hoursSpent} Hours</span>
+          <div className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 sm:p-8 space-y-6 shadow-2xl flex-1 flex flex-col justify-between">
+            <div>
+              {/* Sliders */}
+              <div className="space-y-5 text-xs mb-6">
+                <div>
+                  <div className="flex justify-between text-slate-300 font-semibold mb-2">
+                    <span>Weekly Manual Accounting Hours</span>
+                    <span className="text-emerald-400 font-bold">{hoursSpent} Hours</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="5" 
+                    max="100" 
+                    className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                    value={hoursSpent}
+                    onChange={e => setHoursSpent(parseInt(e.target.value, 10))}
+                  />
                 </div>
-                <input 
-                  type="range" 
-                  min="5" 
-                  max="100" 
-                  className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                  value={hoursSpent}
-                  onChange={e => setHoursSpent(parseInt(e.target.value, 10))}
-                />
+
+                <div>
+                  <div className="flex justify-between text-slate-300 font-semibold mb-2">
+                    <span>Finance Employee Hourly Rate (Avg)</span>
+                    <span className="text-emerald-400 font-bold">PKR {hourlyRate.toLocaleString()} / hr</span>
+                  </div>
+                  <input 
+                    type="range" 
+                    min="500" 
+                    max="5000" 
+                    step="100"
+                    className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
+                    value={hourlyRate}
+                    onChange={e => setHourlyRate(parseInt(e.target.value, 10))}
+                  />
+                </div>
               </div>
 
-              <div>
-                <div className="flex justify-between text-slate-300 font-semibold mb-2">
-                  <span>Finance Employee Hourly Rate (Avg)</span>
-                  <span className="text-emerald-400 font-bold">PKR {hourlyRate.toLocaleString()} / hr</span>
+              {/* Results Cards */}
+              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800 text-xs">
+                <div className="p-4 bg-slate-950 border border-slate-850 rounded-2xl text-left">
+                  <div className="flex items-center gap-1.5 text-[9.5px] text-slate-400 font-bold uppercase tracking-wider mb-2">
+                    <Hourglass size={12} className="text-emerald-400" /> Time Reclaimed
+                  </div>
+                  <div className="text-2xl font-black text-white leading-none mb-1 font-mono">{hoursGained} hrs</div>
+                  <span className="text-[10px] text-slate-500">annualized time saved</span>
                 </div>
-                <input 
-                  type="range" 
-                  min="500" 
-                  max="5000" 
-                  step="100"
-                  className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-emerald-500"
-                  value={hourlyRate}
-                  onChange={e => setHourlyRate(parseInt(e.target.value, 10))}
-                />
-              </div>
-            </div>
 
-            {/* Results Cards */}
-            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-800 text-xs">
-              <div className="p-4 bg-slate-950 border border-slate-850 rounded-2xl text-left">
-                <div className="flex items-center gap-1.5 text-[9.5px] text-slate-400 font-bold uppercase tracking-wider mb-2">
-                  <Hourglass size={12} className="text-emerald-400" /> Time Reclaimed
+                <div className="p-4 bg-slate-950 border border-slate-850 rounded-2xl text-left">
+                  <div className="flex items-center gap-1.5 text-[9.5px] text-slate-400 font-bold uppercase tracking-wider mb-2">
+                    <DollarSign size={12} className="text-emerald-400" /> Cost Savings
+                  </div>
+                  <div className="text-2xl font-black text-emerald-400 leading-none mb-1 font-mono">
+                    PKR {Math.round(annualSavings / 1000)}K
+                  </div>
+                  <span className="text-[10px] text-slate-500">annualized cash saved</span>
                 </div>
-                <div className="text-2xl font-black text-white leading-none mb-1 font-mono">{hoursGained} hrs</div>
-                <span className="text-[10px] text-slate-500">annualized time saved</span>
-              </div>
-
-              <div className="p-4 bg-slate-950 border border-slate-850 rounded-2xl text-left">
-                <div className="flex items-center gap-1.5 text-[9.5px] text-slate-400 font-bold uppercase tracking-wider mb-2">
-                  <DollarSign size={12} className="text-emerald-400" /> Cost Savings
-                </div>
-                <div className="text-2xl font-black text-emerald-400 leading-none mb-1 font-mono">
-                  PKR {Math.round(annualSavings / 1000)}K
-                </div>
-                <span className="text-[10px] text-slate-500">annualized cash saved</span>
               </div>
             </div>
 
             {/* ROI badge info */}
-            <div className="p-4 bg-emerald-950/20 border border-emerald-500/20 rounded-2xl flex items-center gap-3 text-left">
+            <div className="p-4 bg-emerald-950/20 border border-emerald-500/20 rounded-2xl flex items-center gap-3 text-left mt-6">
               <div className="w-10 h-10 rounded-xl bg-emerald-500/10 flex items-center justify-center text-emerald-400 font-black font-mono text-xs">
                 80%
               </div>
