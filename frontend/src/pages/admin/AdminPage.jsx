@@ -177,7 +177,7 @@ export default function AdminPage() {
   const [sessions, setSessions] = useState([]);
   const [sessionSearch, setSessionSearch] = useState('');
   const [sessionFilter, setSessionFilter] = useState('all'); // 'all', 'active', 'terminated'
-  
+
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
   const [message, setMessage] = useState(null);
@@ -200,7 +200,7 @@ export default function AdminPage() {
   const [restoreFile, setRestoreFile] = useState(null);
   const [restorePreview, setRestorePreview] = useState(null);
   const [restoreConfirmInput, setRestoreConfirmInput] = useState('');
-  
+
   // Purge form
   const [purgePassword, setPurgePassword] = useState('');
   const [purgeConfirmName, setPurgeConfirmName] = useState('');
@@ -359,12 +359,12 @@ export default function AdminPage() {
         'January', 'February', 'March', 'April', 'May', 'June',
         'July', 'August', 'September', 'October', 'November', 'December'
       ];
-      
+
       for (let m = 0; m < 12; m++) {
         const periodName = `${monthNames[m]} ${currentYear}`;
         const startDate = new Date(currentYear, m, 1).toISOString().split('T')[0];
         const endDate = new Date(currentYear, m + 1, 0).toISOString().split('T')[0];
-        
+
         await api.post(`/periods/${activeCompanyId}`, {
           periodName,
           startDate,
@@ -591,7 +591,7 @@ export default function AdminPage() {
     try {
       const res = await api.get(`/admin/companies/${activeCompanyId}/members/${member.id}/permissions`, requestConfig);
       setUserPermissionDetails(res.data);
-      
+
       const initial = {};
       for (const o of res.data.overrides) {
         initial[o.permissionId] = {
@@ -676,7 +676,7 @@ export default function AdminPage() {
     try {
       const res = await api.get(`/admin/companies/${activeCompanyId}/members/${member.id}/permissions`, requestConfig);
       setUserPermissionDetails(res.data);
-      
+
       const initial = {};
       for (const o of res.data.overrides) {
         initial[o.permissionId] = {
@@ -760,10 +760,10 @@ export default function AdminPage() {
     try {
       await api.post(`/admin/companies/${activeCompanyId}/members/${userId}/permissions/${permissionId}/approve`, {}, requestConfig);
       setMessage({ type: 'success', text: 'Permission override approved successfully.' });
-      
+
       const res = await api.get(`/admin/companies/${activeCompanyId}/members/${userId}/permissions`, requestConfig);
       setUserPermissionDetails(res.data);
-      
+
       const initial = {};
       for (const o of res.data.overrides) {
         initial[o.permissionId] = {
@@ -807,7 +807,7 @@ export default function AdminPage() {
             </p>
           </div>
         </div>
-        
+
         <div className="flex items-center gap-4 mt-3 md:mt-0 flex-wrap">
           <button onClick={loadData} disabled={loading} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] disabled:opacity-50 text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer">
             <RefreshCw size={14} className={loading ? 'animate-spin' : ''} /> Force Sync
@@ -1211,13 +1211,12 @@ export default function AdminPage() {
                                       </div>
 
                                       {status !== 'default' && activeOverride?.status && (
-                                        <span className={`inline-flex px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${
-                                          activeOverride.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                                          activeOverride.status === 'EXPIRED' ? 'bg-red-50 text-red-700 border-red-100' :
-                                          activeOverride.status === 'REVOKED' ? 'bg-orange-50 text-orange-700 border-orange-100' :
-                                          activeOverride.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-100 font-extrabold animate-pulse' :
-                                          'bg-slate-100 text-slate-500 border-slate-200'
-                                        }`}>
+                                        <span className={`inline-flex px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${activeOverride.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                                            activeOverride.status === 'EXPIRED' ? 'bg-red-50 text-red-700 border-red-100' :
+                                              activeOverride.status === 'REVOKED' ? 'bg-orange-50 text-orange-700 border-orange-100' :
+                                                activeOverride.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-100 font-extrabold animate-pulse' :
+                                                  'bg-slate-100 text-slate-500 border-slate-200'
+                                          }`}>
                                           {activeOverride.status}
                                         </span>
                                       )}
@@ -1495,7 +1494,7 @@ export default function AdminPage() {
                         <div><span className="font-bold text-slate-400">Source Company:</span> <span className="text-slate-900 font-bold">{restorePreview.originalCompany}</span></div>
                         <div className="col-span-2"><span className="font-bold text-slate-400">Created:</span> <span className="text-slate-800">{new Date(restorePreview.timestamp).toLocaleString()}</span></div>
                       </div>
-                      
+
                       <div className="pt-2 border-t border-slate-200">
                         <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Record Count Statistics:</p>
                         <div className="grid grid-cols-3 gap-2 text-center">
@@ -1553,7 +1552,7 @@ export default function AdminPage() {
                   <p className="text-[12px] text-slate-500 leading-relaxed">
                     Permanently wipe all transactional logs (vouchers, stock movements, journal entries) and reset GL balances. Master definitions like accounts, products, and clients will remain intact.
                   </p>
-                  
+
                   <div className="rounded-lg bg-red-50/70 border border-red-100 p-3 space-y-2">
                     <h3 className="text-[11px] font-black text-red-900 uppercase">Actions Breakdown:</h3>
                     <ul className="text-[10px] text-red-800 list-disc pl-4 space-y-1 font-medium">
@@ -1571,7 +1570,7 @@ export default function AdminPage() {
                     <Field label="Confirm Company Name">
                       <Input value={purgeConfirmName} onChange={setPurgeConfirmName} placeholder={activeCompanyName} />
                     </Field>
-                    
+
                     {/* Confirmation Slider */}
                     <div className="flex items-center justify-between border rounded-lg p-2.5 bg-slate-50">
                       <span className="text-[11px] font-bold text-slate-500 uppercase">Unlock Safety Switch</span>
@@ -1805,7 +1804,7 @@ export default function AdminPage() {
 
                           const isDefaultAllowed = userPermissionDetails.rolePermissionIds.includes(dbPerm.id);
                           const activeOverride = localOverrides[dbPerm.id];
-                          
+
                           let status = 'default';
                           if (activeOverride && !activeOverride.isDeleted) {
                             status = activeOverride.isAllowed ? 'allow' : 'revoke';
@@ -1879,13 +1878,12 @@ export default function AdminPage() {
                                   </div>
 
                                   {status !== 'default' && activeOverride?.status && (
-                                    <span className={`inline-flex px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${
-                                      activeOverride.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                                      activeOverride.status === 'EXPIRED' ? 'bg-red-50 text-red-700 border-red-100' :
-                                      activeOverride.status === 'REVOKED' ? 'bg-orange-50 text-orange-700 border-orange-100' :
-                                      activeOverride.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-100 font-extrabold animate-pulse' :
-                                      'bg-slate-100 text-slate-500 border-slate-200'
-                                    }`}>
+                                    <span className={`inline-flex px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider border ${activeOverride.status === 'ACTIVE' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
+                                        activeOverride.status === 'EXPIRED' ? 'bg-red-50 text-red-700 border-red-100' :
+                                          activeOverride.status === 'REVOKED' ? 'bg-orange-50 text-orange-700 border-orange-100' :
+                                            activeOverride.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-100 font-extrabold animate-pulse' :
+                                              'bg-slate-100 text-slate-500 border-slate-200'
+                                      }`}>
                                       {activeOverride.status}
                                     </span>
                                   )}

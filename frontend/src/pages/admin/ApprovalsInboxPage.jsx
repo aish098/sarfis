@@ -7,6 +7,8 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import KPIGrid from '../../components/ui/KPIGrid';
+import ActivityFeed from '../../components/ui/ActivityFeed';
 
 export default function ApprovalsInboxPage() {
   const navigate = useNavigate();
@@ -133,6 +135,18 @@ export default function ApprovalsInboxPage() {
 
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
+      {/* Breadcrumbs */}
+      <nav className="flex items-center gap-1.5 text-[11.5px] text-slate-400 font-semibold no-print mb-3">
+        {['SARFIS', 'Admin', 'Approvals Inbox'].map((crumb, idx) => (
+          <React.Fragment key={idx}>
+            {idx > 0 && <ChevronRight size={11} className="text-slate-350" />}
+            <span className={idx === 2 ? 'text-slate-650 font-bold' : ''}>
+              {crumb}
+            </span>
+          </React.Fragment>
+        ))}
+      </nav>
+
       {/* Top Banner Toolbar */}
       <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
@@ -144,7 +158,7 @@ export default function ApprovalsInboxPage() {
               <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Approvals & Workflows</h1>
               <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Control Center</span>
             </div>
-            <p className="text-[11px] font-semibold text-slate-500 flex items-center mt-0.5">
+            <p className="text-[11px] font-semibold text-slate-500 flex items-center mt-0.5 font-sans">
               Review, approve, and track workflows, document states, and delegations.
             </p>
           </div>
@@ -157,25 +171,39 @@ export default function ApprovalsInboxPage() {
         </div>
       </div>
 
-      {/* Stats Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-4 gap-5">
-        <div className="bg-white p-5 border border-slate-100 rounded-2xl shadow-sm text-xs font-bold text-slate-400">
-          <p className="uppercase tracking-wider">Pending Approvals</p>
-          <p className="text-2xl font-black text-slate-800 mt-1 font-mono">{pendingApprovals.length}</p>
-        </div>
-        <div className="bg-white p-5 border border-slate-100 rounded-2xl shadow-sm text-xs font-bold text-slate-400">
-          <p className="uppercase tracking-wider">Active Delegations</p>
-          <p className="text-2xl font-black text-indigo-600 mt-1 font-mono">{stats.activeDelegations} Active</p>
-        </div>
-        <div className="bg-white p-5 border border-slate-100 rounded-2xl shadow-sm text-xs font-bold text-slate-400">
-          <p className="uppercase tracking-wider">Processed Today</p>
-          <p className="text-2xl font-black text-emerald-600 mt-1 font-mono">{stats.processedToday} Completed</p>
-        </div>
-        <div className="bg-white p-5 border border-slate-100 rounded-2xl shadow-sm text-xs font-bold text-slate-400">
-          <p className="uppercase tracking-wider">Average Approval Time</p>
-          <p className="text-2xl font-black text-slate-800 mt-1 font-mono">{stats.averageApprovalTime} Hours</p>
-        </div>
-      </div>
+      {/* KPI Stats Cards */}
+      <KPIGrid
+        items={[
+          {
+            label: 'Pending Approvals',
+            value: pendingApprovals.length.toString(),
+            icon: Inbox,
+            iconBgClass: 'bg-emerald-50',
+            iconColorClass: 'text-emerald-600'
+          },
+          {
+            label: 'Active Delegations',
+            value: `${stats.activeDelegations} Active`,
+            icon: Shield,
+            iconBgClass: 'bg-indigo-50',
+            iconColorClass: 'text-indigo-650'
+          },
+          {
+            label: 'Processed Today',
+            value: `${stats.processedToday} Completed`,
+            icon: CheckSquare,
+            iconBgClass: 'bg-emerald-50',
+            iconColorClass: 'text-emerald-700'
+          },
+          {
+            label: 'Average Approval Time',
+            value: `${stats.averageApprovalTime} Hours`,
+            icon: Clock,
+            iconBgClass: 'bg-slate-50',
+            iconColorClass: 'text-slate-600'
+          }
+        ]}
+      />
 
       {/* Tabs and Search */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
@@ -411,24 +439,22 @@ export default function ApprovalsInboxPage() {
                   {loadingTimeline ? (
                     <div className="text-slate-400 text-xs italic"><RefreshCw className="animate-spin inline mr-1" size={12} />Loading timeline...</div>
                   ) : (
-                    <div className="space-y-3.5 border-l border-slate-100 pl-4 py-1">
-                      {timeline.map((t, idx) => (
-                        <div key={t.id} className="relative text-xs">
-                          <span className={`absolute -left-[21.5px] top-0.5 w-3.5 h-3.5 rounded-full border bg-white flex items-center justify-center ${
-                            t.action === 'SUBMITTED' ? 'border-indigo-400 text-indigo-500' :
-                            t.action === 'APPROVED' ? 'border-emerald-400 text-emerald-500' :
-                            'border-rose-400 text-rose-500'
-                          }`}>
-                            <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                          </span>
-                          <div className="space-y-0.5">
-                            <p className="font-extrabold text-slate-800">{t.action} - {t.stage_name}</p>
-                            <p className="text-[10px] text-slate-400 font-semibold">By {t.actioned_name || 'System'} • {new Date(t.created_at).toLocaleTimeString()}</p>
-                            {t.comments && <p className="text-[11px] text-slate-500 italic mt-0.5">"{t.comments}"</p>}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
+                    <ActivityFeed
+                      events={timeline.map((t) => {
+                        let status = 'INFO';
+                        if (t.action === 'APPROVED') status = 'SUCCESS';
+                        if (t.action === 'REJECTED') status = 'ERROR';
+                        if (t.action === 'SUBMITTED') status = 'WARNING';
+                        
+                        return {
+                          title: `${t.action} - ${t.stage_name}`,
+                          user: t.actioned_name || 'System',
+                          time: new Date(t.created_at).toLocaleTimeString() + ' • ' + new Date(t.created_at).toLocaleDateString(),
+                          description: t.comments,
+                          status
+                        };
+                      })}
+                    />
                   )}
                 </div>
 

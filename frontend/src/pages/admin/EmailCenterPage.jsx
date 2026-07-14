@@ -1,8 +1,8 @@
-import { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef } from 'react';
 import { 
   Mail, RefreshCw, CheckCircle, Send, ShieldAlert,
   Trash2, RotateCcw, AlertTriangle, CheckCircle2, User,
-  FileSignature, CheckSquare, Sliders, Shield, Settings, Info
+  FileSignature, CheckSquare, Sliders, Shield, Settings, Info, ChevronRight
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -342,6 +342,18 @@ export default function EmailCenterPage() {
   return (
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       
+      {/* Breadcrumbs */}
+      <nav className="flex items-center gap-1.5 text-[11.5px] text-slate-400 font-semibold no-print mb-3">
+        {['SARFIS', 'Admin', 'Email Center'].map((crumb, idx) => (
+          <React.Fragment key={idx}>
+            {idx > 0 && <ChevronRight size={11} className="text-slate-350" />}
+            <span className={idx === 2 ? 'text-slate-650 font-bold' : ''}>
+              {crumb}
+            </span>
+          </React.Fragment>
+        ))}
+      </nav>
+
       {/* Top Header Banner */}
       <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
@@ -351,9 +363,9 @@ export default function EmailCenterPage() {
           <div>
             <div className="flex items-center gap-2">
               <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Enterprise Email Hub</h1>
-              <span className="text-[10px] font-extrabold uppercase bg-[#10b981]/15 text-[#064E3B] px-2 py-0.5 rounded-full border border-[#10b981]/20">Communications</span>
+              <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Communications</span>
             </div>
-            <p className="text-[11px] font-semibold text-slate-500 flex items-center mt-0.5">
+            <p className="text-[11px] font-semibold text-slate-500 flex items-center mt-0.5 font-sans">
               Manage communications, monitor background SMTP queues, and configure alerts.
             </p>
           </div>
@@ -362,7 +374,7 @@ export default function EmailCenterPage() {
         <div className="flex items-center gap-4 mt-3 md:mt-0">
           <button
             onClick={() => setIsComposing(true)}
-            className="px-4 py-2 bg-[#10b981] hover:bg-[#059669] text-white rounded-xl font-bold shadow-md shadow-emerald-500/10 transition-all cursor-pointer flex items-center gap-1.5 text-xs uppercase"
+            className="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold shadow-md shadow-emerald-500/10 transition-all cursor-pointer flex items-center gap-1.5 text-xs uppercase tracking-wider"
           >
             <Send size={13} /> Compose Message
           </button>

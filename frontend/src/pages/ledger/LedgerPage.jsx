@@ -1,10 +1,11 @@
-import { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { motion } from 'framer-motion';
-import { Search, Calendar, Download, RefreshCw, ChevronDown, FileText, Trash2, ArrowUpRight, ArrowDownRight, DollarSign, LayoutPanelLeft, Zap } from 'lucide-react';
+import { Search, Calendar, Download, RefreshCw, ChevronDown, FileText, Trash2, ArrowUpRight, ArrowDownRight, DollarSign, LayoutPanelLeft, Zap, ChevronRight } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import KPIGrid from '../../components/ui/KPIGrid';
 
 export default function LedgerPage({ globalSearch = "" }) {
   const { activeCompany } = useAuthStore();
@@ -144,6 +145,18 @@ export default function LedgerPage({ globalSearch = "" }) {
         }
       `}</style>
 
+      {/* Breadcrumbs */}
+      <nav className="flex items-center gap-1.5 text-[11.5px] text-slate-400 font-semibold no-print mb-3">
+        {['SARFIS', 'Finance', 'General Ledger'].map((crumb, idx) => (
+          <React.Fragment key={idx}>
+            {idx > 0 && <ChevronRight size={11} className="text-slate-350" />}
+            <span className={idx === 2 ? 'text-slate-650 font-bold' : ''}>
+              {crumb}
+            </span>
+          </React.Fragment>
+        ))}
+      </nav>
+
       {/* Top Banner Toolbar */}
       <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 mb-6 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
@@ -156,7 +169,7 @@ export default function LedgerPage({ globalSearch = "" }) {
               <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">SARFIS</h1>
               <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">General Ledger</span>
             </div>
-            <p className="text-[11.5px] font-semibold text-slate-500 mt-0.5">Chronological transaction history & accounts audit logs</p>
+            <p className="text-[11.5px] font-semibold text-slate-500 mt-0.5 font-sans">Chronological transaction history & accounts audit logs</p>
           </div>
         </div>
         
@@ -165,95 +178,87 @@ export default function LedgerPage({ globalSearch = "" }) {
             whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }}
             onClick={exportPDF} 
             disabled={!selectedAcc || !ledgerData.entries.length}
-            className="flex items-center gap-1.5 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white disabled:opacity-40 disabled:pointer-events-none px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer"
+            className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white disabled:opacity-40 disabled:pointer-events-none px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer uppercase tracking-wider"
           >
             <Download size={14} /> Export PDF Report
           </motion.button>
         </div>
       </div>
 
-      {/* Account Selector Card */}
-      <div className="card !rounded-2xl border border-slate-100 bg-white p-5 mb-5 shadow-sm" style={{ overflow: 'visible' }}>
-        <div className="flex flex-col xl:flex-row gap-6 xl:items-center justify-between">
-          <div className="flex-1 max-w-xl">
-            <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-2">Select Ledger Account</label>
-            <div className="relative">
-              <select value={selectedId} onChange={e => setSelectedId(e.target.value)}
-                className="w-full bg-white border-2 border-slate-100 rounded-xl px-10 text-[14px] text-slate-900 placeholder:text-slate-400 font-semibold transition-all outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 h-10 flex items-center pr-10 cursor-pointer appearance-none">
-                <option value="" disabled>— Select an account —</option>
-                {accounts.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
-              </select>
-              <FileText size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-              <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
-            </div>
-            {selectedAcc && (
-              <motion.div initial={{ opacity: 0 }} animate={{ opacity: 1 }} className="flex items-center gap-5 mt-4">
-                <div>
-                  <p className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider">Account Title</p>
-                  <p className="font-bold text-slate-800 text-[14px]">{selectedAcc.name}</p>
-                </div>
-                <div className="w-px h-8 bg-slate-200" />
-                <div>
-                  <p className="text-[9px] text-slate-400 font-extrabold uppercase tracking-wider">Code</p>
-                  <p className="font-mono font-bold text-[#064E3B] text-[13px]">{selectedAcc.code}</p>
-                </div>
-              </motion.div>
-            )}
+      {/* Select Account & Filters Grid */}
+      <div className="flex flex-col lg:flex-row gap-4 items-stretch bg-white p-5 rounded-2xl border border-slate-100 shadow-sm">
+        {/* Account Selector */}
+        <div className="flex-1 min-w-[280px]">
+          <div className="relative">
+            <select value={selectedId} onChange={e => setSelectedId(e.target.value)}
+              className="w-full bg-white border-2 border-slate-100 rounded-xl px-10 text-[13px] text-slate-900 placeholder:text-slate-400 font-semibold transition-all outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 h-10 flex items-center pr-10 cursor-pointer appearance-none">
+              <option value="" disabled>— Select Ledger Account —</option>
+              {accounts.map(a => <option key={a.id} value={a.id}>{a.code} — {a.name}</option>)}
+            </select>
+            <FileText size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+            <ChevronDown size={14} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
           </div>
-
-          {selectedAcc && !isLoading && (
-            <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }}
-              className="grid grid-cols-1 sm:grid-cols-3 gap-3 md:gap-4 mt-4 xl:mt-0">
-              {[
-                { icon: ArrowUpRight, label: 'Total Debits', value: fmt(ledgerData.totalDebits), color: '#059669', bg: '#EBFDF5', border: '#C2F3DC' },
-                { icon: ArrowDownRight, label: 'Total Credits', value: fmt(ledgerData.totalCredits), color: '#e11d48', bg: '#FFF1F2', border: '#FFE4E6' },
-                { icon: DollarSign, label: 'Balance', value: fmt(ledgerData.closingBalance), color: parseFloat(ledgerData.closingBalance) >= 0 ? '#059669' : '#e11d48', bg: parseFloat(ledgerData.closingBalance) >= 0 ? '#EBFDF5' : '#FFF1F2', border: parseFloat(ledgerData.closingBalance) >= 0 ? '#C2F3DC' : '#FFE4E6', big: true },
-              ].map(s => (
-                <div key={s.label} className="text-center px-4 py-3.5 rounded-2xl transition-all hover:shadow-sm" style={{ background: s.bg, border: `1.5px solid ${s.border}` }}>
-                  <p className="text-[9px] font-extrabold uppercase tracking-wider text-slate-500 mb-1 flex items-center justify-center gap-1">
-                    <s.icon size={11} style={{ color: s.color }} />
-                    {s.label}
-                  </p>
-                  <p className={`font-mono font-black ${s.big ? 'text-[17px]' : 'text-[15px]'}`} style={{ color: s.color }}>{s.value}</p>
-                </div>
-              ))}
-            </motion.div>
-          )}
         </div>
+
+        {/* Search */}
+        <div className="relative flex-1 min-w-[200px]">
+          <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+          <input 
+            className="w-full bg-white border-2 border-slate-100 rounded-xl pl-10 pr-4 text-[13px] text-slate-800 placeholder:text-slate-400 font-semibold outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 h-10"
+            placeholder="Search descriptions..."
+            value={localSearch} 
+            onChange={e => setLocalSearch(e.target.value)} 
+          />
+        </div>
+
+        {/* Date Filter */}
+        <div className="flex items-center gap-2 px-4 py-1.5 rounded-xl bg-white border-2 border-slate-100 shadow-sm focus-within:border-emerald-500/50 focus-within:ring-4 focus-within:ring-emerald-500/5 h-10 flex-shrink-0">
+          <Calendar size={14} className="text-slate-400 flex-shrink-0" />
+          <input type="date" className="text-[13px] text-slate-700 border-none outline-none bg-transparent font-semibold cursor-pointer" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
+          <span className="text-slate-350 font-bold">—</span>
+          <input type="date" className="text-[13px] text-slate-700 border-none outline-none bg-transparent font-semibold cursor-pointer" value={dateTo} onChange={e => setDateTo(e.target.value)} />
+        </div>
+
+        {/* Reset */}
+        <button 
+          onClick={() => { setLocalSearch(''); setDateFrom(''); setDateTo(''); }}
+          className="flex items-center justify-center gap-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 px-4 h-10 text-[12.5px] font-bold rounded-xl border border-slate-200 transition-all active:scale-95 cursor-pointer flex-shrink-0"
+        >
+          <RefreshCw size={14} /> Reset
+        </button>
       </div>
 
-      {/* Filter bar */}
-      <div className="card !rounded-2xl border border-slate-100 bg-white p-4 mb-5 shadow-sm">
-        <div className="flex flex-col md:flex-row gap-3">
-          <div className="relative flex-1">
-            <Search size={14} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
-            <input 
-              className="w-full bg-white border-2 border-slate-100 rounded-xl pl-10 pr-4 text-[13px] text-slate-800 placeholder:text-slate-400 font-semibold outline-none focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5"
-              style={{ height: '40px' }}
-              placeholder="Search descriptions or references..."
-              value={localSearch} 
-              onChange={e => setLocalSearch(e.target.value)} 
-            />
-          </div>
-          
-          <div className="flex flex-wrap items-center gap-2.5 px-4 py-2 rounded-xl bg-white border-2 border-slate-100 shadow-sm focus-within:border-emerald-500/50 focus-within:ring-4 focus-within:ring-emerald-500/5">
-            <Calendar size={14} className="text-slate-400 flex-shrink-0" />
-            <input type="date" className="text-[13px] text-slate-700 border-none outline-none bg-transparent font-semibold cursor-pointer" value={dateFrom} onChange={e => setDateFrom(e.target.value)} />
-            <span className="text-slate-300 font-bold">—</span>
-            <input type="date" className="text-[13px] text-slate-700 border-none outline-none bg-transparent font-semibold cursor-pointer" value={dateTo} onChange={e => setDateTo(e.target.value)} />
-          </div>
-          
-          <button 
-            onClick={() => { setLocalSearch(''); setDateFrom(''); setDateTo(''); }}
-            className="flex items-center justify-center gap-1.5 bg-slate-50 hover:bg-slate-100 text-slate-600 px-4 py-2 text-[12.5px] font-bold rounded-xl border border-slate-200 transition-all active:scale-95 cursor-pointer flex-shrink-0"
-          >
-            <RefreshCw size={14} /> Reset Filters
-          </button>
-        </div>
-      </div>
+      {/* Dynamic KPIs */}
+      {selectedAcc && !isLoading && (
+        <KPIGrid
+          items={[
+            {
+              label: 'Total Debits',
+              value: fmt(ledgerData.totalDebits),
+              icon: ArrowUpRight,
+              iconBgClass: 'bg-emerald-50',
+              iconColorClass: 'text-emerald-650'
+            },
+            {
+              label: 'Total Credits',
+              value: fmt(ledgerData.totalCredits),
+              icon: ArrowDownRight,
+              iconBgClass: 'bg-rose-50',
+              iconColorClass: 'text-rose-600'
+            },
+            {
+              label: 'Account Balance',
+              value: fmt(ledgerData.closingBalance),
+              icon: DollarSign,
+              iconBgClass: parseFloat(ledgerData.closingBalance) >= 0 ? 'bg-emerald-50' : 'bg-rose-50',
+              iconColorClass: parseFloat(ledgerData.closingBalance) >= 0 ? 'text-emerald-700' : 'text-rose-600'
+            }
+          ]}
+        />
+      )}
 
       {/* Ledger table */}
-      <div className="card !rounded-2xl border border-slate-100 bg-white" style={{ overflow: 'visible', minHeight: 400 }}>
+      <div className="bg-white rounded-2xl border border-slate-100 shadow-sm" style={{ overflow: 'visible', minHeight: 400 }}>
         {!selectedId ? (
           <div className="flex flex-col items-center justify-center py-28 text-center px-8">
             <div className="w-16 h-16 rounded-2xl flex items-center justify-center mb-4 bg-emerald-50 border border-emerald-100">
