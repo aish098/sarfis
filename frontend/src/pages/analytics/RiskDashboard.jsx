@@ -5,21 +5,10 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
+import StatusBadge from '../../components/ui/StatusBadge';
 
-const STATUS_BADGES = {
-  ACTIVE: 'bg-emerald-50 text-emerald-700 border-emerald-100',
-  WATCHLIST: 'bg-amber-50 text-amber-700 border-amber-100',
-  RESTRICTED: 'bg-orange-50 text-orange-700 border-orange-100',
-  BLACKLISTED: 'bg-red-50 text-red-700 border-red-100',
-  REINSTATED: 'bg-blue-50 text-blue-700 border-blue-100'
-};
 
-const RISK_LEVELS = {
-  LOW: 'bg-emerald-50 text-emerald-700',
-  MEDIUM: 'bg-amber-50 text-amber-700',
-  HIGH: 'bg-orange-50 text-orange-700',
-  CRITICAL: 'bg-red-50 text-red-700'
-};
 
 export default function RiskDashboard() {
   const { activeCompany } = useAuthStore();
@@ -362,49 +351,47 @@ export default function RiskDashboard() {
   }
 
   return (
-    <div className="space-y-6 font-sans">
-      
-      {/* Header Banner */}
-      <div className="bg-[#FFFBEB] border border-[#FDE68A] rounded-2xl p-4 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-amber-500 to-orange-500 flex items-center justify-center text-white shadow-md">
-            <ShieldAlert size={18} className="text-white" />
-          </div>
-          <div>
-            <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-amber-900 tracking-tight uppercase">
-              Credit Risk & Governance Dashboard
-            </h1>
-            <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
-              Monitor active customer defaults, collection recovery analytics, bad debts, and relationship reinstatements.
-            </p>
-          </div>
-        </div>
-      </div>
+    <WorkspaceLayout
+      title="Credit Risk & Governance"
+      subtitle="Monitor active customer defaults, collection recovery analytics, bad debts, and relationship reinstatements."
+      icon={ShieldAlert}
+      badgeText="Governance"
+      breadcrumbs={['SARFIS', 'Analytics', 'Credit Risk & Governance']}
+      primaryAction={
+        <button 
+          onClick={loadData} 
+          className="px-4 py-2 border border-slate-200 bg-white hover:bg-slate-50 text-slate-700 rounded-lg text-xs font-black transition-all flex items-center gap-1.5 shadow-sm cursor-pointer"
+        >
+          <History size={14} className="text-amber-500" /> Refresh Analytics
+        </button>
+      }
+    >
+      <div className="col-span-full space-y-6">
 
       {/* KPI Cards Grid */}
       {stats && (
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <div className="bg-white p-4 rounded-xl border border-slate-100 border-l-4 border-l-red-500 shadow-sm">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Partners at Risk</span>
             <span className="text-2xl font-black text-slate-800 font-mono">{stats.customersAtRisk}</span>
             <span className="text-[10.5px] font-semibold text-red-500 block mt-1">High / Critical Risk Levels</span>
           </div>
 
-          <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+          <div className="bg-white p-4 rounded-xl border border-slate-100 border-l-4 border-l-amber-500 shadow-sm">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Active Blacklists</span>
             <span className="text-2xl font-black text-slate-800 font-mono">{stats.blacklisted}</span>
             <span className="text-[10.5px] font-semibold text-slate-500 block mt-1">{stats.watchlist} on Watchlist</span>
           </div>
 
-          <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+          <div className="bg-white p-4 rounded-xl border border-slate-100 border-l-4 border-l-emerald-500 shadow-sm">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Recovered Debt</span>
             <span className="text-2xl font-black text-emerald-600 font-mono">PKR {stats.recoveredDebt.toLocaleString()}</span>
             <span className="text-[10.5px] font-semibold text-slate-500 block mt-1">From resolved risk incidents</span>
           </div>
 
-          <div className="bg-white p-4 rounded-xl border border-slate-100 shadow-sm">
+          <div className="bg-white p-4 rounded-xl border border-slate-100 border-l-4 border-l-rose-500 shadow-sm">
             <span className="text-[10px] font-bold uppercase tracking-wider text-slate-400 block mb-1">Outstanding Bad Debt</span>
-            <span className="text-2xl font-black text-red-600 font-mono">PKR {stats.outstandingBadDebt.toLocaleString()}</span>
+            <span className="text-2xl font-black text-rose-600 font-mono">PKR {stats.outstandingBadDebt.toLocaleString()}</span>
             <span className="text-[10.5px] font-semibold text-slate-500 block mt-1">Avg recovery: {stats.averageRecoveryTime} days</span>
           </div>
         </div>
@@ -421,7 +408,7 @@ export default function RiskDashboard() {
           { id: 'settings', label: 'Scoring Policy Settings' }
         ].map(tab => (
           <button key={tab.id} onClick={() => setActiveSubTab(tab.id)}
-            className={`px-4 py-1.5 text-[12px] font-bold rounded-lg transition-all ${activeSubTab === tab.id ? 'bg-amber-50 text-amber-700 shadow-sm' : 'text-slate-500 hover:text-slate-700'}`}>
+            className={`px-4 py-1.5 text-[12px] font-bold rounded-lg transition-all cursor-pointer border-none ${activeSubTab === tab.id ? 'bg-amber-600 text-white shadow-sm' : 'text-slate-500 hover:text-slate-700 hover:bg-slate-50'}`}>
             {tab.label}
           </button>
         ))}
@@ -468,11 +455,15 @@ export default function RiskDashboard() {
                       <div key={b.id} className="border border-slate-100 rounded-xl p-4 bg-slate-50 flex justify-between items-center">
                         <div>
                           <p className="text-[12.5px] font-bold text-slate-700">{b.partner_name} ({b.entity_type})</p>
-                          <span className={`inline-block text-[9px] font-black uppercase mt-1 px-2 py-0.5 rounded border ${STATUS_BADGES[b.status]}`}>{b.status}</span>
+                          <div className="mt-1">
+                            <StatusBadge status={b.status} />
+                          </div>
                         </div>
                         <div className="text-right">
                           <p className="text-[12px] font-black text-slate-800 font-mono">Score: {b.risk_score} pts</p>
-                          <p className={`text-[10px] font-bold ${RISK_LEVELS[b.risk_level]}`}>{b.risk_level} RISK</p>
+                          <div className="mt-0.5">
+                            <StatusBadge status={b.risk_level} />
+                          </div>
                         </div>
                       </div>
                     ))
@@ -508,10 +499,10 @@ export default function RiskDashboard() {
                       <td className="px-4 py-3 font-bold text-slate-800">{b.partner_name}</td>
                       <td className="px-4 py-3 font-semibold text-slate-500">{b.entity_type}</td>
                       <td className="px-4 py-3">
-                        <span className={`badge border text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${STATUS_BADGES[b.status]}`}>{b.status}</span>
+                        <StatusBadge status={b.status} />
                       </td>
                       <td className="px-4 py-3">
-                        <span className={`text-[10.5px] font-extrabold uppercase px-2 py-0.5 rounded ${RISK_LEVELS[b.risk_level]}`}>{b.risk_level}</span>
+                        <StatusBadge status={b.risk_level} />
                       </td>
                       <td className="px-4 py-3 font-mono font-bold text-slate-800">{b.risk_score} pts</td>
                       <td className="px-4 py-3 text-slate-500">
@@ -555,11 +546,7 @@ export default function RiskDashboard() {
                       <td className="px-4 py-3 font-mono font-bold text-red-600">PKR {parseFloat(i.loss_amount).toLocaleString()}</td>
                       <td className="px-4 py-3 font-mono font-bold text-emerald-600">PKR {parseFloat(i.recovered_amount).toLocaleString()}</td>
                       <td className="px-4 py-3">
-                        {i.resolved ? (
-                          <span className="text-[10px] font-bold bg-emerald-50 text-emerald-700 px-2 py-0.5 rounded border border-emerald-100">RESOLVED</span>
-                        ) : (
-                          <span className="text-[10px] font-bold bg-amber-50 text-amber-700 px-2 py-0.5 rounded border border-amber-100">UNRESOLVED</span>
-                        )}
+                        <StatusBadge status={i.resolved ? 'RESOLVED' : 'UNRESOLVED'} />
                       </td>
                       <td className="px-4 py-3 text-slate-500 font-medium truncate max-w-xs">{i.reason}</td>
                     </tr>
@@ -594,11 +581,7 @@ export default function RiskDashboard() {
                       <td className="px-4 py-3 font-bold text-slate-800">{r.partner_name} ({r.entity_type})</td>
                       <td className="px-4 py-3 text-slate-600 font-medium italic">"{r.reason}"</td>
                       <td className="px-4 py-3">
-                        <span className={`badge border text-[10px] font-extrabold uppercase px-2 py-0.5 rounded ${
-                          r.status === 'PENDING' ? 'bg-amber-50 text-amber-700 border-amber-100' :
-                          r.status === 'APPROVED' ? 'bg-emerald-50 text-emerald-700 border-emerald-100' :
-                          'bg-red-50 text-red-700 border-red-100'
-                        }`}>{r.status}</span>
+                        <StatusBadge status={r.status} />
                       </td>
                       <td className="px-4 py-3 text-slate-500">
                         {r.reviewer_name ? (
@@ -700,18 +683,18 @@ export default function RiskDashboard() {
             <div className="xl:col-span-3 space-y-6">
               
               {/* 1. Policy Header Card */}
-              <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-indigo-950 text-white rounded-2xl p-6 border border-slate-700 shadow-xl relative overflow-hidden">
-                <div className="absolute right-0 top-0 w-64 h-64 bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
+              <div className="bg-gradient-to-r from-slate-900 via-slate-800 to-amber-950 text-white rounded-2xl p-6 border border-slate-700 shadow-xl relative overflow-hidden">
+                <div className="absolute right-0 top-0 w-64 h-64 bg-amber-500/10 rounded-full blur-3xl pointer-events-none" />
                 <div className="relative flex flex-col md:flex-row md:items-center justify-between gap-4">
                   <div className="space-y-1.5">
-                    <span className="text-[10px] font-black uppercase tracking-widest text-indigo-400 bg-indigo-900/60 px-2.5 py-0.5 rounded-full border border-indigo-700">Enterprise Policy Control</span>
+                    <span className="text-[10px] font-black uppercase tracking-widest text-amber-400 bg-amber-900/60 px-2.5 py-0.5 rounded-full border border-amber-700">Enterprise Policy Control</span>
                     <h2 className="text-[18px] md:text-[20px] font-display font-extrabold tracking-tight uppercase">Credit Risk Scoring Policy</h2>
                     <p className="text-[12px] text-slate-300 font-medium">Policy Name: <span className="text-white font-bold">Default Company Policy</span></p>
                   </div>
                   <div className="grid grid-cols-3 gap-6 bg-slate-800/60 border border-slate-700/60 p-3 rounded-xl min-w-[280px]">
                     <div className="text-center">
                       <p className="text-[9px] font-bold text-slate-400 uppercase">Version</p>
-                      <p className="text-lg font-black text-indigo-400 font-mono mt-0.5">{policyHistory.length + 1}</p>
+                      <p className="text-lg font-black text-amber-400 font-mono mt-0.5">{policyHistory.length + 1}</p>
                     </div>
                     <div className="text-center border-x border-slate-700">
                       <p className="text-[9px] font-bold text-slate-400 uppercase">Status</p>
@@ -734,19 +717,19 @@ export default function RiskDashboard() {
               {/* 2. Sub Tab Navigation Buttons */}
               <div className="flex border-b border-slate-100 bg-slate-50/50 p-1 rounded-xl w-fit gap-1">
                 <button type="button" onClick={() => setSettingsSubTab('rules')}
-                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'rules' ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
+                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'rules' ? 'bg-white text-amber-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
                   <Sliders size={14} /> Incident Rules
                 </button>
                 <button type="button" onClick={() => setSettingsSubTab('thresholds')}
-                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'thresholds' ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
+                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'thresholds' ? 'bg-white text-amber-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
                   <Activity size={14} /> Thresholds Config
                 </button>
                 <button type="button" onClick={() => setSettingsSubTab('history')}
-                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'history' ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
+                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'history' ? 'bg-white text-amber-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
                   <History size={14} /> Audit History
                 </button>
                 <button type="button" onClick={() => setSettingsSubTab('preview')}
-                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'preview' ? 'bg-white text-indigo-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
+                  className={`px-4 py-1.5 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1.5 ${settingsSubTab === 'preview' ? 'bg-white text-amber-700 shadow-sm border border-slate-200/40' : 'text-slate-500 hover:text-slate-800'}`}>
                   <FileText size={14} /> Preview Impact
                 </button>
               </div>
@@ -829,14 +812,14 @@ export default function RiskDashboard() {
                                 </td>
                                 <td className="px-4 py-3">
                                   <span className={`badge border text-[10px] font-extrabold px-2 py-0.5 rounded ${
-                                    rule.rule_type === 'FORMULA' ? 'bg-indigo-50 text-indigo-700 border-indigo-100' : 'bg-slate-50 text-slate-600 border-slate-200'
+                                    rule.rule_type === 'FORMULA' ? 'bg-amber-50 text-amber-700 border-amber-100' : 'bg-slate-50 text-slate-600 border-slate-200'
                                   }`}>
                                     {rule.rule_type === 'FORMULA' ? 'Formula' : 'Static'}
                                   </span>
                                 </td>
                                 <td className="px-4 py-3 text-center">
                                   <input type="number" min="0" max="999"
-                                    className="border border-slate-200 rounded-lg w-16 p-1 text-center font-mono text-[12px] font-bold focus:ring-2 focus:ring-indigo-500 outline-none hover:bg-slate-50"
+                                    className="border border-slate-200 rounded-lg w-16 p-1 text-center font-mono text-[12px] font-bold focus:ring-2 focus:ring-amber-500 outline-none hover:bg-slate-50"
                                     value={rule.weight}
                                     onChange={e => {
                                       const val = parseInt(e.target.value) || 0;
@@ -1021,7 +1004,7 @@ export default function RiskDashboard() {
                                 <td className="px-4 py-3 font-mono text-[11px]">{new Date(hist.created_at).toLocaleString()}</td>
                                 <td className="px-4 py-3">
                                   <span className={`badge uppercase text-[10px] font-bold px-2 py-0.5 rounded ${
-                                    hist.policy_type === 'RULE_CHANGE' ? 'bg-indigo-50 text-indigo-700' : 'bg-teal-50 text-teal-700'
+                                    hist.policy_type === 'RULE_CHANGE' ? 'bg-amber-50 text-amber-700' : 'bg-teal-50 text-teal-700'
                                   }`}>{hist.policy_type}</span>
                                 </td>
                                 <td className="px-4 py-3 font-mono text-[11.5px] text-slate-500">{hist.old_value}</td>
@@ -1046,7 +1029,7 @@ export default function RiskDashboard() {
                         <p className="text-[11px] text-slate-500 font-semibold mt-0.5">Analyze the score variations and classification shifts for active relationships prior to saving changes.</p>
                       </div>
                       <button type="button" onClick={runImpactPreview} disabled={calculatingPreview}
-                        className="px-4 py-2 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-[12px] transition-all flex items-center gap-1.5 shadow-sm">
+                        className="px-4 py-2 rounded-lg bg-amber-600 hover:bg-amber-700 text-white font-bold text-[12px] transition-all flex items-center gap-1.5 shadow-sm">
                         {calculatingPreview ? 'Running Simulation...' : 'Run Preview Simulation'}
                       </button>
                     </div>
@@ -1066,9 +1049,9 @@ export default function RiskDashboard() {
                             <p className="text-[10px] font-bold text-slate-400 uppercase">Active Accounts Screened</p>
                             <p className="text-xl font-black text-slate-800 font-mono mt-1">{previewResults.totalChecked}</p>
                           </div>
-                          <div className="bg-indigo-50 border border-indigo-100 rounded-xl p-4 text-center">
-                            <p className="text-[10px] font-bold text-indigo-500 uppercase">Affected Relationships</p>
-                            <p className="text-xl font-black text-indigo-700 font-mono mt-1">{previewResults.affectedCount}</p>
+                          <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-center">
+                            <p className="text-[10px] font-bold text-amber-500 uppercase">Affected Relationships</p>
+                            <p className="text-xl font-black text-amber-700 font-mono mt-1">{previewResults.affectedCount}</p>
                           </div>
                           <div className="bg-amber-50 border border-amber-100 rounded-xl p-4 text-center">
                             <p className="text-[10px] font-bold text-amber-500 uppercase">Score Shift Rate</p>
@@ -1112,7 +1095,7 @@ export default function RiskDashboard() {
                                       </span>
                                     </td>
                                     <td className="px-4 py-3 text-center font-mono font-bold text-slate-400">{p.oldScore}</td>
-                                    <td className="px-4 py-3 text-center font-mono font-bold text-indigo-600">{p.newScore}</td>
+                                    <td className="px-4 py-3 text-center font-mono font-bold text-amber-600">{p.newScore}</td>
                                     <td className="px-4 py-3 text-right flex justify-end items-center gap-2 py-3.5">
                                       <span className={`badge text-[10px] font-bold px-2 py-0.5 rounded ${
                                         p.oldLevel === 'LOW' ? 'bg-emerald-50 text-emerald-700' :
@@ -1202,7 +1185,7 @@ export default function RiskDashboard() {
                     Reset to Defaults
                   </button>
                   <button type="button" onClick={handleValidatePolicy} disabled={saving}
-                    className="px-4 py-2 border border-slate-200 bg-white hover:bg-indigo-50 hover:text-indigo-700 text-slate-600 rounded-lg text-[12px] font-bold transition-all shadow-sm">
+                    className="px-4 py-2 border border-slate-200 bg-white hover:bg-amber-50 hover:text-amber-700 text-slate-600 rounded-lg text-[12px] font-bold transition-all shadow-sm">
                     Validate Policy
                   </button>
                 </div>
@@ -1266,7 +1249,7 @@ export default function RiskDashboard() {
                   </div>
                   <div className="flex justify-between border-t border-slate-50 pt-2 text-[13px]">
                     <span className="text-slate-800 font-bold">Policy Version</span>
-                    <span className="font-black text-indigo-600 font-mono">{policyHistory.length + 1}</span>
+                    <span className="font-black text-amber-600 font-mono">{policyHistory.length + 1}</span>
                   </div>
                 </div>
               </div>
@@ -1278,11 +1261,11 @@ export default function RiskDashboard() {
                 </h3>
                 {jobProgress !== null ? (
                   <div className="space-y-3">
-                    <div className="flex items-center gap-2 text-indigo-700 bg-indigo-50 border border-indigo-100 rounded-xl p-3">
-                      <div className="w-4 h-4 border-2 border-indigo-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                    <div className="flex items-center gap-2 text-amber-700 bg-amber-50 border border-amber-100 rounded-xl p-3">
+                      <div className="w-4 h-4 border-2 border-amber-600 border-t-transparent rounded-full animate-spin flex-shrink-0" />
                       <div className="text-[11.5px] font-bold">
                         <p>Recalculation in Progress...</p>
-                        <p className="text-[10px] text-indigo-400 font-medium mt-0.5">Updating partner credit terms...</p>
+                        <p className="text-[10px] text-amber-400 font-medium mt-0.5">Updating partner credit terms...</p>
                       </div>
                     </div>
                     <div className="space-y-1">
@@ -1291,7 +1274,7 @@ export default function RiskDashboard() {
                         <span>{jobProgress}%</span>
                       </div>
                       <div className="w-full bg-slate-100 h-2 rounded-full overflow-hidden border border-slate-200/50">
-                        <div className="bg-indigo-600 h-full transition-all duration-300" style={{ width: `${jobProgress}%` }} />
+                        <div className="bg-amber-600 h-full transition-all duration-300" style={{ width: `${jobProgress}%` }} />
                       </div>
                     </div>
                   </div>
@@ -1417,6 +1400,7 @@ export default function RiskDashboard() {
         </div>
       )}
 
-    </div>
+      </div>
+    </WorkspaceLayout>
   );
 }
