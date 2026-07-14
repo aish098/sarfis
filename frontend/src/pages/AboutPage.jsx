@@ -1,6 +1,9 @@
 import { motion as Motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { Target, Eye, Zap, BarChart3, Library, BrainCircuit, CheckCircle2 } from 'lucide-react';
+import { 
+  Target, Eye, Zap, BarChart3, Library, BrainCircuit, CheckCircle2,
+  BookOpen, Sliders, Wallet, TrendingUp, Package, ShieldCheck, Briefcase
+} from 'lucide-react';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
@@ -12,10 +15,14 @@ const stats = [
 ];
 
 const capabilities = [
-  { icon: Zap, title: 'Automated Accounting Cycle', desc: 'Instantly post journals to ledgers with zero manual effort.', color: '#10b981' },
-  { icon: BarChart3, title: 'Real-time Financial Reports', desc: 'Generate live P&L, balance sheets, and cash flow statements.', color: '#06b6d4' },
-  { icon: Library, title: 'Multi-company Management', desc: 'Handle unlimited entities with strict data isolation.', color: '#8b5cf6' },
-  { icon: BrainCircuit, title: 'AI-driven Forecasting', desc: 'Predict cash flow and revenue using machine learning models.', color: '#f59e0b' },
+  { icon: BookOpen, title: 'General Ledger & Core Accounting', desc: 'Double-entry journal postings, closing cycles, and opening balance migrations with strict audit trails.', color: '#06b6d4' },
+  { icon: Sliders, title: 'Accounts Payable & Receivable', desc: 'Supplier matching, customer invoicing, settlement vouchers, and real-time aging summaries.', color: '#10b981' },
+  { icon: Wallet, title: 'Budgeting & Control Thresholds', desc: 'Allocate department budgets, toggle blocking/warning control levels, and track variances.', color: '#f59e0b' },
+  { icon: TrendingUp, title: 'Fixed Assets & Depreciation', desc: 'Category Registers for IT equipment and buildings with automated Straight-Line schedules.', color: '#8b5cf6' },
+  { icon: Package, title: 'Inventory & Warehousing', desc: 'Real-time quantities, requisitions, GRNs, delivery matching, and warehouse logs.', color: '#3b82f6' },
+  { icon: ShieldCheck, title: 'Credit Risk Analytics', desc: 'Entity watchlists, risk scoring, cash-only blocks, and compliance registers.', color: '#ef4444' },
+  { icon: Briefcase, title: 'Integrated Payroll Engine', desc: 'Manage employees, define custom salary calculations, and post direct payslip journals.', color: '#ec4899' },
+  { icon: BarChart3, title: 'Business Intelligence Analytics', desc: 'Executive dashboarding including Period Combo trends, Waterfall change bridges, and custom accents.', color: '#06b6d4' },
 ];
 
 const whyPoints = [
