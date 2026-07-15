@@ -558,7 +558,7 @@ export default function LeadershipPage() {
           </div>
         </section>
 
-        {/* SECTION 3 — Strategic Management & Core Development */}
+        {/* SECTION 3 — Core Team Members */}
         <section className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900">
           <div className="text-center mb-12">
             <motion.h2 
@@ -569,7 +569,7 @@ export default function LeadershipPage() {
               className="text-2xl sm:text-3xl font-black text-white" 
               style={{ fontFamily: "'Sora', system-ui, sans-serif" }}
             >
-              Strategic Management & Core Development Team
+              Core Team Members
             </motion.h2>
             <AnimatedDivider />
           </div>
@@ -636,19 +636,6 @@ export default function LeadershipPage() {
 
         {/* SECTION 4 — DevOps, Finance & Operations */}
         <section className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900">
-          <div className="text-center mb-12">
-            <motion.h2 
-              initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="text-2xl sm:text-3xl font-black text-white" 
-              style={{ fontFamily: "'Sora', system-ui, sans-serif" }}
-            >
-              DevOps, Finance & Operations
-            </motion.h2>
-            <AnimatedDivider />
-          </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
             
