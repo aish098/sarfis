@@ -52,6 +52,42 @@ function AnimatedCounter({ value, suffix = "" }) {
   return <span ref={ref}>{count}{suffix}</span>;
 }
 
+function Typewriter({ text, delay = 50, startDelay = 200 }) {
+  const [displayText, setDisplayText] = useState('');
+  const [started, setStarted] = useState(false);
+
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      setStarted(true);
+    }, startDelay);
+    return () => clearTimeout(timer);
+  }, [startDelay]);
+
+  useEffect(() => {
+    if (!started || !text) return;
+    setDisplayText('');
+    let i = 0;
+    const interval = setInterval(() => {
+      if (i < text.length) {
+        setDisplayText((prev) => prev + text.charAt(i));
+        i++;
+      } else {
+        clearInterval(interval);
+      }
+    }, delay);
+    return () => clearInterval(interval);
+  }, [text, delay, started]);
+
+  return (
+    <span>
+      {displayText}
+      {displayText.length < text.length && (
+        <span className="animate-ping ml-0.5 text-emerald-450 font-light">|</span>
+      )}
+    </span>
+  );
+}
+
 const CATEGORIES = [
   'All',
   'Getting Started',
@@ -191,17 +227,42 @@ export default function TutorialPage() {
             Official Learning Center
           </Motion.div>
 
-          <Motion.h1 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.15, ease: "easeOut" }}
-            className="text-4xl sm:text-6xl font-black tracking-tight leading-tight mb-4" 
-            style={{ fontFamily: "'Sora', system-ui, sans-serif" }}
-          >
-            <span className="bg-gradient-to-r from-white via-white to-emerald-400 bg-clip-text text-transparent">
-              {data.page_title}
-            </span>
-          </Motion.h1>
+          {(() => {
+            const titleText = data.page_title || 'Training & Tutorial Center';
+            const titleParts = titleText.split(' ');
+            let firstPart = 'Training &';
+            let secondPart = 'Tutorial Center';
+            
+            if (titleParts.length > 1) {
+              const halfIndex = Math.ceil(titleParts.length / 2);
+              firstPart = titleParts.slice(0, halfIndex).join(' ');
+              secondPart = titleParts.slice(halfIndex).join(' ');
+            }
+
+            return (
+              <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight mb-4 flex flex-wrap justify-center gap-x-4 gap-y-2" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
+                <Motion.span
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+                  className="text-white"
+                >
+                  {firstPart}
+                </Motion.span>
+                <span className="relative inline-block overflow-hidden">
+                  <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+                    {secondPart}
+                  </span>
+                  <Motion.span
+                    initial={{ x: "0%" }}
+                    animate={{ x: "100%" }}
+                    transition={{ delay: 0.25, duration: 0.6, ease: "easeOut" }}
+                    className="absolute inset-y-0 left-0 right-0 bg-[#030b1a] z-10"
+                  />
+                </span>
+              </h1>
+            );
+          })()}
 
           <Motion.p 
             initial={{ opacity: 0, y: 15 }}
