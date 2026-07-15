@@ -411,7 +411,7 @@ export default function LeadershipPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
           {/* Card 1: Prof. Saad */}
-          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)]">
+          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)] h-full">
             <div className="space-y-4">
               <div className="flex gap-4 items-start flex-wrap sm:flex-nowrap">
                 <ExecutiveAvatar 
@@ -460,7 +460,7 @@ export default function LeadershipPage() {
           </div>
 
           {/* Card 2: Prof. Rehan */}
-          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)]">
+          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)] h-full">
             <div className="space-y-4">
               <div className="flex gap-4 items-start flex-wrap sm:flex-nowrap">
                 <ExecutiveAvatar 
@@ -536,7 +536,7 @@ export default function LeadershipPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
           {/* Left Card: Ayesha */}
-          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)]">
+          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)] h-full flex flex-col justify-between">
             <div className="flex gap-4 items-start">
               <ExecutiveAvatar 
                 initials="AK" 
@@ -555,7 +555,7 @@ export default function LeadershipPage() {
             </div>
 
             {/* Responsibilities */}
-            <div className="space-y-3">
+            <div className="space-y-3 mt-6">
               <div>
                 <span className="text-[9.5px] uppercase font-bold text-slate-500 block mb-1">Core Expertise</span>
                 <div className="flex flex-wrap gap-1.5">
@@ -575,7 +575,7 @@ export default function LeadershipPage() {
           </div>
 
           {/* Right Card: Syed Ansar */}
-          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)]">
+          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)] h-full flex flex-col justify-between">
             <div className="flex gap-4 items-start">
               <ExecutiveAvatar 
                 initials="SA" 
@@ -594,7 +594,7 @@ export default function LeadershipPage() {
             </div>
 
             {/* Responsibilities */}
-            <div className="space-y-3">
+            <div className="space-y-3 mt-6">
               <div>
                 <span className="text-[9.5px] uppercase font-bold text-slate-500 block mb-1">Key Responsibilities</span>
                 <div className="flex flex-wrap gap-1.5">
