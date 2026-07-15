@@ -72,20 +72,14 @@ export default function Footer() {
         <div className="grid grid-cols-2 md:grid-cols-5 gap-10 pb-14 border-b" style={{ borderColor: 'rgba(255,255,255,0.05)' }}>
           {/* Brand */}
           <div className="col-span-2">
-            <Link to="/" className="flex items-center gap-2.5 mb-5 group w-fit">
+            <Link to="/" className="flex items-center mb-5 group w-fit">
               <motion.img
-                whileHover={{ rotate: 8, scale: 1.05 }}
+                whileHover={{ rotate: 4, scale: 1.05 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 15 }}
                 src={logoImg}
-                alt="ACCOUNTELLENCE Logo"
-                className="w-8 h-8 object-contain rounded-lg flex-shrink-0 bg-transparent"
+                alt="Accountellence"
+                className="h-10 md:h-12 w-auto object-contain rounded-lg flex-shrink-0 bg-transparent"
               />
-              <span
-                className="text-[17px] font-black text-white uppercase"
-                style={{ fontFamily: "'Sora', 'DM Sans', system-ui, sans-serif" }}
-              >
-                ACCOUNTELLENCE
-              </span>
             </Link>
             <p className="text-slate-500 text-sm leading-relaxed mb-5 max-w-[240px]">
               Smart Cloud Accounting & Financial Intelligence System built for modern enterprise finance teams.

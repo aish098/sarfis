@@ -47,25 +47,19 @@ export default function Sidebar({ collapsed, onToggle }) {
       className={`sidebar fixed top-0 left-0 h-screen flex flex-col z-50 ${collapsed ? 'collapsed' : ''}`}
     >
       {/* Branding */}
-      <div className="sidebar-logo flex items-center gap-3">
+      <div className="sidebar-logo flex items-center justify-center w-full py-1">
         {settings?.logoUrl ? (
           <img
             src={settings.logoUrl.startsWith('http') ? settings.logoUrl : `${import.meta.env.PROD ? window.location.origin : 'http://localhost:5001'}${settings.logoUrl}`}
-            alt="Logo"
-            className="w-8 h-8 object-contain rounded-lg flex-shrink-0 bg-white p-0.5"
+            alt="Accountellence"
+            className={`object-contain rounded-lg flex-shrink-0 bg-white p-0.5 transition-all duration-300 ${collapsed ? 'h-10 w-auto' : 'h-12 w-auto'}`}
           />
         ) : (
           <img
             src={logoImg}
-            alt="ACCOUNTELLENCE Logo"
-            className="w-8 h-8 object-contain rounded-lg flex-shrink-0 bg-transparent"
+            alt="Accountellence"
+            className={`object-contain rounded-lg flex-shrink-0 bg-transparent transition-all duration-300 ${collapsed ? 'h-10 w-auto' : 'h-12 w-auto'}`}
           />
-        )}
-        {!collapsed && (
-          <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="font-display font-black text-white text-[18px] tracking-tight uppercase">
-            ACCOUNTELLENCE
-          </motion.span>
         )}
       </div>
 

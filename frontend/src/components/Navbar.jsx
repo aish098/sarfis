@@ -49,20 +49,14 @@ export default function Navbar() {
               animate={{ opacity: 1, y: 0 }}
               transition={{ delay: 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             >
-              <Link to="/" className="flex items-center gap-2.5 group">
+              <Link to="/" className="flex items-center group">
                 <Motion.img
-                  whileHover={{ rotate: 8, scale: 1.08 }}
+                  whileHover={{ rotate: 4, scale: 1.05 }}
                   transition={{ type: 'spring', stiffness: 500, damping: 18 }}
                   src={logoImg}
-                  alt="ACCOUNTELLENCE Logo"
-                  className="w-8 h-8 object-contain rounded-lg flex-shrink-0"
+                  alt="Accountellence"
+                  className="h-10 md:h-12 w-auto object-contain rounded-lg flex-shrink-0"
                 />
-                <span
-                  className="text-[17px] font-black text-white tracking-tight uppercase"
-                  style={{ fontFamily: "'Sora', 'DM Sans', system-ui, sans-serif" }}
-                >
-                  ACCOUNTELLENCE
-                </span>
               </Link>
             </Motion.div>
 

@@ -34,9 +34,8 @@ export function AuthLayout({ children, title, subtitle, showBackToHome = true })
         className="w-full max-w-[440px] relative z-10"
       >
         <div className="text-center mb-10">
-          <Link to="/" className="inline-flex items-center gap-2 mb-6 group">
-            <img src={logoImg} className="w-10 h-10 object-contain rounded-xl border border-white/10 transition-transform duration-300 group-hover:scale-105 bg-transparent" alt="ACCOUNTELLENCE Logo" />
-            <span className="text-2xl font-black text-white uppercase" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>ACCOUNTELLENCE</span>
+          <Link to="/" className="inline-flex items-center mb-6 group">
+            <img src={logoImg} className="h-16 md:h-20 w-auto object-contain transition-transform duration-300 group-hover:scale-105 bg-transparent" alt="Accountellence" />
           </Link>
           
           <h2 className="text-3xl font-black text-white tracking-tight leading-snug mb-3" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
