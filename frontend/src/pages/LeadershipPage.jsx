@@ -725,7 +725,7 @@ export default function LeadershipPage() {
             variants={scaleCenterVariants}
             className="group bg-[#050f21] border border-emerald-500/20 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl shadow-emerald-500/2 cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-400/40 hover:shadow-[0_20px_40px_-15px_rgba(52,211,153,0.08)] w-full"
           >
-            <div className="flex flex-col sm:flex-row gap-6 items-start">
+            <div className="flex flex-col md:flex-row gap-6 items-start">
               <ExecutiveAvatar 
                 initials="FK" 
                 src="/images/leadership/farhan.jpg" 
@@ -734,18 +734,40 @@ export default function LeadershipPage() {
                 glowColor="rgba(52,211,153,0.15)"
                 objectPosition="top"
               />
-              <div className="flex-1 space-y-3 text-center sm:text-left">
+              <div className="flex-1 space-y-4">
                 <div>
                   <h3 className="text-xl sm:text-2xl font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Farhan Ahmed Khokhar</h3>
-                  <div className="mt-2 flex flex-wrap gap-2 justify-center sm:justify-start">
+                  <div className="mt-2 flex flex-wrap gap-2">
                     <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
-                      Advocate High Court
-                    </span>
-                    <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
-                      Tax & Corporate Law Advisor
+                      Advocate High Court & Legal Advisor
                     </span>
                   </div>
                 </div>
+
+                {/* Highlights Bullet Points */}
+                <ul className="space-y-1.5 text-xs text-slate-400 pt-2">
+                  {[
+                    "Legal Advisor",
+                    "Advocate High Court",
+                    "Tax & Corporate Law Advisor"
+                  ].map((item, idx) => (
+                    <li key={idx} className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 opacity-80" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+
+                {/* Metrics */}
+                <div className="pt-4 border-t border-slate-850 text-xs w-full max-w-xs">
+                  <div>
+                    <span className="text-[9.5px] uppercase font-bold text-slate-500 block">Experience</span>
+                    <span className="text-base font-black text-white font-mono">
+                      <AnimatedCounter value="11" suffix=" Years" />
+                    </span>
+                  </div>
+                </div>
+
               </div>
             </div>
           </motion.div>
