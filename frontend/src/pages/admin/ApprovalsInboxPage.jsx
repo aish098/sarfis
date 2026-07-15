@@ -92,6 +92,9 @@ export default function ApprovalsInboxPage() {
       } else if (item.document_type_code === 'PURCHASE_ORDER') {
         const { data } = await api.get(`/purchase-orders/${activeCompany.id}/${item.document_id}`);
         setDocPayload(data);
+      } else if (item.document_type_code === 'PURCHASE_REQUISITION') {
+        const { data } = await api.get(`/purchase-requisitions/${activeCompany.id}/${item.document_id}`);
+        setDocPayload(data);
       }
     } catch (err) {
       console.error(err);
@@ -403,6 +406,23 @@ export default function ApprovalsInboxPage() {
                             {docPayload.items?.map((item, idx) => (
                               <div key={idx} className="flex justify-between gap-2">
                                 <span className="truncate">{item.product_name} (x{parseFloat(item.quantity)})</span>
+                                <span className="font-mono font-bold shrink-0 text-slate-800">
+                                  PKR {fmt(item.line_total)}
+                                </span>
+                              </div>
+                            ))}
+                          </div>
+                        </>
+                      ) : selectedApproval.document_type_code === 'PURCHASE_REQUISITION' ? (
+                        <>
+                          <div className="flex justify-between"><span>Req Number:</span><span className="font-bold text-slate-800">{docPayload.requisition_number}</span></div>
+                          <div className="flex justify-between"><span>Department:</span><span className="font-bold text-slate-800">{docPayload.department}</span></div>
+                          <div className="flex justify-between"><span>Priority:</span><span className="font-bold text-slate-800">{docPayload.priority}</span></div>
+                          <div className="flex justify-between"><span>Date Required:</span><span className="font-bold text-slate-800">{new Date(docPayload.required_date).toLocaleDateString()}</span></div>
+                          <div className="border-t border-slate-200/50 pt-2 space-y-1">
+                            {docPayload.items?.map((item, idx) => (
+                              <div key={idx} className="flex justify-between gap-2">
+                                <span className="truncate">{item.product_name || item.description} (x{parseFloat(item.quantity)})</span>
                                 <span className="font-mono font-bold shrink-0 text-slate-800">
                                   PKR {fmt(item.line_total)}
                                 </span>

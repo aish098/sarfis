@@ -13,7 +13,10 @@ export default function WorkflowConfigPage() {
   const [activeTab, setActiveTab] = useState('workflows'); // 'workflows' | 'delegations'
   const [docTypes, setDocTypes] = useState([
     { code: 'VOUCHER', name: 'ERP Voucher Approvals' },
-    { code: 'JOURNAL', name: 'Manual Journal Approvals' }
+    { code: 'JOURNAL', name: 'Manual Journal Approvals' },
+    { code: 'PURCHASE_REQUISITION', name: 'Purchase Requisition Approvals' },
+    { code: 'PURCHASE_ORDER', name: 'Purchase Order Approvals' },
+    { code: 'BUDGET', name: 'Budget Plan Approvals' }
   ]);
   const [selectedDocCode, setSelectedDocCode] = useState('VOUCHER');
   const [definitions, setDefinitions] = useState([]);

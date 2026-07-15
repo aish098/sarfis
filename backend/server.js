@@ -107,6 +107,45 @@ async function startServer() {
         }
       }
       console.log('[Workflow Seed] Budget approval definition/stages verified for all companies');
+
+      // Auto-create purchase requisition workflow definitions & stages for all companies
+      for (const c of companies) {
+        let def = await db('workflow_definitions')
+          .where({ company_id: c.id, document_type_code: 'PURCHASE_REQUISITION' })
+          .first();
+        
+        let defId;
+        if (!def) {
+          const [inserted] = await db('workflow_definitions')
+            .insert({
+              company_id: c.id,
+              document_type_code: 'PURCHASE_REQUISITION',
+              name: 'Standard Purchase Requisition Approval Process',
+              is_active: true
+            })
+            .returning('id');
+          defId = typeof inserted === 'object' ? inserted.id : inserted;
+        } else {
+          defId = def.id;
+        }
+
+        const stageCount = await db('workflow_stages')
+          .where({ workflow_definition_id: defId })
+          .count('id as count')
+          .first();
+        
+        if (parseInt(stageCount.count || 0) === 0) {
+          await db('workflow_stages').insert({
+            workflow_definition_id: defId,
+            stage_sequence: 1,
+            name: 'Department Manager Requisition Review',
+            required_role: null,
+            required_permission: null,
+            approval_mode: 'SEQUENTIAL'
+          });
+        }
+      }
+      console.log('[Workflow Seed] Purchase Requisition approval definition/stages verified for all companies');
     } catch (error) {
       console.error('[Migrations] Migration failed:', error.message);
       console.error(error.stack);

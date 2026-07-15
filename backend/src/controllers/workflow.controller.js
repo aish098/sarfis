@@ -100,6 +100,10 @@ exports.getPendingApprovals = async (req, res) => {
           .first();
         docSummary = `Purchase Order ${po?.po_number || '#' + p.document_id}: ${po?.vendor_name || 'System Auto-PO'}`;
         amount = parseFloat(po?.total_amount || 0);
+      } else if (p.document_type_code === 'PURCHASE_REQUISITION') {
+        const pr = await db('purchase_requisitions').where({ id: p.document_id }).first();
+        docSummary = `Purchase Requisition ${pr?.requisition_number || '#' + p.document_id} (${pr?.department || 'Finance'})`;
+        amount = parseFloat(pr?.estimated_total || 0);
       }
       result.push({ ...p, docSummary, amount });
     }
