@@ -1013,7 +1013,7 @@ export default function LeadershipPage() {
             </h2>
             <div className="flex flex-wrap justify-center gap-4">
               <a 
-                href="/contact" 
+                href="/tutorial" 
                 className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-6 py-3 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/10 active:scale-[0.97] cursor-pointer"
               >
                 Request a Demo
