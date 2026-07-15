@@ -30,7 +30,8 @@ const STATUS_STYLE_MAP = {
   
   // Draft/Archives
   DRAFT: 'bg-slate-50 text-slate-600 border-slate-200',
-  CONVERTED: 'bg-slate-50 text-slate-600 border-slate-200'
+  CONVERTED: 'bg-slate-50 text-slate-600 border-slate-200',
+  CONVERTED_TO_PO: 'bg-slate-50 text-slate-600 border-slate-200'
 };
 
 const STATUS_INDICATORS = {
@@ -44,7 +45,8 @@ const STATUS_INDICATORS = {
   REJECTED: '🔴',
   CANCELLED: '🔴',
   DRAFT: '⚪',
-  CONVERTED: '⚪'
+  CONVERTED: '⚪',
+  CONVERTED_TO_PO: '⚪'
 };
 
 export default function RelatedDocuments({ documents = [], currentType }) {
@@ -202,7 +204,7 @@ export default function RelatedDocuments({ documents = [], currentType }) {
                       {indicator}
                     </span>
                     <span className={`text-[9.5px] font-extrabold uppercase tracking-wide px-1.5 py-0.5 rounded border ${statusClass}`}>
-                      {doc.status}
+                      {doc.status ? doc.status.replace(/_/g, ' ') : ''}
                     </span>
                   </div>
                   
