@@ -4,11 +4,16 @@ import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
 // Avatar component supporting passport-style rectangular photos with initials fallback
-function ExecutiveAvatar({ initials, src, size = "w-28 h-36", borderAccent = "border-emerald-500" }) {
+function ExecutiveAvatar({ initials, src, size = "w-28 h-36", borderAccent = "border-emerald-500", glowColor = "rgba(16,185,129,0.15)" }) {
   const [imageError, setImageError] = useState(false);
 
   return (
-    <div className={`relative flex items-center justify-center rounded-2xl bg-[#050f21] border-2 ${borderAccent} ${size} shadow-lg overflow-hidden transition-all duration-305 ease-out group-hover:border-emerald-400 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.15)] flex-shrink-0`}>
+    <div 
+      className={`relative flex items-center justify-center rounded-2xl bg-[#050f21] border-2 ${borderAccent} ${size} shadow-lg overflow-hidden transition-all duration-300 ease-out group-hover:border-white/40`}
+      style={{
+        boxShadow: `0 4px 12px rgba(0,0,0,0.1)`
+      }}
+    >
       {src && !imageError ? (
         <img 
           src={src} 
@@ -19,7 +24,13 @@ function ExecutiveAvatar({ initials, src, size = "w-28 h-36", borderAccent = "bo
       ) : (
         <span className="text-2xl font-bold text-white font-mono">{initials}</span>
       )}
-      <div className="absolute inset-0 rounded-2xl bg-emerald-500/5 blur-sm pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+      {/* Dynamic Glow Overlay matching section theme */}
+      <div 
+        className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        style={{
+          boxShadow: `inset 0 0 20px ${glowColor}, 0 0 20px ${glowColor}`
+        }}
+      />
     </div>
   );
 }
@@ -88,113 +99,9 @@ function AnimatedDivider() {
   );
 }
 
-// Stagger child elements inside PremiumCard
-const staggerItemVariants = {
-  hidden: { opacity: 0, y: 12 },
-  visible: { 
-    opacity: 1, 
-    y: 0, 
-    transition: { duration: 0.45, ease: "easeOut" } 
-  }
-};
-
-function StaggerChild({ children, className }) {
-  return (
-    <motion.div variants={staggerItemVariants} className={className}>
-      {children}
-    </motion.div>
-  );
-}
-
-// Premium Card Wrapper with coordinates-based spotlight tracking
-function PremiumCard({ children, className, index = 0, prefersReducedMotion = false }) {
-  const [coords, setCoords] = useState({ x: 0, y: 0 });
-  const [isHovered, setIsHovered] = useState(false);
-  const cardRef = useRef(null);
-
-  const handleMouseMove = (e) => {
-    if (!cardRef.current || prefersReducedMotion) return;
-    const rect = cardRef.current.getBoundingClientRect();
-    setCoords({
-      x: e.clientX - rect.left,
-      y: e.clientY - rect.top
-    });
-  };
-
-  const cardVariants = {
-    hidden: { 
-      opacity: 0, 
-      y: prefersReducedMotion ? 0 : 30, 
-      scale: prefersReducedMotion ? 1 : 0.98 
-    },
-    visible: { 
-      opacity: 1, 
-      y: 0, 
-      scale: 1,
-      transition: { 
-        duration: 0.65, 
-        ease: "easeOut",
-        delay: index * 0.1 // 100ms staggered loading between cards
-      }
-    }
-  };
-
-  const contentVariants = {
-    hidden: {},
-    visible: {
-      transition: {
-        staggerChildren: prefersReducedMotion ? 0 : 0.06 // 60ms stagger between child elements
-      }
-    }
-  };
-
-  return (
-    <motion.div
-      ref={cardRef}
-      initial="hidden"
-      whileInView="visible"
-      viewport={{ once: true, amount: 0.15 }}
-      variants={cardVariants}
-      onMouseMove={handleMouseMove}
-      onMouseEnter={() => setIsHovered(true)}
-      onMouseLeave={() => setIsHovered(false)}
-      className={`group bg-[#050f21] border border-slate-800 rounded-3xl p-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-500/30 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)] relative overflow-hidden ${className}`}
-    >
-      {/* Soft radial emerald highlight following cursor */}
-      {!prefersReducedMotion && (
-        <div 
-          className="absolute pointer-events-none rounded-full transition-opacity duration-300 z-10"
-          style={{
-            width: '300px',
-            height: '300px',
-            background: 'radial-gradient(circle, rgba(16,185,129,0.05) 0%, transparent 70%)',
-            left: `${coords.x - 150}px`,
-            top: `${coords.y - 150}px`,
-            opacity: isHovered ? 1 : 0
-          }}
-        />
-      )}
-      
-      <motion.div variants={contentVariants} className="w-full h-full flex flex-col justify-between relative z-20">
-        {children}
-      </motion.div>
-    </motion.div>
-  );
-}
-
 export default function LeadershipPage() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
-
-  // One-time scroll reveal configuration
-  const scrollVariants = {
-    hidden: { opacity: 0, y: prefersReducedMotion ? 0 : 30 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] }
-    }
-  };
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -212,6 +119,39 @@ export default function LeadershipPage() {
       const y = (clientY / window.innerHeight - 0.5) * 20;
       setMousePos({ x, y });
     }
+  };
+
+  // Distinct transitions config mapping
+  const slideUpVariants = {
+    hidden: { opacity: 0, y: prefersReducedMotion ? 0 : 35 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } }
+  };
+
+  const scrollVariants = slideUpVariants;
+
+  const slideLeftVariants = {
+    hidden: { opacity: 0, x: prefersReducedMotion ? 0 : -35 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } }
+  };
+
+  const slideRightVariants = {
+    hidden: { opacity: 0, x: prefersReducedMotion ? 0 : 35 },
+    visible: { opacity: 1, x: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } }
+  };
+
+  const scaleCenterVariants = {
+    hidden: { opacity: 0, scale: prefersReducedMotion ? 1 : 0.96 },
+    visible: { opacity: 1, scale: 1, transition: { duration: 0.75, ease: [0.22, 1, 0.36, 1] } }
+  };
+
+  const diagonalUpLeftVariants = {
+    hidden: { opacity: 0, x: prefersReducedMotion ? 0 : -20, y: prefersReducedMotion ? 0 : 20 },
+    visible: { opacity: 1, x: 0, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } }
+  };
+
+  const diagonalUpRightVariants = {
+    hidden: { opacity: 0, x: prefersReducedMotion ? 0 : 20, y: prefersReducedMotion ? 0 : 20 },
+    visible: { opacity: 1, x: 0, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } }
   };
 
   // Inject custom styles programmatically
@@ -383,28 +323,36 @@ export default function LeadershipPage() {
       </section>
 
       {/* SECTION 1 — CEO & FOUNDER (Hero Profile Card) */}
-      <section className="py-12 px-5 sm:px-8 max-w-5xl mx-auto">
-        <PremiumCard index={0} prefersReducedMotion={prefersReducedMotion} className="grid grid-cols-1 md:grid-cols-12 gap-8 items-center p-6 sm:p-10">
+      <motion.section 
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.15 }}
+        variants={slideUpVariants}
+        className="py-12 px-5 sm:px-8 max-w-5xl mx-auto"
+      >
+        {/* CEO Theme: Emerald Elite Glow on Hover */}
+        <div className="group bg-[#050f21] border border-slate-800 rounded-3xl overflow-hidden shadow-2xl p-6 sm:p-10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-500/30 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.08)]">
           
           {/* Left Side: Portrait & Metrics */}
-          <div className="md:col-span-5 flex flex-col items-center text-center space-y-6 md:border-r md:border-slate-800/80 md:pr-8 h-full justify-between">
-            <StaggerChild className="relative p-1.5 rounded-2xl border-2 border-emerald-500/80 transition-all duration-300 group-hover:border-emerald-400">
+          <div className="md:col-span-5 flex flex-col items-center text-center space-y-6 md:border-r md:border-slate-800/80 md:pr-8">
+            <div className="relative p-1.5 rounded-2xl border-2 border-emerald-500/80 transition-all duration-300 group-hover:border-emerald-450">
               <ExecutiveAvatar 
                 initials="RZ" 
                 src="/images/leadership/zain.jpg" 
                 size="w-40 h-52" 
                 borderAccent="border-emerald-500" 
+                glowColor="rgba(16,185,129,0.2)"
               />
-            </StaggerChild>
-            <StaggerChild>
+            </div>
+            <div>
               <h2 className="text-lg sm:text-xl font-black text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Rana Muhammad Zain Ul Abideen</h2>
               <div className="mt-2 inline-block px-3.5 py-1.5 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[10px] font-black text-emerald-400 uppercase tracking-widest">
                 CEO & Founder
               </div>
-            </StaggerChild>
+            </div>
             
             {/* Founder Metrics */}
-            <StaggerChild className="grid grid-cols-3 gap-4 w-full pt-4 border-t border-slate-850">
+            <div className="grid grid-cols-3 gap-4 w-full pt-4 border-t border-slate-850">
               <div className="text-center">
                 <div className="text-xl sm:text-2xl font-black text-white font-mono">
                   <AnimatedCounter value="12" suffix="+" />
@@ -423,50 +371,62 @@ export default function LeadershipPage() {
                 </div>
                 <div className="text-[10px] text-slate-500 uppercase font-semibold">Companies</div>
               </div>
-            </StaggerChild>
+            </div>
           </div>
 
           {/* Right Side: Vision content */}
-          <div className="md:col-span-7 space-y-6 h-full flex flex-col justify-between">
-            <StaggerChild>
+          <div className="md:col-span-7 space-y-6">
+            <div>
               <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-widest">Founder Vision</span>
               <h3 className="text-2xl sm:text-3xl font-black text-white mt-1" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Platform Steering</h3>
-            </StaggerChild>
+            </div>
 
             <div className="space-y-4 text-xs sm:text-sm">
-              <StaggerChild className="p-4 bg-slate-950/40 border border-slate-850 rounded-2xl transition duration-300 hover:bg-slate-950/60">
+              <div className="p-4 bg-slate-950/40 border border-slate-850 rounded-2xl transition duration-300 hover:bg-slate-950/60">
                 <h4 className="font-extrabold text-white text-[12.5px] uppercase tracking-wider mb-1 text-emerald-400">Enterprise Vision</h4>
                 <p className="text-slate-400 leading-relaxed text-[12px]">
                   SARFIS was designed and engineered to consolidate isolated corporate workflows into a unified, compliant, and real-time enterprise resource platform.
                 </p>
-              </StaggerChild>
+              </div>
 
-              <StaggerChild className="p-4 bg-slate-950/40 border border-slate-850 rounded-2xl transition duration-300 hover:bg-slate-950/60">
+              <div className="p-4 bg-slate-950/40 border border-slate-850 rounded-2xl transition duration-300 hover:bg-slate-950/60">
                 <h4 className="font-extrabold text-white text-[12.5px] uppercase tracking-wider mb-1 text-emerald-400">Financial Intelligence</h4>
                 <p className="text-slate-400 leading-relaxed text-[12px]">
                   Focuses on executing robust accounting structures, auto-matched journal validations, and audit trails to optimize organizational governance.
                 </p>
-              </StaggerChild>
+              </div>
 
-              <StaggerChild className="p-4 bg-slate-950/40 border border-slate-850 rounded-2xl transition duration-300 hover:bg-slate-950/60">
+              <div className="p-4 bg-slate-950/40 border border-slate-850 rounded-2xl transition duration-300 hover:bg-slate-950/60">
                 <h4 className="font-extrabold text-white text-[12.5px] uppercase tracking-wider mb-1 text-emerald-400">Long-Term Mission</h4>
                 <p className="text-slate-400 leading-relaxed text-[12px]">
                   Democratizing enterprise-grade financial systems and workflow automations, empowering SMEs and corporate groups with high-fidelity control structures.
                 </p>
-              </StaggerChild>
+              </div>
             </div>
 
             {/* Founder Quote */}
-            <StaggerChild className="border-l-2 border-emerald-500 pl-4 py-1 italic text-slate-400 text-xs sm:text-sm font-medium">
+            <motion.div 
+              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="border-l-2 border-emerald-500 pl-4 py-1 italic text-slate-400 text-xs sm:text-sm font-medium"
+            >
               "SARFIS is not just accounting software—it is an enterprise operating platform built for modern organizations."
-            </StaggerChild>
+            </motion.div>
           </div>
 
-        </PremiumCard>
-      </section>
+        </div>
+      </motion.section>
 
       {/* SECTION 2 — Mentors & Academic Advisors */}
-      <section className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900">
+      <motion.section 
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.15 }}
+        variants={slideUpVariants}
+        className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900"
+      >
         <div className="text-center mb-12">
           <motion.h2 
             initial={{ opacity: 0, y: 15 }}
@@ -486,40 +446,47 @@ export default function LeadershipPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
-          {/* Card 1: Prof. Saad */}
-          <PremiumCard index={0} prefersReducedMotion={prefersReducedMotion} className="h-full">
-            <StaggerChild className="flex gap-4 items-start flex-wrap sm:flex-nowrap">
-              <ExecutiveAvatar 
-                initials="SM" 
-                src="/images/leadership/saad.jpg" 
-                size="w-28 h-36" 
-                borderAccent="border-emerald-500/60" 
-              />
-              <div className="flex-1">
-                <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Professor Saad Anwar Mughal</h3>
-                <div className="mt-1">
-                  <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-relaxed">
-                    Professor • Taxation & Financial Governance Advisor
-                  </span>
+          {/* Card 1: Prof. Saad — Slides in from Left, Hover Cyan Glow */}
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.15 }}
+            variants={slideLeftVariants}
+            className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-cyan-500/30 hover:shadow-[0_20px_40px_-15px_rgba(6,182,212,0.08)] h-full"
+          >
+            <div className="space-y-4">
+              <div className="flex gap-4 items-start flex-wrap sm:flex-nowrap">
+                <ExecutiveAvatar 
+                  initials="SM" 
+                  src="/images/leadership/saad.jpg" 
+                  size="w-28 h-36" 
+                  borderAccent="border-emerald-500/60" 
+                  glowColor="rgba(6,182,212,0.15)"
+                />
+                <div className="flex-1">
+                  <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Professor Saad Anwar Mughal</h3>
+                  <div className="mt-1">
+                    <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-relaxed">
+                      Professor • Taxation & Financial Governance Advisor
+                    </span>
+                  </div>
                 </div>
               </div>
-            </StaggerChild>
 
-            {/* Badges */}
-            <StaggerChild className="flex flex-wrap gap-2 mt-4">
-              {["Taxation", "IFRS", "Financial Reporting", "Governance"].map(b => (
-                <span key={b} className="bg-slate-900 border border-slate-800 text-[10px] px-2 py-0.5 rounded text-slate-400 font-semibold">{b}</span>
-              ))}
-            </StaggerChild>
+              {/* Badges */}
+              <div className="flex flex-wrap gap-2">
+                {["Taxation", "IFRS", "Financial Reporting", "Governance"].map(b => (
+                  <span key={b} className="bg-slate-900 border border-slate-800 text-[10px] px-2 py-0.5 rounded text-slate-400 font-semibold">{b}</span>
+                ))}
+              </div>
 
-            <StaggerChild className="mt-4">
               <p className="text-xs text-slate-400 leading-relaxed">
                 Advises on taxation framework alignments, compliance audits, IFRS standards implementations, and coordinates corporate taxation governance modules within the SARFIS ERP engine.
               </p>
-            </StaggerChild>
+            </div>
 
             {/* Metrics */}
-            <StaggerChild className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-850 text-xs mt-6">
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-850 text-xs">
               <div>
                 <span className="text-[9.5px] uppercase font-bold text-slate-500 block">Experience</span>
                 <span className="text-base font-black text-white font-mono">
@@ -532,43 +499,50 @@ export default function LeadershipPage() {
                   <AnimatedCounter value="200" suffix="+" />
                 </span>
               </div>
-            </StaggerChild>
-          </PremiumCard>
+            </div>
+          </motion.div>
 
-          {/* Card 2: Prof. Rehan */}
-          <PremiumCard index={1} prefersReducedMotion={prefersReducedMotion} className="h-full">
-            <StaggerChild className="flex gap-4 items-start flex-wrap sm:flex-nowrap">
-              <ExecutiveAvatar 
-                initials="RA" 
-                src="/images/leadership/rehan.jpg" 
-                size="w-28 h-36" 
-                borderAccent="border-emerald-500/60" 
-              />
-              <div className="flex-1">
-                <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Professor Muhammad Rehan Anjum</h3>
-                <div className="mt-1">
-                  <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-relaxed">
-                    Professor • Accounting & IFRS Advisor
-                  </span>
+          {/* Card 2: Prof. Rehan — Slides in from Right, Hover Cyan Glow */}
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.15 }}
+            variants={slideRightVariants}
+            className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-cyan-500/30 hover:shadow-[0_20px_40px_-15px_rgba(6,182,212,0.08)] h-full"
+          >
+            <div className="space-y-4">
+              <div className="flex gap-4 items-start flex-wrap sm:flex-nowrap">
+                <ExecutiveAvatar 
+                  initials="RA" 
+                  src="/images/leadership/rehan.jpg" 
+                  size="w-28 h-36" 
+                  borderAccent="border-emerald-500/60" 
+                  glowColor="rgba(6,182,212,0.15)"
+                />
+                <div className="flex-1">
+                  <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Professor Muhammad Rehan Anjum</h3>
+                  <div className="mt-1">
+                    <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-relaxed">
+                      Professor • Accounting & IFRS Advisor
+                    </span>
+                  </div>
                 </div>
               </div>
-            </StaggerChild>
 
-            {/* Badges */}
-            <StaggerChild className="flex flex-wrap gap-2 mt-4">
-              {["Accounting", "IFRS", "Audit", "Compliance"].map(b => (
-                <span key={b} className="bg-slate-900 border border-slate-800 text-[10px] px-2 py-0.5 rounded text-slate-400 font-semibold">{b}</span>
-              ))}
-            </StaggerChild>
+              {/* Badges */}
+              <div className="flex flex-wrap gap-2">
+                {["Accounting", "IFRS", "Audit", "Compliance"].map(b => (
+                  <span key={b} className="bg-slate-900 border border-slate-800 text-[10px] px-2 py-0.5 rounded text-slate-400 font-semibold">{b}</span>
+                ))}
+              </div>
 
-            <StaggerChild className="mt-4">
               <p className="text-xs text-slate-400 leading-relaxed">
                 Applies advanced academic and industry accounting methodology audits to verify general ledger integrations, compliant double-entry checks, and overall system financial logic.
               </p>
-            </StaggerChild>
+            </div>
 
             {/* Metrics */}
-            <StaggerChild className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-850 text-xs mt-6">
+            <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-850 text-xs">
               <div>
                 <span className="text-[9.5px] uppercase font-bold text-slate-500 block">Experience</span>
                 <span className="text-base font-black text-white font-mono">
@@ -581,14 +555,20 @@ export default function LeadershipPage() {
                   <AnimatedCounter value="300" suffix="+" />
                 </span>
               </div>
-            </StaggerChild>
-          </PremiumCard>
+            </div>
+          </motion.div>
 
         </div>
-      </section>
+      </motion.section>
 
       {/* SECTION 3 — Strategic Management & Core Development */}
-      <section className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900">
+      <motion.section 
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.15 }}
+        variants={slideUpVariants}
+        className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900"
+      >
         <div className="text-center mb-12">
           <motion.h2 
             initial={{ opacity: 0, y: 15 }}
@@ -605,14 +585,21 @@ export default function LeadershipPage() {
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
-          {/* Left Card: Ayesha */}
-          <PremiumCard index={0} prefersReducedMotion={prefersReducedMotion} className="h-full">
-            <StaggerChild className="flex gap-4 items-start">
+          {/* Left Card: Ayesha — Slides Up-Right, Hover Violet Glow */}
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.15 }}
+            variants={diagonalUpLeftVariants}
+            className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-violet-500/30 hover:shadow-[0_20px_40px_-15px_rgba(139,92,246,0.08)] h-full flex flex-col justify-between"
+          >
+            <div className="flex gap-4 items-start">
               <ExecutiveAvatar 
                 initials="AK" 
                 src="/images/leadership/ayesha.jpg" 
                 size="w-28 h-36" 
                 borderAccent="border-emerald-500/60" 
+                glowColor="rgba(139,92,246,0.15)"
               />
               <div className="flex-1">
                 <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Ayesha Kashif</h3>
@@ -622,10 +609,10 @@ export default function LeadershipPage() {
                   </span>
                 </div>
               </div>
-            </StaggerChild>
+            </div>
 
             {/* Responsibilities */}
-            <StaggerChild className="space-y-3 mt-6">
+            <div className="space-y-3 mt-6">
               <div>
                 <span className="text-[9.5px] uppercase font-bold text-slate-500 block mb-1">Core Expertise</span>
                 <div className="flex flex-wrap gap-1.5">
@@ -641,17 +628,24 @@ export default function LeadershipPage() {
                   Specializes in enterprise software architecture, scalable application development, and user experience engineering. Focuses on designing secure, high-performance business systems, optimizing software quality, and driving innovation through modern technologies and best engineering practices.
                 </p>
               </div>
-            </StaggerChild>
-          </PremiumCard>
+            </div>
+          </motion.div>
 
-          {/* Right Card: Syed Ansar */}
-          <PremiumCard index={1} prefersReducedMotion={prefersReducedMotion} className="h-full">
-            <StaggerChild className="flex gap-4 items-start">
+          {/* Right Card: Syed Ansar — Slides Up-Left, Hover Violet Glow */}
+          <motion.div 
+            initial="hidden"
+            whileInView="visible"
+            viewport={{ once: true, amount: 0.15 }}
+            variants={diagonalUpRightVariants}
+            className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-violet-500/30 hover:shadow-[0_20px_40px_-15px_rgba(139,92,246,0.08)] h-full flex flex-col justify-between"
+          >
+            <div className="flex gap-4 items-start">
               <ExecutiveAvatar 
                 initials="SA" 
                 src="/images/leadership/ansar.jpg" 
                 size="w-28 h-36" 
                 borderAccent="border-emerald-500/60" 
+                glowColor="rgba(139,92,246,0.15)"
               />
               <div className="flex-1">
                 <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Syed Ansar Ali</h3>
@@ -661,10 +655,10 @@ export default function LeadershipPage() {
                   </span>
                 </div>
               </div>
-            </StaggerChild>
+            </div>
 
             {/* Responsibilities */}
-            <StaggerChild className="space-y-3 mt-6">
+            <div className="space-y-3 mt-6">
               <div>
                 <span className="text-[9.5px] uppercase font-bold text-slate-500 block mb-1">Key Responsibilities</span>
                 <div className="flex flex-wrap gap-1.5">
@@ -680,14 +674,20 @@ export default function LeadershipPage() {
                   Directs the SaaS hosting environments setups, automated CI/CD code deployments pipelines, server loading balances, database replications, and system firewalls setups.
                 </p>
               </div>
-            </StaggerChild>
-          </PremiumCard>
+            </div>
+          </motion.div>
 
         </div>
-      </section>
+      </motion.section>
 
       {/* SECTION 4 — Human Resources & Operations */}
-      <section className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900">
+      <motion.section 
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.15 }}
+        variants={scrollVariants}
+        className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900"
+      >
         <div className="text-center mb-12">
           <motion.h2 
             initial={{ opacity: 0, y: 15 }}
@@ -702,44 +702,52 @@ export default function LeadershipPage() {
           <AnimatedDivider />
         </div>
 
-        <PremiumCard index={0} prefersReducedMotion={prefersReducedMotion}>
-          <div className="flex flex-col md:flex-row gap-6 items-start">
-            <StaggerChild>
-              <ExecutiveAvatar 
-                initials="AA" 
-                src="/images/leadership/amna.jpg" 
-                size="w-28 h-36" 
-                borderAccent="border-emerald-500/60" 
-              />
-            </StaggerChild>
-            <div className="flex-1 space-y-4 text-center md:text-left mt-4 md:mt-0 flex flex-col justify-between">
-              <StaggerChild>
-                <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Amna Waheed Ahmed</h3>
-                <div className="mt-1">
-                  <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
-                    HR Executive
-                  </span>
-                </div>
-              </StaggerChild>
-              
-              <StaggerChild className="flex flex-wrap gap-1.5 justify-center md:justify-start">
-                {["Recruitment", "Human Resources", "Employee Relations", "Organizational Development", "Administration"].map(r => (
-                  <span key={r} className="bg-slate-900 border border-slate-800 text-slate-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
-                ))}
-              </StaggerChild>
-
-              <StaggerChild>
-                <p className="text-xs text-slate-400 leading-relaxed max-w-xl">
-                  Coordinates staffing requirements, manages internal corporate resource channels, regulates employee workflows, and administers general workplace compliance standards to support overall scaling.
-                </p>
-              </StaggerChild>
+        {/* HR Amna — Slides in from Left, Hover Amber Glow */}
+        <motion.div 
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.15 }}
+          variants={slideLeftVariants}
+          className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-start shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-amber-500/30 hover:shadow-[0_20px_40px_-15px_rgba(245,158,11,0.08)]"
+        >
+          <ExecutiveAvatar 
+            initials="AA" 
+            src="/images/leadership/amna.jpg" 
+            size="w-28 h-36" 
+            borderAccent="border-emerald-500/60" 
+            glowColor="rgba(245,158,11,0.15)"
+          />
+          <div className="flex-1 space-y-4 text-center md:text-left mt-4 md:mt-0">
+            <div>
+              <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Amna Waheed Ahmed</h3>
+              <div className="mt-1">
+                <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
+                  HR Executive
+                </span>
+              </div>
             </div>
+            
+            <div className="flex flex-wrap gap-1.5 justify-center md:justify-start">
+              {["Recruitment", "Human Resources", "Employee Relations", "Organizational Development", "Administration"].map(r => (
+                <span key={r} className="bg-slate-900 border border-slate-800 text-slate-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
+              ))}
+            </div>
+
+            <p className="text-xs text-slate-400 leading-relaxed max-w-xl">
+              Coordinates staffing requirements, manages internal corporate resource channels, regulates employee workflows, and administers general workplace compliance standards to support overall scaling.
+            </p>
           </div>
-        </PremiumCard>
-      </section>
+        </motion.div>
+      </motion.section>
 
       {/* SECTION 5 — Finance & Business Intelligence */}
-      <section className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900">
+      <motion.section 
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.15 }}
+        variants={scrollVariants}
+        className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900"
+      >
         <div className="text-center mb-12">
           <motion.h2 
             initial={{ opacity: 0, y: 15 }}
@@ -754,44 +762,52 @@ export default function LeadershipPage() {
           <AnimatedDivider />
         </div>
 
-        <PremiumCard index={0} prefersReducedMotion={prefersReducedMotion}>
-          <div className="flex flex-col md:flex-row gap-6 items-start">
-            <StaggerChild>
-              <ExecutiveAvatar 
-                initials="TK" 
-                src="/images/leadership/talal.jpg" 
-                size="w-28 h-36" 
-                borderAccent="border-emerald-500/60" 
-              />
-            </StaggerChild>
-            <div className="flex-1 space-y-4 text-center md:text-left mt-4 md:mt-0 flex flex-col justify-between">
-              <StaggerChild>
-                <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Rana Talal Khan</h3>
-                <div className="mt-1">
-                  <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
-                    Financial Analyst
-                  </span>
-                </div>
-              </StaggerChild>
-              
-              <StaggerChild className="flex flex-wrap gap-1.5 justify-center md:justify-start">
-                {["Financial Planning", "Budget Analysis", "Forecasting", "KPI Reporting", "Business Intelligence"].map(r => (
-                  <span key={r} className="bg-slate-900 border border-slate-800 text-slate-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
-                ))}
-              </StaggerChild>
-
-              <StaggerChild>
-                <p className="text-xs text-slate-400 leading-relaxed max-w-xl">
-                  Constructs dynamic budget forecasts modeling sheets, reports on key operational liquidity metrics, conducts variance reports audits, and structures business intelligence indicators.
-                </p>
-              </StaggerChild>
+        {/* Finance Talal — Slides in from Right, Hover Gold Glow */}
+        <motion.div 
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.15 }}
+          variants={slideRightVariants}
+          className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-start shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-yellow-500/30 hover:shadow-[0_20px_40px_-15px_rgba(234,179,8,0.08)]"
+        >
+          <ExecutiveAvatar 
+            initials="TK" 
+            src="/images/leadership/talal.jpg" 
+            size="w-28 h-36" 
+            borderAccent="border-emerald-500/60" 
+            glowColor="rgba(234,179,8,0.15)"
+          />
+          <div className="flex-1 space-y-4 text-center md:text-left mt-4 md:mt-0">
+            <div>
+              <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Rana Talal Khan</h3>
+              <div className="mt-1">
+                <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
+                  Financial Analyst
+                </span>
+              </div>
             </div>
+            
+            <div className="flex flex-wrap gap-1.5 justify-center md:justify-start">
+              {["Financial Planning", "Budget Analysis", "Forecasting", "KPI Reporting", "Business Intelligence"].map(r => (
+                <span key={r} className="bg-slate-900 border border-slate-800 text-slate-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
+              ))}
+            </div>
+
+            <p className="text-xs text-slate-400 leading-relaxed max-w-xl">
+              Constructs dynamic budget forecasts modeling sheets, reports on key operational liquidity metrics, conducts variance reports audits, and structures business intelligence indicators.
+            </p>
           </div>
-        </PremiumCard>
-      </section>
+        </motion.div>
+      </motion.section>
 
       {/* SECTION 6 — Legal Framework & Corporate Compliance */}
-      <section className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900">
+      <motion.section 
+        initial="hidden"
+        whileInView="visible"
+        viewport={{ once: true, amount: 0.15 }}
+        variants={scrollVariants}
+        className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900"
+      >
         <div className="text-center mb-12">
           <motion.h2 
             initial={{ opacity: 0, y: 15 }}
@@ -806,19 +822,24 @@ export default function LeadershipPage() {
           <AnimatedDivider />
         </div>
 
-        {/* Large Highlighted Card */}
-        <PremiumCard index={0} prefersReducedMotion={prefersReducedMotion} className="border-emerald-500/20 shadow-xl shadow-emerald-500/2 hover:border-emerald-400/40">
+        {/* Legal Farhan — Scales from Center, Hover Emerald Glow */}
+        <motion.div 
+          initial="hidden"
+          whileInView="visible"
+          viewport={{ once: true, amount: 0.15 }}
+          variants={scaleCenterVariants}
+          className="group bg-[#050f21] border border-emerald-500/20 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl shadow-emerald-500/2 cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-400/40 hover:shadow-[0_20px_40px_-15px_rgba(52,211,153,0.08)]"
+        >
           <div className="flex flex-col sm:flex-row gap-6 items-start">
-            <StaggerChild>
-              <ExecutiveAvatar 
-                initials="FK" 
-                src="/images/leadership/farhan.jpg" 
-                size="w-32 h-40" 
-                borderAccent="border-emerald-400" 
-              />
-            </StaggerChild>
+            <ExecutiveAvatar 
+              initials="FK" 
+              src="/images/leadership/farhan.jpg" 
+              size="w-32 h-40" 
+              borderAccent="border-emerald-400" 
+              glowColor="rgba(52,211,153,0.15)"
+            />
             <div className="flex-1 space-y-3 text-center sm:text-left">
-              <StaggerChild>
+              <div>
                 <h3 className="text-lg font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Farhan Ahmed Khokhar</h3>
                 <div className="mt-2 flex flex-wrap gap-2 justify-center sm:justify-start">
                   <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
@@ -828,30 +849,34 @@ export default function LeadershipPage() {
                     Tax & Corporate Law Advisor
                   </span>
                 </div>
-              </StaggerChild>
+              </div>
 
-              <StaggerChild className="flex flex-wrap gap-1.5 justify-center sm:justify-start pt-2">
+              <div className="flex flex-wrap gap-1.5 justify-center sm:justify-start pt-2">
                 {["Corporate Law", "Taxation", "Regulatory Compliance", "Contracts", "Legal Advisory"].map(r => (
                   <span key={r} className="bg-slate-900 border border-slate-800 text-slate-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
                 ))}
-              </StaggerChild>
+              </div>
             </div>
           </div>
 
-          <div className="pt-4 border-t border-slate-850 space-y-4 mt-6">
-            <StaggerChild>
-              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                Provides strategic legal guidance on software licensing structures, intellectual property frameworks, contract audits templates, and advises on regulatory corporate tax compliance requirements.
-              </p>
-            </StaggerChild>
+          <div className="pt-4 border-t border-slate-850 space-y-4">
+            <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
+              Provides strategic legal guidance on software licensing structures, intellectual property frameworks, contract audits templates, and advises on regulatory corporate tax compliance requirements.
+            </p>
 
             {/* Legal Advisor Quote */}
-            <StaggerChild className="border-l-2 border-emerald-500 pl-4 py-1 italic text-slate-400 text-xs sm:text-sm font-medium">
+            <motion.div 
+              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="border-l-2 border-emerald-500 pl-4 py-1 italic text-slate-400 text-xs sm:text-sm font-medium"
+            >
               "Strong governance and compliance are the foundation of sustainable enterprise growth."
-            </StaggerChild>
+            </motion.div>
           </div>
-        </PremiumCard>
-      </section>
+        </motion.div>
+      </motion.section>
 
       {/* SECTION 7 — Organizational Structure */}
       <motion.section 
@@ -1030,13 +1055,13 @@ export default function LeadershipPage() {
           <div className="flex flex-wrap justify-center gap-4">
             <a 
               href="/contact" 
-              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-6 py-3 rounded-xl transition-all duration-200 hover:shadow-lg hover:shadow-emerald-500/10 active:scale-[0.97] hover:-translate-y-0.5 cursor-pointer"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-6 py-3 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/10 active:scale-[0.97] cursor-pointer"
             >
               Request a Demo
             </a>
             <a 
               href="/contact" 
-              className="bg-transparent border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white text-xs font-bold px-6 py-3 rounded-xl transition-all duration-200 hover:-translate-y-0.5 active:scale-[0.97] cursor-pointer"
+              className="bg-transparent border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white text-xs font-bold px-6 py-3 rounded-xl transition-all duration-300 active:scale-[0.97] cursor-pointer"
             >
               Contact Leadership
             </a>
