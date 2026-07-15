@@ -63,8 +63,8 @@ if (typeof document !== 'undefined' && !document.getElementById('sarfis-leadersh
 /* ═══ DATA STRUCTURES ═════════════════════════════════════════════════════════ */
 const FOUNDERS = [
   {
-    name: "Rana Muhammad Zain ul Abideen",
-    title: "Founder & Chairman",
+    name: "Rana Muhammad Zain Ul Abideen",
+    title: "CEO & Founder",
     initials: "RZ",
     tagline: "Architecting the Core Engines of Financial Intelligence",
     metrics: [
@@ -81,7 +81,7 @@ const FOUNDERS = [
   },
   {
     name: "Ayesha Kashif",
-    title: "CEO & Co-Founder",
+    title: "Lead Developer & Co-Founder",
     initials: "AK",
     tagline: "Driving Strategic Scaling and Design-First Excellence",
     metrics: [
@@ -90,7 +90,7 @@ const FOUNDERS = [
       { val: "100%", label: "Client Retention" }
     ],
     mission: "To deliver accessible, high-performance financial workspaces that enterprise leaders trust to run daily operations.",
-    bio: "Ayesha Kashif drives the global business strategy, growth mechanics, and customer-centric design principles at SARFIS. She specializes in optimizing complex transaction workflows into clean, card-first layouts that minimize clicks. Ayesha's focus on regulatory alignment and security standards has positioned SARFIS as a leading choice for mid-market and enterprise organizations.",
+    bio: "Ayesha Kashif drives the global business strategy, software architecture, and frontend design patterns at SARFIS. She specializes in optimizing complex transaction workflows into clean, card-first layouts that minimize clicks. Ayesha's focus on regulatory alignment and security standards has positioned SARFIS as a leading choice for mid-market and enterprise organizations.",
     vision: "To position SARFIS as the definitive financial operating system for multi-entity corporations globally.",
     philosophy: "Complexity should live in the engine, never on the user's screen. If a financial manager cannot audit a record in three clicks, we redesign it.",
     expertise: ["SaaS Operations", "Product Interface Strategy", "GTM Execution Models", "Corporate Compliance Oversight", "Stakeholder Relations"],
@@ -100,19 +100,19 @@ const FOUNDERS = [
 
 const ADVISORS = [
   {
-    name: "Prof. Mohammad Saad Anwar",
-    title: "Taxation & Legal Advisor",
-    initials: "SA",
+    name: "Professor Saad Anwar Mughal",
+    title: "Taxation & Audit Advisor",
+    initials: "SM",
     specialization: "Corporate Taxation & Auditing",
     experience: "15+ Years",
     certifications: ["Tax Law Authority", "Corporate Legal Consultant"],
     expertise: ["FBR Compliance", "Sales Tax Structuring", "Legal Risk Management"],
-    bio: "Saad Anwar provides high-level guidance on taxation pipelines, tax engine structures, and FBR integration rules. His oversight ensures all transaction filings comply with corporate laws.",
+    bio: "Saad Anwar Mughal provides high-level guidance on taxation pipelines, tax engine structures, and FBR integration rules. His oversight ensures all transaction filings comply with corporate laws.",
     accent: C.emerald
   },
   {
-    name: "Prof. Muhammed Rehan Anjum",
-    title: "Accounting & Compliance Advisor",
+    name: "Professor Muhammad Rehan Anjum",
+    title: "IFRS Compliance Advisor",
     initials: "RA",
     specialization: "IFRS Auditing Standards",
     experience: "18+ Years",
@@ -178,11 +178,10 @@ const PHILOSOPHIES = [
 ];
 
 const CORE_TEAM_MEMBERS = [
-  { name: "Farhan", role: "Legal Counsel & Operations Specialist", dept: "Operations", status: "Active", initials: "FA", desc: "Manages corporate legal compliance, vendor contract standards, and entity structures." },
-  { name: "S. Malik", role: "Senior Systems Engineer", dept: "Engineering", status: "Active", initials: "SM", desc: "Optimizes transactional database queries and ledger replication across distributed environments." },
-  { name: "H. Tariq", role: "Frontend Platform Engineer", dept: "Engineering", status: "Active", initials: "HT", desc: "Brings modern, responsive UI structures to the ERP dashboard with a focus on click efficiency." },
-  { name: "Z. Khan", role: "Quality Assurance Specialist", dept: "QA", status: "Active", initials: "ZK", desc: "Maintains rigorous system validation tests for transaction state machines and edge cases." },
-  { name: "F. Nabeel", role: "Security & DevOps Engineer", dept: "Engineering", status: "Active", initials: "FN", desc: "Manages encrypted ledger storage pipelines and ensures enterprise compliance standards." }
+  { name: "Farhan Ahmed Khokhar", role: "Advocate High Court | Tax & Corporate Law Advisor", dept: "Operations", status: "Active", initials: "FK", desc: "Handles legal framework templates, corporate litigation consulting, and FBR tax representation." },
+  { name: "Amna Waheed Ahmed", role: "HR Executive", dept: "Operations", status: "Active", initials: "AW", desc: "Coordinates talent acquisition, internal policy management, and resource planning for SARFIS." },
+  { name: "Rana Talal Khan", role: "Financial Analyst", dept: "Finance", status: "Active", initials: "TK", desc: "Analyzes general ledger variance, compliance reporting logic, and cash flow structures." },
+  { name: "Syed Ansar Ali", role: "DevOps Engineer", dept: "Engineering", status: "Active", initials: "AA", desc: "Manages ledger database replication, server security layers, and cloud infrastructure scale." }
 ];
 
 const WHY_TRUST_US = [
