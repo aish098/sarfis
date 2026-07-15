@@ -25,6 +25,41 @@ function ExecutiveAvatar({ initials, src, size = "w-24 h-24", borderAccent = "bo
 }
 
 export default function LeadershipPage() {
+  // Inject custom marquee styles programmatically
+  if (typeof document !== 'undefined' && !document.getElementById('lp-marquee-styles')) {
+    const s = document.createElement('style');
+    s.id = 'lp-marquee-styles';
+    s.textContent = `
+      @keyframes lpMarquee {
+        0% { transform: translateX(0); }
+        100% { transform: translateX(-50%); }
+      }
+      .animate-lp-marquee {
+        display: flex;
+        gap: 16px;
+        width: max-content;
+        animation: lpMarquee 30s linear infinite;
+      }
+      .animate-lp-marquee:hover {
+        animation-play-state: paused;
+      }
+    `;
+    document.head.appendChild(s);
+  }
+
+  const DIRECTORY_DATA = [
+    { initials: "RZ", name: "Rana Muhammad Zain Ul Abideen", title: "CEO & Founder", accent: "#10b981" },
+    { initials: "SM", name: "Professor Saad Anwar Mughal", title: "Taxation & Financial Governance Advisor", accent: "#06b6d4" },
+    { initials: "RA", name: "Professor Muhammad Rehan Anjum", title: "Accounting & IFRS Advisor", accent: "#f59e0b" },
+    { initials: "AK", name: "Ayesha Kashif", title: "Lead Developer & Co-Founder", accent: "#10b981" },
+    { initials: "AA", name: "Amna Waheed Ahmed", title: "HR Executive", accent: "#a78bfa" },
+    { initials: "TK", name: "Rana Talal Khan", title: "Financial Analyst", accent: "#f59e0b" },
+    { initials: "SA", name: "Syed Ansar Ali", title: "DevOps Engineer", accent: "#06b6d4" },
+    { initials: "FK", name: "Farhan Ahmed Khokhar", title: "Advocate High Court • Tax & Corporate Law Advisor", accent: "#10b981" }
+  ];
+
+  const doubledDirectory = [...DIRECTORY_DATA, ...DIRECTORY_DATA];
+
   return (
     <motion.div
       initial={{ opacity: 0 }}
@@ -544,30 +579,43 @@ export default function LeadershipPage() {
         </div>
       </section>
 
-      {/* SECTION 8 — Full Leadership Directory */}
-      <section className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900">
-        <div className="text-center mb-12">
+      {/* SECTION 8 — Full Leadership Directory (Marquee Track) */}
+      <section className="py-16 border-t border-slate-900 overflow-hidden relative bg-[#040e1f]">
+        {/* Left & Right Fade gradients */}
+        <div className="absolute inset-y-0 left-0 w-32 bg-gradient-to-r from-[#040e1f] to-transparent z-10 pointer-events-none" />
+        <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#040e1f] to-transparent z-10 pointer-events-none" />
+
+        <div className="text-center mb-12 px-5 sm:px-8">
           <h2 className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
             Full Leadership Directory
           </h2>
         </div>
 
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-          {[
-            { name: "Rana Muhammad Zain Ul Abideen", title: "CEO & Founder" },
-            { name: "Professor Saad Anwar Mughal", title: "Taxation & Financial Governance Advisor" },
-            { name: "Professor Muhammad Rehan Anjum", title: "Accounting & IFRS Advisor" },
-            { name: "Ayesha Kashif", title: "Lead Developer & Co-Founder" },
-            { name: "Amna Waheed Ahmed", title: "HR Executive" },
-            { name: "Rana Talal Khan", title: "Financial Analyst" },
-            { name: "Syed Ansar Ali", title: "DevOps Engineer" },
-            { name: "Farhan Ahmed Khokhar", title: "Advocate High Court • Tax & Corporate Law Advisor" }
-          ].map(d => (
-            <div key={d.name} className="p-4 bg-[#050f21] border border-slate-800 rounded-2xl flex flex-col justify-center">
-              <span className="text-[10px] text-emerald-400 font-bold uppercase tracking-wider">{d.title}</span>
-              <span className="text-sm font-black text-white mt-1">{d.name}</span>
-            </div>
-          ))}
+        <div className="relative w-full">
+          <div className="animate-lp-marquee">
+            {doubledDirectory.map((d, idx) => (
+              <div
+                key={idx}
+                className="flex-shrink-0 flex items-center gap-4 px-6 py-4 bg-slate-950/40 border border-slate-800 rounded-2xl shadow-lg w-[320px]"
+              >
+                <div 
+                  className="w-10 h-10 rounded-full flex items-center justify-center font-bold font-mono text-xs flex-shrink-0"
+                  style={{
+                    backgroundColor: "rgba(16, 185, 129, 0.05)",
+                    border: `1.5px solid ${d.accent}`,
+                    color: d.accent,
+                    boxShadow: `0 0 10px ${d.accent}15`
+                  }}
+                >
+                  {d.initials}
+                </div>
+                <div className="min-w-0 flex-1 text-left">
+                  <h4 className="text-xs font-black text-white truncate leading-tight">{d.name}</h4>
+                  <p className="text-[9.5px] text-slate-500 font-bold uppercase tracking-wider truncate mt-1">{d.title}</p>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       </section>
 
