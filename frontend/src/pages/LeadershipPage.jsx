@@ -509,9 +509,9 @@ export default function LeadershipPage() {
             {/* Column 2: Finance */}
             <div className="flex flex-col items-center">
               <div className="w-0.5 h-6 bg-slate-800" />
-              <div className="bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl mt-1">
-                <span className="text-[9px] text-slate-500 font-bold uppercase block">Core Track</span>
-                <span className="text-[11px] font-bold text-white block">Finance</span>
+              <div className="bg-slate-950 border border-emerald-500/20 px-4 py-2.5 rounded-xl mt-1">
+                <span className="text-[9px] text-emerald-400 font-bold uppercase block">Core Advisor</span>
+                <span className="text-[11px] font-bold text-white block">Professor Saad Anwar Mughal</span>
               </div>
               
               <div className="w-0.5 h-6 bg-slate-800" />
@@ -526,9 +526,9 @@ export default function LeadershipPage() {
             {/* Column 3: Operations */}
             <div className="flex flex-col items-center">
               <div className="w-0.5 h-6 bg-slate-800" />
-              <div className="bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl mt-1">
-                <span className="text-[9px] text-slate-500 font-bold uppercase block">Core Track</span>
-                <span className="text-[11px] font-bold text-white block">Operations</span>
+              <div className="bg-slate-950 border border-emerald-500/20 px-4 py-2.5 rounded-xl mt-1">
+                <span className="text-[9px] text-emerald-400 font-bold uppercase block">Core Advisor</span>
+                <span className="text-[11px] font-bold text-white block">Professor Muhammad Rehan Anjum</span>
               </div>
               
               <div className="w-0.5 h-6 bg-slate-800" />
