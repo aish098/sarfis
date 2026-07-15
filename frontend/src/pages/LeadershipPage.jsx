@@ -89,8 +89,8 @@ function AnimatedDivider() {
 }
 
 export default function LeadershipPage() {
-  // Detect OS/browser reduced-motion configuration
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+  const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
@@ -101,17 +101,26 @@ export default function LeadershipPage() {
     return () => mediaQuery.removeEventListener("change", listener);
   }, []);
 
-  // One-time scroll reveal configuration
-  const scrollVariants = {
-    hidden: { opacity: 0, y: prefersReducedMotion ? 0 : 25 },
-    visible: { 
-      opacity: 1, 
-      y: 0,
-      transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] }
+  const handleMouseMove = (e) => {
+    if (typeof window !== "undefined" && !prefersReducedMotion) {
+      const { clientX, clientY } = e;
+      const x = (clientX / window.innerWidth - 0.5) * 20; // max 10px dev
+      const y = (clientY / window.innerHeight - 0.5) * 20;
+      setMousePos({ x, y });
     }
   };
 
-  // Inject custom marquee styles programmatically
+  // One-time scroll reveal configuration
+  const scrollVariants = {
+    hidden: { opacity: 0, y: prefersReducedMotion ? 0 : 30 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] }
+    }
+  };
+
+  // Inject custom styles programmatically
   if (typeof document !== 'undefined' && !document.getElementById('lp-marquee-styles')) {
     const s = document.createElement('style');
     s.id = 'lp-marquee-styles';
@@ -129,6 +138,26 @@ export default function LeadershipPage() {
       .animate-lp-marquee:hover {
         animation-play-state: paused;
       }
+      @keyframes lpFloatingGlow {
+        0%, 100% { transform: translate(-15px, -15px); opacity: 0.15; }
+        50% { transform: translate(15px, 15px); opacity: 0.30; }
+      }
+      .animate-floating-glow {
+        animation: lpFloatingGlow 12s ease-in-out infinite;
+      }
+      @keyframes lpBounceSlow {
+        0%, 100% { transform: translateY(0); }
+        50% { transform: translateY(8px); }
+      }
+      .animate-bounce-slow {
+        animation: lpBounceSlow 2s ease-in-out infinite;
+      }
+      @keyframes lpParticleDrift {
+        0%, 100% { transform: translate(0, 0); opacity: 0.2; }
+        50% { transform: translate(15px, -15px); opacity: 0.5; }
+      }
+      .animate-particle-1 { animation: lpParticleDrift 15s ease-in-out infinite; }
+      .animate-particle-2 { animation: lpParticleDrift 18s ease-in-out infinite; }
     `;
     document.head.appendChild(s);
   }
@@ -152,9 +181,25 @@ export default function LeadershipPage() {
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
       transition={{ duration: 0.35 }}
-      className="bg-[#030b1a] min-h-screen text-white font-sans overflow-hidden"
+      onMouseMove={handleMouseMove}
+      className="bg-[#030b1a] min-h-screen text-white font-sans overflow-hidden relative"
     >
       <Navbar />
+
+      {/* Floating Background Glow (Parallax) */}
+      <div 
+        className="absolute top-1/4 left-1/2 -translate-x-1/2 -translate-y-1/2 pointer-events-none z-0 hidden sm:block"
+        style={{
+          transform: `translate3d(${mousePos.x}px, ${mousePos.y}px, 0)`
+        }}
+      >
+        <div className="w-[450px] h-[450px] bg-emerald-500/10 blur-[120px] rounded-full animate-floating-glow" />
+      </div>
+
+      {/* Tiny Background Particles */}
+      <div className="absolute top-24 left-12 w-1.5 h-1.5 bg-emerald-500/30 rounded-full blur-[1px] animate-particle-1 pointer-events-none hidden sm:block" />
+      <div className="absolute top-48 right-24 w-1 h-1 bg-cyan-500/40 rounded-full blur-[1px] animate-particle-2 pointer-events-none hidden sm:block" />
+      <div className="absolute top-96 left-1/4 w-1.5 h-1.5 bg-emerald-400/20 rounded-full blur-[1px] animate-particle-1 pointer-events-none hidden sm:block" />
 
       {/* Hero Headline Section */}
       <section className="pt-32 pb-16 px-5 sm:px-8 text-center max-w-4xl mx-auto relative z-10">
@@ -166,26 +211,81 @@ export default function LeadershipPage() {
         >
           Corporate Profile
         </motion.div>
-        <motion.h1 
-          initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 15 }}
-          animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.1 }}
-          className="text-4xl sm:text-6xl font-black tracking-tight mb-5" 
-          style={{ fontFamily: "'Sora', system-ui, sans-serif" }}
-        >
-          Our{" "}
-          <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
-            Leadership
+        
+        <h1 className="text-4xl sm:text-6xl font-black tracking-tight mb-3 flex flex-wrap justify-center gap-x-4 gap-y-2" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
+          <motion.span
+            initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.1, ease: "easeOut" }}
+            className="text-white"
+          >
+            Our
+          </motion.span>
+          <span className="relative inline-block overflow-hidden">
+            <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">
+              Leadership
+            </span>
+            <motion.span
+              initial={{ x: "0%" }}
+              animate={{ x: "100%" }}
+              transition={{ delay: 0.25, duration: 0.6, ease: "easeOut" }}
+              className="absolute inset-y-0 left-0 right-0 bg-[#030b1a] z-10"
+            />
           </span>
-        </motion.h1>
+        </h1>
+
+        {/* Animated Underline */}
+        <motion.div 
+          initial={{ scaleX: 0 }}
+          animate={{ scaleX: 1 }}
+          transition={{ delay: 0.6, duration: 0.6, ease: "easeOut" }}
+          style={{ originX: 0.5 }}
+          className="h-0.5 w-32 bg-gradient-to-r from-emerald-500 to-cyan-500 mx-auto mb-6"
+        />
+
         <motion.p 
-          initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 15 }}
+          initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20 }}
           animate={{ opacity: 1, y: 0 }}
-          transition={{ duration: 0.6, delay: 0.2 }}
+          transition={{ duration: 0.6, delay: 0.4 }}
           className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-xl mx-auto"
         >
           Visionaries, academics, and strategic leaders steering the next generation of financial and operational resource planning.
         </motion.p>
+
+        {/* Hero empty space filler statistics */}
+        <motion.div 
+          initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.5 }}
+          className="mt-12 max-w-2xl mx-auto grid grid-cols-3 gap-6 p-6 bg-slate-950/40 border border-slate-900 rounded-3xl backdrop-blur-sm shadow-xl"
+        >
+          <div className="text-center">
+            <div className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">
+              <AnimatedCounter value="12" suffix="+" />
+            </div>
+            <div className="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">Years Experience</div>
+          </div>
+          <div className="text-center border-x border-slate-850">
+            <div className="text-2xl sm:text-3xl font-black text-white font-mono">
+              <AnimatedCounter value="4" />
+            </div>
+            <div className="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">ERP Engines</div>
+          </div>
+          <div className="text-center">
+            <div className="text-2xl sm:text-3xl font-black text-cyan-400 font-mono">
+              <AnimatedCounter value="50" suffix="+" />
+            </div>
+            <div className="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">Corporate Clients</div>
+          </div>
+        </motion.div>
+
+        {/* Scroll Indicator */}
+        <div className="flex justify-center mt-12 animate-bounce-slow">
+          <div className="text-slate-500 flex flex-col items-center gap-1 cursor-default">
+            <span className="text-[9px] uppercase font-black tracking-widest">Scroll Down</span>
+            <span className="text-sm font-black">↓</span>
+          </div>
+        </div>
       </section>
 
       {/* SECTION 1 — CEO & FOUNDER (Hero Profile Card) */}
@@ -196,11 +296,11 @@ export default function LeadershipPage() {
         variants={scrollVariants}
         className="py-12 px-5 sm:px-8 max-w-5xl mx-auto"
       >
-        <div className="group bg-[#050f21] border border-slate-800 rounded-3xl overflow-hidden shadow-2xl p-6 sm:p-10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center cursor-default transition-all duration-300 ease-out hover:-translate-y-1 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.04)]">
+        <div className="group bg-[#050f21] border border-slate-800 rounded-3xl overflow-hidden shadow-2xl p-6 sm:p-10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)]">
           
           {/* Left Side: Portrait & Metrics */}
           <div className="md:col-span-5 flex flex-col items-center text-center space-y-6 md:border-r md:border-slate-800/80 md:pr-8">
-            <div className="relative p-1.5 rounded-2xl border-2 border-emerald-500/80 transition-all duration-305 group-hover:border-emerald-400">
+            <div className="relative p-1.5 rounded-2xl border-2 border-emerald-500/80 transition-all duration-300 group-hover:border-emerald-400">
               <ExecutiveAvatar 
                 initials="RZ" 
                 src="/images/leadership/zain.jpg" 
@@ -311,7 +411,7 @@ export default function LeadershipPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
           {/* Card 1: Prof. Saad */}
-          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.04)]">
+          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)]">
             <div className="space-y-4">
               <div className="flex gap-4 items-start flex-wrap sm:flex-nowrap">
                 <ExecutiveAvatar 
@@ -321,7 +421,7 @@ export default function LeadershipPage() {
                   borderAccent="border-emerald-500/60" 
                 />
                 <div className="flex-1">
-                  <h3 className="text-base font-extrabold text-white animate-fade-in" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Professor Saad Anwar Mughal</h3>
+                  <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Professor Saad Anwar Mughal</h3>
                   <div className="mt-1">
                     <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-relaxed">
                       Professor • Taxation & Financial Governance Advisor
@@ -360,7 +460,7 @@ export default function LeadershipPage() {
           </div>
 
           {/* Card 2: Prof. Rehan */}
-          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.04)]">
+          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)]">
             <div className="space-y-4">
               <div className="flex gap-4 items-start flex-wrap sm:flex-nowrap">
                 <ExecutiveAvatar 
@@ -436,7 +536,7 @@ export default function LeadershipPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
           {/* Left Card: Ayesha */}
-          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.04)]">
+          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)]">
             <div className="flex gap-4 items-start">
               <ExecutiveAvatar 
                 initials="AK" 
@@ -475,7 +575,7 @@ export default function LeadershipPage() {
           </div>
 
           {/* Right Card: Syed Ansar */}
-          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.04)]">
+          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)]">
             <div className="flex gap-4 items-start">
               <ExecutiveAvatar 
                 initials="SA" 
@@ -538,7 +638,7 @@ export default function LeadershipPage() {
           <AnimatedDivider />
         </div>
 
-        <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-start shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.04)]">
+        <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-start shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)]">
           <ExecutiveAvatar 
             initials="AA" 
             src="/images/leadership/amna.jpg" 
@@ -590,7 +690,7 @@ export default function LeadershipPage() {
           <AnimatedDivider />
         </div>
 
-        <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-start shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.04)]">
+        <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-start shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)]">
           <ExecutiveAvatar 
             initials="TK" 
             src="/images/leadership/talal.jpg" 
@@ -643,7 +743,7 @@ export default function LeadershipPage() {
         </div>
 
         {/* Large Highlighted Card */}
-        <div className="group bg-[#050f21] border border-emerald-500/20 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl shadow-emerald-500/2 cursor-default transition-all duration-300 ease-out hover:-translate-y-1 hover:border-emerald-500/35 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)]">
+        <div className="group bg-[#050f21] border border-emerald-500/20 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl shadow-emerald-500/2 cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-emerald-500/35 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)]">
           <div className="flex flex-col sm:flex-row gap-6 items-start">
             <ExecutiveAvatar 
               initials="FK" 
@@ -868,7 +968,7 @@ export default function LeadershipPage() {
           <div className="flex flex-wrap justify-center gap-4">
             <a 
               href="/contact" 
-              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-6 py-3 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/10 active:scale-[0.97] cursor-pointer"
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-6 py-3 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/10 active:scale-[0.97] cursor-pointer"
             >
               Request a Demo
             </a>

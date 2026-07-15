@@ -44,33 +44,49 @@ export default function Navbar() {
           <div className="flex items-center justify-between h-16 lg:h-[70px]">
 
             {/* Logo */}
-            <Link to="/" className="flex items-center gap-2.5 group">
-              <Motion.div
-                whileHover={{ rotate: 12, scale: 1.08 }}
-                transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-                className="w-8 h-8 rounded-[9px] flex items-center justify-center relative overflow-hidden"
-                style={{ background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)' }}
-              >
-                <div className="absolute inset-0 bg-white/20 rounded-[9px]" />
-                <Zap size={14} className="text-white fill-white relative z-10" />
-              </Motion.div>
-              <span
-                className="text-[17px] font-black text-white tracking-tight"
-                style={{ fontFamily: "'Sora', 'DM Sans', system-ui, sans-serif" }}
-              >
-                SARFIS
-              </span>
-            </Link>
+            <Motion.div
+              initial={{ opacity: 0, y: -15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+            >
+              <Link to="/" className="flex items-center gap-2.5 group">
+                <Motion.div
+                  whileHover={{ rotate: 12, scale: 1.08 }}
+                  transition={{ type: 'spring', stiffness: 500, damping: 18 }}
+                  className="w-8 h-8 rounded-[9px] flex items-center justify-center relative overflow-hidden"
+                  style={{ background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)' }}
+                >
+                  <div className="absolute inset-0 bg-white/20 rounded-[9px]" />
+                  <Zap size={14} className="text-white fill-white relative z-10" />
+                </Motion.div>
+                <span
+                  className="text-[17px] font-black text-white tracking-tight"
+                  style={{ fontFamily: "'Sora', 'DM Sans', system-ui, sans-serif" }}
+                >
+                  SARFIS
+                </span>
+              </Link>
+            </Motion.div>
 
             {/* Desktop links */}
-            <div className="hidden md:flex items-center gap-1">
+            <Motion.div
+              initial={{ opacity: 0, y: -15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.2, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="hidden md:flex items-center gap-1"
+            >
               {navLinks.map((link) => (
                 <NavLink key={link.label} link={link} active={location.pathname === link.href} />
               ))}
-            </div>
+            </Motion.div>
 
             {/* CTA */}
-            <div className="hidden md:flex items-center gap-3">
+            <Motion.div
+              initial={{ opacity: 0, y: -15 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
+              className="hidden md:flex items-center gap-3"
+            >
               <Link
                 to="/login"
                 className="px-4 py-2 text-[13.5px] font-medium text-slate-400 hover:text-white transition-colors duration-200"
@@ -89,7 +105,7 @@ export default function Navbar() {
                   Get Started Free
                 </Link>
               </Motion.div>
-            </div>
+            </Motion.div>
 
             {/* Mobile hamburger */}
             <button
