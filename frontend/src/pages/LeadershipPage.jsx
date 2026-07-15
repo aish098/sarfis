@@ -1,5 +1,5 @@
-import { useState } from 'react';
-import { motion } from 'framer-motion';
+import { useState, useEffect, useRef } from 'react';
+import { motion, useInView } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
@@ -8,44 +8,109 @@ function ExecutiveAvatar({ initials, src, size = "w-28 h-36", borderAccent = "bo
   const [imageError, setImageError] = useState(false);
 
   return (
-    <div className={`relative flex items-center justify-center rounded-2xl bg-[#050f21] border-2 ${borderAccent} ${size} shadow-lg shadow-emerald-500/5 overflow-hidden transition-transform duration-500 hover:scale-105`}>
+    <div className={`relative flex items-center justify-center rounded-2xl bg-[#050f21] border-2 ${borderAccent} ${size} shadow-lg overflow-hidden transition-all duration-300 ease-out group-hover:border-emerald-400 group-hover:shadow-[0_0_20px_rgba(16,185,129,0.15)]`}>
       {src && !imageError ? (
         <img 
           src={src} 
           alt={initials} 
-          className="w-full h-full object-cover" 
+          className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]" 
           onError={() => setImageError(true)}
         />
       ) : (
         <span className="text-2xl font-bold text-white font-mono">{initials}</span>
       )}
-      <div className="absolute inset-0 rounded-2xl bg-emerald-500/5 blur-sm pointer-events-none" />
+      <div className="absolute inset-0 rounded-2xl bg-emerald-500/5 blur-sm pointer-events-none opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
     </div>
   );
 }
 
-// Scroll animation presets
-const scrollVariants = {
-  hidden: { opacity: 0, y: 35 },
-  visible: { 
-    opacity: 1, 
-    y: 0,
-    transition: { duration: 0.65, ease: [0.215, 0.61, 0.355, 1] }
-  }
-};
+// Performant statistics count-up animation component
+function AnimatedCounter({ value, suffix = "" }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-50px" });
+  const [count, setCount] = useState(0);
 
-// spring animation helper for card hover
-const cardHoverProps = {
-  whileHover: { y: -6, scale: 1.008, borderColor: "rgba(16, 185, 129, 0.3)" },
-  transition: { type: "spring", stiffness: 400, damping: 24 }
-};
+  useEffect(() => {
+    // Detect prefers-reduced-motion
+    const prefersReducedMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+    if (prefersReducedMotion) {
+      setCount(value);
+      return;
+    }
 
-const treeNodeHoverProps = {
-  whileHover: { scale: 1.05, borderColor: "rgba(16, 185, 129, 0.4)" },
-  transition: { type: "spring", stiffness: 500, damping: 15 }
-};
+    if (!isInView) return;
+
+    const num = parseInt(value, 10);
+    if (isNaN(num)) {
+      setCount(value);
+      return;
+    }
+
+    const duration = 1500; // ms
+    const startTime = performance.now();
+
+    const animate = (timestamp) => {
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      
+      // easeOutExpo easing function
+      const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      
+      const current = Math.floor(easeProgress * num);
+      setCount(current);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setCount(num);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [isInView, value]);
+
+  return <span ref={ref}>{count}{suffix}</span>;
+}
+
+// Simple left-to-right section divider reveal
+function AnimatedDivider() {
+  return (
+    <div className="w-24 h-0.5 mx-auto my-4 bg-gradient-to-r from-emerald-500/10 via-emerald-500 to-emerald-500/10 rounded-full relative overflow-hidden">
+      <motion.div
+        initial={{ scaleX: 0 }}
+        whileInView={{ scaleX: 1 }}
+        viewport={{ once: true }}
+        transition={{ duration: 0.7, ease: [0.22, 1, 0.36, 1] }}
+        style={{ originX: 0.5 }}
+        className="w-full h-full bg-emerald-400"
+      />
+    </div>
+  );
+}
 
 export default function LeadershipPage() {
+  // Detect OS/browser reduced-motion configuration
+  const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
+
+  useEffect(() => {
+    const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+    setPrefersReducedMotion(mediaQuery.matches);
+
+    const listener = (e) => setPrefersReducedMotion(e.matches);
+    mediaQuery.addEventListener("change", listener);
+    return () => mediaQuery.removeEventListener("change", listener);
+  }, []);
+
+  // One-time scroll reveal configuration
+  const scrollVariants = {
+    hidden: { opacity: 0, y: prefersReducedMotion ? 0 : 25 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.65, ease: [0.22, 1, 0.36, 1] }
+    }
+  };
+
   // Inject custom marquee styles programmatically
   if (typeof document !== 'undefined' && !document.getElementById('lp-marquee-styles')) {
     const s = document.createElement('style');
@@ -86,7 +151,7 @@ export default function LeadershipPage() {
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.4 }}
+      transition={{ duration: 0.35 }}
       className="bg-[#030b1a] min-h-screen text-white font-sans overflow-hidden"
     >
       <Navbar />
@@ -102,7 +167,7 @@ export default function LeadershipPage() {
           Corporate Profile
         </motion.div>
         <motion.h1 
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.1 }}
           className="text-4xl sm:text-6xl font-black tracking-tight mb-5" 
@@ -114,7 +179,7 @@ export default function LeadershipPage() {
           </span>
         </motion.h1>
         <motion.p 
-          initial={{ opacity: 0, y: 15 }}
+          initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 15 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.6, delay: 0.2 }}
           className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-xl mx-auto"
@@ -127,18 +192,15 @@ export default function LeadershipPage() {
       <motion.section 
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: "-60px" }}
+        viewport={{ once: true, amount: 0.15 }}
         variants={scrollVariants}
         className="py-12 px-5 sm:px-8 max-w-5xl mx-auto"
       >
-        <motion.div 
-          whileHover={{ y: -8, scale: 1.005, borderColor: "rgba(16, 185, 129, 0.25)", boxShadow: "0 20px 40px -15px rgba(16, 185, 129, 0.05)" }}
-          transition={{ type: "spring", stiffness: 450, damping: 25 }}
-          className="bg-[#050f21] border border-slate-800 rounded-3xl overflow-hidden shadow-2xl p-6 sm:p-10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center cursor-default"
-        >
+        <div className="group bg-[#050f21] border border-slate-800 rounded-3xl overflow-hidden shadow-2xl p-6 sm:p-10 grid grid-cols-1 md:grid-cols-12 gap-8 items-center cursor-default transition-all duration-300 ease-out hover:-translate-y-1 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.04)]">
+          
           {/* Left Side: Portrait & Metrics */}
           <div className="md:col-span-5 flex flex-col items-center text-center space-y-6 md:border-r md:border-slate-800/80 md:pr-8">
-            <div className="relative p-1.5 rounded-2xl border-2 border-emerald-500/80 shadow-lg shadow-emerald-500/5">
+            <div className="relative p-1.5 rounded-2xl border-2 border-emerald-500/80 transition-all duration-305 group-hover:border-emerald-400">
               <ExecutiveAvatar 
                 initials="RZ" 
                 src="/images/leadership/zain.jpg" 
@@ -156,15 +218,21 @@ export default function LeadershipPage() {
             {/* Founder Metrics */}
             <div className="grid grid-cols-3 gap-4 w-full pt-4 border-t border-slate-850">
               <div className="text-center">
-                <div className="text-xl sm:text-2xl font-black text-white font-mono">12+</div>
+                <div className="text-xl sm:text-2xl font-black text-white font-mono">
+                  <AnimatedCounter value="12" suffix="+" />
+                </div>
                 <div className="text-[10px] text-slate-500 uppercase font-semibold">Years</div>
               </div>
               <div className="text-center border-x border-slate-850">
-                <div className="text-xl sm:text-2xl font-black text-white font-mono">4</div>
+                <div className="text-xl sm:text-2xl font-black text-white font-mono">
+                  <AnimatedCounter value="4" />
+                </div>
                 <div className="text-[10px] text-slate-500 uppercase font-semibold">ERP Systems</div>
               </div>
               <div className="text-center">
-                <div className="text-xl sm:text-2xl font-black text-white font-mono">50+</div>
+                <div className="text-xl sm:text-2xl font-black text-white font-mono">
+                  <AnimatedCounter value="50" suffix="+" />
+                </div>
                 <div className="text-[10px] text-slate-500 uppercase font-semibold">Companies</div>
               </div>
             </div>
@@ -200,26 +268,41 @@ export default function LeadershipPage() {
               </div>
             </div>
 
-            <div className="border-l-2 border-emerald-500 pl-4 py-1 italic text-slate-400 text-xs sm:text-sm font-medium">
+            {/* Founder Quote */}
+            <motion.div 
+              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="border-l-2 border-emerald-500 pl-4 py-1 italic text-slate-400 text-xs sm:text-sm font-medium"
+            >
               "SARFIS is not just accounting software—it is an enterprise operating platform built for modern organizations."
-            </div>
+            </motion.div>
           </div>
 
-        </motion.div>
+        </div>
       </motion.section>
 
       {/* SECTION 2 — Mentors & Academic Advisors */}
       <motion.section 
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: "-60px" }}
+        viewport={{ once: true, amount: 0.15 }}
         variants={scrollVariants}
         className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900"
       >
         <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
+          <motion.h2 
+            initial={{ opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-2xl sm:text-3xl font-black text-white" 
+            style={{ fontFamily: "'Sora', system-ui, sans-serif" }}
+          >
             Mentors & Academic Advisors
-          </h2>
+          </motion.h2>
+          <AnimatedDivider />
           <p className="text-slate-400 text-xs sm:text-sm max-w-xl mx-auto mt-2">
             Senior academics and industry professionals providing strategic, accounting, taxation and governance guidance.
           </p>
@@ -228,10 +311,7 @@ export default function LeadershipPage() {
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
           {/* Card 1: Prof. Saad */}
-          <motion.div 
-            {...cardHoverProps}
-            className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl cursor-default"
-          >
+          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.04)]">
             <div className="space-y-4">
               <div className="flex gap-4 items-start flex-wrap sm:flex-nowrap">
                 <ExecutiveAvatar 
@@ -241,7 +321,7 @@ export default function LeadershipPage() {
                   borderAccent="border-emerald-500/60" 
                 />
                 <div className="flex-1">
-                  <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Professor Saad Anwar Mughal</h3>
+                  <h3 className="text-base font-extrabold text-white animate-fade-in" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Professor Saad Anwar Mughal</h3>
                   <div className="mt-1">
                     <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-relaxed">
                       Professor • Taxation & Financial Governance Advisor
@@ -266,20 +346,21 @@ export default function LeadershipPage() {
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-850 text-xs">
               <div>
                 <span className="text-[9.5px] uppercase font-bold text-slate-500 block">Experience</span>
-                <span className="text-base font-black text-white font-mono">15+ Years</span>
+                <span className="text-base font-black text-white font-mono">
+                  <AnimatedCounter value="15" suffix="+ Years" />
+                </span>
               </div>
               <div>
                 <span className="text-[9.5px] uppercase font-bold text-slate-500 block">Projects</span>
-                <span className="text-base font-black text-white font-mono">200+ Research & Advisory</span>
+                <span className="text-base font-black text-white font-mono">
+                  <AnimatedCounter value="200" suffix="+" />
+                </span>
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Card 2: Prof. Rehan */}
-          <motion.div 
-            {...cardHoverProps}
-            className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl cursor-default"
-          >
+          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.04)]">
             <div className="space-y-4">
               <div className="flex gap-4 items-start flex-wrap sm:flex-nowrap">
                 <ExecutiveAvatar 
@@ -314,14 +395,18 @@ export default function LeadershipPage() {
             <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-850 text-xs">
               <div>
                 <span className="text-[9.5px] uppercase font-bold text-slate-500 block">Experience</span>
-                <span className="text-base font-black text-white font-mono">18+ Years</span>
+                <span className="text-base font-black text-white font-mono">
+                  <AnimatedCounter value="18" suffix="+ Years" />
+                </span>
               </div>
               <div>
                 <span className="text-[9.5px] uppercase font-bold text-slate-500 block">Projects</span>
-                <span className="text-base font-black text-white font-mono">300+ Academic & Industry</span>
+                <span className="text-base font-black text-white font-mono">
+                  <AnimatedCounter value="300" suffix="+" />
+                </span>
               </div>
             </div>
-          </motion.div>
+          </div>
 
         </div>
       </motion.section>
@@ -330,23 +415,28 @@ export default function LeadershipPage() {
       <motion.section 
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: "-60px" }}
+        viewport={{ once: true, amount: 0.15 }}
         variants={scrollVariants}
         className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900"
       >
         <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
+          <motion.h2 
+            initial={{ opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-2xl sm:text-3xl font-black text-white" 
+            style={{ fontFamily: "'Sora', system-ui, sans-serif" }}
+          >
             Strategic Management & Core Development Team
-          </h2>
+          </motion.h2>
+          <AnimatedDivider />
         </div>
 
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
           
           {/* Left Card: Ayesha */}
-          <motion.div 
-            {...cardHoverProps}
-            className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl cursor-default"
-          >
+          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.04)]">
             <div className="flex gap-4 items-start">
               <ExecutiveAvatar 
                 initials="AK" 
@@ -382,13 +472,10 @@ export default function LeadershipPage() {
                 </p>
               </div>
             </div>
-          </motion.div>
+          </div>
 
           {/* Right Card: Syed Ansar */}
-          <motion.div 
-            {...cardHoverProps}
-            className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl cursor-default"
-          >
+          <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.04)]">
             <div className="flex gap-4 items-start">
               <ExecutiveAvatar 
                 initials="SA" 
@@ -424,7 +511,7 @@ export default function LeadershipPage() {
                 </p>
               </div>
             </div>
-          </motion.div>
+          </div>
 
         </div>
       </motion.section>
@@ -433,20 +520,25 @@ export default function LeadershipPage() {
       <motion.section 
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: "-60px" }}
+        viewport={{ once: true, amount: 0.15 }}
         variants={scrollVariants}
         className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900"
       >
         <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
+          <motion.h2 
+            initial={{ opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-2xl sm:text-3xl font-black text-white" 
+            style={{ fontFamily: "'Sora', system-ui, sans-serif" }}
+          >
             Human Resources & Operations
-          </h2>
+          </motion.h2>
+          <AnimatedDivider />
         </div>
 
-        <motion.div 
-          {...cardHoverProps}
-          className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-start shadow-xl cursor-default"
-        >
+        <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-start shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.04)]">
           <ExecutiveAvatar 
             initials="AA" 
             src="/images/leadership/amna.jpg" 
@@ -473,27 +565,32 @@ export default function LeadershipPage() {
               Coordinates staffing requirements, manages internal corporate resource channels, regulates employee workflows, and administers general workplace compliance standards to support overall scaling.
             </p>
           </div>
-        </motion.div>
+        </div>
       </motion.section>
 
       {/* SECTION 5 — Finance & Business Intelligence */}
       <motion.section 
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: "-60px" }}
+        viewport={{ once: true, amount: 0.15 }}
         variants={scrollVariants}
         className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900"
       >
         <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
+          <motion.h2 
+            initial={{ opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-2xl sm:text-3xl font-black text-white" 
+            style={{ fontFamily: "'Sora', system-ui, sans-serif" }}
+          >
             Finance & Business Intelligence
-          </h2>
+          </motion.h2>
+          <AnimatedDivider />
         </div>
 
-        <motion.div 
-          {...cardHoverProps}
-          className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-start shadow-xl cursor-default"
-        >
+        <div className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-start shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1 hover:border-emerald-500/20 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.04)]">
           <ExecutiveAvatar 
             initials="TK" 
             src="/images/leadership/talal.jpg" 
@@ -520,29 +617,33 @@ export default function LeadershipPage() {
               Constructs dynamic budget forecasts modeling sheets, reports on key operational liquidity metrics, conducts variance reports audits, and structures business intelligence indicators.
             </p>
           </div>
-        </motion.div>
+        </div>
       </motion.section>
 
       {/* SECTION 6 — Legal Framework & Corporate Compliance */}
       <motion.section 
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: "-60px" }}
+        viewport={{ once: true, amount: 0.15 }}
         variants={scrollVariants}
         className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900"
       >
         <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
+          <motion.h2 
+            initial={{ opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-2xl sm:text-3xl font-black text-white" 
+            style={{ fontFamily: "'Sora', system-ui, sans-serif" }}
+          >
             Legal Framework & Corporate Compliance
-          </h2>
+          </motion.h2>
+          <AnimatedDivider />
         </div>
 
         {/* Large Highlighted Card */}
-        <motion.div 
-          whileHover={{ y: -6, scale: 1.005, borderColor: "rgba(16, 185, 129, 0.35)", boxShadow: "0 20px 40px -15px rgba(16, 185, 129, 0.05)" }}
-          transition={{ type: "spring", stiffness: 400, damping: 25 }}
-          className="bg-[#050f21] border border-emerald-500/20 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl shadow-emerald-500/2 cursor-default"
-        >
+        <div className="group bg-[#050f21] border border-emerald-500/20 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl shadow-emerald-500/2 cursor-default transition-all duration-300 ease-out hover:-translate-y-1 hover:border-emerald-500/35 hover:shadow-[0_20px_40px_-15px_rgba(16,185,129,0.06)]">
           <div className="flex flex-col sm:flex-row gap-6 items-start">
             <ExecutiveAvatar 
               initials="FK" 
@@ -576,39 +677,51 @@ export default function LeadershipPage() {
               Provides strategic legal guidance on software licensing structures, intellectual property frameworks, contract audits templates, and advises on regulatory corporate tax compliance requirements.
             </p>
 
-            <div className="border-l-2 border-emerald-500 pl-4 py-1 italic text-slate-400 text-xs sm:text-sm font-medium">
+            {/* Legal Advisor Quote */}
+            <motion.div 
+              initial={{ opacity: 0, y: prefersReducedMotion ? 0 : 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6, delay: 0.3 }}
+              className="border-l-2 border-emerald-500 pl-4 py-1 italic text-slate-400 text-xs sm:text-sm font-medium"
+            >
               "Strong governance and compliance are the foundation of sustainable enterprise growth."
-            </div>
+            </motion.div>
           </div>
-        </motion.div>
+        </div>
       </motion.section>
 
       {/* SECTION 7 — Organizational Structure */}
       <motion.section 
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: "-60px" }}
+        viewport={{ once: true, amount: 0.15 }}
         variants={scrollVariants}
         className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900"
       >
         <div className="text-center mb-12">
-          <h2 className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
+          <motion.h2 
+            initial={{ opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-2xl sm:text-3xl font-black text-white" 
+            style={{ fontFamily: "'Sora', system-ui, sans-serif" }}
+          >
             Organizational Structure
-          </h2>
+          </motion.h2>
+          <AnimatedDivider />
         </div>
 
         {/* Visual Hierarchy Tree */}
-        <div className="bg-[#050f21] border border-slate-800 rounded-3xl p-8 flex flex-col items-center hover:border-slate-700/60 transition duration-300">
+        <div className="bg-[#050f21] border border-slate-800 rounded-3xl p-8 flex flex-col items-center transition-all duration-300 hover:border-slate-700/50">
           
           {/* Level 1: CEO */}
           <div className="flex flex-col items-center">
-            <motion.div 
-              {...treeNodeHoverProps}
-              className="bg-slate-950 border border-emerald-500/30 px-6 py-3 rounded-2xl text-center shadow-lg cursor-default"
-            >
+            <div className="bg-slate-950 border border-emerald-500/30 px-6 py-3 rounded-2xl text-center shadow-lg transition-all duration-300 hover:scale-[1.02] hover:border-emerald-400 cursor-default">
               <span className="text-[9.5px] text-emerald-400 font-bold uppercase tracking-wider block">CEO & Founder</span>
               <span className="text-xs font-black text-white block mt-0.5">Rana Muhammad Zain</span>
-            </motion.div>
+            </div>
             
             {/* Vertical Line */}
             <div className="w-0.5 h-8 bg-slate-800" />
@@ -625,82 +738,61 @@ export default function LeadershipPage() {
             {/* Column 1: Development */}
             <div className="flex flex-col items-center">
               <div className="w-0.5 h-6 bg-slate-800" />
-              <motion.div 
-                {...treeNodeHoverProps}
-                className="bg-slate-950 border border-emerald-500/30 px-4 py-2.5 rounded-xl mt-1 cursor-default"
-              >
+              <div className="bg-slate-950 border border-emerald-500/30 px-4 py-2.5 rounded-xl mt-1 transition-all duration-300 hover:scale-[1.02] hover:border-emerald-400 cursor-default">
                 <span className="text-[9px] text-emerald-400 font-bold uppercase block">Core Track</span>
                 <span className="text-[11px] font-bold text-white block">Development</span>
                 <span className="text-[10px] text-slate-400 font-medium block mt-0.5">Ayesha Kashif</span>
-              </motion.div>
+              </div>
               
               <div className="w-0.5 h-6 bg-slate-800" />
               {/* DevOps */}
-              <motion.div 
-                {...treeNodeHoverProps}
-                className="bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl cursor-default"
-              >
+              <div className="bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:border-emerald-500/35 cursor-default">
                 <span className="text-[9px] text-slate-500 font-bold uppercase block">Infrastructure</span>
                 <span className="text-[11px] font-bold text-white block">DevOps</span>
                 <span className="text-[10px] text-slate-400 font-medium block mt-0.5">Syed Ansar Ali</span>
-              </motion.div>
+              </div>
 
               <div className="w-0.5 h-6 bg-slate-800" />
               {/* Legal Advisor */}
-              <motion.div 
-                {...treeNodeHoverProps}
-                className="bg-slate-950 border border-emerald-500/20 px-4 py-2.5 rounded-xl cursor-default"
-              >
+              <div className="bg-slate-950 border border-emerald-500/20 px-4 py-2.5 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:border-emerald-400 cursor-default">
                 <span className="text-[9px] text-emerald-400 font-bold uppercase block">Advisory</span>
                 <span className="text-[11px] font-bold text-white block">Legal Advisor</span>
                 <span className="text-[10px] text-slate-400 font-medium block mt-0.5">Farhan Ahmed Khokhar</span>
-              </motion.div>
+              </div>
             </div>
 
             {/* Column 2: Finance */}
             <div className="flex flex-col items-center">
               <div className="w-0.5 h-6 bg-slate-800" />
-              <motion.div 
-                {...treeNodeHoverProps}
-                className="bg-slate-950 border border-emerald-500/20 px-4 py-2.5 rounded-xl mt-1 cursor-default"
-              >
+              <div className="bg-slate-950 border border-emerald-500/20 px-4 py-2.5 rounded-xl mt-1 transition-all duration-300 hover:scale-[1.02] hover:border-emerald-400 cursor-default">
                 <span className="text-[9px] text-emerald-400 font-bold uppercase block">Core Advisor</span>
                 <span className="text-[11px] font-bold text-white block">Professor Saad Anwar Mughal</span>
-              </motion.div>
+              </div>
               
               <div className="w-0.5 h-6 bg-slate-800" />
               {/* Financial Analyst */}
-              <motion.div 
-                {...treeNodeHoverProps}
-                className="bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl cursor-default"
-              >
+              <div className="bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:border-emerald-500/35 cursor-default">
                 <span className="text-[9px] text-slate-500 font-bold uppercase block">Analysis</span>
                 <span className="text-[11px] font-bold text-white block">Financial Analyst</span>
                 <span className="text-[10px] text-slate-400 font-medium block mt-0.5">Rana Talal Khan</span>
-              </motion.div>
+              </div>
             </div>
 
             {/* Column 3: Operations */}
             <div className="flex flex-col items-center">
               <div className="w-0.5 h-6 bg-slate-800" />
-              <motion.div 
-                {...treeNodeHoverProps}
-                className="bg-slate-950 border border-emerald-500/20 px-4 py-2.5 rounded-xl mt-1 cursor-default"
-              >
+              <div className="bg-slate-950 border border-emerald-500/20 px-4 py-2.5 rounded-xl mt-1 transition-all duration-300 hover:scale-[1.02] hover:border-emerald-400 cursor-default">
                 <span className="text-[9px] text-emerald-400 font-bold uppercase block">Core Advisor</span>
                 <span className="text-[11px] font-bold text-white block">Professor Muhammad Rehan Anjum</span>
-              </motion.div>
+              </div>
               
               <div className="w-0.5 h-6 bg-slate-800" />
               {/* HR */}
-              <motion.div 
-                {...treeNodeHoverProps}
-                className="bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl cursor-default"
-              >
+              <div className="bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:border-emerald-500/35 cursor-default">
                 <span className="text-[9px] text-slate-500 font-bold uppercase block">Management</span>
                 <span className="text-[11px] font-bold text-white block">HR</span>
                 <span className="text-[10px] text-slate-400 font-medium block mt-0.5">Amna Waheed Ahmed</span>
-              </motion.div>
+              </div>
             </div>
 
           </div>
@@ -711,7 +803,7 @@ export default function LeadershipPage() {
       <motion.section 
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: "-60px" }}
+        viewport={{ once: true, amount: 0.15 }}
         variants={scrollVariants}
         className="py-16 border-t border-slate-900 overflow-hidden relative bg-[#040e1f]"
       >
@@ -720,19 +812,25 @@ export default function LeadershipPage() {
         <div className="absolute inset-y-0 right-0 w-32 bg-gradient-to-l from-[#040e1f] to-transparent z-10 pointer-events-none" />
 
         <div className="text-center mb-12 px-5 sm:px-8">
-          <h2 className="text-2xl sm:text-3xl font-black text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
+          <motion.h2 
+            initial={{ opacity: 0, y: 15 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true }}
+            transition={{ duration: 0.6 }}
+            className="text-2xl sm:text-3xl font-black text-white" 
+            style={{ fontFamily: "'Sora', system-ui, sans-serif" }}
+          >
             Full Leadership Directory
-          </h2>
+          </motion.h2>
+          <AnimatedDivider />
         </div>
 
         <div className="relative w-full">
           <div className="animate-lp-marquee">
             {doubledDirectory.map((d, idx) => (
-              <motion.div
+              <div
                 key={idx}
-                whileHover={{ scale: 1.03, borderColor: "rgba(16, 185, 129, 0.3)" }}
-                transition={{ type: "spring", stiffness: 450, damping: 20 }}
-                className="flex-shrink-0 flex items-center gap-4 px-6 py-4 bg-slate-950/40 border border-slate-800 rounded-2xl shadow-lg w-[320px] cursor-default"
+                className="flex-shrink-0 flex items-center gap-4 px-6 py-4 bg-slate-950/40 border border-slate-800 rounded-2xl shadow-lg w-[320px] cursor-default transition-all duration-300 hover:border-emerald-500/30 hover:-translate-y-1"
               >
                 <div 
                   className="w-10 h-10 rounded-full flex items-center justify-center font-bold font-mono text-xs flex-shrink-0"
@@ -749,7 +847,7 @@ export default function LeadershipPage() {
                   <h4 className="text-xs font-black text-white truncate leading-tight">{d.name}</h4>
                   <p className="text-[9.5px] text-slate-500 font-bold uppercase tracking-wider truncate mt-1">{d.title}</p>
                 </div>
-              </motion.div>
+              </div>
             ))}
           </div>
         </div>
@@ -759,24 +857,24 @@ export default function LeadershipPage() {
       <motion.section 
         initial="hidden"
         whileInView="visible"
-        viewport={{ once: true, margin: "-60px" }}
+        viewport={{ once: true, amount: 0.15 }}
         variants={scrollVariants}
         className="py-20 px-5 sm:px-8 text-center max-w-4xl mx-auto relative z-10 border-t border-slate-900"
       >
-        <div className="bg-gradient-to-b from-[#050f21] to-[#030b1a] border border-slate-800 rounded-3xl p-8 sm:p-12 space-y-6 transition hover:border-slate-700/60 duration-300 shadow-2xl">
+        <div className="bg-[#050f21] border border-slate-800 rounded-3xl p-8 sm:p-12 space-y-6 transition duration-300 hover:border-slate-700/60 shadow-2xl">
           <h2 className="text-2xl sm:text-4xl font-black text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
             Ready to build the future of enterprise intelligence?
           </h2>
           <div className="flex flex-wrap justify-center gap-4">
             <a 
               href="/contact" 
-              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-6 py-3 rounded-xl transition duration-200 shadow-lg shadow-emerald-500/10"
+              className="bg-emerald-600 hover:bg-emerald-500 text-white text-xs font-bold px-6 py-3 rounded-xl transition-all duration-300 hover:shadow-lg hover:shadow-emerald-500/10 active:scale-[0.97] cursor-pointer"
             >
               Request a Demo
             </a>
             <a 
               href="/contact" 
-              className="bg-transparent border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white text-xs font-bold px-6 py-3 rounded-xl transition duration-200"
+              className="bg-transparent border border-slate-700 hover:border-slate-500 text-slate-300 hover:text-white text-xs font-bold px-6 py-3 rounded-xl transition-all duration-300 active:scale-[0.97] cursor-pointer"
             >
               Contact Leadership
             </a>
