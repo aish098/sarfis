@@ -1,7 +1,7 @@
 import React, { Fragment, useCallback, useEffect, useMemo, useState } from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import {
-  Activity, AlertTriangle, Building2, Calendar, Check, CheckCircle2,
+  Activity, AlertTriangle, BookOpen, Building2, Calendar, Check, CheckCircle2,
   Crown, Database, FileDown, FileUp, Info, KeyRound, Lock, LogOut,
   RefreshCw, Save, Search, ShieldCheck, Trash2, Unlock, UserPlus, Users, X
 } from 'lucide-react';
@@ -9,6 +9,7 @@ import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import { useSearchParams } from 'react-router-dom';
 import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
+import TutorialManagement from './TutorialManagement';
 
 const ROLE_NOTES = {
   Admin: 'Full control over users, settings, roles, and company data.',
@@ -824,7 +825,8 @@ export default function AdminPage() {
           { id: 'permissions', label: 'Permissions Matrix', icon: ShieldCheck },
           { id: 'periods', label: 'Fiscal Periods', icon: Calendar },
           { id: 'data', label: 'Data Wizards', icon: Database },
-          { id: 'sessions', label: 'Active Sessions', icon: Activity }
+          { id: 'sessions', label: 'Active Sessions', icon: Activity },
+          { id: 'tutorial', label: 'Tutorials & Manuals', icon: BookOpen }
         ].map((tab) => {
           const TabIcon = tab.icon;
           const isActive = activeTab === tab.id;
@@ -1735,6 +1737,9 @@ export default function AdminPage() {
             </section>
           );
         })()}
+        {activeTab === 'tutorial' && (
+          <TutorialManagement />
+        )}
       </div>
 
       {/* User Overrides Modal */}

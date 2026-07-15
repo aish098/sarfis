@@ -5,10 +5,9 @@ import { Menu, X, Zap } from 'lucide-react';
 
 const navLinks = [
   { label: 'Home', href: '/', isRoute: true },
-  { label: 'Features', href: '/#features', isRoute: false },
-  { label: 'Pricing', href: '/#pricing', isRoute: false },
   { label: 'About', href: '/about', isRoute: true },
   { label: 'Leadership', href: '/leadership', isRoute: true },
+  { label: 'Tutorial', href: '/tutorial', isRoute: true },
   { label: 'Contact', href: '/contact', isRoute: true },
 ];
 

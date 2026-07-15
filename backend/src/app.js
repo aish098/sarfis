@@ -36,6 +36,7 @@ app.use('/api/upload', require('./routes/upload.routes'));
 app.use('/api', require('./routes/employee.routes'));
 app.use('/api', require('./routes/notification.routes'));
 app.use('/api/risk', require('./routes/risk.routes'));
+app.use('/api/tutorial', require('./routes/tutorial.routes'));
 
 // ERP Modules (Now includes Analytics)
 app.use('/api', require('./routes/erp.routes'));

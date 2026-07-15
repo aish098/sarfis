@@ -6,6 +6,7 @@ import { AnimatePresence } from 'framer-motion';
 import LandingPage from './pages/LandingPage';
 import AboutPage from './pages/AboutPage';
 import LeadershipPage from './pages/LeadershipPage';
+import TutorialPage from './pages/website/TutorialPage';
 import ContactPage from './pages/ContactPage';
 
 import LoginPage from './pages/LoginPage';
@@ -28,6 +29,7 @@ function AnimatedRoutes() {
         <Route path="/" element={<LandingPage />} />
         <Route path="/about" element={<AboutPage />} />
         <Route path="/leadership" element={<LeadershipPage />} />
+        <Route path="/tutorial" element={<TutorialPage />} />
         <Route path="/contact" element={<ContactPage />} />
 
         <Route path="/login" element={<LoginPage />} />
