@@ -405,7 +405,7 @@ export default function InteractiveDemo() {
                       <input 
                         type="number"
                         className="input-enterprise w-full"
-                        style={{ background: '#030b1a', border: '1px solid #1e293b' }}
+                        style={{ background: '#030b1a', border: '1px solid #1e293b', color: '#ffffff' }}
                         value={baseSalary}
                         onChange={e => setBaseSalary(Math.max(0, parseFloat(e.target.value) || 0))}
                       />
@@ -415,7 +415,7 @@ export default function InteractiveDemo() {
                       <input 
                         type="number"
                         className="input-enterprise w-full"
-                        style={{ background: '#030b1a', border: '1px solid #1e293b' }}
+                        style={{ background: '#030b1a', border: '1px solid #1e293b', color: '#ffffff' }}
                         value={allowance}
                         onChange={e => setAllowance(Math.max(0, parseFloat(e.target.value) || 0))}
                       />
