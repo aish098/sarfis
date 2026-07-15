@@ -36,54 +36,48 @@ const diagonalUpRightVariants = {
   visible: { opacity: 1, x: 0, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } }
 };
 
-// Avatar component supporting passport-style rectangular photos with initials fallback and a floating offset border
-function ExecutiveAvatar({ initials, src, size = "w-28 h-36", borderAccent = "border-emerald-500", glowColor = "rgba(16,185,129,0.15)" }) {
+// Avatar component supporting circular photos with initials fallback and a thin gradient ring
+function ExecutiveAvatar({ initials, src, size = "w-36 h-36", borderAccent = "border-emerald-500", glowColor = "rgba(16,185,129,0.15)", objectPosition = "center", imageScale = 1 }) {
   const [imageError, setImageError] = useState(false);
   const [hovered, setHovered] = useState(false);
 
-  // Extract border color or use fallback
-  let offsetBorderColor = "bg-emerald-500/80";
-  if (borderAccent.includes("cyan")) offsetBorderColor = "bg-cyan-500/80";
-  if (borderAccent.includes("amber")) offsetBorderColor = "bg-amber-500/80";
-  if (borderAccent.includes("purple") || borderAccent.includes("violet")) offsetBorderColor = "bg-violet-500/80";
-  if (borderAccent.includes("slate")) offsetBorderColor = "bg-slate-600/80";
+  // Map borderAccent to clean gradient color combinations for the outer ring
+  let gradientClass = "from-emerald-500 to-cyan-500";
+  if (borderAccent.includes("cyan")) gradientClass = "from-cyan-500 to-blue-500";
+  if (borderAccent.includes("amber")) gradientClass = "from-amber-500 to-orange-500";
+  if (borderAccent.includes("purple") || borderAccent.includes("violet")) gradientClass = "from-violet-500 to-fuchsia-500";
+  if (borderAccent.includes("slate")) gradientClass = "from-slate-600 to-slate-400";
 
   return (
     <div 
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className="relative cursor-default"
+      className={`relative flex items-center justify-center p-[2px] rounded-full bg-gradient-to-tr ${gradientClass} ${size} shadow-lg transition-all duration-300 ease-out`}
+      style={{
+        boxShadow: hovered ? `0 10px 25px -5px ${glowColor}, 0 0 20px ${glowColor}` : '0 4px 12px rgba(0,0,0,0.15)',
+        transform: hovered ? "scale(1.05)" : "scale(1)"
+      }}
     >
-      {/* Floating Offset Border Layer */}
       <div 
-        className={`absolute inset-0 rounded-2xl transition-all duration-300 ease-out ${offsetBorderColor} ${size}`}
-        style={{
-          transform: hovered ? "translate(0px, 0px) scale(1.02)" : "translate(8px, 8px)",
-          opacity: hovered ? 0.3 : 0.85
-        }}
-      />
-
-      {/* Main Image Layer */}
-      <div 
-        className={`relative flex items-center justify-center rounded-2xl bg-[#050f21] border-2 ${borderAccent} ${size} shadow-lg overflow-hidden transition-all duration-300 ease-out`}
-        style={{
-          boxShadow: hovered ? `0 10px 25px -5px ${glowColor}, 0 0 20px ${glowColor}` : '0 4px 12px rgba(0,0,0,0.1)',
-          transform: hovered ? "scale(1.02)" : "scale(1)"
-        }}
+        className="w-full h-full relative flex items-center justify-center bg-[#050f21] rounded-full overflow-hidden"
       >
         {src && !imageError ? (
           <img 
             src={src} 
             alt={initials} 
-            className={`w-full h-full object-cover transition-transform duration-500 ease-out origin-center ${hovered ? 'scale-110' : 'scale-100'}`}
+            className="w-full h-full object-cover transition-transform duration-500 ease-out origin-center"
+            style={{ 
+              objectPosition,
+              transform: hovered ? `scale(${imageScale * 1.1})` : `scale(${imageScale})`
+            }}
             onError={() => setImageError(true)}
           />
         ) : (
-          <span className="text-2xl font-bold text-white font-mono">{initials}</span>
+          <span className="text-xl font-bold text-white font-mono">{initials}</span>
         )}
         {/* Dynamic Glow Overlay matching section theme */}
         <div 
-          className={`absolute inset-0 transition-opacity duration-300 pointer-events-none rounded-2xl ${hovered ? 'opacity-100' : 'opacity-0'}`}
+          className={`absolute inset-0 transition-opacity duration-300 pointer-events-none rounded-full ${hovered ? 'opacity-100' : 'opacity-0'}`}
           style={{
             boxShadow: `inset 0 0 20px ${glowColor}`
           }}
@@ -330,12 +324,13 @@ export default function LeadershipPage() {
               <ExecutiveAvatar 
                 initials="RZ" 
                 src="/images/leadership/zain.jpg" 
-                size="w-40 h-52" 
+                size="w-48 h-48" 
                 borderAccent="border-emerald-500" 
                 glowColor="rgba(16,185,129,0.2)"
+                objectPosition="center 15%"
               />
               <div>
-                <h2 className="text-lg sm:text-xl font-black text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Rana Muhammad Zain Ul Abideen</h2>
+                <h2 className="text-xl sm:text-2xl font-black text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Rana Muhammad Zain Ul Abideen</h2>
                 <div className="mt-2 inline-block px-3.5 py-1.5 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[10px] font-black text-emerald-400 uppercase tracking-widest">
                   CEO & Founder
                 </div>
@@ -443,12 +438,13 @@ export default function LeadershipPage() {
                   <ExecutiveAvatar 
                     initials="SM" 
                     src="/images/leadership/saad.jpg" 
-                    size="w-28 h-36" 
+                    size="w-36 h-36" 
                     borderAccent="border-emerald-500/60" 
                     glowColor="rgba(6,182,212,0.15)"
+                    objectPosition="center 15%"
                   />
                   <div className="flex-1">
-                    <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Professor Saad Anwar Mughal</h3>
+                    <h3 className="text-lg sm:text-xl font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Professor Saad Anwar Mughal</h3>
                     <div className="mt-1">
                       <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-relaxed">
                         Professor • Taxation & Financial Governance Advisor
@@ -464,23 +460,29 @@ export default function LeadershipPage() {
                   ))}
                 </div>
 
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Advises on taxation framework alignments, compliance audits, IFRS standards implementations, and coordinates corporate taxation governance modules within the ACCOUNTELLENCE ERP engine.
-                </p>
+                {/* Highlights Bullet Points */}
+                <ul className="space-y-1.5 text-xs text-slate-400 pt-2">
+                  {[
+                    "Tax & Corporate Law Advisor",
+                    "Author (Tax & Sales)",
+                    "Lecturer",
+                    "Trainer of Law & Taxation"
+                  ].map((item, idx) => (
+                    <li key={idx} className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 opacity-80" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
+
               </div>
 
               {/* Metrics */}
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-850 text-xs">
+              <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-850 text-xs">
                 <div>
                   <span className="text-[9.5px] uppercase font-bold text-slate-500 block">Experience</span>
                   <span className="text-base font-black text-white font-mono">
-                    <AnimatedCounter value="15" suffix="+ Years" />
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[9.5px] uppercase font-bold text-slate-500 block">Projects</span>
-                  <span className="text-base font-black text-white font-mono">
-                    <AnimatedCounter value="200" suffix="+" />
+                    <AnimatedCounter value="18" suffix=" Years" />
                   </span>
                 </div>
               </div>
@@ -499,12 +501,12 @@ export default function LeadershipPage() {
                   <ExecutiveAvatar 
                     initials="RA" 
                     src="/images/leadership/rehan.jpg" 
-                    size="w-28 h-36" 
+                    size="w-36 h-36" 
                     borderAccent="border-emerald-500/60" 
                     glowColor="rgba(6,182,212,0.15)"
                   />
                   <div className="flex-1">
-                    <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Professor Muhammad Rehan Anjum</h3>
+                    <h3 className="text-lg sm:text-xl font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Professor Muhammad Rehan Anjum</h3>
                     <div className="mt-1">
                       <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-relaxed">
                         Professor • Accounting & IFRS Advisor
@@ -520,23 +522,26 @@ export default function LeadershipPage() {
                   ))}
                 </div>
 
-                <p className="text-xs text-slate-400 leading-relaxed">
-                  Applies advanced academic and industry accounting methodology audits to verify general ledger integrations, compliant double-entry checks, and overall system financial logic.
-                </p>
+                {/* Highlights Bullet Points */}
+                <ul className="space-y-1.5 text-xs text-slate-400 pt-2">
+                  {[
+                    "Lecturer",
+                    "ACCA Member"
+                  ].map((item, idx) => (
+                    <li key={idx} className="flex items-center gap-2">
+                      <span className="w-1.5 h-1.5 rounded-full bg-cyan-400 opacity-80" />
+                      <span>{item}</span>
+                    </li>
+                  ))}
+                </ul>
               </div>
 
               {/* Metrics */}
-              <div className="grid grid-cols-2 gap-4 pt-4 border-t border-slate-850 text-xs">
+              <div className="grid grid-cols-1 gap-4 pt-4 border-t border-slate-850 text-xs">
                 <div>
                   <span className="text-[9.5px] uppercase font-bold text-slate-500 block">Experience</span>
                   <span className="text-base font-black text-white font-mono">
-                    <AnimatedCounter value="18" suffix="+ Years" />
-                  </span>
-                </div>
-                <div>
-                  <span className="text-[9.5px] uppercase font-bold text-slate-500 block">Projects</span>
-                  <span className="text-base font-black text-white font-mono">
-                    <AnimatedCounter value="300" suffix="+" />
+                    <AnimatedCounter value="20" suffix=" Years" />
                   </span>
                 </div>
               </div>
@@ -571,16 +576,16 @@ export default function LeadershipPage() {
               variants={diagonalUpLeftVariants}
               className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-violet-500/30 hover:shadow-[0_20px_40px_-15px_rgba(139,92,246,0.08)] h-full w-full flex flex-col space-y-6"
             >
-              <div className="flex gap-4 items-start">
+              <div className="flex gap-4 items-center">
                 <ExecutiveAvatar 
                   initials="AK" 
-                  src="/images/leadership/ayesha.jpg" 
-                  size="w-28 h-36" 
+                  src="/images/leadership/ayesha.png" 
+                  size="w-36 h-36" 
                   borderAccent="border-emerald-500/60" 
                   glowColor="rgba(139,92,246,0.15)"
                 />
                 <div className="flex-1">
-                  <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Ayesha Kashif</h3>
+                  <h3 className="text-lg sm:text-xl font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Ayesha Kashif</h3>
                   <div className="mt-1">
                     <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
                       Lead Developer & Co-Founder
@@ -588,45 +593,75 @@ export default function LeadershipPage() {
                   </div>
                 </div>
               </div>
-
-              {/* Responsibilities */}
-              <div className="space-y-3">
-                <div>
-                  <span className="text-[9.5px] uppercase font-bold text-slate-500 block mb-1">Core Expertise</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {["Enterprise ERP Architecture", "Full-Stack Software Engineering", "UI/UX & Product Experience", "Technical Strategy & Innovation", "Scalable System Design"].map(r => (
-                      <span key={r} className="bg-slate-900 border border-slate-800 text-slate-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
-                    ))}
-                  </div>
-                </div>
-
-                <div className="pt-2 border-t border-slate-850/80">
-                  <span className="text-[9.5px] uppercase font-bold text-slate-500 block mb-1">Role Description</span>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Specializes in enterprise software architecture, scalable application development, and user experience engineering. Focuses on designing secure, high-performance business systems, optimizing software quality, and driving innovation through modern technologies and best engineering practices.
-                  </p>
-                </div>
-              </div>
             </motion.div>
 
-            {/* Right Card: Syed Ansar — Slides Up-Left, Hover Violet Glow */}
+            {/* Right Card: Amna — Slides Up-Left, Hover Amber Glow */}
             <motion.div 
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, amount: 0.15 }}
               variants={diagonalUpRightVariants}
+              className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-amber-500/30 hover:shadow-[0_20px_40px_-15px_rgba(245,158,11,0.08)] h-full w-full flex flex-col space-y-6"
+            >
+              <div className="flex gap-4 items-center">
+                <ExecutiveAvatar 
+                  initials="AA" 
+                  src="/images/leadership/amna.jpg" 
+                  size="w-36 h-36" 
+                  borderAccent="border-emerald-500/60" 
+                  glowColor="rgba(245,158,11,0.15)"
+                  imageScale={1.2}
+                />
+                <div className="flex-1">
+                  <h3 className="text-lg sm:text-xl font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Amna Waheed Ahmed</h3>
+                  <div className="mt-1">
+                    <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
+                      HR Executive
+                    </span>
+                  </div>
+                </div>
+              </div>
+            </motion.div>
+
+          </div>
+        </section>
+
+        {/* SECTION 4 — DevOps, Finance & Operations */}
+        <section className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900">
+          <div className="text-center mb-12">
+            <motion.h2 
+              initial={{ opacity: 0, y: 15 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true }}
+              transition={{ duration: 0.6 }}
+              className="text-2xl sm:text-3xl font-black text-white" 
+              style={{ fontFamily: "'Sora', system-ui, sans-serif" }}
+            >
+              DevOps, Finance & Operations
+            </motion.h2>
+            <AnimatedDivider />
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
+            
+            {/* Left Card: DevOps Ansar — Slides Up-Right, Hover Violet Glow */}
+            <motion.div 
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.15 }}
+              variants={diagonalUpLeftVariants}
               className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-violet-500/30 hover:shadow-[0_20px_40px_-15px_rgba(139,92,246,0.08)] h-full w-full flex flex-col space-y-6"
             >
-              <div className="flex gap-4 items-start">
+              <div className="flex gap-4 items-center">
                 <ExecutiveAvatar 
                   initials="SA" 
                   src="/images/leadership/ansar.jpg" 
-                  size="w-28 h-36" 
+                  size="w-36 h-36" 
                   borderAccent="border-emerald-500/60" 
                   glowColor="rgba(139,92,246,0.15)"
                 />
                 <div className="flex-1">
-                  <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Syed Ansar Ali</h3>
+                  <h3 className="text-lg sm:text-xl font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Syed Ansar Ali</h3>
                   <div className="mt-1">
                     <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
                       DevOps Engineer
@@ -634,136 +669,36 @@ export default function LeadershipPage() {
                   </div>
                 </div>
               </div>
+            </motion.div>
 
-              {/* Responsibilities */}
-              <div className="space-y-3">
-                <div>
-                  <span className="text-[9.5px] uppercase font-bold text-slate-500 block mb-1">Key Responsibilities</span>
-                  <div className="flex flex-wrap gap-1.5">
-                    {["Cloud Infrastructure", "CI/CD", "Deployment", "Performance", "Security"].map(r => (
-                      <span key={r} className="bg-slate-900 border border-slate-800 text-slate-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
-                    ))}
+            {/* Right Card: Finance Talal — Slides Up-Left, Hover Gold Glow */}
+            <motion.div 
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.15 }}
+              variants={diagonalUpRightVariants}
+              className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-yellow-500/30 hover:shadow-[0_20px_40px_-15px_rgba(234,179,8,0.08)] h-full w-full flex flex-col space-y-6"
+            >
+              <div className="flex gap-4 items-center">
+                <ExecutiveAvatar 
+                  initials="TK" 
+                  src="/images/leadership/talal.jpg" 
+                  size="w-36 h-36" 
+                  borderAccent="border-emerald-500/60" 
+                  glowColor="rgba(234,179,8,0.15)"
+                />
+                <div className="flex-1">
+                  <h3 className="text-lg sm:text-xl font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Rana Talal Khan</h3>
+                  <div className="mt-1">
+                    <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
+                      Financial Analyst
+                    </span>
                   </div>
-                </div>
-
-                <div className="pt-2 border-t border-slate-850/80">
-                  <span className="text-[9.5px] uppercase font-bold text-slate-500 block mb-1">Role Description</span>
-                  <p className="text-xs text-slate-400 leading-relaxed">
-                    Directs the SaaS hosting environments setups, automated CI/CD code deployments pipelines, server loading balances, database replications, and system firewalls setups.
-                  </p>
                 </div>
               </div>
             </motion.div>
 
           </div>
-        </section>
-
-        {/* SECTION 4 — Human Resources & Operations */}
-        <section className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900">
-          <div className="text-center mb-12">
-            <motion.h2 
-              initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="text-2xl sm:text-3xl font-black text-white" 
-              style={{ fontFamily: "'Sora', system-ui, sans-serif" }}
-            >
-              Human Resources & Operations
-            </motion.h2>
-            <AnimatedDivider />
-          </div>
-
-          {/* HR Amna — Slides in from Left, Hover Amber Glow */}
-          <motion.div 
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.15 }}
-            variants={slideLeftVariants}
-            className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-start shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-amber-500/30 hover:shadow-[0_20px_40px_-15px_rgba(245,158,11,0.08)] w-full"
-          >
-            <ExecutiveAvatar 
-              initials="AA" 
-              src="/images/leadership/amna.jpg" 
-              size="w-28 h-36" 
-              borderAccent="border-emerald-500/60" 
-              glowColor="rgba(245,158,11,0.15)"
-            />
-            <div className="flex-1 space-y-4 text-center md:text-left mt-4 md:mt-0">
-              <div>
-                <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Amna Waheed Ahmed</h3>
-                <div className="mt-1">
-                  <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
-                    HR Executive
-                  </span>
-                </div>
-              </div>
-              
-              <div className="flex flex-wrap gap-1.5 justify-center md:justify-start">
-                {["Recruitment", "Human Resources", "Employee Relations", "Organizational Development", "Administration"].map(r => (
-                  <span key={r} className="bg-slate-900 border border-slate-800 text-slate-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
-                ))}
-              </div>
-
-              <p className="text-xs text-slate-400 leading-relaxed max-w-xl">
-                Coordinates staffing requirements, manages internal corporate resource channels, regulates employee workflows, and administers general workplace compliance standards to support overall scaling.
-              </p>
-            </div>
-          </motion.div>
-        </section>
-
-        {/* SECTION 5 — Finance & Business Intelligence */}
-        <section className="py-16 px-5 sm:px-8 max-w-5xl mx-auto border-t border-slate-900">
-          <div className="text-center mb-12">
-            <motion.h2 
-              initial={{ opacity: 0, y: 15 }}
-              whileInView={{ opacity: 1, y: 0 }}
-              viewport={{ once: true }}
-              transition={{ duration: 0.6 }}
-              className="text-2xl sm:text-3xl font-black text-white" 
-              style={{ fontFamily: "'Sora', system-ui, sans-serif" }}
-            >
-              Finance & Business Intelligence
-            </motion.h2>
-            <AnimatedDivider />
-          </div>
-
-          {/* Finance Talal — Slides in from Right, Hover Gold Glow */}
-          <motion.div 
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.15 }}
-            variants={slideRightVariants}
-            className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-start shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-yellow-500/30 hover:shadow-[0_20px_40px_-15px_rgba(234,179,8,0.08)] w-full"
-          >
-            <ExecutiveAvatar 
-              initials="TK" 
-              src="/images/leadership/talal.jpg" 
-              size="w-28 h-36" 
-              borderAccent="border-emerald-500/60" 
-              glowColor="rgba(234,179,8,0.15)"
-            />
-            <div className="flex-1 space-y-4 text-center md:text-left mt-4 md:mt-0">
-              <div>
-                <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Rana Talal Khan</h3>
-                <div className="mt-1">
-                  <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
-                    Financial Analyst
-                  </span>
-                </div>
-              </div>
-              
-              <div className="flex flex-wrap gap-1.5 justify-center md:justify-start">
-                {["Financial Planning", "Budget Analysis", "Forecasting", "KPI Reporting", "Business Intelligence"].map(r => (
-                  <span key={r} className="bg-slate-900 border border-slate-800 text-slate-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
-                ))}
-              </div>
-
-              <p className="text-xs text-slate-400 leading-relaxed max-w-xl">
-                Constructs dynamic budget forecasts modeling sheets, reports on key operational liquidity metrics, conducts variance reports audits, and structures business intelligence indicators.
-              </p>
-            </div>
-          </motion.div>
         </section>
 
         {/* SECTION 6 — Legal Framework & Corporate Compliance */}
@@ -794,13 +729,14 @@ export default function LeadershipPage() {
               <ExecutiveAvatar 
                 initials="FK" 
                 src="/images/leadership/farhan.jpg" 
-                size="w-32 h-40" 
+                size="w-36 h-36" 
                 borderAccent="border-emerald-400" 
                 glowColor="rgba(52,211,153,0.15)"
+                objectPosition="top"
               />
               <div className="flex-1 space-y-3 text-center sm:text-left">
                 <div>
-                  <h3 className="text-lg font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Farhan Ahmed Khokhar</h3>
+                  <h3 className="text-xl sm:text-2xl font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Farhan Ahmed Khokhar</h3>
                   <div className="mt-2 flex flex-wrap gap-2 justify-center sm:justify-start">
                     <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
                       Advocate High Court
@@ -810,30 +746,7 @@ export default function LeadershipPage() {
                     </span>
                   </div>
                 </div>
-
-                <div className="flex flex-wrap gap-1.5 justify-center sm:justify-start pt-2">
-                  {["Corporate Law", "Taxation", "Regulatory Compliance", "Contracts", "Legal Advisory"].map(r => (
-                    <span key={r} className="bg-slate-900 border border-slate-800 text-slate-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
-                  ))}
-                </div>
               </div>
-            </div>
-
-            <div className="pt-4 border-t border-slate-850 space-y-4">
-              <p className="text-xs sm:text-sm text-slate-400 leading-relaxed">
-                Provides strategic legal guidance on software licensing structures, intellectual property frameworks, contract audits templates, and advises on regulatory corporate tax compliance requirements.
-              </p>
-
-              {/* Legal Advisor Quote */}
-              <motion.div 
-                initial={{ opacity: 0, y: 15 }}
-                whileInView={{ opacity: 1, y: 0 }}
-                viewport={{ once: true }}
-                transition={{ duration: 0.6, delay: 0.3 }}
-                className="border-l-2 border-emerald-500 pl-4 py-1 italic text-slate-400 text-xs sm:text-sm font-medium"
-              >
-                "Strong governance and compliance are the foundation of sustainable enterprise growth."
-              </motion.div>
             </div>
           </motion.div>
         </section>
