@@ -36,13 +36,13 @@ const diagonalUpRightVariants = {
   visible: { opacity: 1, x: 0, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } }
 };
 
-// Avatar component supporting passport-style rectangular photos with initials fallback
+// Avatar component supporting passport-style rectangular photos with initials fallback and diagonal skew styling
 function ExecutiveAvatar({ initials, src, size = "w-28 h-36", borderAccent = "border-emerald-500", glowColor = "rgba(16,185,129,0.15)" }) {
   const [imageError, setImageError] = useState(false);
 
   return (
     <div 
-      className={`relative flex items-center justify-center rounded-2xl bg-[#050f21] border-2 ${borderAccent} ${size} shadow-lg overflow-hidden transition-all duration-300 ease-out group-hover:border-white/40`}
+      className={`relative flex items-center justify-center rounded-2xl bg-[#050f21] border-2 ${borderAccent} ${size} shadow-lg overflow-hidden transition-all duration-300 ease-out group-hover:border-white/40 transform -skew-x-12`}
       style={{
         boxShadow: `0 4px 12px rgba(0,0,0,0.1)`
       }}
@@ -51,15 +51,15 @@ function ExecutiveAvatar({ initials, src, size = "w-28 h-36", borderAccent = "bo
         <img 
           src={src} 
           alt={initials} 
-          className="w-full h-full object-cover transition-transform duration-500 ease-out group-hover:scale-[1.03]" 
+          className="w-full h-full object-cover transition-transform duration-500 ease-out transform skew-x-12 scale-125 group-hover:scale-[1.32] origin-center" 
           onError={() => setImageError(true)}
         />
       ) : (
-        <span className="text-2xl font-bold text-white font-mono">{initials}</span>
+        <span className="text-2xl font-bold text-white font-mono transform skew-x-12">{initials}</span>
       )}
       {/* Dynamic Glow Overlay matching section theme */}
       <div 
-        className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none"
+        className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none transform skew-x-12"
         style={{
           boxShadow: `inset 0 0 20px ${glowColor}, 0 0 20px ${glowColor}`
         }}
@@ -279,33 +279,6 @@ export default function LeadershipPage() {
           >
             Visionaries, academics, and strategic leaders steering the next generation of financial and operational resource planning.
           </motion.p>
-
-          {/* Hero empty space filler statistics */}
-          <motion.div 
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.6, delay: 0.5 }}
-            className="mt-12 max-w-2xl mx-auto grid grid-cols-3 gap-6 p-6 bg-slate-950/40 border border-slate-900 rounded-3xl backdrop-blur-sm shadow-xl"
-          >
-            <div className="text-center">
-              <div className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">
-                <AnimatedCounter value="12" suffix="+" />
-              </div>
-              <div className="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">Years Experience</div>
-            </div>
-            <div className="text-center border-x border-slate-850">
-              <div className="text-2xl sm:text-3xl font-black text-white font-mono">
-                <AnimatedCounter value="4" />
-              </div>
-              <div className="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">ERP Engines</div>
-            </div>
-            <div className="text-center">
-              <div className="text-2xl sm:text-3xl font-black text-cyan-400 font-mono">
-                <AnimatedCounter value="50" suffix="+" />
-              </div>
-              <div className="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">Corporate Clients</div>
-            </div>
-          </motion.div>
 
           {/* Scroll Indicator */}
           <div className="flex justify-center mt-12 animate-bounce-slow">
