@@ -300,9 +300,9 @@ export default function LeadershipPage() {
             {/* Responsibilities */}
             <div className="space-y-3">
               <div>
-                <span className="text-[9.5px] uppercase font-bold text-slate-500 block mb-1">Key Responsibilities</span>
+                <span className="text-[9.5px] uppercase font-bold text-slate-500 block mb-1">Core Expertise</span>
                 <div className="flex flex-wrap gap-1.5">
-                  {["ERP Architecture", "UI/UX Design", "Product Strategy", "Technical Leadership", "Enterprise Platform Design"].map(r => (
+                  {["Enterprise ERP Architecture", "Full-Stack Software Engineering", "UI/UX & Product Experience", "Technical Strategy & Innovation", "Scalable System Design"].map(r => (
                     <span key={r} className="bg-slate-900 border border-slate-800 text-slate-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
                   ))}
                 </div>
@@ -311,7 +311,7 @@ export default function LeadershipPage() {
               <div className="pt-2 border-t border-slate-850/80">
                 <span className="text-[9.5px] uppercase font-bold text-slate-500 block mb-1">Role Description</span>
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Steers and implements the software engineering codebase architecture, UI components layouts, data pipelines schemas, and the product roadmap trajectory.
+                  Specializes in enterprise software architecture, scalable application development, and user experience engineering. Focuses on designing secure, high-performance business systems, optimizing software quality, and driving innovation through modern technologies and best engineering practices.
                 </p>
               </div>
             </div>
