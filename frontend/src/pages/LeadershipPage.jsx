@@ -3,12 +3,12 @@ import { motion } from 'framer-motion';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
 
-// Avatar component supporting image rendering with graceful initials fallback
-function ExecutiveAvatar({ initials, src, size = "w-24 h-24", borderAccent = "border-emerald-500" }) {
+// Avatar component supporting passport-style rectangular photos with initials fallback
+function ExecutiveAvatar({ initials, src, size = "w-28 h-36", borderAccent = "border-emerald-500" }) {
   const [imageError, setImageError] = useState(false);
 
   return (
-    <div className={`relative flex items-center justify-center rounded-full bg-[#050f21] border-2 ${borderAccent} ${size} shadow-lg shadow-emerald-500/5 overflow-hidden`}>
+    <div className={`relative flex items-center justify-center rounded-2xl bg-[#050f21] border-2 ${borderAccent} ${size} shadow-lg shadow-emerald-500/5 overflow-hidden`}>
       {src && !imageError ? (
         <img 
           src={src} 
@@ -17,9 +17,9 @@ function ExecutiveAvatar({ initials, src, size = "w-24 h-24", borderAccent = "bo
           onError={() => setImageError(true)}
         />
       ) : (
-        <span className="text-xl font-bold text-white font-mono">{initials}</span>
+        <span className="text-2xl font-bold text-white font-mono">{initials}</span>
       )}
-      <div className="absolute inset-0 rounded-full bg-emerald-500/5 blur-sm pointer-events-none" />
+      <div className="absolute inset-0 rounded-2xl bg-emerald-500/5 blur-sm pointer-events-none" />
     </div>
   );
 }
@@ -92,11 +92,11 @@ export default function LeadershipPage() {
           
           {/* Left Side: Portrait & Metrics */}
           <div className="md:col-span-5 flex flex-col items-center text-center space-y-6 md:border-r md:border-slate-800/80 md:pr-8">
-            <div className="relative p-1.5 rounded-full border-2 border-emerald-500">
+            <div className="relative p-1.5 rounded-2xl border-2 border-emerald-500">
               <ExecutiveAvatar 
                 initials="RZ" 
                 src="/images/leadership/zain.jpg" 
-                size="w-36 h-36" 
+                size="w-40 h-52" 
                 borderAccent="border-emerald-500" 
               />
             </div>
@@ -178,14 +178,14 @@ export default function LeadershipPage() {
           {/* Card 1: Prof. Saad */}
           <div className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 hover:border-emerald-500/30 transition">
             <div className="space-y-4">
-              <div className="flex gap-4 items-center flex-wrap sm:flex-nowrap">
+              <div className="flex gap-4 items-start flex-wrap sm:flex-nowrap">
                 <ExecutiveAvatar 
                   initials="SM" 
                   src="/images/leadership/saad.jpg" 
-                  size="w-16 h-16" 
+                  size="w-28 h-36" 
                   borderAccent="border-emerald-500/60" 
                 />
-                <div>
+                <div className="flex-1">
                   <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Professor Saad Anwar Mughal</h3>
                   <div className="mt-1">
                     <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-relaxed">
@@ -223,14 +223,14 @@ export default function LeadershipPage() {
           {/* Card 2: Prof. Rehan */}
           <div className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 hover:border-emerald-500/30 transition">
             <div className="space-y-4">
-              <div className="flex gap-4 items-center flex-wrap sm:flex-nowrap">
+              <div className="flex gap-4 items-start flex-wrap sm:flex-nowrap">
                 <ExecutiveAvatar 
                   initials="RA" 
                   src="/images/leadership/rehan.jpg" 
-                  size="w-16 h-16" 
+                  size="w-28 h-36" 
                   borderAccent="border-emerald-500/60" 
                 />
-                <div>
+                <div className="flex-1">
                   <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Professor Muhammad Rehan Anjum</h3>
                   <div className="mt-1">
                     <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-relaxed">
@@ -280,14 +280,14 @@ export default function LeadershipPage() {
           
           {/* Left Card: Ayesha */}
           <div className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 space-y-6 hover:border-emerald-500/30 transition">
-            <div className="flex gap-4 items-center">
+            <div className="flex gap-4 items-start">
               <ExecutiveAvatar 
                 initials="AK" 
                 src="/images/leadership/ayesha.jpg" 
-                size="w-16 h-16" 
+                size="w-28 h-36" 
                 borderAccent="border-emerald-500/60" 
               />
-              <div>
+              <div className="flex-1">
                 <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Ayesha Kashif</h3>
                 <div className="mt-1">
                   <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
@@ -319,14 +319,14 @@ export default function LeadershipPage() {
 
           {/* Right Card: Syed Ansar */}
           <div className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 space-y-6 hover:border-emerald-500/30 transition">
-            <div className="flex gap-4 items-center">
+            <div className="flex gap-4 items-start">
               <ExecutiveAvatar 
                 initials="SA" 
                 src="/images/leadership/ansar.jpg" 
-                size="w-16 h-16" 
+                size="w-28 h-36" 
                 borderAccent="border-emerald-500/60" 
               />
-              <div>
+              <div className="flex-1">
                 <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Syed Ansar Ali</h3>
                 <div className="mt-1">
                   <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
@@ -367,14 +367,14 @@ export default function LeadershipPage() {
           </h2>
         </div>
 
-        <div className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-center">
+        <div className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-start">
           <ExecutiveAvatar 
             initials="AA" 
             src="/images/leadership/amna.jpg" 
-            size="w-20 h-20" 
+            size="w-28 h-36" 
             borderAccent="border-emerald-500/60" 
           />
-          <div className="flex-1 space-y-4 text-center md:text-left">
+          <div className="flex-1 space-y-4 text-center md:text-left mt-4 md:mt-0">
             <div>
               <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Amna Waheed Ahmed</h3>
               <div className="mt-1">
@@ -405,14 +405,14 @@ export default function LeadershipPage() {
           </h2>
         </div>
 
-        <div className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-center">
+        <div className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col md:flex-row gap-6 items-start">
           <ExecutiveAvatar 
             initials="TK" 
             src="/images/leadership/talal.jpg" 
-            size="w-20 h-20" 
+            size="w-28 h-36" 
             borderAccent="border-emerald-500/60" 
           />
-          <div className="flex-1 space-y-4 text-center md:text-left">
+          <div className="flex-1 space-y-4 text-center md:text-left mt-4 md:mt-0">
             <div>
               <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Rana Talal Khan</h3>
               <div className="mt-1">
@@ -445,11 +445,11 @@ export default function LeadershipPage() {
 
         {/* Large Highlighted Card */}
         <div className="bg-[#050f21] border border-emerald-500/20 rounded-3xl p-6 sm:p-8 space-y-6 shadow-xl shadow-emerald-500/2">
-          <div className="flex flex-col sm:flex-row gap-6 items-center">
+          <div className="flex flex-col sm:flex-row gap-6 items-start">
             <ExecutiveAvatar 
               initials="FK" 
               src="/images/leadership/farhan.jpg" 
-              size="w-24 h-24" 
+              size="w-32 h-40" 
               borderAccent="border-emerald-400" 
             />
             <div className="flex-1 space-y-3 text-center sm:text-left">
