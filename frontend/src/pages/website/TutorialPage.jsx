@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react';
-import { motion as Motion } from 'framer-motion';
+import { motion as Motion, useInView } from 'framer-motion';
 import {
   Play, FileText, Download, Search, Video, Info,
   HelpCircle, Sparkles, MessageSquare, Mail, Calendar, PhoneCall
@@ -14,6 +14,43 @@ const getFileUrl = (filePath) => {
   const base = import.meta.env.PROD ? '' : 'http://localhost:5001';
   return `${base}${filePath}`;
 };
+
+function AnimatedCounter({ value, suffix = "" }) {
+  const ref = useRef(null);
+  const isInView = useInView(ref, { once: true, margin: "-50px" });
+  const [count, setCount] = useState(0);
+
+  useEffect(() => {
+    if (!isInView) return;
+
+    const num = parseInt(value, 10);
+    if (isNaN(num)) {
+      setCount(value);
+      return;
+    }
+
+    const duration = 1550;
+    const startTime = performance.now();
+
+    const animate = (timestamp) => {
+      const elapsed = timestamp - startTime;
+      const progress = Math.min(elapsed / duration, 1);
+      const easeProgress = progress === 1 ? 1 : 1 - Math.pow(2, -10 * progress);
+      const current = Math.floor(easeProgress * num);
+      setCount(current);
+
+      if (progress < 1) {
+        requestAnimationFrame(animate);
+      } else {
+        setCount(num);
+      }
+    };
+
+    requestAnimationFrame(animate);
+  }, [isInView, value]);
+
+  return <span ref={ref}>{count}{suffix}</span>;
+}
 
 const CATEGORIES = [
   'All',
@@ -144,38 +181,70 @@ export default function TutorialPage() {
         </div>
 
         <div className="max-w-4xl mx-auto relative z-10">
-          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-semibold mb-6 uppercase tracking-wider"
-            style={{ background: 'rgba(16,185,129,0.08)', borderColor: 'rgba(16,185,129,0.25)', color: '#6ee7b7' }}>
+          <Motion.div 
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            transition={{ duration: 0.5 }}
+            className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-semibold mb-6 uppercase tracking-wider animate-in fade-in"
+            style={{ background: 'rgba(16,185,129,0.08)', borderColor: 'rgba(16,185,129,0.25)', color: '#6ee7b7' }}
+          >
             Official Learning Center
-          </div>
+          </Motion.div>
 
-          <h1 className="text-4xl sm:text-6xl font-black tracking-tight leading-tight mb-4" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
-            {data.page_title}
-          </h1>
+          <Motion.h1 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.15, ease: "easeOut" }}
+            className="text-4xl sm:text-6xl font-black tracking-tight leading-tight mb-4" 
+            style={{ fontFamily: "'Sora', system-ui, sans-serif" }}
+          >
+            <span className="bg-gradient-to-r from-white via-white to-emerald-400 bg-clip-text text-transparent">
+              {data.page_title}
+            </span>
+          </Motion.h1>
 
-          <p className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed">
+          <Motion.p 
+            initial={{ opacity: 0, y: 15 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.3 }}
+            className="text-base sm:text-lg text-slate-400 max-w-2xl mx-auto mb-10 leading-relaxed"
+          >
             {data.page_description}
-          </p>
+          </Motion.p>
 
           {/* Quick Metrics Statistics Banner */}
-          <div className="grid grid-cols-3 gap-4 max-w-2xl mx-auto p-5 bg-[#050f21]/60 border border-slate-900 rounded-2xl backdrop-blur-md shadow-xl text-center">
+          <Motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.6, delay: 0.45, ease: "easeOut" }}
+            className="grid grid-cols-3 gap-4 max-w-2xl mx-auto p-5 bg-[#050f21]/60 border border-slate-900 rounded-2xl backdrop-blur-md shadow-xl text-center"
+          >
             <div>
               <div className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">
-                {data.videos.length > 0 ? `${data.videos.length}+` : '20+'}
+                <AnimatedCounter value={data.videos.length > 0 ? String(data.videos.length) : "20"} suffix="+" />
               </div>
               <div className="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">Training Videos</div>
             </div>
             <div className="border-x border-slate-800">
-              <div className="text-2xl sm:text-3xl font-black text-white font-mono">150+</div>
+              <div className="text-2xl sm:text-3xl font-black text-white font-mono">
+                <AnimatedCounter value="150" suffix="+" />
+              </div>
               <div className="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">ERP Features</div>
             </div>
             <div>
               <div className="text-2xl sm:text-3xl font-black text-cyan-400 font-mono">
-                {latestManual ? latestManual.version_number : 'v1.2.0'}
+                <Motion.span
+                  initial={{ opacity: 0, scale: 0.8 }}
+                  animate={{ opacity: 1, scale: 1 }}
+                  transition={{ duration: 0.5, delay: 0.65, ease: "easeOut" }}
+                  className="inline-block"
+                >
+                  {latestManual ? latestManual.version_number : 'v1.2.0'}
+                </Motion.span>
               </div>
               <div className="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">User Manual</div>
             </div>
-          </div>
+          </Motion.div>
         </div>
       </section>
 
