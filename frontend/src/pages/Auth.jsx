@@ -2,7 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Zap, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
-import logoImg from '../assets/logo/Logo 05.png';
+import logoImg from '../assets/logo/logo.png';
 
 export function AuthLayout({ children, title, subtitle, showBackToHome = true }) {
   return (
@@ -35,7 +35,7 @@ export function AuthLayout({ children, title, subtitle, showBackToHome = true })
       >
         <div className="text-center mb-10">
           <Link to="/" className="inline-flex items-center mb-6 group">
-            <img src={logoImg} className="h-16 md:h-20 w-auto object-contain transition-transform duration-300 group-hover:scale-105 bg-transparent" alt="Accountellence" />
+            <img src={logoImg} className="h-20 md:h-24 w-auto object-contain transition-transform duration-300 group-hover:scale-105 bg-transparent" alt="Accountellence" />
           </Link>
           
           <h2 className="text-3xl font-black text-white tracking-tight leading-snug mb-3" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>

@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Zap } from 'lucide-react';
-import logoImg from '../assets/logo/Logo 05.png';
+import logoImg from '../assets/logo/logo.png';
 
 const navLinks = [
   { label: 'Home', href: '/', isRoute: true },
@@ -55,7 +55,7 @@ export default function Navbar() {
                   transition={{ type: 'spring', stiffness: 500, damping: 18 }}
                   src={logoImg}
                   alt="Accountellence"
-                  className="h-10 md:h-12 w-auto object-contain rounded-lg flex-shrink-0"
+                  className="h-11 md:h-14 w-auto object-contain rounded-lg flex-shrink-0"
                 />
               </Link>
             </Motion.div>

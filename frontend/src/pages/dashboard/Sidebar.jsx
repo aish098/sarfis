@@ -10,7 +10,7 @@ import {
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import api from '../../services/api';
-import logoImg from '../../assets/logo/Logo 05.png';
+import logoImg from '../../assets/logo/logo.png';
 
 const NAV_SECTIONS = [
   {
@@ -201,13 +201,13 @@ export default function Sidebar({ collapsed, isMobile, onToggle }) {
               <img
                 src={settings.logoUrl.startsWith('http') ? settings.logoUrl : `${import.meta.env.PROD ? window.location.origin : 'http://localhost:5001'}${settings.logoUrl}`}
                 alt="Accountellence"
-                className={`object-contain rounded-lg flex-shrink-0 bg-white p-0.5 transition-all duration-300 ${collapsed ? 'h-10 w-auto' : 'h-12 w-auto'}`}
+                className={`object-contain rounded-lg flex-shrink-0 bg-white p-0.5 transition-all duration-300 ${collapsed ? 'h-11 w-auto' : 'h-14 w-auto'}`}
               />
             ) : (
               <img
                 src={logoImg}
                 alt="Accountellence"
-                className={`object-contain rounded-lg flex-shrink-0 bg-transparent transition-all duration-300 ${collapsed ? 'h-10 w-auto' : 'h-12 w-auto'}`}
+                className={`object-contain rounded-lg flex-shrink-0 bg-transparent transition-all duration-300 ${collapsed ? 'h-11 w-auto' : 'h-14 w-auto'}`}
               />
             )}
           </div>

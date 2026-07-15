@@ -1,7 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Zap, ShieldCheck, Globe, Hash, Briefcase, Users } from 'lucide-react';
-import logoImg from '../assets/logo/Logo 05.png';
+import logoImg from '../assets/logo/logo.png';
 
 const footerLinks = {
   Product: [
@@ -78,7 +78,7 @@ export default function Footer() {
                 transition={{ type: 'spring', stiffness: 400, damping: 15 }}
                 src={logoImg}
                 alt="Accountellence"
-                className="h-10 md:h-12 w-auto object-contain rounded-lg flex-shrink-0 bg-transparent"
+                className="h-12 md:h-16 w-auto object-contain rounded-lg flex-shrink-0 bg-transparent"
               />
             </Link>
             <p className="text-slate-500 text-sm leading-relaxed mb-5 max-w-[240px]">
