@@ -62,16 +62,24 @@ function ExecutiveAvatar({ initials, src, size = "w-36 h-36", borderAccent = "bo
         className="w-full h-full relative flex items-center justify-center bg-[#050f21] rounded-full overflow-hidden"
       >
         {src && !imageError ? (
-          <img 
-            src={src} 
-            alt={initials} 
-            className="w-full h-full object-cover transition-transform duration-500 ease-out origin-center"
-            style={{ 
-              objectPosition,
-              transform: hovered ? `scale(${imageScale * 1.1})` : `scale(${imageScale})`
-            }}
-            onError={() => setImageError(true)}
-          />
+          <div className="relative w-full h-full">
+            <img 
+              src={src} 
+              alt="Profile" 
+              draggable="false"
+              className="w-full h-full object-cover pointer-events-none transition-transform duration-500 ease-out origin-center"
+              style={{ 
+                objectPosition,
+                transform: hovered ? `scale(${imageScale * 1.1})` : `scale(${imageScale})`
+              }}
+              onError={() => setImageError(true)}
+            />
+            {/* Transparent protective shield overlay to disable right-click and save */}
+            <div 
+              className="absolute inset-0 z-10 bg-transparent cursor-default"
+              onContextMenu={(e) => e.preventDefault()}
+            />
+          </div>
         ) : (
           <span className="text-xl font-bold text-white font-mono">{initials}</span>
         )}
