@@ -162,7 +162,7 @@ export default function RelatedDocuments({ documents = [], currentType }) {
       
       {/* Detailed Document Cards */}
       {activeDocs.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
+        <div className="grid grid-cols-1 gap-3.5">
           {activeDocs.map((doc, idx) => {
             const typeInfo = TYPE_CONFIG[doc.type] || { label: doc.type || 'Document', colorClass: 'text-slate-600 bg-slate-50 border-slate-200' };
             const statusClass = STATUS_STYLE_MAP[doc.status] || 'bg-slate-50 text-slate-600 border-slate-200';
@@ -174,7 +174,7 @@ export default function RelatedDocuments({ documents = [], currentType }) {
                 className="p-4 rounded-2xl border border-slate-100 hover:border-emerald-100 hover:bg-emerald-50/5 hover:shadow-md hover:shadow-slate-100/50 transition-all flex flex-col justify-between gap-3 group relative overflow-hidden bg-white shadow-sm"
               >
                 <div className="space-y-2">
-                  <div className="flex justify-between items-start">
+                  <div className="flex flex-wrap items-center justify-between gap-1.5">
                     <span className={`text-[9px] font-extrabold uppercase tracking-wider px-2 py-0.5 rounded-full border ${typeInfo.colorClass}`}>
                       {typeInfo.label}
                     </span>
