@@ -591,7 +591,7 @@ export default function LeadershipPage() {
             whileInView="visible"
             viewport={{ once: true, amount: 0.15 }}
             variants={diagonalUpLeftVariants}
-            className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-violet-500/30 hover:shadow-[0_20px_40px_-15px_rgba(139,92,246,0.08)] h-full flex flex-col justify-between"
+            className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-violet-500/30 hover:shadow-[0_20px_40px_-15px_rgba(139,92,246,0.08)] h-full flex flex-col"
           >
             <div className="flex gap-4 items-start">
               <ExecutiveAvatar 
@@ -612,7 +612,7 @@ export default function LeadershipPage() {
             </div>
 
             {/* Responsibilities */}
-            <div className="space-y-3 mt-6">
+            <div className="space-y-3 mt-6 flex-1 flex flex-col justify-between">
               <div>
                 <span className="text-[9.5px] uppercase font-bold text-slate-500 block mb-1">Core Expertise</span>
                 <div className="flex flex-wrap gap-1.5">
@@ -622,7 +622,7 @@ export default function LeadershipPage() {
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-850/80">
+              <div className="pt-4 border-t border-slate-850/80 mt-6">
                 <span className="text-[9.5px] uppercase font-bold text-slate-500 block mb-1">Role Description</span>
                 <p className="text-xs text-slate-400 leading-relaxed">
                   Specializes in enterprise software architecture, scalable application development, and user experience engineering. Focuses on designing secure, high-performance business systems, optimizing software quality, and driving innovation through modern technologies and best engineering practices.
@@ -637,7 +637,7 @@ export default function LeadershipPage() {
             whileInView="visible"
             viewport={{ once: true, amount: 0.15 }}
             variants={diagonalUpRightVariants}
-            className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-violet-500/30 hover:shadow-[0_20px_40px_-15px_rgba(139,92,246,0.08)] h-full flex flex-col justify-between"
+            className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-violet-500/30 hover:shadow-[0_20px_40px_-15px_rgba(139,92,246,0.08)] h-full flex flex-col"
           >
             <div className="flex gap-4 items-start">
               <ExecutiveAvatar 
@@ -658,7 +658,7 @@ export default function LeadershipPage() {
             </div>
 
             {/* Responsibilities */}
-            <div className="space-y-3 mt-6">
+            <div className="space-y-3 mt-6 flex-1 flex flex-col justify-between">
               <div>
                 <span className="text-[9.5px] uppercase font-bold text-slate-500 block mb-1">Key Responsibilities</span>
                 <div className="flex flex-wrap gap-1.5">
@@ -668,7 +668,7 @@ export default function LeadershipPage() {
                 </div>
               </div>
 
-              <div className="pt-2 border-t border-slate-850/80">
+              <div className="pt-4 border-t border-slate-850/80 mt-6">
                 <span className="text-[9.5px] uppercase font-bold text-slate-500 block mb-1">Role Description</span>
                 <p className="text-xs text-slate-400 leading-relaxed">
                   Directs the SaaS hosting environments setups, automated CI/CD code deployments pipelines, server loading balances, database replications, and system firewalls setups.
