@@ -1,1016 +1,912 @@
-/**
- * LeadershipPage.jsx  —  SCAFIS Leadership Redesign (Deep Dark Blue Theme)
- *
- * Color theme matches Home, About, and Contact pages (#030b1a background, emerald/cyan accents).
- * All fonts: Inter or system sans-serif, weights 400/500/600 only — NO 800/900.
- */
+import { useState, useEffect, useRef } from 'react';
+import { motion as M, AnimatePresence } from 'framer-motion';
+import { 
+  Building2, Users, Briefcase, Award, GraduationCap, ChevronRight, 
+  CheckCircle2, Quote, Compass, ShieldCheck, Scale, BarChart3, 
+  Clock, LineChart, FileText, ArrowDown, ArrowRight, Zap, 
+  Target, BookOpen, Lock, Globe, Sparkles, Server, Check
+} from 'lucide-react';
+import Navbar from '../components/Navbar';
+import Footer from '../components/Footer';
 
-import { useEffect, useRef, useState } from "react";
-import { motion as M } from "framer-motion";
-import Navbar from "../components/Navbar";
-import Footer from "../components/Footer";
-
-/* ═══ DESIGN TOKENS ══════════════════════════════════════════════════════════ */
+/* ═══ DESIGN SYSTEM TOKENS ══════════════════════════════════════════════════════ */
 const C = {
-  bg: "#030b1a",
-  card: "rgba(255, 255, 255, 0.025)",
-  cardDeep: "#040e1f",
-  border: "rgba(255, 255, 255, 0.08)",
-  borderLo: "rgba(255, 255, 255, 0.05)",
-  accent: "#10b981", // Emerald
-  accentLt: "#6ee7b7",
-  skyBlue: "#10b981", // Emerald accent for Founder Spotlight
-  violet: "#06b6d4", // Cyan accent for CEO Spotlight
-  green: "#10b981",
-  amber: "#f59e0b",
-  cyan: "#06b6d4",
-  textPri: "#ffffff",
-  textSec: "#94a3b8",
-  textDim: "#6b7280",
+  bg: '#030b1a',
+  card: '#050f21',
+  cardDeep: '#020712',
+  border: 'rgba(255, 255, 255, 0.06)',
+  borderActive: 'rgba(16, 185, 129, 0.3)',
+  emerald: '#10b981',
+  emeraldLt: '#34d399',
+  teal: '#0d9488',
+  cyan: '#06b6d4',
+  textPri: '#ffffff',
+  textSec: '#94a3b8',
+  textDim: '#475569',
 };
 
-/* ═══ KEYFRAMES & STYLES ══════════════════════════════════════════════════════ */
-if (typeof document !== "undefined" && !document.getElementById("lp-styles-redesign")) {
-  const s = document.createElement("style");
-  s.id = "lp-styles-redesign";
+/* ═══ CUSTOM SYSTEM STYLES ══════════════════════════════════════════════════════ */
+if (typeof document !== 'undefined' && !document.getElementById('sarfis-leadership-core-styles')) {
+  const s = document.createElement('style');
+  s.id = 'sarfis-leadership-core-styles';
   s.textContent = `
-    @keyframes lp-marquee    { 0%{transform:translateX(0)} 100%{transform:translateX(-50%)} }
-    @keyframes lp-float      { 0%,100%{transform:translateY(0) rotate(0deg)} 50%{transform:translateY(-8px) rotate(.5deg)} }
-    @keyframes lp-pulse      { 0%{box-shadow:0 0 0 0 rgba(16,185,129,.4)} 70%{box-shadow:0 0 0 16px rgba(16,185,129,0)} 100%{box-shadow:0 0 0 0 rgba(16,185,129,0)} }
-    @keyframes lp-shimmer    { 0%,100%{opacity:.4} 50%{opacity:1} }
-    .lp-mq-track            { animation: lp-marquee 30s linear infinite; }
-    .lp-mq-track:hover      { animation-play-state: paused; }
-    .lp-float               { animation: lp-float 5s ease-in-out infinite; }
-    .lp-pulse               { animation: lp-pulse 2.5s ease-out infinite; }
-    .lp-shimmer             { animation: lp-shimmer 2.5s ease-in-out infinite; }
-    
-    .lp-card-hover {
-      transition: transform 0.25s, border-color 0.25s, box-shadow 0.25s;
+    .lead-card-hover {
+      transition: all 0.35s cubic-bezier(0.22, 1, 0.36, 1);
     }
-    .lp-card-hover:hover {
-      transform: translateY(-6px);
-      border-color: rgba(16, 185, 129, 0.4) !important;
-      box-shadow: 0 16px 32px rgba(0, 0, 0, 0.4);
+    .lead-card-hover:hover {
+      transform: translateY(-5px);
+      border-color: rgba(16, 185, 129, 0.25) !important;
+      box-shadow: 0 12px 30px rgba(0, 0, 0, 0.5), 0 0 1px 1px rgba(16, 185, 129, 0.1) inset;
     }
-
-    @media (max-width: 768px) {
-      .lp-stat-divider-desktop { display: none !important; }
-      .lp-spotlight-card {
-        flex-direction: column !important;
-      }
-      .lp-spotlight-left {
-        border-right: none !important;
-        border-bottom: 1px solid rgba(255, 255, 255, 0.08) !important;
-        padding: 36px 20px !important;
-      }
-      .lp-spotlight-right {
-        padding: 24px 20px !important;
-      }
-      .lp-advisor-card-body {
-        padding: 20px 20px 16px !important;
-      }
+    .avatar-glow {
+      box-shadow: 0 0 20px rgba(16, 185, 129, 0.1);
+      transition: all 0.35s ease;
     }
-    @media (min-width: 769px) {
-      .lp-stat-divider-desktop { display: block !important; }
+    .avatar-glow:hover {
+      box-shadow: 0 0 25px rgba(16, 185, 129, 0.25);
+      border-color: #34d399 !important;
+    }
+    .org-node {
+      transition: all 0.3s ease;
+    }
+    .org-node:hover {
+      border-color: #10b981 !important;
+      background: rgba(16, 185, 129, 0.05) !important;
+    }
+    .timeline-dot {
+      box-shadow: 0 0 0 4px rgba(16, 185, 129, 0.15);
     }
   `;
   document.head.appendChild(s);
 }
 
-/* ═══ DATA ARRAYS (PRESERVED) ════════════════════════════════════════════════ */
-const TEAM_MEMBERS = [
+/* ═══ DATA STRUCTURES ═════════════════════════════════════════════════════════ */
+const FOUNDERS = [
   {
-    initials: "FA", name: "Farhan", title: "Legal Advisor", accent: C.green,
-    desc: "Handles legal framework, contracts, and corporate compliance for the SCAFIS platform."
-  },
-  { initials: "HT", name: "Team Member", title: "Role TBA", accent: C.green, desc: "Coming soon." },
-  { initials: "SM", name: "Team Member", title: "Role TBA", accent: C.green, desc: "Coming soon." },
-];
-
-const VERTICAL_DETAILS = [
-  {
-    title: "Strategic Core",
-    label: "Vertical 01",
-    accent: C.accent,
-    bgColor: "rgba(16,185,129,0.05)",
-    tagline: "Foundational vision and executive steering.",
-    desc: "The Strategic Core shapes SCAFIS's long-term business models, technical roadmaps, and autonomous growth objectives. It directs cross-disciplinary synchronization across Advisory and Engineering to achieve industry-leading solutions.",
-    tags: ["Foundational Vision", "Executive Steering", "SaaS Strategy", "GTM Execution"],
-    objectives: [
-      "Define long-term technical architecture principles and system design priorities.",
-      "Formulate market acquisition, sector-specific expansion, and GTM strategy.",
-      "Oversee and coordinate cooperation between Advisory Board and Engineering groups."
+    name: "Rana Muhammad Zain ul Abideen",
+    title: "Founder & Chairman",
+    initials: "RZ",
+    tagline: "Architecting the Core Engines of Financial Intelligence",
+    metrics: [
+      { val: "12+", label: "Years Experience" },
+      { val: "8+", label: "ERP Architectures" },
+      { val: "50+", label: "Enterprise Clients" }
     ],
-    members: [
-      { initials: "RZ", name: "Rana Muhammad Zain", title: "Chairman & Founder", accent: C.skyBlue, desc: "Architected SCAFIS ERP system & financial intelligence engine from the ground up." },
-      { initials: "AK", name: "Ayesha Kashif", title: "CEO & Co-Founder", accent: C.violet, desc: "Drives strategic operational vision, SaaS outreach, and sector-specific scaling." }
-    ]
+    mission: "To eliminate the friction in corporate financial auditing and enable real-time operational truth for enterprise teams.",
+    bio: "Rana Zain is an expert in double-entry bookkeeping ledgers and transaction pipeline engineering. He designed SARFIS's core multi-company consolidation logic and led the execution of the initial general ledger architecture. Having consultatively scaled financial infrastructure for over 50 large companies, Zain guides the long-term system design and architectural rules of the platform.",
+    vision: "Developing a fully autonomous general ledger network that reconciles multi-subsidiary cash flows without manual overhead.",
+    philosophy: "Precision is not an option; it is the infrastructure. Every line of accounting must be fully auditable, traceable, and instantly verifiable.",
+    expertise: ["Enterprise Ledger Design", "IFRS Data Standards", "Transaction Auditing Pipelines", "Financial Systems Engineering", "Multi-Tenant Scaling"],
+    accent: C.emerald
   },
   {
-    title: "Advisory Council",
-    label: "Vertical 02",
-    accent: C.amber,
-    bgColor: "rgba(245,158,11,0.05)",
-    tagline: "Academic oversight and regulatory compliance.",
-    desc: "The Advisory Council provides academic verification, legal frameworks, and regulatory auditing. This oversight guarantees SCAFIS matches strict tax codes and IFRS compliance standards worldwide.",
-    tags: ["Academic Rigour", "Regulatory Auditing", "IFRS Compliance", "Tax Legislation"],
-    objectives: [
-      "Formulate and audit SCAFIS data schemas against international IFRS compliance standards.",
-      "Advise on taxation compliance rules and regulatory legal definitions.",
-      "Perform continuous audits of decision-making algorithms to ensure intellectual precision."
+    name: "Ayesha Kashif",
+    title: "CEO & Co-Founder",
+    initials: "AK",
+    tagline: "Driving Strategic Scaling and Design-First Excellence",
+    metrics: [
+      { val: "6+", label: "Years Experience" },
+      { val: "15+", label: "SaaS Deployments" },
+      { val: "100%", label: "Client Retention" }
     ],
-    members: [
-      { initials: "MS", name: "Prof. Mohammad Saad Anwar", title: "Taxation Lawyer", accent: C.cyan, desc: "Certified trainer providing strategic oversight on data pipelines and tax law." },
-      { initials: "MR", name: "Prof. Muhammed Rehan Anjum", title: "Accountant", accent: C.amber, desc: "IFRS compliance authority and expert on enterprise data governance." }
-    ]
-  },
-  {
-    title: "Product & Tech",
-    label: "Vertical 03",
-    accent: C.green,
-    bgColor: "rgba(16,185,129,0.05)",
-    tagline: "Architecture, AI logic, and SaaS engineering.",
-    desc: "Product & Tech builds and tests the core codebase of the SCAFIS platform, engineering automated transaction matchers, real-time analytics engines, and clean web application dashboards.",
-    tags: ["Ledger Architecture", "AI Matching Logic", "SaaS Engineering", "Real-time Queries"],
-    objectives: [
-      "Build high-speed ledger query engines and automatic journal-matching pipelines.",
-      "Develop predictive cash flow analysis and autonomous accounting logic.",
-      "Deploy and maintain modern, secure cloud infrastructure for SaaS delivery."
-    ],
-    members: [
-      { initials: "HT", name: "Team Member", title: "Role TBA", accent: C.green, desc: "SaaS platform developer specializing in secure backend structures and interface state." },
-      { initials: "SM", name: "Team Member", title: "Role TBA", accent: C.green, desc: "AI matching logic systems builder and query optimizer." }
-    ]
-  },
-  {
-    title: "Global Ops",
-    label: "Vertical 04",
-    accent: C.cyan,
-    bgColor: "rgba(34,211,238,0.05)",
-    tagline: "Market strategy, legal, and financial framework.",
-    desc: "Global Ops coordinates market operations, platform risks, legal entity setups, and licensing protocols to scale SCAFIS safely in global markets.",
-    tags: ["Market Expansion", "Legal Framework", "Financial Systems", "Risk Auditing"],
-    objectives: [
-      "Manage licensing, IP protection, and cross-border regulatory compliance.",
-      "Coordinate customer support protocols and user onboarding frameworks.",
-      "Oversee company financial audits, bookkeeping systems, and treasury logic."
-    ],
-    members: [
-      { initials: "FA", name: "Farhan", title: "Legal Advisor", accent: C.green, desc: "Handles legal framework, contract templates, and platform corporate compliance." }
-    ]
+    mission: "To deliver accessible, high-performance financial workspaces that enterprise leaders trust to run daily operations.",
+    bio: "Ayesha Kashif drives the global business strategy, growth mechanics, and customer-centric design principles at SARFIS. She specializes in optimizing complex transaction workflows into clean, card-first layouts that minimize clicks. Ayesha's focus on regulatory alignment and security standards has positioned SARFIS as a leading choice for mid-market and enterprise organizations.",
+    vision: "To position SARFIS as the definitive financial operating system for multi-entity corporations globally.",
+    philosophy: "Complexity should live in the engine, never on the user's screen. If a financial manager cannot audit a record in three clicks, we redesign it.",
+    expertise: ["SaaS Operations", "Product Interface Strategy", "GTM Execution Models", "Corporate Compliance Oversight", "Stakeholder Relations"],
+    accent: C.cyan
   }
 ];
 
 const ADVISORS = [
   {
-    initials: "MS", name: "Prof. Mohammad Saad Anwar", title: "Taxation Lawyer",
-    accent: "#06b6d4", glow: "rgba(6,182,212,0.13)",
-    expertise: ["Tax Law", "Analytics", "Regulatory"],
-    desc: "Certified trainer and analytical innovation expert providing strategic oversight on SCAFIS's data pipelines and financial intelligence frameworks. Brings deep expertise in tax legislation and corporate advisory.",
-    impact: [{ val: "15+", lbl: "Years" }, { val: "200+", lbl: "Cases" }],
+    name: "Prof. Mohammad Saad Anwar",
+    title: "Taxation & Legal Advisor",
+    initials: "SA",
+    specialization: "Corporate Taxation & Auditing",
+    experience: "15+ Years",
+    certifications: ["Tax Law Authority", "Corporate Legal Consultant"],
+    expertise: ["FBR Compliance", "Sales Tax Structuring", "Legal Risk Management"],
+    bio: "Saad Anwar provides high-level guidance on taxation pipelines, tax engine structures, and FBR integration rules. His oversight ensures all transaction filings comply with corporate laws.",
+    accent: C.emerald
   },
   {
-    initials: "MR", name: "Prof. Muhammed Rehan Anjum", title: "Accountant",
-    accent: "#f59e0b", glow: "rgba(245,158,11,0.13)",
-    expertise: ["IFRS", "Compliance", "Data Integrity"],
-    desc: "Leads advisory on accounting standards and regulatory compliance, ensuring audit-grade accuracy across all SCAFIS modules. Authority on IFRS implementation and enterprise data governance.",
-    impact: [{ val: "18+", lbl: "Years" }, { val: "300+", lbl: "Audits" }],
+    name: "Prof. Muhammed Rehan Anjum",
+    title: "Accounting & Compliance Advisor",
+    initials: "RA",
+    specialization: "IFRS Auditing Standards",
+    experience: "18+ Years",
+    certifications: ["IFRS Chartered Consultant", "Senior Ledger Auditor"],
+    expertise: ["GAAP Reconciliation", "Subsidiary Elimination", "Financial Governance"],
+    bio: "Rehan Anjum advises on data governance, straight-line depreciation validation, and consolidation rules, guaranteeing that SARFIS reports meet global accounting guidelines.",
+    accent: C.cyan
+  }
+];
+
+const STRATEGIC_TEAMS = [
+  {
+    title: "Executive Steering",
+    desc: "Guides general ledger development, long-term roadmaps, and global entity positioning.",
+    members: "Founder, CEO",
+    responsibilities: "Capital allocation, architecture standards, regulatory alignment.",
+    icon: Compass,
+    color: C.emerald
   },
+  {
+    title: "Technology & Product",
+    desc: "Builds high-performance transaction matching pipelines, web dashboards, and database models.",
+    members: "Lead Architect, Backend Devs, Frontend Engineers",
+    responsibilities: "Double-entry validation, ledger queries, database performance, UI responsiveness.",
+    icon: Server,
+    color: C.cyan
+  },
+  {
+    title: "Finance & Governance",
+    desc: "Ensures accounting automation complies with international accounting principles and local tax regulations.",
+    members: "Compliance Officers, Taxation Consultants",
+    responsibilities: "Consolidation verification, IFRS schema mapping, tax formula audits.",
+    icon: Scale,
+    color: C.teal
+  },
+  {
+    title: "Ops & Customer Success",
+    desc: "Coordinates multi-company client onboarding, data migrations, and SLA compliance support.",
+    members: "Operations Managers, Customer Success Directors",
+    responsibilities: "Data pipeline migrations, user training, workspace configuration.",
+    icon: Users,
+    color: C.emerald
+  }
 ];
 
-const MQ_DATA = [
-  { initials: "RZ", name: "Rana Zain", role: "Chairman", dept: "Founder", accent: C.accent },
-  { initials: "AK", name: "Ayesha Kashif", role: "CEO", dept: "Executive", accent: C.violet },
-  { initials: "MS", name: "Prof. Saad", role: "Taxation Lawyer", dept: "Advisory", accent: C.cyan },
-  { initials: "MR", name: "Prof. Rehan", role: "Accountant", dept: "Advisory", accent: C.amber },
-  { initials: "FA", name: "Farhan", role: "Legal", dept: "Team", accent: C.green },
-  { initials: "HT", name: "Team Member", role: "Engineering", dept: "Team", accent: C.green },
-  { initials: "SM", name: "Team Member", role: "Engineering", dept: "Team", accent: C.green },
-  { initials: "UA", name: "Team Member", role: "QA", dept: "Team", accent: C.green },
-  { initials: "FN", name: "Team Member", role: "Finance", dept: "Finance", accent: C.amber },
-  { initials: "ZK", name: "Team Member", role: "Accounts", dept: "Finance", accent: C.amber },
+const TIMELINE_STEPS = [
+  { year: "2022", title: "Founded SARFIS", desc: "Established with the core vision of building a robust, auditable general ledger platform." },
+  { year: "2023", title: "Core Ledger Architecture", desc: "Completed the double-entry transaction database schema with full auditing tracks." },
+  { year: "2024", title: "Voucher & Matching Engine", desc: "Rolled out automated AP/AR matching mechanisms with rule-based approvals." },
+  { year: "2024", title: "Asset & Depreciation Logic", desc: "Integrated asset registers supporting automated Straight-Line depreciation." },
+  { year: "2025", title: "Payroll & Compensation Engine", desc: "Launched multi-branch payroll runs integrated with withholding tax rules." },
+  { year: "2025", title: "BI & Financial Reporting", desc: "Deployed dynamic, multi-company consolidated cash flow and P&L dashboards." },
+  { year: "2026", title: "Advanced Migration Tooling", desc: "Introduced advanced Excel migration wizards for onboarding legacy ledger balances." },
+  { year: "Future", title: "Next-Gen Enterprise Engine", desc: "Expanding system architectures to support automated inter-ledger blockchain settlement." }
 ];
 
-/* ═══ 3D PARTICLE CANVAS (PRESERVED) ═════════════════════════════════════════ */
-function ParticleCanvas() {
-  const ref = useRef(null);
+const PHILOSOPHIES = [
+  { title: "Precision over Complexity", desc: "We prioritize structured, clean ledger math over convoluted systems. Clarity drives trust.", icon: Target },
+  { title: "Enterprise by Design", desc: "From day one, SARFIS is architected for multi-company operations, large datasets, and strict role hierarchies.", icon: Building2 },
+  { title: "Finance First", desc: "We build for accountants, not just technologists. Financial reality always dictates product logic.", icon: BarChart3 },
+  { title: "Automation with Trust", desc: "Every automated posting requires explicit verification rules and complete visual logs.", icon: Lock },
+  { title: "User Experience Matters", desc: "Enterprise tools do not need to look dated. We create modern, fast, and satisfying workspaces.", icon: Sparkles }
+];
+
+const CORE_TEAM_MEMBERS = [
+  { name: "Farhan", role: "Legal Counsel & Operations Specialist", dept: "Operations", status: "Active", initials: "FA", desc: "Manages corporate legal compliance, vendor contract standards, and entity structures." },
+  { name: "S. Malik", role: "Senior Systems Engineer", dept: "Engineering", status: "Active", initials: "SM", desc: "Optimizes transactional database queries and ledger replication across distributed environments." },
+  { name: "H. Tariq", role: "Frontend Platform Engineer", dept: "Engineering", status: "Active", initials: "HT", desc: "Brings modern, responsive UI structures to the ERP dashboard with a focus on click efficiency." },
+  { name: "Z. Khan", role: "Quality Assurance Specialist", dept: "QA", status: "Active", initials: "ZK", desc: "Maintains rigorous system validation tests for transaction state machines and edge cases." },
+  { name: "F. Nabeel", role: "Security & DevOps Engineer", dept: "Engineering", status: "Active", initials: "FN", desc: "Manages encrypted ledger storage pipelines and ensures enterprise compliance standards." }
+];
+
+const WHY_TRUST_US = [
+  { title: "Enterprise Accounting Experts", desc: "Our leadership team comprises professionals who have configured accounting systems for decades." },
+  { title: "Tax Professionals", desc: "Taxation rules are overseen by legal and auditing authorities to match regulatory changes." },
+  { title: "ERP Architects", desc: "SARFIS was written by builders who understand scaling database schemas for thousands of transactions." },
+  { title: "Financial Analysts", desc: "We translate accounting details into direct, actionable business indicators." },
+  { title: "Software Engineers", desc: "Our developers focus on high concurrency, query execution speed, and database security." },
+  { title: "Business Consultants", desc: "We work directly with corporate leaders to configure optimized operations and layouts." }
+];
+
+const VALUES = [
+  { title: "Integrity", desc: "Our platform holds transaction logs that are completely immutable, preventing data alterations.", icon: Lock },
+  { title: "Innovation", desc: "We bring modern, card-first UI designs to traditional general ledger administration.", icon: Sparkles },
+  { title: "Precision", desc: "Ledgers must balance. We build strict GAAP/IFRS validation directly into database constraints.", icon: Target },
+  { title: "Security", desc: "Data is encrypted in transit and at rest, protecting sensitive multi-company financial data.", icon: ShieldCheck },
+  { title: "Transparency", desc: "Our audit logs capture every creation, update, approval, and posting event clearly.", icon: FileText },
+  { title: "Compliance", desc: "We track and adopt international rules and local corporate tax changes automatically.", icon: Scale },
+  { title: "Customer Success", desc: "We support migrations personally, ensuring legacy balances transition seamlessly.", icon: Users },
+  { title: "Continuous Learning", desc: "We iterate our technology continuously based on client reviews and operational feedback.", icon: Clock }
+];
+
+/* ═══ 3D CANVAS BACKGROUND ════════════════════════════════════════════════════ */
+function ParticleBackground() {
+  const canvasRef = useRef(null);
   useEffect(() => {
-    const c = ref.current; if (!c) return;
-    const ctx = c.getContext("2d");
-    let raf, W, H, pts = [];
-    const COLS = ["rgba(16,185,129,.4)", "rgba(6,182,212,.3)", "rgba(167,139,250,.2)", "rgba(34,211,238,.1)"];
-    const resize = () => { W = c.width = c.offsetWidth; H = c.height = c.offsetHeight; };
-    const spawn = () => ({
-      x: Math.random() * W, y: Math.random() * H,
-      r: Math.random() * 1.5 + .3,
-      vx: (Math.random() - .5) * 0.15, vy: (Math.random() - .5) * 0.15,
-      col: COLS[Math.floor(Math.random() * COLS.length)],
-      a: Math.random() * .5 + .2, life: 0,
-      max: 200 + Math.random() * 200,
-    });
-    const init = () => { pts = Array.from({ length: 50 }, spawn); };
-    const draw = () => {
-      ctx.clearRect(0, 0, W, H);
-      for (let i = 0; i < pts.length; i++) for (let j = i + 1; j < pts.length; j++) {
-        const dx = pts[i].x - pts[j].x, dy = pts[i].y - pts[j].y, d = Math.hypot(dx, dy);
-        if (d < 100) { ctx.beginPath(); ctx.strokeStyle = `rgba(16,185,129,${.05 * (1 - d / 100)})`; ctx.lineWidth = .3; ctx.moveTo(pts[i].x, pts[i].y); ctx.lineTo(pts[j].x, pts[j].y); ctx.stroke(); }
-      }
-      pts.forEach((p, idx) => {
-        p.x += p.vx; p.y += p.vy; p.life++;
-        if (p.x < 0 || p.x > W || p.y < 0 || p.y > H || p.life > p.max) { pts[idx] = spawn(); return; }
-        const f = p.life < 30 ? p.life / 30 : p.life > p.max - 30 ? (p.max - p.life) / 30 : 1;
-        ctx.beginPath(); ctx.arc(p.x, p.y, p.r, 0, Math.PI * 2);
-        ctx.fillStyle = p.col.replace(/[\d.]+\)$/, `${p.a * f})`); ctx.fill();
-      });
-      raf = requestAnimationFrame(draw);
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+    const ctx = canvas.getContext('2d');
+    let animationFrameId, width, height, particles = [];
+    const colors = ['rgba(16, 185, 129, 0.12)', 'rgba(6, 182, 212, 0.08)', 'rgba(13, 148, 136, 0.08)'];
+    
+    const resize = () => {
+      width = canvas.width = canvas.offsetWidth;
+      height = canvas.height = canvas.offsetHeight;
     };
-    resize(); init(); draw();
-    window.addEventListener("resize", resize);
-    return () => { cancelAnimationFrame(raf); window.removeEventListener("resize", resize); };
-  }, []);
-  return <canvas ref={ref} style={{ position: "absolute", inset: 0, width: "100%", height: "100%", pointerEvents: "none" }} />;
-}
-
-/* ═══ AVATAR COMPONENT ═══════════════════════════════════════════════════════ */
-function Avatar({ initials, size = 64, accent = "#10b981" }) {
-  return (
-    <div style={{
-      width: `${size}px`,
-      height: `${size}px`,
-      borderRadius: "50%",
-      backgroundColor: "#1e293b",
-      border: `2.5px solid ${accent}`,
-      display: "flex",
-      alignItems: "center",
-      justifyContent: "center",
-      fontFamily: "'Inter', sans-serif",
-      fontSize: `${size * 0.33}px`,
-      fontWeight: 600,
-      color: accent,
-      boxShadow: `0 0 12px ${accent}22`,
-      flexShrink: 0
-    }}>
-      {initials}
-    </div>
-  );
-}
-
-/* ═══ SPOTLIGHT COMPONENT ════════════════════════════════════════════════════ */
-function SpotlightPanel({ person, missionLabel, missions, quote, stats, accent, isCeoLevel = false }) {
-  const leftBg = isCeoLevel 
-    ? `radial-gradient(circle at 50% 0%, rgba(6, 182, 212, 0.15) 0%, #030b1a 100%)` 
-    : `radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.15) 0%, #030b1a 100%)`;
-
-  const borderCol = isCeoLevel ? "#06b6d4" : "#10b981";
-  const avatarBorder = isCeoLevel ? "#06b6d4" : "#10b981";
-
-  return (
-    <div className="lp-spotlight-card" style={{
-      display: "flex",
-      flexWrap: "wrap",
-      borderRadius: "20px",
-      overflow: "hidden",
-      border: `1px solid ${C.border}`,
-      backgroundColor: C.card,
-      boxShadow: "0 20px 40px rgba(0,0,0,0.3)"
-    }}>
-      {/* LEFT Portrait */}
-      <div className="lp-spotlight-left" style={{
-        flex: "1 1 300px",
-        background: leftBg,
-        display: "flex",
-        flexDirection: "column",
-        alignItems: "center",
-        justifyContent: "center",
-        padding: "48px 24px",
-        gap: "20px",
-        borderRight: `1px solid ${C.border}`,
-        position: "relative"
-      }}>
-        <div style={{
-          position: "absolute",
-          top: "10%",
-          width: "160px",
-          height: "160px",
-          borderRadius: "50%",
-          background: isCeoLevel ? "rgba(6, 182, 212, 0.2)" : "rgba(16, 185, 129, 0.2)",
-          filter: "blur(40px)",
-          pointerEvents: "none"
-        }} />
-
-        <div className="lp-float">
-          <Avatar initials={person.initials} size={110} accent={avatarBorder} />
-        </div>
-
-        <div style={{ textAlign: "center" }}>
-          <p style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: "18px",
-            fontWeight: 600,
-            color: "#f1f5f9",
-            margin: "0 0 6px"
-          }}>{person.name}</p>
-          <div style={{
-            display: "inline-block",
-            backgroundColor: isCeoLevel ? "rgba(6, 182, 212, 0.15)" : "rgba(16, 185, 129, 0.15)",
-            border: `1px solid ${isCeoLevel ? "rgba(6, 182, 212, 0.3)" : "rgba(16, 185, 129, 0.3)"}`,
-            borderRadius: "16px",
-            padding: "4px 12px"
-          }}>
-            <span style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: "9px",
-              fontWeight: 600,
-              color: isCeoLevel ? "#22d3ee" : "#6ee7b7",
-              letterSpacing: "0.1em",
-              textTransform: "uppercase"
-            }}>{person.title}</span>
-          </div>
-        </div>
-
-        {stats && (
-          <div style={{ display: "flex", gap: "24px", marginTop: "8px" }}>
-            {stats.map(s => (
-              <div key={s.lbl} style={{ textAlign: "center" }}>
-                <p style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: "24px",
-                  fontWeight: 600,
-                  color: isCeoLevel ? "#06b6d4" : "#10b981",
-                  margin: 0
-                }}>{s.val}</p>
-                <p style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: "9px",
-                  fontWeight: 500,
-                  color: "#94a3b8",
-                  textTransform: "uppercase",
-                  letterSpacing: "0.05em",
-                  margin: 0
-                }}>{s.lbl}</p>
-              </div>
-            ))}
-          </div>
-        )}
-      </div>
-
-      {/* RIGHT Vision / Missions */}
-      <div className="lp-spotlight-right" style={{
-        flex: "2 1 400px",
-        padding: "48px",
-        display: "flex",
-        flexDirection: "column",
-        justifyContent: "space-between",
-        backgroundColor: C.card
-      }}>
-        <div>
-          <h4 style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: "11px",
-            fontWeight: 600,
-            color: isCeoLevel ? "#06b6d4" : "#10b981",
-            textTransform: "uppercase",
-            letterSpacing: "0.15em",
-            marginBottom: "24px",
-            margin: 0
-          }}>{missionLabel}</h4>
-
-          <div style={{ display: "flex", flexDirection: "column", gap: "12px" }}>
-            {missions.map((m, idx) => (
-              <div key={idx} style={{
-                display: "flex",
-                gap: "16px",
-                alignItems: "flex-start",
-                padding: "16px",
-                backgroundColor: C.cardDeep,
-                border: `1px solid ${C.border}`,
-                borderRadius: "12px"
-              }}>
-                <div style={{
-                  width: "24px",
-                  height: "24px",
-                  borderRadius: "50%",
-                  backgroundColor: isCeoLevel ? "rgba(6, 182, 212, 0.15)" : "rgba(16, 185, 129, 0.15)",
-                  border: `1px solid ${isCeoLevel ? "rgba(6, 182, 212, 0.3)" : "rgba(16, 185, 129, 0.3)"}`,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  flexShrink: 0
-                }}>
-                  <span style={{
-                    fontSize: "11px",
-                    fontWeight: 600,
-                    color: isCeoLevel ? "#06b6d4" : "#10b981"
-                  }}>{idx + 1}</span>
-                </div>
-                <p style={{
-                  fontFamily: "'Inter', sans-serif",
-                  fontSize: "13.5px",
-                  lineHeight: "1.6",
-                  color: "#94a3b8",
-                  margin: 0
-                }}>{m}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-
-        {quote && (
-          <div style={{
-            marginTop: "24px",
-            borderLeft: `3px solid ${borderCol}`,
-            paddingLeft: "16px"
-          }}>
-            <p style={{
-              fontFamily: "'Inter', sans-serif",
-              fontSize: "13.5px",
-              fontStyle: "italic",
-              lineHeight: "1.6",
-              color: "#94a3b8",
-              margin: 0
-            }}>
-              "{quote}"
-            </p>
-          </div>
-        )}
-      </div>
-    </div>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   SECTIONS
-   1. HERO
-   2. FOUNDER SPOTLIGHT
-   3. ADVISORS
-   4. CEO SPOTLIGHT
-   5. TEAM SECTION
-   6. TEAM MARQUEE
-═══════════════════════════════════════════════════════════════════════════ */
-function Hero() {
-  return (
-    <section style={{
-      position: "relative",
-      padding: "160px 24px 80px", // Padded for sticky navbar layout
-      backgroundColor: "#030b1a",
-      display: "flex",
-      flexDirection: "column",
-      alignItems: "center",
-      justifyContent: "center",
-      overflow: "hidden",
-      minHeight: "75vh",
-      textAlign: "center"
-    }}>
-      <ParticleCanvas />
+    
+    const createParticle = () => ({
+      x: Math.random() * width,
+      y: Math.random() * height,
+      radius: Math.random() * 1.5 + 0.5,
+      vx: (Math.random() - 0.5) * 0.1,
+      vy: (Math.random() - 0.5) * 0.1,
+      color: colors[Math.floor(Math.random() * colors.length)]
+    });
+    
+    const init = () => {
+      particles = Array.from({ length: 40 }, createParticle);
+    };
+    
+    const render = () => {
+      ctx.clearRect(0, 0, width, height);
       
-      <div style={{
-        position: "absolute",
-        top: 0,
-        left: "50%",
-        transform: "translateX(-50%)",
-        width: "100%",
-        height: "100%",
-        background: "radial-gradient(circle, rgba(16, 185, 129, 0.12) 0%, transparent 70%)",
-        pointerEvents: "none",
-        zIndex: 1
-      }} />
-
-      <div style={{ position: "relative", zIndex: 2, maxWidth: "800px", margin: "0 auto" }}>
-        {/* Eyebrow */}
-        <div style={{
-          display: "inline-flex",
-          alignItems: "center",
-          gap: "8px",
-          backgroundColor: "rgba(16, 185, 129, 0.08)",
-          border: "1px solid rgba(16, 185, 129, 0.25)",
-          borderRadius: "40px",
-          padding: "6px 16px",
-          marginBottom: "24px"
-        }}>
-          <div className="lp-shimmer" style={{
-            width: "6px",
-            height: "6px",
-            borderRadius: "50%",
-            backgroundColor: "#6ee7b7"
-          }} />
-          <span style={{
-            fontFamily: "'Inter', sans-serif",
-            fontSize: "11px",
-            fontWeight: 500,
-            color: "#6ee7b7",
-            letterSpacing: "0.15em",
-            textTransform: "uppercase"
-          }}>
-            Meet the People Behind SCAFIS
-          </span>
-        </div>
-
-        {/* Title */}
-        <h1 style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: "clamp(36px, 6vw, 64px)",
-          fontWeight: 600,
-          color: "#ffffff",
-          lineHeight: "1.1",
-          letterSpacing: "-0.02em",
-          margin: "0 0 20px"
-        }}>
-          Our{" "}
-          <span style={{
-            background: "linear-gradient(135deg, #10b981 0%, #06b6d4 100%)",
-            WebkitBackgroundClip: "text",
-            WebkitTextFillColor: "transparent",
-            backgroundClip: "text"
-          }}>
-            Leadership
-          </span>
-        </h1>
-
-        {/* Subtitle */}
-        <p style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: "16px",
-          lineHeight: "1.6",
-          color: "#94a3b8",
-          maxWidth: "540px",
-          margin: "0 auto 48px",
-          fontWeight: 400
-        }}>
-          Visionaries, scholars, and builders united by a single purpose — to democratise enterprise-grade financial intelligence.
-        </p>
-
-        {/* Stats */}
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "24px",
-          marginBottom: "40px",
-          flexWrap: "wrap"
-        }}>
-          <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "28px", fontWeight: 600, color: "#ffffff", fontFamily: "'Inter', sans-serif" }}>12+</div>
-              <div style={{ fontSize: "11px", fontWeight: 500, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Years</div>
-            </div>
-            <div style={{ width: "1px", height: "32px", backgroundColor: "rgba(255,255,255,0.08)" }} />
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "28px", fontWeight: 600, color: "#ffffff", fontFamily: "'Inter', sans-serif" }}>4</div>
-              <div style={{ fontSize: "11px", fontWeight: 500, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>ERP Systems</div>
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "24px" }}>
-            <div style={{ width: "1px", height: "32px", backgroundColor: "rgba(255,255,255,0.08)" }} className="lp-stat-divider-desktop" />
-            <div style={{ textAlign: "center" }}>
-              <div style={{ fontSize: "28px", fontWeight: 600, color: "#ffffff", fontFamily: "'Inter', sans-serif" }}>50+</div>
-              <div style={{ fontSize: "11px", fontWeight: 500, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>Companies</div>
-            </div>
-          </div>
-        </div>
-
-        {/* Pills */}
-        <div style={{
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "center",
-          gap: "12px",
-          flexWrap: "wrap"
-        }}>
-          {["Founded 2022", "ERP Specialists", "50+ Clients"].map((pill) => (
-            <div key={pill} style={{
-              backgroundColor: "rgba(255, 255, 255, 0.025)",
-              border: "1px solid rgba(255, 255, 255, 0.08)",
-              borderRadius: "20px",
-              padding: "6px 14px",
-              fontSize: "12px",
-              fontWeight: 500,
-              color: "#94a3b8",
-              fontFamily: "'Inter', sans-serif"
-            }}>
-              {pill}
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function FounderSpotlight() {
-  return (
-    <section style={{
-      backgroundColor: "#030b1a",
-      padding: "80px 24px 40px",
-      borderTop: "1px solid rgba(255, 255, 255, 0.05)",
-      fontFamily: "'Inter', system-ui, sans-serif"
-    }}>
-      <div style={{ maxWidth: "1080px", margin: "0 auto" }}>
-        <div style={{ marginBottom: "32px" }}>
-          <div style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            backgroundColor: "rgba(16, 185, 129, 0.08)",
-            border: "1px solid rgba(16, 185, 129, 0.25)",
-            borderRadius: "40px",
-            padding: "4px 12px",
-            marginBottom: "16px"
-          }}>
-            <span style={{ fontSize: "10px", fontWeight: 600, color: "#6ee7b7", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-              Founder
-            </span>
-          </div>
-          <h2 style={{ fontSize: "28px", fontWeight: 600, color: "#ffffff", margin: 0, letterSpacing: "-0.01em" }}>
-            Founder Spotlight
-          </h2>
-        </div>
+      // Draw links
+      for (let i = 0; i < particles.length; i++) {
+        for (let j = i + 1; j < particles.length; j++) {
+          const dist = Math.hypot(particles[i].x - particles[j].x, particles[i].y - particles[j].y);
+          if (dist < 120) {
+            ctx.beginPath();
+            ctx.strokeStyle = `rgba(16, 185, 129, ${0.03 * (1 - dist / 120)})`;
+            ctx.lineWidth = 0.5;
+            ctx.moveTo(particles[i].x, particles[i].y);
+            ctx.lineTo(particles[j].x, particles[j].y);
+            ctx.stroke();
+          }
+        }
+      }
+      
+      // Draw particles
+      particles.forEach(p => {
+        p.x += p.vx;
+        p.y += p.vy;
+        if (p.x < 0 || p.x > width) p.vx *= -1;
+        if (p.y < 0 || p.y > height) p.vy *= -1;
         
-        <SpotlightPanel
-          person={{ initials: "RZ", name: "Rana Muhammad Zain ul Abideen", title: "Chairman & Founder" }}
-          missionLabel="Founder's Mission for SCAFIS"
-          stats={[{ val: "12+", lbl: "Years" }, { val: "4", lbl: "ERP Systems" }, { val: "50+", lbl: "Companies" }]}
-          missions={[
-            "Built SCAFIS as a comprehensive ERP solution from the ground up — architecting it as a precision decision-making engine for modern organisations.",
-            "Specialises in financial reporting systems, AI-powered matching logic, and autonomous accounting solutions at enterprise scale.",
-            "Democratising enterprise-grade financial intelligence for businesses of every size — from SMEs to large corporations."
-          ]}
-          quote="SCAFIS is not just software — it's a financial intelligence platform that evolves with your business."
-          accent="#10b981"
-          isCeoLevel={false}
-        />
-      </div>
-    </section>
-  );
+        ctx.beginPath();
+        ctx.arc(p.x, p.y, p.radius, 0, Math.PI * 2);
+        ctx.fillStyle = p.color;
+        ctx.fill();
+      });
+      
+      animationFrameId = requestAnimationFrame(render);
+    };
+    
+    resize();
+    init();
+    render();
+    
+    window.addEventListener('resize', resize);
+    return () => {
+      cancelAnimationFrame(animationFrameId);
+      window.removeEventListener('resize', resize);
+    };
+  }, []);
+  
+  return <canvas ref={canvasRef} className="absolute inset-0 w-full h-full pointer-events-none" />;
 }
 
-function AdvisorsSection() {
+/* ═══ CUSTOM STYLISH AVATAR ═══════════════════════════════════════════════════ */
+function CustomExecutiveAvatar({ initials, name, size = 180, borderCol = C.emerald }) {
   return (
-    <section style={{
-      backgroundColor: "#030b1a",
-      padding: "80px 24px",
-      borderTop: "1px solid rgba(255, 255, 255, 0.05)",
-      fontFamily: "'Inter', system-ui, sans-serif"
-    }}>
-      <div style={{ maxWidth: "1280px", margin: "0 auto" }}>
-        <div style={{ marginBottom: "48px" }}>
-          <div style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            backgroundColor: "rgba(16, 185, 129, 0.08)",
-            border: "1px solid rgba(16, 185, 129, 0.2)",
-            borderRadius: "40px",
-            padding: "4px 12px",
-            marginBottom: "16px"
-          }}>
-            <span style={{ fontSize: "10px", fontWeight: 600, color: "#10b981", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-              Advisory Board
-            </span>
-          </div>
-          <h2 style={{ fontSize: "28px", fontWeight: 600, color: "#ffffff", margin: "0 0 12px", letterSpacing: "-0.01em" }}>
-            Mentors &amp; Academic Advisors
-          </h2>
-          <p style={{ fontSize: "14px", color: "#94a3b8", margin: 0, maxWidth: "540px", lineHeight: "1.6" }}>
-            Distinguished academics and industry leaders who shape SCAFIS's intellectual and strategic foundation.
-          </p>
-        </div>
+    <div 
+      className="relative flex items-center justify-center rounded-2xl overflow-hidden avatar-glow border border-slate-800 bg-[#040e1f] select-none"
+      style={{ width: `${size}px`, height: `${size}px` }}
+    >
+      {/* Background Matrix Effect */}
+      <div 
+        className="absolute inset-0 opacity-[0.12] pointer-events-none"
+        style={{
+          backgroundImage: 'radial-gradient(rgba(16, 185, 129, 0.4) 1px, transparent 1px)',
+          backgroundSize: '16px 16px',
+        }}
+      />
+      <div className="absolute inset-x-0 bottom-0 h-1/2 bg-gradient-to-t from-slate-950/90 to-transparent pointer-events-none z-10" />
+      
+      {/* Ambient background glow ring */}
+      <div 
+        className="absolute w-[120%] h-[120%] rounded-full opacity-[0.25] pointer-events-none"
+        style={{
+          background: `radial-gradient(circle, ${borderCol} 0%, transparent 60%)`,
+          filter: 'blur(30px)'
+        }}
+      />
 
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(300px, 1fr))",
-          gap: "24px"
-        }}>
-          {ADVISORS.map((adv) => (
-            <div
-              key={adv.name}
-              style={{
-                backgroundColor: C.card,
-                border: `1px solid ${C.border}`,
-                borderRadius: "20px",
-                overflow: "hidden",
-                display: "flex",
-                flexDirection: "column"
-              }}
-              className="lp-card-hover"
-            >
-              <div style={{ height: "3px", backgroundColor: adv.accent }} />
-
-              <div className="lp-advisor-card-body" style={{ padding: "28px 28px 24px", flex: 1 }}>
-                <div style={{ display: "flex", gap: "20px", alignItems: "flex-start", marginBottom: "20px" }}>
-                  <Avatar initials={adv.initials} size={64} accent={adv.accent} />
-                  <div>
-                    <h3 style={{ fontSize: "16px", fontWeight: 600, color: "#ffffff", margin: "0 0 6px" }}>{adv.name}</h3>
-                    <div style={{
-                      display: "inline-block",
-                      backgroundColor: `${adv.accent}15`,
-                      border: `1px solid ${adv.accent}30`,
-                      borderRadius: "16px",
-                      padding: "2px 10px",
-                      marginBottom: "8px"
-                    }}>
-                      <span style={{ fontSize: "9px", fontWeight: 600, color: adv.accent, textTransform: "uppercase", letterSpacing: "0.05em" }}>
-                        {adv.title}
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
-                <div style={{ display: "flex", flexWrap: "wrap", gap: "6px", marginBottom: "16px" }}>
-                  {adv.expertise.map(tag => (
-                    <span key={tag} style={{
-                      backgroundColor: "rgba(255,255,255,0.04)",
-                      border: "1px solid rgba(255,255,255,0.08)",
-                      color: "#94a3b8",
-                      borderRadius: "8px",
-                      padding: "2px 8px",
-                      fontSize: "11px",
-                      fontWeight: 500
-                    }}>
-                      {tag}
-                    </span>
-                  ))}
-                </div>
-
-                <p style={{ fontSize: "13.5px", lineHeight: "1.6", color: "#94a3b8", margin: 0 }}>
-                  {adv.desc}
-                </p>
-              </div>
-
-              <div style={{
-                display: "flex",
-                borderTop: `1px solid ${C.border}`,
-                backgroundColor: C.cardDeep
-              }}>
-                {adv.impact.map((imp) => (
-                  <div key={imp.lbl} style={{
-                    flex: 1,
-                    textAlign: "center",
-                    padding: "16px 12px",
-                    borderRight: `1px solid ${C.border}`
-                  }}>
-                    <div style={{ fontSize: "20px", fontWeight: 600, color: adv.accent }}>{imp.val}</div>
-                    <div style={{ fontSize: "9px", fontWeight: 500, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>{imp.lbl}</div>
-                  </div>
-                ))}
-                <div style={{
-                  flex: 1.5,
-                  display: "flex",
-                  alignItems: "center",
-                  justifyContent: "center",
-                  padding: "16px",
-                  textAlign: "center"
-                }}>
-                  <span style={{ fontSize: "10px", fontWeight: 500, color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em", lineHeight: "1.4" }}>
-                    Academic Advisor<br />SCAFIS Board
-                  </span>
-                </div>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
+      <span 
+        className="text-[44px] font-black tracking-widest text-slate-100 z-20 font-mono"
+        style={{ color: '#f8fafc' }}
+      >
+        {initials}
+      </span>
+      
+      {/* Bottom border indicator bar */}
+      <div className="absolute bottom-0 inset-x-0 h-[3px] z-30" style={{ backgroundColor: borderCol }} />
+    </div>
   );
 }
 
-function CEOSpotlight() {
-  return (
-    <section style={{
-      backgroundColor: "#030b1a",
-      padding: "40px 24px 80px",
-      borderTop: "1px solid rgba(255, 255, 255, 0.05)",
-      fontFamily: "'Inter', system-ui, sans-serif"
-    }}>
-      <div style={{ maxWidth: "1080px", margin: "0 auto" }}>
-        <div style={{ marginBottom: "32px" }}>
-          <div style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            backgroundColor: "rgba(6, 182, 212, 0.08)",
-            border: "1px solid rgba(6, 182, 212, 0.25)",
-            borderRadius: "40px",
-            padding: "4px 12px",
-            marginBottom: "16px"
-          }}>
-            <span style={{ fontSize: "10px", fontWeight: 600, color: "#22d3ee", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-              Executive
-            </span>
-          </div>
-          <h2 style={{ fontSize: "28px", fontWeight: 600, color: "#ffffff", margin: 0, letterSpacing: "-0.01em" }}>
-            CEO Spotlight
-          </h2>
-        </div>
-        
-        <SpotlightPanel
-          person={{ initials: "AK", name: "Ayesha Kashif", title: "CEO & Co-Founder" }}
-          missionLabel="Strategic Operational Vision"
-          stats={[{ val: "3+", lbl: "Years" }, { val: "50+", lbl: "Clients" }]}
-          missions={[
-            "SaaS growth strategy — scaling outreach and accelerating enterprise business development.",
-            "User experience priorities — championing product accessibility and design-first standards.",
-            "Market adoption goals — driving client acquisition and sector-specific GTM strategies."
-          ]}
-          quote="Building SCAFIS into a platform every finance professional can rely on — from SMEs to enterprise."
-          accent="#06b6d4"
-          isCeoLevel={true}
-        />
-      </div>
-    </section>
-  );
-}
-
-function TeamSection() {
-  return (
-    <section style={{
-      backgroundColor: "#030b1a",
-      padding: "80px 24px",
-      borderTop: "1px solid rgba(255, 255, 255, 0.05)",
-      fontFamily: "'Inter', system-ui, sans-serif"
-    }}>
-      <div style={{ maxWidth: "1280px", margin: "0 auto" }}>
-        <div style={{ marginBottom: "48px" }}>
-          <div style={{
-            display: "inline-flex",
-            alignItems: "center",
-            gap: "8px",
-            backgroundColor: "rgba(16, 185, 129, 0.08)",
-            border: "1px solid rgba(16, 185, 129, 0.2)",
-            borderRadius: "40px",
-            padding: "4px 12px",
-            marginBottom: "16px"
-          }}>
-            <span style={{ fontSize: "10px", fontWeight: 600, color: "#10b981", letterSpacing: "0.1em", textTransform: "uppercase" }}>
-              Core Team
-            </span>
-          </div>
-          <h2 style={{ fontSize: "28px", fontWeight: 600, color: "#ffffff", margin: "0 0 12px", letterSpacing: "-0.01em" }}>
-            Our Team
-          </h2>
-          <p style={{ fontSize: "14px", color: "#94a3b8", margin: 0, maxWidth: "540px", lineHeight: "1.6" }}>
-            The talented individuals who build and maintain SCAFIS day by day.
-          </p>
-        </div>
-
-        <div style={{
-          display: "grid",
-          gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))",
-          gap: "24px"
-        }}>
-          {TEAM_MEMBERS.map((m, idx) => (
-            <div
-              key={m.name + '_' + idx}
-              style={{
-                backgroundColor: C.card,
-                border: `1px solid ${C.border}`,
-                borderRadius: "20px",
-                padding: "24px",
-                display: "flex",
-                gap: "16px",
-                alignItems: "flex-start"
-              }}
-              className="lp-card-hover"
-            >
-              <Avatar initials={m.initials} size={52} accent="#10b981" />
-              <div style={{ flex: 1 }}>
-                <h3 style={{ fontSize: "15px", fontWeight: 600, color: "#ffffff", margin: "0 0 2px" }}>{m.name}</h3>
-                <p style={{ fontSize: "11px", fontWeight: 500, color: "#10b981", textTransform: "uppercase", letterSpacing: "0.05em", margin: "0 0 8px" }}>
-                  {m.title}
-                </p>
-                <div style={{
-                  display: "inline-block",
-                  backgroundColor: "rgba(16, 185, 129, 0.1)",
-                  border: "1px solid rgba(16, 185, 129, 0.2)",
-                  borderRadius: "12px",
-                  padding: "2px 8px",
-                  marginBottom: "12px"
-                }}>
-                  <span style={{ fontSize: "9px", fontWeight: 600, color: "#10b981", textTransform: "uppercase" }}>
-                    Legal / Operations
-                  </span>
-                </div>
-                <p style={{ fontSize: "13px", lineHeight: "1.5", color: "#94a3b8", margin: 0 }}>
-                  {m.desc}
-                </p>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-function TeamMarquee() {
-  const doubled = [...MQ_DATA, ...MQ_DATA];
-  return (
-    <section style={{
-      backgroundColor: "#040e1f",
-      padding: "48px 0",
-      borderTop: "1px solid rgba(255, 255, 255, 0.08)",
-      borderBottom: "1px solid rgba(255, 255, 255, 0.08)",
-      overflow: "hidden",
-      position: "relative"
-    }}>
-      <div style={{
-        position: "absolute",
-        left: 0,
-        top: 0,
-        bottom: 0,
-        width: "120px",
-        zIndex: 2,
-        background: "linear-gradient(90deg, #040e1f, transparent)",
-        pointerEvents: "none"
-      }} />
-      <div style={{
-        position: "absolute",
-        right: 0,
-        top: 0,
-        bottom: 0,
-        width: "120px",
-        zIndex: 2,
-        background: "linear-gradient(-90deg, #040e1f, transparent)",
-        pointerEvents: "none"
-      }} />
-
-      <div style={{ maxWidth: "1280px", margin: "0 auto", padding: "0 24px", marginBottom: "24px" }}>
-        <h4 style={{
-          fontFamily: "'Inter', sans-serif",
-          fontSize: "11px",
-          fontWeight: 600,
-          color: "#10b981",
-          textTransform: "uppercase",
-          letterSpacing: "0.15em",
-          margin: 0,
-          textAlign: "center"
-        }}>
-          Everyone Building SCAFIS
-        </h4>
-      </div>
-
-      <div style={{ position: "relative" }}>
-        <div className="lp-mq-track" style={{ display: "flex", gap: "16px", width: "max-content" }}>
-          {doubled.map((p, idx) => (
-            <div
-              key={idx}
-              style={{
-                flexShrink: 0,
-                display: "flex",
-                alignItems: "center",
-                gap: "10px",
-                padding: "8px 16px",
-                backgroundColor: "rgba(255, 255, 255, 0.025)",
-                border: "1px solid rgba(255, 255, 255, 0.08)",
-                borderRadius: "16px",
-                boxShadow: "0 2px 6px rgba(0, 0, 0, 0.2)"
-              }}
-            >
-              <div style={{
-                width: "28px",
-                height: "28px",
-                borderRadius: "50%",
-                backgroundColor: "rgba(16, 185, 129, 0.1)",
-                border: `1.5px solid ${p.accent}`,
-                display: "flex",
-                alignItems: "center",
-                justifyContent: "center",
-                fontSize: "10px",
-                fontWeight: 600,
-                color: p.accent
-              }}>
-                {p.initials}
-              </div>
-              <div style={{ display: "flex", flexDirection: "column" }}>
-                <span style={{ fontSize: "12px", fontWeight: 600, color: "#ffffff", lineHeight: "1.2" }}>{p.name}</span>
-                <span style={{ fontSize: "9px", fontWeight: 500, color: "#94a3b8", textTransform: "uppercase", letterSpacing: "0.05em" }}>{p.role}</span>
-              </div>
-            </div>
-          ))}
-        </div>
-      </div>
-    </section>
-  );
-}
-
-/* ═══════════════════════════════════════════════════════════════════════════
-   MAIN CONTAINER
-═══════════════════════════════════════════════════════════════════════════ */
 export default function LeadershipPage() {
+  const [activeOrgTab, setActiveOrgTab] = useState('executive');
+
   return (
     <M.div
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       exit={{ opacity: 0 }}
-      transition={{ duration: 0.42 }}
-      style={{ backgroundColor: "#030b1a", minHeight: "100vh" }}
+      transition={{ duration: 0.4 }}
+      style={{ backgroundColor: C.bg, minHeight: '100vh', color: '#fff' }}
     >
       <Navbar />
-      <Hero />
-      <FounderSpotlight />
-      <AdvisorsSection />
-      <CEOSpotlight />
-      <TeamSection />
-      <TeamMarquee />
+
+      {/* 1. HERO SECTION */}
+      <section className="relative min-h-[70vh] flex flex-col items-center justify-center pt-32 pb-20 px-5 text-center overflow-hidden border-b border-slate-900 bg-slate-950/20">
+        <ParticleBackground />
+        
+        {/* Soft background glow */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[550px] h-[300px] rounded-full pointer-events-none opacity-20"
+          style={{ background: 'radial-gradient(circle, #10b981 0%, transparent 70%)', filter: 'blur(100px)' }} />
+
+        <div className="max-w-4xl mx-auto relative z-10 space-y-6">
+          <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border border-emerald-500/20 bg-emerald-500/5 text-xs font-semibold text-emerald-400 uppercase tracking-widest">
+            SARFIS Corporate Governance
+          </div>
+          
+          <h1 className="text-5xl sm:text-6xl font-black text-white tracking-tight leading-tight"
+            style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
+            Leadership & <span className="bg-gradient-to-r from-emerald-400 to-cyan-400 bg-clip-text text-transparent">Governance</span>
+          </h1>
+          
+          <p className="text-slate-400 text-base sm:text-lg max-w-2xl mx-auto leading-relaxed">
+            Meet the founders, advisors, architects, and professionals building the future of enterprise intelligence through SARFIS.
+          </p>
+
+          {/* Statistics Grid */}
+          <div className="grid grid-cols-2 md:grid-cols-6 gap-6 pt-12 border-t border-slate-900 max-w-4xl mx-auto text-left">
+            {[
+              { val: "12+", label: "Years" },
+              { val: "50+", label: "Companies" },
+              { val: "8", label: "ERP Modules" },
+              { val: "3+", label: "Countries" },
+              { val: "100+", label: "Projects" },
+              { val: "100%", label: "Traceability" }
+            ].map((stat, i) => (
+              <div key={i} className="space-y-1">
+                <div className="text-3xl font-black text-emerald-400 font-mono">{stat.val}</div>
+                <div className="text-[10px] text-slate-500 font-bold uppercase tracking-wider">{stat.label}</div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 2. FOUNDER & CEO SPOTLIGHTS */}
+      <section className="py-24 px-5 sm:px-8 bg-[#030b1a] relative z-10">
+        <div className="max-w-6xl mx-auto space-y-24">
+          <div className="border-b border-slate-900 pb-4 text-left">
+            <h2 className="text-3xl font-black tracking-tight text-white uppercase" style={{ fontFamily: "'Sora', sans-serif" }}>
+              Corporate Founders
+            </h2>
+            <p className="text-slate-500 text-sm mt-1">The strategic leaders establishing the platform's vision, logic, and operational frameworks.</p>
+          </div>
+
+          {FOUNDERS.map((founder, index) => (
+            <div 
+              key={index} 
+              className="grid grid-cols-1 lg:grid-cols-12 gap-12 items-stretch"
+            >
+              {/* LEFT Column: Photo & Metrics */}
+              <div className="lg:col-span-4 flex flex-col justify-between items-center p-8 bg-[#050f21] border border-slate-900 rounded-3xl text-center space-y-8 h-full">
+                <div className="space-y-4 flex flex-col items-center">
+                  <CustomExecutiveAvatar initials={founder.initials} borderCol={founder.accent} />
+                  <div>
+                    <h3 className="text-xl font-bold text-white leading-tight">{founder.name}</h3>
+                    <p className="text-xs font-bold uppercase tracking-widest mt-1.5" style={{ color: founder.accent }}>
+                      {founder.title}
+                    </p>
+                  </div>
+                </div>
+
+                {/* Founder Metrics */}
+                <div className="grid grid-cols-3 gap-2 w-full pt-6 border-t border-slate-900/60">
+                  {founder.metrics.map((m, idx) => (
+                    <div key={idx} className="text-center">
+                      <div className="text-lg font-black text-white font-mono">{m.val}</div>
+                      <div className="text-[9px] text-slate-500 font-semibold uppercase tracking-wider">{m.label}</div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* RIGHT Column: Mission, Bio, Values, Quote */}
+              <div className="lg:col-span-8 p-8 bg-[#050f21] border border-slate-900 rounded-3xl flex flex-col justify-between space-y-6 h-full text-left">
+                <div className="space-y-5">
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block mb-1">Corporate Mission</span>
+                    <h4 className="text-[15px] font-extrabold text-slate-200 leading-snug">"{founder.mission}"</h4>
+                  </div>
+
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block mb-1">Professional Biography</span>
+                    <p className="text-slate-400 text-xs leading-relaxed">{founder.bio}</p>
+                  </div>
+
+                  {/* Core Expertise Tags */}
+                  <div>
+                    <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block mb-2">Core Expertise</span>
+                    <div className="flex flex-wrap gap-2">
+                      {founder.expertise.map((tag, idx) => (
+                        <span key={idx} className="px-2.5 py-1 bg-slate-950 border border-slate-900 text-slate-400 text-[10px] font-semibold rounded-lg">
+                          {tag}
+                        </span>
+                      ))}
+                    </div>
+                  </div>
+                </div>
+
+                {/* Philosophy and Quote */}
+                <div className="pt-6 border-t border-slate-900/60 space-y-3">
+                  <span className="text-[10px] text-slate-500 font-bold uppercase tracking-widest block">Leadership Philosophy</span>
+                  <div className="p-4 bg-slate-950/60 border border-slate-900 rounded-2xl flex items-start gap-3">
+                    <Quote size={20} className="text-slate-600 flex-shrink-0 mt-0.5" />
+                    <p className="text-xs text-slate-400 italic leading-relaxed">
+                      {founder.philosophy}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          ))}
+        </div>
+      </section>
+
+      {/* 3. ADVISORY BOARD SECTION */}
+      <section className="py-24 px-5 sm:px-8 bg-slate-950/30 border-t border-slate-900 relative">
+        <div className="max-w-6xl mx-auto space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs text-cyan-400 font-bold uppercase tracking-widest">Independent Audit & Council</span>
+            <h2 className="text-3xl font-black text-white uppercase" style={{ fontFamily: "'Sora', sans-serif" }}>
+              Mentors & Academic Advisors
+            </h2>
+            <p className="text-slate-400 text-sm">
+              Distinguished practitioners overseeing tax pipelines, financial rules, compliance structures, and audit integration frameworks.
+            </p>
+          </div>
+
+          {/* Advisors Responsive Grid */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-8 pt-8">
+            {ADVISORS.map((adv, idx) => (
+              <div 
+                key={idx} 
+                className="lead-card-hover bg-[#050f21] border border-slate-900 rounded-3xl p-6 sm:p-8 flex flex-col justify-between space-y-6 text-left"
+              >
+                <div className="space-y-5">
+                  <div className="flex items-center gap-4">
+                    <div className="w-12 h-12 rounded-xl bg-slate-950 border border-slate-900 flex items-center justify-center font-bold text-white font-mono text-sm"
+                      style={{ borderLeft: `3px solid ${adv.accent}` }}>
+                      {adv.initials}
+                    </div>
+                    <div>
+                      <h3 className="text-base font-bold text-white">{adv.name}</h3>
+                      <p className="text-[11px] text-slate-400 font-bold mt-0.5">{adv.title}</p>
+                    </div>
+                  </div>
+
+                  <div className="flex flex-wrap gap-1.5">
+                    <span className="px-2 py-0.5 bg-slate-950 border border-slate-900 text-slate-500 text-[9px] font-black uppercase tracking-wider rounded">
+                      Experience: {adv.experience}
+                    </span>
+                    {adv.certifications.map((cert, i) => (
+                      <span key={i} className="px-2 py-0.5 bg-slate-950 border border-slate-900 text-emerald-400 text-[9px] font-bold rounded">
+                        {cert}
+                      </span>
+                    ))}
+                  </div>
+
+                  <p className="text-slate-400 text-xs leading-relaxed">
+                    {adv.bio}
+                  </p>
+                </div>
+
+                <div className="pt-4 border-t border-slate-900 space-y-2">
+                  <span className="text-[9.5px] text-slate-500 font-bold uppercase tracking-wider block">Areas of Council</span>
+                  <div className="flex flex-wrap gap-2">
+                    {adv.expertise.map((exp, i) => (
+                      <span key={i} className="px-2.5 py-1 bg-slate-950/80 text-slate-300 text-[10px] rounded-lg border border-slate-900">
+                        {exp}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 4. STRATEGIC LEADERSHIP GROUPS */}
+      <section className="py-24 px-5 sm:px-8 bg-[#030b1a] relative z-10 border-t border-slate-900">
+        <div className="max-w-6xl mx-auto space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs text-emerald-400 font-bold uppercase tracking-widest">Organizational Alignment</span>
+            <h2 className="text-3xl font-black text-white uppercase" style={{ fontFamily: "'Sora', sans-serif" }}>
+              Strategic Leadership Team
+            </h2>
+            <p className="text-slate-400 text-sm">
+              Our organizational setup is divided into specialized operational clusters to maintain complete control over code development, tax alignment, and legal setups.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6 pt-8">
+            {STRATEGIC_TEAMS.map((team, idx) => {
+              const Icon = team.icon;
+              return (
+                <div 
+                  key={idx}
+                  className="lead-card-hover bg-[#050f21] border border-slate-900 rounded-3xl p-6 flex flex-col justify-between space-y-5 text-left"
+                >
+                  <div className="space-y-4">
+                    <div className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-900 flex items-center justify-center"
+                      style={{ color: team.color }}>
+                      <Icon size={18} />
+                    </div>
+                    <div>
+                      <h3 className="text-sm font-bold text-white">{team.title}</h3>
+                      <p className="text-[11px] text-slate-400 mt-1 leading-relaxed">{team.desc}</p>
+                    </div>
+                  </div>
+
+                  <div className="space-y-2 pt-4 border-t border-slate-900 text-[11px]">
+                    <div>
+                      <span className="text-slate-500 font-semibold block uppercase tracking-wider text-[9px]">Members</span>
+                      <span className="text-slate-300 font-bold">{team.members}</span>
+                    </div>
+                    <div>
+                      <span className="text-slate-500 font-semibold block uppercase tracking-wider text-[9px]">Scope of Control</span>
+                      <span className="text-slate-400 leading-normal block">{team.responsibilities}</span>
+                    </div>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* 5. ORGANIZATIONAL STRUCTURE TREE */}
+      <section className="py-24 px-5 sm:px-8 bg-slate-950/20 border-t border-slate-900 relative">
+        <div className="max-w-4xl mx-auto space-y-12 text-center">
+          <div className="space-y-3">
+            <span className="text-xs text-emerald-400 font-bold uppercase tracking-widest">Governance Architecture</span>
+            <h2 className="text-3xl font-black text-white uppercase" style={{ fontFamily: "'Sora', sans-serif" }}>
+              Operational Tree
+            </h2>
+            <p className="text-slate-400 text-sm max-w-xl mx-auto">
+              Interactive structural map of corporate control at SARFIS. Click sections below to highlight departments.
+            </p>
+          </div>
+
+          {/* Org Tree Tabs */}
+          <div className="flex justify-center gap-2 border-b border-slate-900 pb-4 max-w-md mx-auto">
+            {['executive', 'operations', 'engineering'].map(tab => (
+              <button
+                key={tab}
+                onClick={() => setActiveOrgTab(tab)}
+                className={`px-4 py-2 rounded-xl text-xs font-bold capitalize transition border cursor-pointer ${
+                  activeOrgTab === tab 
+                    ? 'bg-slate-900 text-white border-emerald-500/40' 
+                    : 'bg-transparent text-slate-500 border-transparent hover:text-slate-300'
+                }`}
+              >
+                {tab} View
+              </button>
+            ))}
+          </div>
+
+          {/* Live Org Tree Map */}
+          <div className="p-8 bg-[#050f21] border border-slate-900 rounded-3xl relative overflow-hidden flex flex-col items-center space-y-6">
+            
+            {/* Level 1 */}
+            <div className="org-node px-6 py-3 bg-slate-950 border border-slate-850 rounded-xl text-xs text-center w-56">
+              <span className="text-[10px] text-slate-500 uppercase tracking-widest block font-bold">Shareholders & Chairman</span>
+              <span className="text-white font-bold block mt-0.5">Rana M. Zain</span>
+            </div>
+
+            <ArrowDown size={14} className="text-emerald-500/50" />
+
+            {/* Level 2 */}
+            <div className="org-node px-6 py-3 bg-slate-950 border border-slate-850 rounded-xl text-xs text-center w-56">
+              <span className="text-[10px] text-slate-500 uppercase tracking-widest block font-bold">Chief Executive Officer</span>
+              <span className="text-cyan-400 font-bold block mt-0.5">Ayesha Kashif</span>
+            </div>
+
+            <div className="w-px h-6 bg-emerald-500/30" />
+
+            {/* Horizontal Line connecting Level 3 */}
+            <div className="w-full max-w-md border-t border-emerald-500/30 relative">
+              <div className="absolute left-0 top-0 w-px h-4 bg-emerald-500/30" />
+              <div className="absolute left-1/2 top-0 -translate-x-1/2 w-px h-4 bg-emerald-500/30" />
+              <div className="absolute right-0 top-0 w-px h-4 bg-emerald-500/30" />
+            </div>
+
+            {/* Level 3 */}
+            <div className="grid grid-cols-3 gap-4 w-full max-w-lg text-[10.5px]">
+              <div className={`p-3 rounded-xl border text-center transition ${activeOrgTab === 'engineering' ? 'border-cyan-500/40 bg-cyan-950/10' : 'border-slate-855 bg-slate-950'}`}>
+                <span className="font-bold text-slate-400 block">Technology</span>
+                <span className="text-[9px] text-slate-600 font-semibold block uppercase mt-1">Systems & Dev</span>
+              </div>
+              <div className={`p-3 rounded-xl border text-center transition ${activeOrgTab === 'operations' ? 'border-teal-500/40 bg-teal-950/10' : 'border-slate-855 bg-slate-950'}`}>
+                <span className="font-bold text-slate-400 block">Audit & Law</span>
+                <span className="text-[9px] text-slate-600 font-semibold block uppercase mt-1">Tax & Regulations</span>
+              </div>
+              <div className={`p-3 rounded-xl border text-center transition ${activeOrgTab === 'executive' ? 'border-emerald-500/40 bg-emerald-950/10' : 'border-slate-855 bg-slate-950'}`}>
+                <span className="font-bold text-slate-400 block">Ops steering</span>
+                <span className="text-[9px] text-slate-600 font-semibold block uppercase mt-1">Admin & Support</span>
+              </div>
+            </div>
+
+            <div className="w-full max-w-lg flex justify-between relative px-6">
+              <div className="w-px h-4 bg-emerald-500/20" />
+              <div className="w-px h-4 bg-emerald-500/20" />
+              <div className="w-px h-4 bg-emerald-500/20" />
+            </div>
+
+            {/* Level 4 */}
+            <div className="grid grid-cols-3 gap-4 w-full max-w-lg text-[9.5px] text-slate-500 font-bold uppercase tracking-wider">
+              <div className="text-center">Engineering / QA</div>
+              <div className="text-center">FBR / IFRS audits</div>
+              <div className="text-center">Legal / HR</div>
+            </div>
+
+          </div>
+        </div>
+      </section>
+
+      {/* 6. MISSION TIMELINE SECTION */}
+      <section className="py-24 px-5 sm:px-8 bg-[#030b1a] relative z-10 border-t border-slate-900">
+        <div className="max-w-6xl mx-auto space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs text-emerald-400 font-bold uppercase tracking-widest">Platform Progress Track</span>
+            <h2 className="text-3xl font-black text-white uppercase" style={{ fontFamily: "'Sora', sans-serif" }}>
+              Development Timeline
+            </h2>
+            <p className="text-slate-400 text-sm">
+              The engineering roadmap and historical development of the SARFIS Financial platform modules.
+            </p>
+          </div>
+
+          {/* Timeline Tree Component */}
+          <div className="relative border-l border-slate-800 ml-4 md:ml-8 space-y-8 pt-6 max-w-3xl mx-auto text-left">
+            {TIMELINE_STEPS.map((step, idx) => (
+              <div key={idx} className="relative pl-8 group">
+                {/* Connector Dot */}
+                <div className="timeline-dot absolute -left-1.5 top-1.5 w-3 h-3 rounded-full bg-emerald-500 border border-slate-950 transition group-hover:bg-cyan-400" />
+                
+                <div className="space-y-1.5">
+                  <div className="flex items-center gap-3">
+                    <span className="text-xs font-mono font-black text-emerald-400 bg-emerald-950/40 border border-emerald-900/30 px-2 py-0.5 rounded">
+                      {step.year}
+                    </span>
+                    <h3 className="text-sm font-bold text-white group-hover:text-emerald-300 transition">
+                      {step.title}
+                    </h3>
+                  </div>
+                  <p className="text-slate-400 text-xs leading-relaxed max-w-2xl">
+                    {step.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 7. LEADERSHIP PHILOSOPHIES */}
+      <section className="py-24 px-5 sm:px-8 bg-slate-950/20 border-t border-slate-900 relative">
+        <div className="max-w-6xl mx-auto space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs text-cyan-400 font-bold uppercase tracking-widest">Core Mindset</span>
+            <h2 className="text-3xl font-black text-white uppercase" style={{ fontFamily: "'Sora', sans-serif" }}>
+              Leadership Philosophy
+            </h2>
+            <p className="text-slate-400 text-sm">
+              The fundamental guidelines shaping how we write code, formulate schemas, and support enterprise accounts.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-5 gap-6 pt-8">
+            {PHILOSOPHIES.map((phi, idx) => {
+              const Icon = phi.icon;
+              return (
+                <div 
+                  key={idx}
+                  className="lead-card-hover bg-[#050f21] border border-slate-900 rounded-3xl p-6 flex flex-col justify-between space-y-4 text-left"
+                >
+                  <div className="space-y-3">
+                    <div className="w-9 h-9 rounded-xl bg-slate-950 border border-slate-900 flex items-center justify-center text-cyan-400">
+                      <Icon size={16} />
+                    </div>
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">{phi.title}</h3>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed">{phi.desc}</p>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* 8. ACADEMIC & PROFESSIONAL ADVISORY REGISTRY */}
+      <section className="py-24 px-5 sm:px-8 bg-[#030b1a] relative z-10 border-t border-slate-900">
+        <div className="max-w-6xl mx-auto space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs text-emerald-400 font-bold uppercase tracking-widest">Specialized Compliance Consultants</span>
+            <h2 className="text-3xl font-black text-white uppercase" style={{ fontFamily: "'Sora', sans-serif" }}>
+              Advisory Registry
+            </h2>
+            <p className="text-slate-400 text-sm">
+              Our accounting engines undergo direct reviews by independent professionals specializing in IFRS compliance and tax laws.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6 pt-8">
+            {[
+              { role: "Taxation Architecture", specialist: "Prof. Mohammad Saad Anwar", domain: "FBR Filing Schedules", contribution: "Designs and audits calculation rules for dynamic withholding tax registers." },
+              { role: "IFRS Regulatory Compliance", specialist: "Prof. Muhammed Rehan Anjum", domain: "GAAP System Rules", contribution: "Audits asset straight-line formulas and multi-subsidiary elimination journal logic." },
+              { role: "Enterprise Architecture", specialist: "Technical Steering Board", domain: "Database Normalization", contribution: "Provides guidelines on ledger scale capabilities and immutable log structures." }
+            ].map((adv, idx) => (
+              <div 
+                key={idx}
+                className="lead-card-hover bg-[#050f21] border border-slate-900 rounded-3xl p-6 flex flex-col justify-between space-y-4 text-left text-xs"
+              >
+                <div className="space-y-2">
+                  <span className="px-2 py-0.5 bg-slate-950 border border-slate-900 text-emerald-400 text-[9px] font-bold rounded">
+                    {adv.role}
+                  </span>
+                  <h3 className="text-sm font-bold text-white">{adv.specialist}</h3>
+                  <p className="text-[11px] text-slate-500 uppercase tracking-widest font-bold">{adv.domain}</p>
+                </div>
+                <p className="text-slate-400 leading-relaxed text-[11px] pt-3 border-t border-slate-900/60">
+                  {adv.contribution}
+                </p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 9. CORE TEAM GRID */}
+      <section className="py-24 px-5 sm:px-8 bg-slate-950/20 border-t border-slate-900 relative">
+        <div className="max-w-6xl mx-auto space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs text-cyan-400 font-bold uppercase tracking-widest">Platform Developers & Officers</span>
+            <h2 className="text-3xl font-black text-white uppercase" style={{ fontFamily: "'Sora', sans-serif" }}>
+              Core Technical Team
+            </h2>
+            <p className="text-slate-400 text-sm">
+              The operational engineers keeping SARFIS responsive, compliant, and secure daily.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-8">
+            {CORE_TEAM_MEMBERS.map((member, idx) => (
+              <div 
+                key={idx}
+                className="lead-card-hover bg-[#050f21] border border-slate-900 rounded-3xl p-6 flex gap-4 items-start text-left"
+              >
+                <div className="w-11 h-11 rounded-xl bg-slate-950 border border-slate-900 flex items-center justify-center font-bold text-emerald-400 text-xs">
+                  {member.initials}
+                </div>
+                <div className="flex-1 space-y-2.5">
+                  <div className="flex justify-between items-start gap-2">
+                    <div>
+                      <h3 className="text-xs font-bold text-white">{member.name}</h3>
+                      <p className="text-[10px] text-slate-400 mt-0.5">{member.role}</p>
+                    </div>
+                    <span className="bg-emerald-950/60 text-emerald-400 border border-emerald-900/30 px-1.5 py-0.5 rounded text-[8px] font-black uppercase tracking-wider">
+                      {member.dept}
+                    </span>
+                  </div>
+                  <p className="text-[11px] text-slate-400 leading-relaxed pt-2 border-t border-slate-900/60">
+                    {member.desc}
+                  </p>
+                </div>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 10. WHY THIS TEAM */}
+      <section className="py-24 px-5 sm:px-8 bg-[#030b1a] relative z-10 border-t border-slate-900">
+        <div className="max-w-6xl mx-auto space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs text-emerald-400 font-bold uppercase tracking-widest">Our Credibility</span>
+            <h2 className="text-3xl font-black text-white uppercase" style={{ fontFamily: "'Sora', sans-serif" }}>
+              Why Businesses Trust SARFIS
+            </h2>
+            <p className="text-slate-400 text-sm">
+              We focus on compliance, architecture validation, and professional assistance so finance managers can perform audits confidently.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6 pt-8">
+            {WHY_TRUST_US.map((item, idx) => (
+              <div 
+                key={idx}
+                className="lead-card-hover bg-[#050f21] border border-slate-900 rounded-3xl p-6 space-y-3 text-left"
+              >
+                <div className="flex items-center gap-2 text-emerald-400">
+                  <CheckCircle2 size={15} />
+                  <h3 className="text-xs font-bold text-white uppercase tracking-wider">{item.title}</h3>
+                </div>
+                <p className="text-[11.5px] text-slate-400 leading-relaxed">{item.desc}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      </section>
+
+      {/* 11. LEADERSHIP VALUES */}
+      <section className="py-24 px-5 sm:px-8 bg-slate-950/20 border-t border-slate-900 relative">
+        <div className="max-w-6xl mx-auto space-y-12">
+          <div className="text-center max-w-2xl mx-auto space-y-3">
+            <span className="text-xs text-cyan-400 font-bold uppercase tracking-widest">Our Pillars</span>
+            <h2 className="text-3xl font-black text-white uppercase" style={{ fontFamily: "'Sora', sans-serif" }}>
+              Leadership Values
+            </h2>
+            <p className="text-slate-400 text-sm">
+              The operational rules and commitments we maintain across every module and line of code.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-6 pt-8">
+            {VALUES.map((val, idx) => {
+              const Icon = val.icon;
+              return (
+                <div 
+                  key={idx}
+                  className="lead-card-hover bg-[#050f21] border border-slate-900 rounded-3xl p-6 text-left space-y-3.5"
+                >
+                  <div className="w-8 h-8 rounded-xl bg-slate-950 border border-slate-900 flex items-center justify-center text-cyan-400">
+                    <Icon size={14} />
+                  </div>
+                  <div>
+                    <h3 className="text-xs font-bold text-white uppercase tracking-wider">{val.title}</h3>
+                    <p className="text-[10.5px] text-slate-400 leading-relaxed mt-1">{val.desc}</p>
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      </section>
+
+      {/* 12. CALL TO ACTION */}
+      <section className="py-28 px-5 sm:px-8 bg-[#030b1a] relative z-10 border-t border-slate-900 text-center overflow-hidden">
+        {/* Soft background light */}
+        <div className="absolute left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 w-[600px] h-[300px] rounded-full pointer-events-none opacity-20"
+          style={{ background: 'radial-gradient(circle, #10b981 0%, transparent 70%)', filter: 'blur(100px)' }} />
+
+        <div className="max-w-3xl mx-auto relative z-10 space-y-8">
+          <h2 className="text-4xl sm:text-5xl font-black text-white tracking-tight leading-tight"
+            style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
+            Ready to work with a team building the future of enterprise finance?
+          </h2>
+          <p className="text-slate-400 text-sm max-w-xl mx-auto leading-relaxed">
+            Configure a compliant, secure transaction workspace for your entities. Let our experts assist with data migrations and setups.
+          </p>
+          <div className="flex flex-wrap items-center justify-center gap-4 pt-4">
+            <a 
+              href="/contact" 
+              className="bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold px-8 py-3.5 rounded-xl transition-all shadow-lg active:scale-95 no-underline cursor-pointer border-none"
+            >
+              Schedule Demo
+            </a>
+            <a 
+              href="/contact" 
+              className="bg-slate-900 hover:bg-slate-850 text-slate-300 hover:text-white text-xs font-bold px-8 py-3.5 rounded-xl transition border border-slate-800 active:scale-95 no-underline cursor-pointer"
+            >
+              Contact Sales
+            </a>
+          </div>
+        </div>
+      </section>
+
       <Footer />
     </M.div>
   );
