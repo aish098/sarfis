@@ -344,7 +344,7 @@ export default function InteractiveDemo() {
                       <input 
                         type="number"
                         className="input-enterprise w-full"
-                        style={{ background: '#030b1a', border: '1px solid #1e293b' }}
+                        style={{ background: '#030b1a', border: '1px solid #1e293b', color: '#ffffff' }}
                         value={assetCost}
                         onChange={e => setAssetCost(Math.max(0, parseFloat(e.target.value) || 0))}
                       />
@@ -354,7 +354,7 @@ export default function InteractiveDemo() {
                       <input 
                         type="number"
                         className="input-enterprise w-full"
-                        style={{ background: '#030b1a', border: '1px solid #1e293b' }}
+                        style={{ background: '#030b1a', border: '1px solid #1e293b', color: '#ffffff' }}
                         value={assetLife}
                         onChange={e => setAssetLife(Math.max(1, parseInt(e.target.value, 10) || 1))}
                       />
