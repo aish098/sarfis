@@ -74,11 +74,11 @@ export default function Footer() {
           <div className="col-span-2">
             <Link to="/" className="flex items-center mb-5 group w-fit">
               <motion.img
-                whileHover={{ rotate: 4, scale: 1.05 }}
+                whileHover={{ scale: 1.02 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 15 }}
                 src={logoImg}
                 alt="Accountellence"
-                className="h-12 md:h-16 w-auto object-contain rounded-lg flex-shrink-0 bg-transparent"
+                className="h-12 md:h-16 w-auto object-contain flex-shrink-0 bg-transparent"
               />
             </Link>
             <p className="text-slate-500 text-sm leading-relaxed mb-5 max-w-[240px]">

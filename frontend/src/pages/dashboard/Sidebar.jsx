@@ -201,13 +201,13 @@ export default function Sidebar({ collapsed, isMobile, onToggle }) {
               <img
                 src={settings.logoUrl.startsWith('http') ? settings.logoUrl : `${import.meta.env.PROD ? window.location.origin : 'http://localhost:5001'}${settings.logoUrl}`}
                 alt="Accountellence"
-                className={`object-contain rounded-lg flex-shrink-0 bg-white p-0.5 transition-all duration-300 ${collapsed ? 'h-11 w-auto' : 'h-14 w-auto'}`}
+                className={`object-contain flex-shrink-0 bg-white p-0.5 transition-all duration-300 ${collapsed ? 'h-11 w-auto' : 'h-14 w-auto'}`}
               />
             ) : (
               <img
                 src={logoImg}
                 alt="Accountellence"
-                className={`object-contain rounded-lg flex-shrink-0 bg-transparent transition-all duration-300 ${collapsed ? 'h-11 w-auto' : 'h-14 w-auto'}`}
+                className={`object-contain flex-shrink-0 bg-transparent transition-all duration-300 ${collapsed ? 'h-11 w-auto' : 'h-14 w-auto'}`}
               />
             )}
           </div>

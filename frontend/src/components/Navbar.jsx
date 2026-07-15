@@ -51,11 +51,11 @@ export default function Navbar() {
             >
               <Link to="/" className="flex items-center group">
                 <Motion.img
-                  whileHover={{ rotate: 4, scale: 1.05 }}
+                  whileHover={{ scale: 1.02 }}
                   transition={{ type: 'spring', stiffness: 500, damping: 18 }}
                   src={logoImg}
                   alt="Accountellence"
-                  className="h-11 md:h-14 w-auto object-contain rounded-lg flex-shrink-0"
+                  className="h-11 md:h-14 w-auto object-contain flex-shrink-0"
                 />
               </Link>
             </Motion.div>
