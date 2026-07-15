@@ -458,7 +458,7 @@ export default function LeadershipPage() {
             whileInView="visible"
             viewport={{ once: true, amount: 0.15 }}
             variants={slideLeftVariants}
-            className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-cyan-500/30 hover:shadow-[0_20px_40px_-15px_rgba(6,182,212,0.08)] h-full"
+            className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-cyan-500/30 hover:shadow-[0_20px_40px_-15px_rgba(6,182,212,0.08)] h-full w-full"
           >
             <div className="space-y-4">
               <div className="flex gap-4 items-start flex-wrap sm:flex-nowrap">
@@ -514,7 +514,7 @@ export default function LeadershipPage() {
             whileInView="visible"
             viewport={{ once: true, amount: 0.15 }}
             variants={slideRightVariants}
-            className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-cyan-500/30 hover:shadow-[0_20px_40px_-15px_rgba(6,182,212,0.08)] h-full"
+            className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-cyan-500/30 hover:shadow-[0_20px_40px_-15px_rgba(6,182,212,0.08)] h-full w-full"
           >
             <div className="space-y-4">
               <div className="flex gap-4 items-start flex-wrap sm:flex-nowrap">
@@ -597,7 +597,7 @@ export default function LeadershipPage() {
             whileInView="visible"
             viewport={{ once: true, amount: 0.15 }}
             variants={diagonalUpLeftVariants}
-            className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-violet-500/30 hover:shadow-[0_20px_40px_-15px_rgba(139,92,246,0.08)] h-full flex flex-col space-y-6"
+            className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-violet-500/30 hover:shadow-[0_20px_40px_-15px_rgba(139,92,246,0.08)] h-full w-full flex flex-col space-y-6"
           >
             <div className="flex gap-4 items-start">
               <ExecutiveAvatar 
@@ -643,7 +643,7 @@ export default function LeadershipPage() {
             whileInView="visible"
             viewport={{ once: true, amount: 0.15 }}
             variants={diagonalUpRightVariants}
-            className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-violet-500/30 hover:shadow-[0_20px_40px_-15px_rgba(139,92,246,0.08)] h-full flex flex-col space-y-6"
+            className="group bg-[#050f21] border border-slate-800 rounded-3xl p-6 shadow-xl cursor-default transition-all duration-300 ease-out hover:-translate-y-1.5 hover:border-violet-500/30 hover:shadow-[0_20px_40px_-15px_rgba(139,92,246,0.08)] h-full w-full flex flex-col space-y-6"
           >
             <div className="flex gap-4 items-start">
               <ExecutiveAvatar 
