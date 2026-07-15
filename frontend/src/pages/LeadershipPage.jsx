@@ -465,7 +465,7 @@ export default function LeadershipPage() {
           <div className="flex flex-col items-center">
             <div className="bg-slate-950 border border-emerald-500/30 px-6 py-3 rounded-2xl text-center shadow-lg">
               <span className="text-[9.5px] text-emerald-400 font-bold uppercase tracking-wider block">CEO & Founder</span>
-              <span className="text-xs font-black text-white">Rana Muhammad Zain</span>
+              <span className="text-xs font-black text-white block mt-0.5">Rana Muhammad Zain</span>
             </div>
             
             {/* Vertical Line */}
@@ -485,21 +485,24 @@ export default function LeadershipPage() {
               <div className="w-0.5 h-6 bg-slate-800" />
               <div className="bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl mt-1">
                 <span className="text-[9px] text-slate-500 font-bold uppercase block">Core Track</span>
-                <span className="text-[11px] font-bold text-white">Development</span>
+                <span className="text-[11px] font-bold text-white block">Development</span>
+                <span className="text-[10px] text-slate-400 font-medium block mt-0.5">Ayesha Kashif</span>
               </div>
               
               <div className="w-0.5 h-6 bg-slate-800" />
               {/* DevOps */}
               <div className="bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl">
                 <span className="text-[9px] text-slate-500 font-bold uppercase block">Infrastructure</span>
-                <span className="text-[11px] font-bold text-white">DevOps</span>
+                <span className="text-[11px] font-bold text-white block">DevOps</span>
+                <span className="text-[10px] text-slate-400 font-medium block mt-0.5">Syed Ansar Ali</span>
               </div>
 
               <div className="w-0.5 h-6 bg-slate-800" />
               {/* Legal Advisor (linked under DevOps in reference structure) */}
               <div className="bg-slate-950 border border-emerald-500/20 px-4 py-2.5 rounded-xl">
                 <span className="text-[9px] text-emerald-400 font-bold uppercase block">Advisory</span>
-                <span className="text-[11px] font-bold text-white">Legal Advisor</span>
+                <span className="text-[11px] font-bold text-white block">Legal Advisor</span>
+                <span className="text-[10px] text-slate-400 font-medium block mt-0.5">Farhan Ahmed Khokhar</span>
               </div>
             </div>
 
@@ -508,14 +511,15 @@ export default function LeadershipPage() {
               <div className="w-0.5 h-6 bg-slate-800" />
               <div className="bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl mt-1">
                 <span className="text-[9px] text-slate-500 font-bold uppercase block">Core Track</span>
-                <span className="text-[11px] font-bold text-white">Finance</span>
+                <span className="text-[11px] font-bold text-white block">Finance</span>
               </div>
               
               <div className="w-0.5 h-6 bg-slate-800" />
               {/* Financial Analyst */}
               <div className="bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl">
                 <span className="text-[9px] text-slate-500 font-bold uppercase block">Analysis</span>
-                <span className="text-[11px] font-bold text-white">Financial Analyst</span>
+                <span className="text-[11px] font-bold text-white block">Financial Analyst</span>
+                <span className="text-[10px] text-slate-400 font-medium block mt-0.5">Rana Talal Khan</span>
               </div>
             </div>
 
@@ -524,14 +528,15 @@ export default function LeadershipPage() {
               <div className="w-0.5 h-6 bg-slate-800" />
               <div className="bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl mt-1">
                 <span className="text-[9px] text-slate-500 font-bold uppercase block">Core Track</span>
-                <span className="text-[11px] font-bold text-white">Operations</span>
+                <span className="text-[11px] font-bold text-white block">Operations</span>
               </div>
               
               <div className="w-0.5 h-6 bg-slate-800" />
               {/* HR */}
               <div className="bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl">
                 <span className="text-[9px] text-slate-500 font-bold uppercase block">Management</span>
-                <span className="text-[11px] font-bold text-white">HR</span>
+                <span className="text-[11px] font-bold text-white block">HR</span>
+                <span className="text-[10px] text-slate-400 font-medium block mt-0.5">Amna Waheed Ahmed</span>
               </div>
             </div>
 
