@@ -247,7 +247,7 @@ export default function PurchaseOrdersPage() {
         subtitle="Draft, approve, and convert purchase orders cleanly."
         icon={FileText}
         badgeText="Procurement"
-        breadcrumbs={['SARFIS', 'Procurement', 'Purchase Orders']}
+        breadcrumbs={['ACCOUNTELLENCE', 'Procurement', 'Purchase Orders']}
         primaryAction={
           <button 
             onClick={() => { resetForm(); setShowFormModal(true); }}

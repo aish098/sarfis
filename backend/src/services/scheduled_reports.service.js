@@ -168,7 +168,7 @@ class ScheduledReportsService {
           companyId: schedule.company_id,
           to: emailList,
           subject: `Scheduled Financial Statement: ${schedule.report_type} - ${period.period_name}`,
-          html: `<p>Dear Executive Team,</p><p>Please find attached the scheduled financial report for <strong>${company.name}</strong>, covering the period <strong>${period.period_name}</strong>.</p><p>Best regards,<br/>SARFIS ERP Automation</p>`,
+          html: `<p>Dear Executive Team,</p><p>Please find attached the scheduled financial report for <strong>${company.name}</strong>, covering the period <strong>${period.period_name}</strong>.</p><p>Best regards,<br/>ACCOUNTELLENCE ERP Automation</p>`,
           text: `Please find attached the scheduled report for ${company.name} (${period.period_name}).`,
           attachments: [
             {
@@ -235,7 +235,7 @@ class ScheduledReportsService {
         resolve(Buffer.concat(buffers));
       });
 
-      doc.fontSize(20).text(`SARFIS ERP - ${type.replace(/_/g, ' ')}`, { align: 'center' });
+      doc.fontSize(20).text(`ACCOUNTELLENCE ERP - ${type.replace(/_/g, ' ')}`, { align: 'center' });
       doc.fontSize(10).text(`Company: ${companyName}`, { align: 'center' });
       doc.fontSize(10).text(`Period: ${periodName}`, { align: 'center' });
       doc.moveDown(2);

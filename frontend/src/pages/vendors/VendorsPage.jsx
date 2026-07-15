@@ -111,7 +111,7 @@ export default function VendorsPage() {
         subtitle="Manage your corporate accounts payable suppliers, terms and procurement settings."
         icon={Building2}
         badgeText="Accounts Payable"
-        breadcrumbs={['SARFIS', 'Procurement', 'Supplier Directory']}
+        breadcrumbs={['ACCOUNTELLENCE', 'Procurement', 'Supplier Directory']}
         primaryAction={
           <button onClick={() => setModalOpen(true)} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md border-none transition-all active:scale-95 cursor-pointer">
             <Plus size={14} /> Add Supplier

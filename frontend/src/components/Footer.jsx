@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Zap, ShieldCheck, Globe, Hash, Briefcase, Users } from 'lucide-react';
+import logoImg from '../assets/logo/Logo 05.png';
 
 const footerLinks = {
   Product: [
@@ -72,19 +73,18 @@ export default function Footer() {
           {/* Brand */}
           <div className="col-span-2">
             <Link to="/" className="flex items-center gap-2.5 mb-5 group w-fit">
-              <motion.div
-                whileHover={{ rotate: 10, scale: 1.05 }}
+              <motion.img
+                whileHover={{ rotate: 8, scale: 1.05 }}
                 transition={{ type: 'spring', stiffness: 400, damping: 15 }}
-                className="w-8 h-8 rounded-[9px] flex items-center justify-center overflow-hidden"
-                style={{ background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)' }}
-              >
-                <Zap size={14} className="text-white fill-white" />
-              </motion.div>
+                src={logoImg}
+                alt="ACCOUNTELLENCE Logo"
+                className="w-8 h-8 object-contain rounded-lg flex-shrink-0 bg-transparent"
+              />
               <span
-                className="text-[17px] font-black text-white"
+                className="text-[17px] font-black text-white uppercase"
                 style={{ fontFamily: "'Sora', 'DM Sans', system-ui, sans-serif" }}
               >
-                SARFIS
+                ACCOUNTELLENCE
               </span>
             </Link>
             <p className="text-slate-500 text-sm leading-relaxed mb-5 max-w-[240px]">
@@ -149,7 +149,7 @@ export default function Footer() {
         {/* Bottom bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8">
           <span className="text-xs text-slate-700">
-            © {new Date().getFullYear()} SARFIS. All rights reserved.
+            © {new Date().getFullYear()} ACCOUNTELLENCE. All rights reserved.
           </span>
           <div className="flex items-center gap-1.5 text-xs text-slate-700">
             <Globe size={12} className="text-slate-700" />

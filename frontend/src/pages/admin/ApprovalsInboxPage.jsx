@@ -137,7 +137,7 @@ export default function ApprovalsInboxPage() {
     <div className="space-y-6 max-w-7xl mx-auto pb-12">
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-1.5 text-[11.5px] text-slate-400 font-semibold no-print mb-3">
-        {['SARFIS', 'Admin', 'Approvals Inbox'].map((crumb, idx) => (
+        {['ACCOUNTELLENCE', 'Admin', 'Approvals Inbox'].map((crumb, idx) => (
           <React.Fragment key={idx}>
             {idx > 0 && <ChevronRight size={11} className="text-slate-350" />}
             <span className={idx === 2 ? 'text-slate-650 font-bold' : ''}>

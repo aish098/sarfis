@@ -1,6 +1,6 @@
 /**
  * analyticsApi.js
- * SARFIS Frontend — Analytics API Service
+ * ACCOUNTELLENCE Frontend — Analytics API Service
  * Place in: src/services/analyticsApi.js
  */
 

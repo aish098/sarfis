@@ -221,7 +221,7 @@ export default function PurchaseRequisitionsPage() {
       subtitle="Request materials, track workflows, and automatically convert to Purchase Orders."
       icon={FileText}
       badgeText="Procurement"
-      breadcrumbs={['SARFIS', 'Procurement', 'Purchase Requisitions']}
+      breadcrumbs={['ACCOUNTELLENCE', 'Procurement', 'Purchase Requisitions']}
       primaryAction={
         <button 
           onClick={() => setCreateModal(true)}

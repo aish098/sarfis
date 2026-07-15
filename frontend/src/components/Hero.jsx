@@ -12,8 +12,8 @@ const floatingBadges = [
 
 const DASHBOARD_VIEWS = [
   {
-    title: "SARFIS Analytics Dashboard",
-    url: "app.SARFIS.io/dashboard/analytics",
+    title: "ACCOUNTELLENCE Analytics Dashboard",
+    url: "app.ACCOUNTELLENCE.io/dashboard/analytics",
     kpis: [
       { label: 'Total Revenue', value: '$284,920', change: '+18.4%', positive: true },
       { label: 'Net Profit', value: '$91,340', change: '+12.1%', positive: true },
@@ -25,7 +25,7 @@ const DASHBOARD_VIEWS = [
   },
   {
     title: "AI Forecasting & Budgeting",
-    url: "app.SARFIS.io/dashboard/forecasting",
+    url: "app.ACCOUNTELLENCE.io/dashboard/forecasting",
     kpis: [
       { label: 'Projected Revenue', value: '$342,800', change: '+20.3%', positive: true },
       { label: 'Forecast Margin', value: '$112,400', change: '+15.6%', positive: true },
@@ -37,7 +37,7 @@ const DASHBOARD_VIEWS = [
   },
   {
     title: "Inventory & Distribution",
-    url: "app.SARFIS.io/dashboard/inventory",
+    url: "app.ACCOUNTELLENCE.io/dashboard/inventory",
     kpis: [
       { label: 'Stock Level', value: '45,280 Units', change: '+11.2%', positive: true },
       { label: 'Shipped Orders', value: '1,420', change: '+24.5%', positive: true },
@@ -215,7 +215,7 @@ export default function Hero() {
             className="text-transparent bg-clip-text"
             style={{ backgroundImage: 'linear-gradient(135deg, #10b981 0%, #06b6d4 60%, #10b981 100%)', backgroundSize: '200% 200%' }}
           >
-            Powered by SARFIS
+            Powered by ACCOUNTELLENCE
           </span>
         </h1>
 
@@ -224,7 +224,7 @@ export default function Hero() {
           className="animate-blur-fade-up text-base sm:text-lg text-slate-300 max-w-2xl mx-auto mb-10 leading-relaxed font-normal"
           style={{ animationDelay: '400ms' }}
         >
-          SARFIS automates your full accounting cycle journal entries, ledger, AI analytics, and
+          ACCOUNTELLENCE automates your full accounting cycle journal entries, ledger, AI analytics, and
           forecasting so your team can focus on what matters most.
         </p>
 

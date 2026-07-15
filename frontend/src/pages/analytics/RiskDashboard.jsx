@@ -356,7 +356,7 @@ export default function RiskDashboard() {
       subtitle="Monitor active customer defaults, collection recovery analytics, bad debts, and relationship reinstatements."
       icon={ShieldAlert}
       badgeText="Governance"
-      breadcrumbs={['SARFIS', 'Analytics', 'Credit Risk & Governance']}
+      breadcrumbs={['ACCOUNTELLENCE', 'Analytics', 'Credit Risk & Governance']}
       primaryAction={
         <button 
           onClick={loadData} 

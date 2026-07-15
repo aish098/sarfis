@@ -457,7 +457,7 @@ export default function FixedAssetsDashboard() {
       subtitle="Centralized command center for calculations, validations, lending control, and lifecycle forecasts."
       icon={Briefcase}
       badgeText="Fixed Assets"
-      breadcrumbs={['SARFIS', 'Fixed Assets', 'Dashboard']}
+      breadcrumbs={['ACCOUNTELLENCE', 'Fixed Assets', 'Dashboard']}
       primaryAction={
         <div className="flex items-center gap-1.5 bg-slate-200/50 p-1 rounded-xl">
           <button 

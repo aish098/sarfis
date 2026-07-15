@@ -7,7 +7,7 @@ const testimonials = [
     name: 'Bob Parsons',
     role: 'CEO, TechFlow',
     avatar: 'B',
-    review: 'SARFIS completely transformed how we handle our accounting. The AI predictions are incredibly accurate and have saved us significant planning time every quarter.',
+    review: 'ACCOUNTELLENCE completely transformed how we handle our accounting. The AI predictions are incredibly accurate and have saved us significant planning time every quarter.',
     rating: 5,
     color: '#10b981',
   },
@@ -23,7 +23,7 @@ const testimonials = [
     name: 'Sarah Chen',
     role: 'Finance Director, NovaCorp',
     avatar: 'S',
-    review: 'We switched from QuickBooks to SARFIS last year and the difference is night and day. The AI forecasting alone paid for the subscription within two months.',
+    review: 'We switched from QuickBooks to ACCOUNTELLENCE last year and the difference is night and day. The AI forecasting alone paid for the subscription within two months.',
     rating: 5,
     color: '#8b5cf6',
   },
@@ -94,7 +94,7 @@ export default function Testimonials() {
             transition={{ delay: 0.15 }}
             className="text-slate-400 text-lg"
           >
-            Real stories from businesses revolutionizing their finances with SARFIS.
+            Real stories from businesses revolutionizing their finances with ACCOUNTELLENCE.
           </motion.p>
         </div>
 

@@ -157,7 +157,7 @@ export default function ReportsPage() {
     doc.setFont("Helvetica", "bold");
     doc.setFontSize(20);
     doc.setTextColor(30, 41, 59);
-    doc.text(activeCompany?.name.toUpperCase() || 'SARFIS FINANCIALS', 14, 20);
+    doc.text(activeCompany?.name.toUpperCase() || 'ACCOUNTELLENCE FINANCIALS', 14, 20);
     
     doc.setFont("Helvetica", "normal");
     doc.setFontSize(12);
@@ -284,7 +284,7 @@ export default function ReportsPage() {
     doc.setFont("Helvetica", "oblique");
     doc.setFontSize(8);
     doc.setTextColor(148, 163, 184);
-    doc.text(`Generated Automatically by SARFIS System on ${new Date(noteData.metadata.lastUpdated).toLocaleString()}`, 14, finalY);
+    doc.text(`Generated Automatically by ACCOUNTELLENCE System on ${new Date(noteData.metadata.lastUpdated).toLocaleString()}`, 14, finalY);
 
     doc.save(`GL_Note_${noteData.account.code}_V${statementVersion}.pdf`);
   };
@@ -345,7 +345,7 @@ export default function ReportsPage() {
     
     doc.setFontSize(20);
     doc.setTextColor(brandRgb[0], brandRgb[1], brandRgb[2]);
-    doc.text(activeCompany?.name || 'Sarfis Financials', 14, 20);
+    doc.text(activeCompany?.name || 'Accountellence Financials', 14, 20);
     
     doc.setFontSize(14);
     doc.setTextColor(100, 116, 139);
@@ -454,7 +454,7 @@ export default function ReportsPage() {
     doc.setFont("Helvetica", "oblique");
     doc.setFontSize(8);
     doc.setTextColor(148, 163, 184);
-    doc.text(`Generated automatically by SARFIS System on ${new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, 14, finalY);
+    doc.text(`Generated automatically by ACCOUNTELLENCE System on ${new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, 14, finalY);
 
     doc.save(`${activeCompany?.name.replace(/\s+/g, '_')}_${tab}.pdf`);
   };
@@ -493,13 +493,13 @@ export default function ReportsPage() {
       {/* Top Banner Toolbar */}
       <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 mb-6 flex flex-col md:flex-row md:items-center justify-between shadow-sm">
         <div className="flex items-center gap-3">
-          {/* Sarfis Logo */}
+          {/* Accountellence Logo */}
           <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
             <Zap size={18} className="text-white fill-white" />
           </div>
           <div>
             <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">SARFIS</h1>
+              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">ACCOUNTELLENCE</h1>
               <span className="text-[10px] font-extrabold uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Financial Reports</span>
             </div>
             <p className="text-[11.5px] font-semibold text-slate-500 mt-0.5">Real-time statements directly aligned with ledger activity.</p>

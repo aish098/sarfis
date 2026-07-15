@@ -1588,7 +1588,7 @@ export default function AnalyticsDashboard({ companyId }) {
       subtitle="Exposes financial ratios, performance trends, sector growth projections, and monthly variance budgets."
       icon={TrendingUp}
       badgeText="Intelligence"
-      breadcrumbs={['SARFIS', 'Intelligence', 'Analytics & Planning']}
+      breadcrumbs={['ACCOUNTELLENCE', 'Intelligence', 'Analytics & Planning']}
     >
       <div className="col-span-full space-y-6">
         {/* Analytics Navigation Tabs */}

@@ -384,7 +384,7 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
   };
 
   const handleEmailPayslip = async () => {
-    alert(`Payslip compilation dispatch queued. An automated email containing the calculated period breakdown has been sent to ${selectedEmp?.name} at ${selectedEmp?.email || 'no-email-registered@sarfis.com'}.`);
+    alert(`Payslip compilation dispatch queued. An automated email containing the calculated period breakdown has been sent to ${selectedEmp?.name} at ${selectedEmp?.email || 'no-email-registered@accountellence.com'}.`);
   };
 
   const handleDownloadPayslip = async (period) => {

@@ -62,7 +62,7 @@ if (process.env.NODE_ENV === 'production') {
 }
 
 app.get('/api', (req, res) => {
-  res.json({ message: 'Welcome to SARFIS API' });
+  res.json({ message: 'Welcome to ACCOUNTELLENCE API' });
 });
 
 // Global Error Handler

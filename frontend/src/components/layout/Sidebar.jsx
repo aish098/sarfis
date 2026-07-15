@@ -7,6 +7,7 @@ import {
   Home, ChevronLeft, ChevronRight, Zap, Building2
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
+import logoImg from '../../assets/logo/Logo 05.png';
 
 const NAV_SECTIONS = [
   {
@@ -54,15 +55,16 @@ export default function Sidebar({ collapsed, onToggle }) {
             className="w-8 h-8 object-contain rounded-lg flex-shrink-0 bg-white p-0.5"
           />
         ) : (
-          <div className="w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 shadow-[0_0_12px_rgba(16,185,129,0.3)]"
-            style={{ background: 'linear-gradient(135deg, var(--brand-primary, #10b981) 0%, #06b6d4 100%)' }}>
-            <Zap size={15} className="text-white fill-white" />
-          </div>
+          <img
+            src={logoImg}
+            alt="ACCOUNTELLENCE Logo"
+            className="w-8 h-8 object-contain rounded-lg flex-shrink-0 bg-transparent"
+          />
         )}
         {!collapsed && (
           <motion.span initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="font-display font-black text-white text-[18px] tracking-tight">
-            SARFIS
+            className="font-display font-black text-white text-[18px] tracking-tight uppercase">
+            ACCOUNTELLENCE
           </motion.span>
         )}
       </div>

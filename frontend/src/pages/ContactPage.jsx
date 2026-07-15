@@ -9,8 +9,8 @@ const contactCards = [
     icon: Mail,
     title: 'Email Support',
     desc: 'Our friendly team is here to help.',
-    value: 'support@SARFIS.com',
-    href: 'mailto:support@SARFIS.com',
+    value: 'support@ACCOUNTELLENCE.com',
+    href: 'mailto:support@ACCOUNTELLENCE.com',
     color: '#10b981',
   },
   {
@@ -289,7 +289,7 @@ export default function ContactPage() {
               className="absolute bottom-5 left-5 px-5 py-3.5 rounded-xl border"
               style={{ background: 'rgba(3,11,26,0.92)', borderColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(20px)' }}
             >
-              <div className="text-white font-bold text-sm" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>SARFIS HQ</div>
+              <div className="text-white font-bold text-sm" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>ACCOUNTELLENCE HQ</div>
               <div className="text-slate-400 text-xs mt-0.5">San Francisco, CA</div>
             </div>
           </motion.div>

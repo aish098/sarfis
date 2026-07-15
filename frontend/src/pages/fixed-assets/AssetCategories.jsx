@@ -201,7 +201,7 @@ export default function AssetCategories() {
       subtitle="Establish default rules and map asset accounts to General Ledger postings."
       icon={Settings}
       badgeText="Fixed Assets"
-      breadcrumbs={['SARFIS', 'Fixed Assets', 'Category Settings']}
+      breadcrumbs={['ACCOUNTELLENCE', 'Fixed Assets', 'Category Settings']}
       primaryAction={
         <div className="flex gap-2">
           <Link 

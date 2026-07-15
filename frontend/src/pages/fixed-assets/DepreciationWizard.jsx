@@ -115,7 +115,7 @@ export default function DepreciationWizard() {
       subtitle="Step-by-step pipeline to run and post period calculations."
       icon={TrendingDown}
       badgeText="Fixed Assets"
-      breadcrumbs={['SARFIS', 'Fixed Assets', 'Depreciation Wizard']}
+      breadcrumbs={['ACCOUNTELLENCE', 'Fixed Assets', 'Depreciation Wizard']}
       primaryAction={
         <Link 
           to={fromClose ? "/dashboard/finance/close-wizard" : "/dashboard/fixed-assets"}

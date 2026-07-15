@@ -3,12 +3,12 @@ import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { ChevronDown } from 'lucide-react';
 
 const faqs = [
-  { q: 'What is SARFIS?', a: 'SARFIS stands for Smart Accounting & Real-time Financial Intelligence System. It\'s an all-in-one platform for accounting cycle automation, financial reporting, and AI-powered analytics.' },
+  { q: 'What is ACCOUNTELLENCE?', a: 'ACCOUNTELLENCE stands for Smart Accounting & Real-time Financial Intelligence System. It\'s an all-in-one platform for accounting cycle automation, financial reporting, and AI-powered analytics.' },
   { q: 'Is my data secure?', a: 'Yes, absolutely. We use AES-256 encryption for data at rest and in transit, JWT for secure authentication, and strict multi-tenant data isolation to ensure your financial data is always protected.' },
   { q: 'How does pricing work?', a: 'We offer flexible SaaS packages designed to scale with your business, including Free, Pro, and Enterprise tiers. You can find detailed features for each plan on our pricing section and upgrade at any time.' },
   { q: 'Can I upgrade or downgrade my plan?', a: 'Yes, you can change your plan at any time directly from your account dashboard. Your billing will be prorated automatically.' },
   { q: 'What kind of support do you offer?', a: 'We offer 24/7 email support for all plans. Pro and Enterprise plans include priority phone and dedicated account manager support.' },
-  { q: 'Do you offer a mobile app?', a: 'Currently, SARFIS is optimized for desktop and tablet browsers. A native mobile app for iOS and Android is on our roadmap.' },
+  { q: 'Do you offer a mobile app?', a: 'Currently, ACCOUNTELLENCE is optimized for desktop and tablet browsers. A native mobile app for iOS and Android is on our roadmap.' },
 ];
 
 export default function FAQ() {

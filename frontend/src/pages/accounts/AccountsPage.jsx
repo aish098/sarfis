@@ -128,7 +128,7 @@ export default function AccountsPage({ globalSearch = "" }) {
         subtitle={`Manage and organize your financial structure for ${activeCompany?.name || 'your company'}`}
         icon={Database}
         badgeText="Master Data"
-        breadcrumbs={['SARFIS', 'Finance', 'Chart of Accounts']}
+        breadcrumbs={['ACCOUNTELLENCE', 'Finance', 'Chart of Accounts']}
         primaryAction={
           <div className="flex items-center gap-3">
             <button 

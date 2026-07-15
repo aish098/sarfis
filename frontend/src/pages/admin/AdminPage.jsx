@@ -455,7 +455,7 @@ export default function AdminPage() {
         try {
           const parsed = JSON.parse(event.target.result);
           if (!parsed.data || !parsed.backupType) {
-            setMessage({ type: 'error', text: 'Invalid file format. Please upload a valid SARFIS backup file.' });
+            setMessage({ type: 'error', text: 'Invalid file format. Please upload a valid ACCOUNTELLENCE backup file.' });
             setRestorePreview(null);
             return;
           }
@@ -797,7 +797,7 @@ export default function AdminPage() {
       subtitle={`Configure permissions, audit sessions, manage periods, and lock data for ${activeCompanyName || 'active company'}`}
       icon={ShieldCheck}
       badgeText="Admin"
-      breadcrumbs={['SARFIS', 'Admin', 'Overview']}
+      breadcrumbs={['ACCOUNTELLENCE', 'Admin', 'Overview']}
       primaryAction={
         <button 
           onClick={loadData} 
@@ -984,7 +984,7 @@ export default function AdminPage() {
                 <div className="p-5 space-y-4">
                   <form onSubmit={createCompany} className="space-y-3">
                     <Field label="New Workspace Name">
-                      <Input value={companyName} onChange={setCompanyName} placeholder="SARFIS Logistics" />
+                      <Input value={companyName} onChange={setCompanyName} placeholder="ACCOUNTELLENCE Logistics" />
                     </Field>
                     <button
                       disabled={saving || !companyName.trim()}
@@ -1472,7 +1472,7 @@ export default function AdminPage() {
                     <p className="text-[12px] font-bold text-slate-700">
                       {restoreFile ? restoreFile.name : 'Click or Drag & Drop Backup Excel or JSON file'}
                     </p>
-                    <p className="text-[10px] text-slate-400 mt-1">Accepts valid SARFIS Excel (.xlsx) or JSON (.json) backup formats</p>
+                    <p className="text-[10px] text-slate-400 mt-1">Accepts valid ACCOUNTELLENCE Excel (.xlsx) or JSON (.json) backup formats</p>
                   </div>
 
                   {restorePreview && (

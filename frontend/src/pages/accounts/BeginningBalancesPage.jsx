@@ -554,7 +554,7 @@ export default function BeginningBalancesPage() {
       subtitle="Migrate previous system closing balances as opening ledger balances"
       icon={Sliders}
       badgeText="Setup Wizard"
-      breadcrumbs={['SARFIS', 'Finance', 'Opening Balances']}
+      breadcrumbs={['ACCOUNTELLENCE', 'Finance', 'Opening Balances']}
     >
       <div className="col-span-full space-y-6 pb-16 no-print">
         

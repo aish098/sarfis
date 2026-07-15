@@ -132,7 +132,7 @@ function VoucherList() {
         subtitle="Create and post transaction-driven business records."
         icon={FileText}
         badgeText="Double-Entry"
-        breadcrumbs={['SARFIS', 'Finance', 'ERP Vouchers']}
+        breadcrumbs={['ACCOUNTELLENCE', 'Finance', 'ERP Vouchers']}
         primaryAction={
           <button onClick={() => navigate('new')} className="flex items-center gap-2 bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer border-none">
             <Plus size={14} /> New Transaction

@@ -217,7 +217,7 @@ export default function SalesOrdersPage() {
             <>
               <div className="flex justify-between border-b pb-5">
                 <div>
-                  <h1 className="text-xl font-bold uppercase tracking-wider">{activeCompany?.name || 'SARFIS ERP'}</h1>
+                  <h1 className="text-xl font-bold uppercase tracking-wider">{activeCompany?.name || 'ACCOUNTELLENCE ERP'}</h1>
                   <p className="text-slate-500">Corporate Sales Invoice</p>
                 </div>
                 <div className="text-right">
@@ -294,7 +294,7 @@ export default function SalesOrdersPage() {
         subtitle="Book customer orders, lock in pricing snapshots, and dispatch warehouse shipments."
         icon={FileText}
         badgeText="Sales"
-        breadcrumbs={['SARFIS', 'Sales', 'Sales Orders']}
+        breadcrumbs={['ACCOUNTELLENCE', 'Sales', 'Sales Orders']}
         primaryAction={
           <button 
             onClick={() => {

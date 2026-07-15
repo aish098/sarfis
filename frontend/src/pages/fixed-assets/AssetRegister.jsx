@@ -459,7 +459,7 @@ export default function AssetRegister() {
       subtitle="Verify asset details, print codes, transfer locations, or retire obsolete assets."
       icon={ClipboardList}
       badgeText="Fixed Assets"
-      breadcrumbs={['SARFIS', 'Fixed Assets', 'Registry']}
+      breadcrumbs={['ACCOUNTELLENCE', 'Fixed Assets', 'Registry']}
       primaryAction={
         <div className="flex gap-2">
           <button 
@@ -927,7 +927,7 @@ export default function AssetRegister() {
                   <p className="font-mono text-slate-500">ID: {qrAsset.asset_code}</p>
                   <p className="text-slate-400">Class: {qrAsset.category_name}</p>
                 </div>
-                <span className="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 border border-slate-200">SARFIS</span>
+                <span className="text-[9px] bg-slate-100 px-1.5 py-0.5 rounded text-slate-500 border border-slate-200">ACCOUNTELLENCE</span>
               </div>
               
               {/* Dyn QR Local Grid Code */}

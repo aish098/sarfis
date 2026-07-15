@@ -804,7 +804,7 @@ export default function SettingsPage() {
                     disabled={!canEdit || localSettings.accentColor === '#10b981'}
                     className="px-3 h-10 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-[12px] font-bold transition-all flex items-center gap-1 cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    Reset to Sarfis Default
+                    Reset to Accountellence Default
                   </button>
                 </div>
               </Field>
@@ -1189,7 +1189,7 @@ export default function SettingsPage() {
       subtitle={`Manage configuration for ${activeCompany?.name || 'your workspace'}. Role: ${effectiveRole} (${canEdit ? 'Editable' : 'Read-only'})`}
       icon={Settings}
       badgeText="Settings"
-      breadcrumbs={['SARFIS', 'Admin', 'Settings']}
+      breadcrumbs={['ACCOUNTELLENCE', 'Admin', 'Settings']}
       primaryAction={
         <button 
           onClick={saveSettings} 

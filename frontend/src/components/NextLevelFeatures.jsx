@@ -4,7 +4,7 @@ import { Building2, Calculator, Hourglass, DollarSign, CheckCircle2, ChevronRigh
 
 const COMPANIES_DATA = {
   khaan: { name: "Khaan Tech Solutions", cash: 2500000, ar: 1200000, assets: 1500000, eliminations: 0 },
-  sarfis: { name: "Sarfis Global Ltd", cash: 5000000, ar: 2400000, assets: 3200000, eliminations: -500000 }, // Intercompany AR
+  sarfis: { name: "Accountellence Global Ltd", cash: 5000000, ar: 2400000, assets: 3200000, eliminations: -500000 }, // Intercompany AR
   ayesha: { name: "Ayesha Labs (Subsidiary)", cash: 1800000, ar: 800000, assets: 1200050, eliminations: -300000 }  // Intercompany AR
 };
 
@@ -70,7 +70,7 @@ export default function NextLevelFeatures() {
               Consolidated Balance Sheet Engine
             </h2>
             <p className="text-slate-400 text-sm leading-relaxed max-w-lg">
-              SARFIS supports multi-tenant, multi-branch, and multi-company consolidation. Toggle which subsidiaries to combine below and watch intercompany balances reconcile automatically.
+              ACCOUNTELLENCE supports multi-tenant, multi-branch, and multi-company consolidation. Toggle which subsidiaries to combine below and watch intercompany balances reconcile automatically.
             </p>
           </div>
 
@@ -152,7 +152,7 @@ export default function NextLevelFeatures() {
               Compute Your Savings Instantly
             </h2>
             <p className="text-slate-400 text-sm leading-relaxed max-w-lg">
-              SARFIS automates the routine tasks that absorb hours of financial workflow. Drag the sliders below to estimate your company savings.
+              ACCOUNTELLENCE automates the routine tasks that absorb hours of financial workflow. Drag the sliders below to estimate your company savings.
             </p>
           </div>
 
@@ -243,7 +243,7 @@ export default function NextLevelFeatures() {
                 80%
               </div>
               <p className="text-[11.5px] text-emerald-300 leading-relaxed font-semibold">
-                SARFIS automates 80% of data entry, ledger posting, and reconciliation. Based on your inputs, your business will save approximately **PKR {annualSavings.toLocaleString()}** annually.
+                ACCOUNTELLENCE automates 80% of data entry, ledger posting, and reconciliation. Based on your inputs, your business will save approximately **PKR {annualSavings.toLocaleString()}** annually.
               </p>
             </div>
 

@@ -216,7 +216,7 @@ export default function Sidebar({ collapsed, isMobile, onToggle }) {
                   className="font-display font-800 text-white text-[17px] tracking-tight overflow-hidden whitespace-nowrap"
                   style={{ fontWeight: 800 }}
                 >
-                  SARFIS
+                  ACCOUNTELLENCE
                 </Motion.span>
               )}
             </AnimatePresence>

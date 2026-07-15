@@ -250,7 +250,7 @@ export default function InventoryPage({ globalSearch = "" }) {
         subtitle="Track products, stock levels, and movements."
         icon={Package}
         badgeText="Supply Chain"
-        breadcrumbs={['SARFIS', 'Inventory', 'Management']}
+        breadcrumbs={['ACCOUNTELLENCE', 'Inventory', 'Management']}
         primaryAction={
           <div className="flex items-center gap-2 flex-wrap">
             <button onClick={() => { setFormError(''); setAdjustModal(true); }} className="flex items-center gap-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-655 px-4 py-2 text-[12.5px] font-bold rounded-xl shadow-xs transition-all active:scale-95 cursor-pointer">

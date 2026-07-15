@@ -201,9 +201,9 @@ router.post('/:companyId/mail-config/test', companyGuard, requirePermission('set
     const dest = testEmail || req.user?.email || username;
     const outcome = await tester.send({
       to: dest,
-      subject: 'SARFIS Email Integration: Test Connection Success',
+      subject: 'ACCOUNTELLENCE Email Integration: Test Connection Success',
       html: `<h3>Test Connection Succeeded</h3>
-             <p>This email confirms that your company SMTP mail server is correctly configured in SARFIS.</p>
+             <p>This email confirms that your company SMTP mail server is correctly configured in ACCOUNTELLENCE.</p>
              <p>Timestamp: ${new Date().toISOString()}</p>`
     });
 

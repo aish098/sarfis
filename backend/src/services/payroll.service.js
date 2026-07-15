@@ -787,7 +787,7 @@ class PayrollService {
   static getInternalToken() {
     const jwt = require('jsonwebtoken');
     return jwt.sign(
-      { id: 1, email: 'admin@sarfis.com', role: 'Super Admin' },
+      { id: 1, email: 'admin@accountellence.com', role: 'Super Admin' },
       JWT_SECRET,
       { expiresIn: '5m' }
     );
@@ -801,7 +801,7 @@ class PayrollService {
     doc.pipe(res);
 
     // Header
-    doc.fontSize(20).text('SARFIS ERP - PAYSLIP', { align: 'center' });
+    doc.fontSize(20).text('ACCOUNTELLENCE ERP - PAYSLIP', { align: 'center' });
     doc.moveDown();
     
     // Employee Info

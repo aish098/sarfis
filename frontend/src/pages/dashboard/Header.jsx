@@ -549,7 +549,7 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
         </button>
 
         <nav className="hidden sm:flex items-center gap-1 min-w-0 text-[12px]" aria-label="Breadcrumb">
-          <span className="font-semibold text-emerald-600 shrink-0">SARFIS</span>
+          <span className="font-semibold text-emerald-600 shrink-0">ACCOUNTELLENCE</span>
           {crumb.section && (
             <>
               <ChevronRight size={12} className="text-slate-300 shrink-0" />

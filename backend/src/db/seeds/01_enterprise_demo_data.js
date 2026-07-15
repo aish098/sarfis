@@ -20,12 +20,12 @@ exports.seed = async function (knex) {
   await knex('companies').where('id', COMPANY_ID).del();
 
   // 2. Core Setup: Create Company and User
-  await knex('companies').insert({ id: COMPANY_ID, name: 'SARFIS Enterprise' });
+  await knex('companies').insert({ id: COMPANY_ID, name: 'ACCOUNTELLENCE Enterprise' });
   const hashedPassword = await hashPassword('password');
   await knex('users').insert({
     id: USER_ID,
     company_id: COMPANY_ID,
-    email: 'admin@sarfis.com',
+    email: 'admin@accountellence.com',
     password: hashedPassword,
     name: 'Admin User',
     role: 'ADMIN'

@@ -104,7 +104,7 @@ export default function TutorialPage() {
   const [loading, setLoading] = useState(true);
   const [data, setData] = useState({
     page_title: 'Training & Tutorial Center',
-    page_description: 'Learn how to use SARFIS through complete software training videos and download the latest User Manual.',
+    page_description: 'Learn how to use ACCOUNTELLENCE through complete software training videos and download the latest User Manual.',
     videos: [],
     manuals: []
   });
@@ -475,7 +475,7 @@ export default function TutorialPage() {
                       <FileText size={24} />
                     </div>
                     <div>
-                      <h3 className="text-base font-bold text-white">SARFIS Enterprise User Manual</h3>
+                      <h3 className="text-base font-bold text-white">ACCOUNTELLENCE Enterprise User Manual</h3>
                       <p className="text-[11px] text-slate-500 mt-1 font-semibold">
                         Version: {latestManual.version_number} &bull; Updated: {new Date(latestManual.created_at).toLocaleDateString()}
                       </p>
@@ -544,7 +544,7 @@ export default function TutorialPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
             {[
-              { icon: Mail, title: 'Email Support', info: 'support@sarfis.com', cta: 'Send Email', href: 'mailto:support@sarfis.com', color: '#10b981' },
+              { icon: Mail, title: 'Email Support', info: 'support@accountellence.com', cta: 'Send Email', href: 'mailto:support@accountellence.com', color: '#10b981' },
               { icon: MessageSquare, title: 'WhatsApp Live', info: '+92 300 1234567', cta: 'Chat on WhatsApp', href: 'https://wa.me/923001234567', color: '#06b6d4' },
               { icon: PhoneCall, title: 'Schedule Demo', info: 'Direct with Leadership', cta: 'Request Calendar', href: '/contact', color: '#f59e0b' }
             ].map((s, idx) => (

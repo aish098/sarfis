@@ -553,7 +553,7 @@ export default function JournalEntryPage() {
         subtitle="Create and post adjustments to the General Ledger."
         icon={BookOpen}
         badgeText="Journal"
-        breadcrumbs={['SARFIS', 'Finance', 'Journal Entries']}
+        breadcrumbs={['ACCOUNTELLENCE', 'Finance', 'Journal Entries']}
         primaryAction={
           <div className="flex items-center gap-2 flex-wrap">
             {/* Posting Mode Toggle */}
@@ -578,7 +578,7 @@ export default function JournalEntryPage() {
               </button>
             </div>
 
-            {/* Recent Entries Button with Sarfis Logo Icon */}
+            {/* Recent Entries Button with Accountellence Logo Icon */}
             <button
               type="button"
               onClick={() => setRecentDrawerOpen(true)}
@@ -912,7 +912,7 @@ export default function JournalEntryPage() {
           <div className="bg-emerald-50/30 border border-emerald-100 rounded-2xl p-4 flex items-start gap-2.5">
             <Info size={14} className="text-emerald-700 shrink-0 mt-0.5" />
             <div className="text-[11.5px] text-emerald-800 leading-relaxed font-semibold">
-              <p>SARFIS supports keyboard navigation. Select an account, type details, press Enter to jump to descriptions/values, and toggle modes using <kbd className="bg-white px-1 border border-emerald-200 rounded">Ctrl+Alt+M</kbd>.</p>
+              <p>ACCOUNTELLENCE supports keyboard navigation. Select an account, type details, press Enter to jump to descriptions/values, and toggle modes using <kbd className="bg-white px-1 border border-emerald-200 rounded">Ctrl+Alt+M</kbd>.</p>
             </div>
           </div>
         </div>
@@ -1124,7 +1124,7 @@ export default function JournalEntryPage() {
               initial={{ opacity: 0, scale: 0.95, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.95, y: 16 }}>
               <div className="px-7 pt-6 pb-4 border-b border-slate-100 flex items-center justify-between">
-                <h2 className="font-display font-extrabold text-[16px] text-slate-900">SARFIS Shortcuts</h2>
+                <h2 className="font-display font-extrabold text-[16px] text-slate-900">ACCOUNTELLENCE Shortcuts</h2>
                 <button onClick={() => setKeyboardHelpOpen(false)} className="text-slate-400 hover:text-slate-600"><X size={16} /></button>
               </div>
               <div className="p-7 space-y-4 text-[13px] text-slate-600 font-semibold">

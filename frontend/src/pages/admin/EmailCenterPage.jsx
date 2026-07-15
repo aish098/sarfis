@@ -80,7 +80,7 @@ export default function EmailCenterPage() {
     username: '',
     password: '',
     encryption: 'TLS',
-    from_name: 'Sarfis',
+    from_name: 'Accountellence',
     from_email: '',
     status: 'ACTIVE'
   });
@@ -344,7 +344,7 @@ export default function EmailCenterPage() {
       
       {/* Breadcrumbs */}
       <nav className="flex items-center gap-1.5 text-[11.5px] text-slate-400 font-semibold no-print mb-3">
-        {['SARFIS', 'Admin', 'Email Center'].map((crumb, idx) => (
+        {['ACCOUNTELLENCE', 'Admin', 'Email Center'].map((crumb, idx) => (
           <React.Fragment key={idx}>
             {idx > 0 && <ChevronRight size={11} className="text-slate-350" />}
             <span className={idx === 2 ? 'text-slate-650 font-bold' : ''}>

@@ -253,7 +253,7 @@ export default function GoodsReceiptsPage() {
         subtitle="Verify vendor shipments, manage warehouse intake quantities, and restock inventory."
         icon={FileText}
         badgeText="Operations"
-        breadcrumbs={['SARFIS', 'Procurement', 'Goods Receipts']}
+        breadcrumbs={['ACCOUNTELLENCE', 'Procurement', 'Goods Receipts']}
         primaryAction={
           <button 
             onClick={() => {

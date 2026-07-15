@@ -350,7 +350,7 @@ function AIForecast({ forecast, loading }) {
           <BarChart2 size={28} className="text-violet-400 mb-4" />
           <h3 className="font-display font-extrabold text-[20px] text-white mb-3">AI Linear Regression Engine</h3>
           <p className="text-[13px] leading-relaxed" style={{ color: 'rgba(255,255,255,0.55)' }}>
-            SARFIS algorithmically digests historical operating revenue to map trajectory using statistical linear regression, predicting absolute operational cash potential for the upcoming 6 fiscal months.
+            ACCOUNTELLENCE algorithmically digests historical operating revenue to map trajectory using statistical linear regression, predicting absolute operational cash potential for the upcoming 6 fiscal months.
           </p>
         </div>
         {/* Regression vector table */}

@@ -2,6 +2,7 @@ import React from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Zap, AlertCircle } from 'lucide-react';
 import { motion } from 'framer-motion';
+import logoImg from '../assets/logo/Logo 05.png';
 
 export function AuthLayout({ children, title, subtitle, showBackToHome = true }) {
   return (
@@ -34,10 +35,8 @@ export function AuthLayout({ children, title, subtitle, showBackToHome = true })
       >
         <div className="text-center mb-10">
           <Link to="/" className="inline-flex items-center gap-2 mb-6 group">
-            <div className="w-10 h-10 rounded-xl flex items-center justify-center border transition-transform duration-300 group-hover:scale-105" style={{ background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)', borderColor: 'rgba(255,255,255,0.1)' }}>
-               <Zap size={18} className="text-white fill-white" />
-            </div>
-            <span className="text-2xl font-black text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>SARFIS</span>
+            <img src={logoImg} className="w-10 h-10 object-contain rounded-xl border border-white/10 transition-transform duration-300 group-hover:scale-105 bg-transparent" alt="ACCOUNTELLENCE Logo" />
+            <span className="text-2xl font-black text-white uppercase" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>ACCOUNTELLENCE</span>
           </Link>
           
           <h2 className="text-3xl font-black text-white tracking-tight leading-snug mb-3" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>

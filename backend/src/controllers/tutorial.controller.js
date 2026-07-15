@@ -12,7 +12,7 @@ class TutorialController {
       if (!data) {
         return res.json({
           page_title: 'Training & Tutorial Center',
-          page_description: 'Welcome to the SARFIS Software training hub. Content will be available soon.',
+          page_description: 'Welcome to the ACCOUNTELLENCE Software training hub. Content will be available soon.',
           is_published: false,
           videos: [],
           manuals: []

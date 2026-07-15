@@ -169,7 +169,7 @@ export default function WarehousePage({ globalSearch = "" }) {
           subtitle="Manage physical storage facilities and inventory points."
           icon={Warehouse}
           badgeText="Facilities"
-          breadcrumbs={['SARFIS', 'Inventory', 'Warehouses']}
+          breadcrumbs={['ACCOUNTELLENCE', 'Inventory', 'Warehouses']}
           primaryAction={
             canManage && (
               <button onClick={() => handleOpenModal()} className="flex items-center gap-2 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer border-none">
@@ -245,7 +245,7 @@ export default function WarehousePage({ globalSearch = "" }) {
           subtitle={whStats?.summary?.location || 'No location address'}
           icon={Warehouse}
           badgeText="Control Center"
-          breadcrumbs={['SARFIS', 'Inventory', 'Warehouses', 'Control Center']}
+          breadcrumbs={['ACCOUNTELLENCE', 'Inventory', 'Warehouses', 'Control Center']}
           primaryAction={
             <div className="flex items-center gap-2 flex-wrap">
               <button onClick={() => setSelectedWhId(null)} className="flex items-center gap-1.5 bg-white border border-slate-200 hover:bg-slate-50 text-slate-655 px-4 py-2 text-[12.5px] font-bold rounded-xl shadow-xs transition-all cursor-pointer">

@@ -121,7 +121,7 @@ export default function LedgerPage({ globalSearch = "" }) {
       subtitle="Chronological transaction history & accounts audit logs"
       icon={Zap}
       badgeText="Finance"
-      breadcrumbs={['SARFIS', 'Finance', 'General Ledger']}
+      breadcrumbs={['ACCOUNTELLENCE', 'Finance', 'General Ledger']}
       primaryAction={
         <button 
           onClick={exportPDF} 

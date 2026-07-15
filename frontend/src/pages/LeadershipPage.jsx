@@ -379,7 +379,7 @@ export default function LeadershipPage() {
                 <div className="p-4 bg-slate-950/40 border border-slate-850 rounded-2xl transition duration-300 hover:bg-slate-950/60">
                   <h4 className="font-extrabold text-white text-[12.5px] uppercase tracking-wider mb-1 text-emerald-400">Enterprise Vision</h4>
                   <p className="text-slate-400 leading-relaxed text-[12px]">
-                    SARFIS was designed and engineered to consolidate isolated corporate workflows into a unified, compliant, and real-time enterprise resource platform.
+                    ACCOUNTELLENCE was designed and engineered to consolidate isolated corporate workflows into a unified, compliant, and real-time enterprise resource platform.
                   </p>
                 </div>
 
@@ -406,7 +406,7 @@ export default function LeadershipPage() {
                 transition={{ duration: 0.6, delay: 0.3 }}
                 className="border-l-2 border-emerald-500 pl-4 py-1 italic text-slate-400 text-xs sm:text-sm font-medium"
               >
-                "SARFIS is not just accounting software—it is an enterprise operating platform built for modern organizations."
+                "ACCOUNTELLENCE is not just accounting software—it is an enterprise operating platform built for modern organizations."
               </motion.div>
             </div>
 
@@ -469,7 +469,7 @@ export default function LeadershipPage() {
                 </div>
 
                 <p className="text-xs text-slate-400 leading-relaxed">
-                  Advises on taxation framework alignments, compliance audits, IFRS standards implementations, and coordinates corporate taxation governance modules within the SARFIS ERP engine.
+                  Advises on taxation framework alignments, compliance audits, IFRS standards implementations, and coordinates corporate taxation governance modules within the ACCOUNTELLENCE ERP engine.
                 </p>
               </div>
 

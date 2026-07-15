@@ -45,7 +45,7 @@ class TutorialService {
         .insert({
           company_id: companyId,
           page_title: 'Training & Tutorial Center',
-          page_description: 'Welcome to the SARFIS Software training hub. Select a video category to begin learning.',
+          page_description: 'Welcome to the ACCOUNTELLENCE Software training hub. Select a video category to begin learning.',
           is_published: false
         })
         .returning('id');

@@ -122,7 +122,7 @@ export default function Features() {
           transition={{ duration: 0.5, delay: 0.1 }}
           className="text-slate-400 text-base sm:text-lg leading-relaxed max-w-2xl mx-auto"
         >
-          Skip the hassle of disconnected systems. SARFIS unifies your workflows into one comprehensive ERP platform with strict referential integrity.
+          Skip the hassle of disconnected systems. ACCOUNTELLENCE unifies your workflows into one comprehensive ERP platform with strict referential integrity.
         </motion.p>
       </div>
 

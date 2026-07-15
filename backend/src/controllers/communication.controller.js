@@ -309,7 +309,7 @@ exports.employeeReplyMessage = async (req, res) => {
       ? await db('users').where({ id: parentMsg.sender_id }).first()
       : null;
 
-    const adminEmail = adminUser?.email || 'admin@sarfis.com';
+    const adminEmail = adminUser?.email || 'admin@accountellence.com';
 
     await db('notification_queue').insert({
       company_id: companyId,

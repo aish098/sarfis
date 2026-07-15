@@ -185,7 +185,7 @@ export default function OrderTrackingPage() {
             <div className="space-y-6">
               <div className="flex justify-between border-b pb-4">
                 <div>
-                  <h1 className="text-xl font-bold uppercase tracking-wider">{activeCompany?.name || 'SARFIS ERP'}</h1>
+                  <h1 className="text-xl font-bold uppercase tracking-wider">{activeCompany?.name || 'ACCOUNTELLENCE ERP'}</h1>
                   <p className="text-xs text-slate-500">Warehouse Fulfillment Operations</p>
                 </div>
                 <div className="text-right">
@@ -234,7 +234,7 @@ export default function OrderTrackingPage() {
             <div className="space-y-6">
               <div className="flex justify-between border-b pb-4">
                 <div>
-                  <h1 className="text-xl font-bold uppercase tracking-wider">{activeCompany?.name || 'SARFIS ERP'}</h1>
+                  <h1 className="text-xl font-bold uppercase tracking-wider">{activeCompany?.name || 'ACCOUNTELLENCE ERP'}</h1>
                   <p className="text-xs text-slate-500">Customer Delivery challan</p>
                 </div>
                 <div className="text-right">
@@ -298,7 +298,7 @@ export default function OrderTrackingPage() {
         subtitle="Real-time warehouse operational board tracking picking, packing, and client delivery dispatch."
         icon={Clipboard}
         badgeText="Logistics"
-        breadcrumbs={['SARFIS', 'Distribution', 'Order Tracking']}
+        breadcrumbs={['ACCOUNTELLENCE', 'Distribution', 'Order Tracking']}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
         searchPlaceholder="Search Order No, Customer..."

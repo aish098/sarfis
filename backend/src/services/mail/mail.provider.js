@@ -33,7 +33,7 @@ class MailProvider {
         port: parseInt(process.env.SMTP_PORT || '587'),
         username: process.env.SMTP_USER,
         password: process.env.SMTP_PASS,
-        from_name: process.env.SMTP_FROM_NAME || 'SARFIS ERP System',
+        from_name: process.env.SMTP_FROM_NAME || 'ACCOUNTELLENCE ERP System',
         from_email: process.env.SMTP_FROM,
         encryption: process.env.SMTP_PORT === '465' ? 'SSL' : 'TLS'
       });

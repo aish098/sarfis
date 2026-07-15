@@ -218,7 +218,7 @@ export default function WorkflowConfigPage() {
       subtitle="Define role hierarchies, approval thresholds, conditions, and manager delegations."
       icon={Settings}
       badgeText="Configurations"
-      breadcrumbs={['SARFIS', 'Admin', 'Workflow Config']}
+      breadcrumbs={['ACCOUNTELLENCE', 'Admin', 'Workflow Config']}
     >
       <div className="col-span-full space-y-6">
 

@@ -63,7 +63,7 @@ class PeriodCloseReportService {
     doc.pipe(res);
 
     // Title
-    doc.fontSize(20).text('SARFIS ERP - PERIOD CLOSE AUDIT REPORT', { align: 'center' });
+    doc.fontSize(20).text('ACCOUNTELLENCE ERP - PERIOD CLOSE AUDIT REPORT', { align: 'center' });
     doc.fontSize(10).text(`Generated: ${new Date(data.generatedAt).toLocaleString()}`, { align: 'center' });
     doc.moveDown(2);
 

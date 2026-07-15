@@ -2,6 +2,7 @@ import { useState, useEffect } from 'react';
 import { Link, useLocation } from 'react-router-dom';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { Menu, X, Zap } from 'lucide-react';
+import logoImg from '../assets/logo/Logo 05.png';
 
 const navLinks = [
   { label: 'Home', href: '/', isRoute: true },
@@ -49,20 +50,18 @@ export default function Navbar() {
               transition={{ delay: 0.1, duration: 0.5, ease: [0.22, 1, 0.36, 1] }}
             >
               <Link to="/" className="flex items-center gap-2.5 group">
-                <Motion.div
-                  whileHover={{ rotate: 12, scale: 1.08 }}
+                <Motion.img
+                  whileHover={{ rotate: 8, scale: 1.08 }}
                   transition={{ type: 'spring', stiffness: 500, damping: 18 }}
-                  className="w-8 h-8 rounded-[9px] flex items-center justify-center relative overflow-hidden"
-                  style={{ background: 'linear-gradient(135deg, #10b981 0%, #06b6d4 100%)' }}
-                >
-                  <div className="absolute inset-0 bg-white/20 rounded-[9px]" />
-                  <Zap size={14} className="text-white fill-white relative z-10" />
-                </Motion.div>
+                  src={logoImg}
+                  alt="ACCOUNTELLENCE Logo"
+                  className="w-8 h-8 object-contain rounded-lg flex-shrink-0"
+                />
                 <span
-                  className="text-[17px] font-black text-white tracking-tight"
+                  className="text-[17px] font-black text-white tracking-tight uppercase"
                   style={{ fontFamily: "'Sora', 'DM Sans', system-ui, sans-serif" }}
                 >
-                  SARFIS
+                  ACCOUNTELLENCE
                 </span>
               </Link>
             </Motion.div>

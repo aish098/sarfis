@@ -308,7 +308,7 @@ exports.exportCompanyBackup = async (req, res) => {
       }
 
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename=SARFIS_${type.toUpperCase()}_Backup_${(company ? company.name : 'Workspace').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      res.setHeader('Content-Disposition', `attachment; filename=ACCOUNTELLENCE_${type.toUpperCase()}_Backup_${(company ? company.name : 'Workspace').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
 
       const buffer = await workbook.xlsx.writeBuffer();
       return res.send(buffer);

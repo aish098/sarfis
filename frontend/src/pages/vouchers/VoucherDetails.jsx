@@ -165,7 +165,7 @@ export default function VoucherDetails() {
     doc.setFont("helvetica", "bold");
     doc.setFontSize(22);
     doc.setTextColor(30, 41, 59); // slate-800
-    doc.text("SARFIS ERP TRANSACTION VOUCHER", 14, 20);
+    doc.text("ACCOUNTELLENCE ERP TRANSACTION VOUCHER", 14, 20);
     
     doc.setDrawColor(226, 232, 240);
     doc.line(14, 25, 196, 25);
@@ -273,7 +273,7 @@ export default function VoucherDetails() {
 
   const handleEmail = () => {
     const partnerName = business.customer?.name || business.vendor?.name || 'Cash Sale';
-    const subject = encodeURIComponent(`SARFIS Voucher Report: ${document.voucherNumber} (${document.type})`);
+    const subject = encodeURIComponent(`ACCOUNTELLENCE Voucher Report: ${document.voucherNumber} (${document.type})`);
     const body = encodeURIComponent(
       `Dear Finance Team,\n\nPlease find the transaction summary below:\n\n` +
       `Voucher Reference: ${document.voucherNumber}\n` +
@@ -317,7 +317,7 @@ export default function VoucherDetails() {
     doc.setTextColor(30, 41, 59);
     doc.text("Ship To / Address", 14, 55);
     doc.setFont("helvetica", "normal");
-    doc.text("SARFIS Main Terminal", 14, 61);
+    doc.text("ACCOUNTELLENCE Main Terminal", 14, 61);
     doc.text("Warehouse: Karachi Central Port", 14, 67);
     
     doc.setFont("helvetica", "bold");

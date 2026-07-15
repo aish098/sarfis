@@ -59,7 +59,7 @@ export default function CTA() {
         </h2>
 
         <p className="text-xl text-slate-400 mb-12 max-w-xl mx-auto leading-relaxed">
-          Join hundreds of businesses that trust SARFIS to automate their accounting and financial intelligence.
+          Join hundreds of businesses that trust ACCOUNTELLENCE to automate their accounting and financial intelligence.
         </p>
 
         <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
