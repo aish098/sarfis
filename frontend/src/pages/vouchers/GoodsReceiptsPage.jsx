@@ -536,7 +536,7 @@ export default function GoodsReceiptsPage() {
                   <label className="field-label">Reference Purchase Order</label>
                   <select 
                     className="input-enterprise" 
-                    value={grnForm.purchaseOrderId} 
+                    value={grnForm.purchaseOrderId || ''} 
                     onChange={e => handlePoChange(e.target.value)}
                   >
                     <option value="">— Create Direct Receipt —</option>
@@ -549,7 +549,7 @@ export default function GoodsReceiptsPage() {
                     required 
                     disabled={!!grnForm.purchaseOrderId}
                     className="input-enterprise" 
-                    value={grnForm.vendorId} 
+                    value={grnForm.vendorId || ''} 
                     onChange={e => setGrnForm({ ...grnForm, vendorId: e.target.value })}
                   >
                     <option value="">— Choose vendor —</option>
@@ -564,7 +564,7 @@ export default function GoodsReceiptsPage() {
                   <select 
                     required
                     className="input-enterprise" 
-                    value={grnForm.warehouseId} 
+                    value={grnForm.warehouseId || ''} 
                     onChange={e => setGrnForm({ ...grnForm, warehouseId: e.target.value })}
                   >
                     <option value="">— Choose warehouse —</option>

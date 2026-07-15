@@ -155,6 +155,27 @@ exports.getApprovalHistory = async (req, res) => {
   }
 };
 
+exports.getDocWorkflowHistory = async (req, res) => {
+  const companyId = req.companyId;
+  const { docTypeCode, docId } = req.params;
+  try {
+    const history = await db('workflow_history as wh')
+      .join('workflow_instances as wi', 'wh.workflow_instance_id', 'wi.id')
+      .join('workflow_definitions as wd', 'wi.workflow_definition_id', 'wd.id')
+      .leftJoin('users as u', 'wh.user_id', 'u.id')
+      .select('wh.*', 'u.name as actioned_name', 'wi.document_id', 'wd.document_type_code')
+      .where({
+        'wi.company_id': companyId,
+        'wd.document_type_code': docTypeCode,
+        'wi.document_id': docId
+      })
+      .orderBy('wh.created_at', 'asc');
+    res.json(history);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+};
+
 // Fetch definitions
 exports.getWorkflowDefinitions = async (req, res) => {
   const companyId = req.companyId;

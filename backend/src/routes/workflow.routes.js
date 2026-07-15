@@ -18,6 +18,7 @@ router.post('/review/:instanceId', companyGuard, requirePermission('approval.man
 
 // History logs
 router.get('/history', companyGuard, requirePermission('approval.view'), workflowCtrl.getApprovalHistory);
+router.get('/history/:docTypeCode/:docId', companyGuard, requirePermission('approval.view'), workflowCtrl.getDocWorkflowHistory);
 
 // Timeline view helper
 router.get('/timeline/:instanceId', companyGuard, requirePermission('approval.view'), workflowCtrl.getInstanceTimeline);
