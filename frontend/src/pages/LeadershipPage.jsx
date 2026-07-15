@@ -66,8 +66,8 @@ export default function LeadershipPage() {
               />
             </div>
             <div>
-              <h2 className="text-lg sm:text-xl font-black text-white">Rana Muhammad Zain Ul Abideen</h2>
-              <div className="mt-2 inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-xs font-bold text-emerald-400 uppercase tracking-widest">
+              <h2 className="text-lg sm:text-xl font-black text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Rana Muhammad Zain Ul Abideen</h2>
+              <div className="mt-2 inline-block px-3.5 py-1.5 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[10px] font-black text-emerald-400 uppercase tracking-widest">
                 CEO & Founder
               </div>
             </div>
@@ -143,7 +143,7 @@ export default function LeadershipPage() {
           {/* Card 1: Prof. Saad */}
           <div className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 hover:border-emerald-500/30 transition">
             <div className="space-y-4">
-              <div className="flex gap-4 items-center">
+              <div className="flex gap-4 items-center flex-wrap sm:flex-nowrap">
                 <ExecutiveAvatar 
                   initials="SM" 
                   src="/images/leadership/saad.jpg" 
@@ -151,8 +151,12 @@ export default function LeadershipPage() {
                   borderAccent="border-emerald-500/60" 
                 />
                 <div>
-                  <h3 className="text-base font-extrabold text-white">Professor Saad Anwar Mughal</h3>
-                  <p className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">Professor • Taxation & Financial Governance Advisor</p>
+                  <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Professor Saad Anwar Mughal</h3>
+                  <div className="mt-1">
+                    <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-relaxed">
+                      Professor • Taxation & Financial Governance Advisor
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -184,7 +188,7 @@ export default function LeadershipPage() {
           {/* Card 2: Prof. Rehan */}
           <div className="bg-[#050f21] border border-slate-800 rounded-3xl p-6 flex flex-col justify-between space-y-6 hover:border-emerald-500/30 transition">
             <div className="space-y-4">
-              <div className="flex gap-4 items-center">
+              <div className="flex gap-4 items-center flex-wrap sm:flex-nowrap">
                 <ExecutiveAvatar 
                   initials="RA" 
                   src="/images/leadership/rehan.jpg" 
@@ -192,8 +196,12 @@ export default function LeadershipPage() {
                   borderAccent="border-emerald-500/60" 
                 />
                 <div>
-                  <h3 className="text-base font-extrabold text-white">Professor Muhammad Rehan Anjum</h3>
-                  <p className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">Professor • Accounting & IFRS Advisor</p>
+                  <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Professor Muhammad Rehan Anjum</h3>
+                  <div className="mt-1">
+                    <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest leading-relaxed">
+                      Professor • Accounting & IFRS Advisor
+                    </span>
+                  </div>
                 </div>
               </div>
 
@@ -245,8 +253,12 @@ export default function LeadershipPage() {
                 borderAccent="border-emerald-500/60" 
               />
               <div>
-                <h3 className="text-base font-extrabold text-white">Ayesha Kashif</h3>
-                <p className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">Lead Developer & Co-Founder</p>
+                <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Ayesha Kashif</h3>
+                <div className="mt-1">
+                  <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
+                    Lead Developer & Co-Founder
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -256,7 +268,7 @@ export default function LeadershipPage() {
                 <span className="text-[9.5px] uppercase font-bold text-slate-500 block mb-1">Key Responsibilities</span>
                 <div className="flex flex-wrap gap-1.5">
                   {["ERP Architecture", "UI/UX Design", "Product Strategy", "Technical Leadership", "Enterprise Platform Design"].map(r => (
-                    <span key={r} className="bg-emerald-950/20 border border-emerald-500/20 text-emerald-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
+                    <span key={r} className="bg-slate-900 border border-slate-800 text-slate-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
                   ))}
                 </div>
               </div>
@@ -280,8 +292,12 @@ export default function LeadershipPage() {
                 borderAccent="border-emerald-500/60" 
               />
               <div>
-                <h3 className="text-base font-extrabold text-white">Syed Ansar Ali</h3>
-                <p className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">DevOps Engineer</p>
+                <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Syed Ansar Ali</h3>
+                <div className="mt-1">
+                  <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
+                    DevOps Engineer
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -291,7 +307,7 @@ export default function LeadershipPage() {
                 <span className="text-[9.5px] uppercase font-bold text-slate-500 block mb-1">Key Responsibilities</span>
                 <div className="flex flex-wrap gap-1.5">
                   {["Cloud Infrastructure", "CI/CD", "Deployment", "Performance", "Security"].map(r => (
-                    <span key={r} className="bg-emerald-950/20 border border-emerald-500/20 text-emerald-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
+                    <span key={r} className="bg-slate-900 border border-slate-800 text-slate-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
                   ))}
                 </div>
               </div>
@@ -325,13 +341,17 @@ export default function LeadershipPage() {
           />
           <div className="flex-1 space-y-4 text-center md:text-left">
             <div>
-              <h3 className="text-base font-extrabold text-white">Amna Waheed Ahmed</h3>
-              <p className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">HR Executive</p>
+              <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Amna Waheed Ahmed</h3>
+              <div className="mt-1">
+                <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
+                  HR Executive
+                </span>
+              </div>
             </div>
             
             <div className="flex flex-wrap gap-1.5 justify-center md:justify-start">
               {["Recruitment", "Human Resources", "Employee Relations", "Organizational Development", "Administration"].map(r => (
-                <span key={r} className="bg-emerald-950/20 border border-emerald-500/20 text-emerald-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
+                <span key={r} className="bg-slate-900 border border-slate-800 text-slate-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
               ))}
             </div>
 
@@ -359,13 +379,17 @@ export default function LeadershipPage() {
           />
           <div className="flex-1 space-y-4 text-center md:text-left">
             <div>
-              <h3 className="text-base font-extrabold text-white">Rana Talal Khan</h3>
-              <p className="text-[11px] text-slate-500 uppercase tracking-wider font-semibold">Financial Analyst</p>
+              <h3 className="text-base font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Rana Talal Khan</h3>
+              <div className="mt-1">
+                <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
+                  Financial Analyst
+                </span>
+              </div>
             </div>
             
             <div className="flex flex-wrap gap-1.5 justify-center md:justify-start">
               {["Financial Planning", "Budget Analysis", "Forecasting", "KPI Reporting", "Business Intelligence"].map(r => (
-                <span key={r} className="bg-emerald-950/20 border border-emerald-500/20 text-emerald-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
+                <span key={r} className="bg-slate-900 border border-slate-800 text-slate-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
               ))}
             </div>
 
@@ -395,14 +419,20 @@ export default function LeadershipPage() {
             />
             <div className="flex-1 space-y-3 text-center sm:text-left">
               <div>
-                <h3 className="text-lg font-extrabold text-white">Farhan Ahmed Khokhar</h3>
-                <p className="text-[11px] text-emerald-400 uppercase tracking-wider font-bold">Advocate High Court</p>
-                <p className="text-[10px] text-slate-500 uppercase font-semibold">Tax & Corporate Law Advisor</p>
+                <h3 className="text-lg font-extrabold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Farhan Ahmed Khokhar</h3>
+                <div className="mt-2 flex flex-wrap gap-2 justify-center sm:justify-start">
+                  <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
+                    Advocate High Court
+                  </span>
+                  <span className="inline-block px-3 py-1 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[9px] font-black text-emerald-400 uppercase tracking-widest">
+                    Tax & Corporate Law Advisor
+                  </span>
+                </div>
               </div>
 
-              <div className="flex flex-wrap gap-1.5 justify-center sm:justify-start">
+              <div className="flex flex-wrap gap-1.5 justify-center sm:justify-start pt-2">
                 {["Corporate Law", "Taxation", "Regulatory Compliance", "Contracts", "Legal Advisory"].map(r => (
-                  <span key={r} className="bg-emerald-950/20 border border-emerald-500/20 text-emerald-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
+                  <span key={r} className="bg-slate-900 border border-slate-800 text-slate-400 text-[9.5px] px-2 py-0.5 rounded font-bold uppercase">{r}</span>
                 ))}
               </div>
             </div>
