@@ -483,8 +483,8 @@ export default function LeadershipPage() {
             {/* Column 1: Development */}
             <div className="flex flex-col items-center">
               <div className="w-0.5 h-6 bg-slate-800" />
-              <div className="bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl mt-1">
-                <span className="text-[9px] text-slate-500 font-bold uppercase block">Core Track</span>
+              <div className="bg-slate-950 border border-emerald-500/30 px-4 py-2.5 rounded-xl mt-1">
+                <span className="text-[9px] text-emerald-400 font-bold uppercase block">Core Track</span>
                 <span className="text-[11px] font-bold text-white block">Development</span>
                 <span className="text-[10px] text-slate-400 font-medium block mt-0.5">Ayesha Kashif</span>
               </div>
