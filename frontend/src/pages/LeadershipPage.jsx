@@ -36,41 +36,46 @@ const diagonalUpRightVariants = {
   visible: { opacity: 1, x: 0, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } }
 };
 
-// Avatar component supporting passport-style rectangular photos with initials fallback and hexagon shape
+// Avatar component supporting passport-style rectangular photos with initials fallback and a floating offset border
 function ExecutiveAvatar({ initials, src, size = "w-28 h-36", borderAccent = "border-emerald-500", glowColor = "rgba(16,185,129,0.15)" }) {
   const [imageError, setImageError] = useState(false);
   const [hovered, setHovered] = useState(false);
 
-  let borderHexColor = "#10b981";
-  if (borderAccent.includes("cyan")) borderHexColor = "#06b6d4";
-  if (borderAccent.includes("amber")) borderHexColor = "#f59e0b";
-  if (borderAccent.includes("purple") || borderAccent.includes("violet")) borderHexColor = "#8b5cf6";
-  if (borderAccent.includes("slate")) borderHexColor = "#475569";
-
-  const hexClipPath = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
+  // Extract border color or use fallback
+  let offsetBorderColor = "bg-emerald-500/80";
+  if (borderAccent.includes("cyan")) offsetBorderColor = "bg-cyan-500/80";
+  if (borderAccent.includes("amber")) offsetBorderColor = "bg-amber-500/80";
+  if (borderAccent.includes("purple") || borderAccent.includes("violet")) offsetBorderColor = "bg-violet-500/80";
+  if (borderAccent.includes("slate")) offsetBorderColor = "bg-slate-600/80";
 
   return (
     <div 
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`relative flex items-center justify-center p-[2px] transition-all duration-300 ease-out ${size}`}
-      style={{
-        clipPath: hexClipPath,
-        backgroundColor: hovered ? "rgba(255, 255, 255, 0.6)" : borderHexColor,
-        transform: hovered ? "scale(1.05)" : "scale(1)"
-      }}
+      className="relative cursor-default"
     >
+      {/* Floating Offset Border Layer */}
       <div 
-        className="w-full h-full relative flex items-center justify-center bg-[#050f21] overflow-hidden"
+        className={`absolute inset-0 rounded-2xl transition-all duration-300 ease-out ${offsetBorderColor} ${size}`}
         style={{
-          clipPath: hexClipPath
+          transform: hovered ? "translate(0px, 0px) scale(1.02)" : "translate(8px, 8px)",
+          opacity: hovered ? 0.3 : 0.85
+        }}
+      />
+
+      {/* Main Image Layer */}
+      <div 
+        className={`relative flex items-center justify-center rounded-2xl bg-[#050f21] border-2 ${borderAccent} ${size} shadow-lg overflow-hidden transition-all duration-300 ease-out`}
+        style={{
+          boxShadow: hovered ? `0 10px 25px -5px ${glowColor}, 0 0 20px ${glowColor}` : '0 4px 12px rgba(0,0,0,0.1)',
+          transform: hovered ? "scale(1.02)" : "scale(1)"
         }}
       >
         {src && !imageError ? (
           <img 
             src={src} 
             alt={initials} 
-            className={`w-full h-full object-cover transition-transform duration-500 ease-out ${hovered ? 'scale-110' : 'scale-100'}`}
+            className={`w-full h-full object-cover transition-transform duration-500 ease-out origin-center ${hovered ? 'scale-110' : 'scale-100'}`}
             onError={() => setImageError(true)}
           />
         ) : (
@@ -78,9 +83,9 @@ function ExecutiveAvatar({ initials, src, size = "w-28 h-36", borderAccent = "bo
         )}
         {/* Dynamic Glow Overlay matching section theme */}
         <div 
-          className={`absolute inset-0 transition-opacity duration-300 pointer-events-none ${hovered ? 'opacity-100' : 'opacity-0'}`}
+          className={`absolute inset-0 transition-opacity duration-300 pointer-events-none rounded-2xl ${hovered ? 'opacity-100' : 'opacity-0'}`}
           style={{
-            boxShadow: `inset 0 0 20px ${glowColor}, 0 0 20px ${glowColor}`
+            boxShadow: `inset 0 0 20px ${glowColor}`
           }}
         />
       </div>
