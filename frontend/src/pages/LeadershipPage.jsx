@@ -186,6 +186,16 @@ export default function LeadershipPage() {
   const [prefersReducedMotion, setPrefersReducedMotion] = useState(false);
   const [mousePos, setMousePos] = useState({ x: 0, y: 0 });
 
+  // One-time scroll reveal configuration
+  const scrollVariants = {
+    hidden: { opacity: 0, y: prefersReducedMotion ? 0 : 30 },
+    visible: { 
+      opacity: 1, 
+      y: 0,
+      transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] }
+    }
+  };
+
   useEffect(() => {
     const mediaQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
     setPrefersReducedMotion(mediaQuery.matches);
