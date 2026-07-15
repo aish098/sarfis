@@ -36,34 +36,54 @@ const diagonalUpRightVariants = {
   visible: { opacity: 1, x: 0, y: 0, transition: { duration: 0.7, ease: [0.22, 1, 0.36, 1] } }
 };
 
-// Avatar component supporting passport-style rectangular photos with initials fallback and diagonal skew styling
+// Avatar component supporting passport-style rectangular photos with initials fallback and hexagon shape
 function ExecutiveAvatar({ initials, src, size = "w-28 h-36", borderAccent = "border-emerald-500", glowColor = "rgba(16,185,129,0.15)" }) {
   const [imageError, setImageError] = useState(false);
+  const [hovered, setHovered] = useState(false);
+
+  let borderHexColor = "#10b981";
+  if (borderAccent.includes("cyan")) borderHexColor = "#06b6d4";
+  if (borderAccent.includes("amber")) borderHexColor = "#f59e0b";
+  if (borderAccent.includes("purple") || borderAccent.includes("violet")) borderHexColor = "#8b5cf6";
+  if (borderAccent.includes("slate")) borderHexColor = "#475569";
+
+  const hexClipPath = "polygon(50% 0%, 100% 25%, 100% 75%, 50% 100%, 0% 75%, 0% 25%)";
 
   return (
     <div 
-      className={`relative flex items-center justify-center rounded-2xl bg-[#050f21] border-2 ${borderAccent} ${size} shadow-lg overflow-hidden transition-all duration-300 ease-out group-hover:border-white/40 transform -skew-x-12`}
+      onMouseEnter={() => setHovered(true)}
+      onMouseLeave={() => setHovered(false)}
+      className={`relative flex items-center justify-center p-[2px] transition-all duration-300 ease-out ${size}`}
       style={{
-        boxShadow: `0 4px 12px rgba(0,0,0,0.1)`
+        clipPath: hexClipPath,
+        backgroundColor: hovered ? "rgba(255, 255, 255, 0.6)" : borderHexColor,
+        transform: hovered ? "scale(1.05)" : "scale(1)"
       }}
     >
-      {src && !imageError ? (
-        <img 
-          src={src} 
-          alt={initials} 
-          className="w-full h-full object-cover transition-transform duration-500 ease-out transform skew-x-12 scale-125 group-hover:scale-[1.32] origin-center" 
-          onError={() => setImageError(true)}
-        />
-      ) : (
-        <span className="text-2xl font-bold text-white font-mono transform skew-x-12">{initials}</span>
-      )}
-      {/* Dynamic Glow Overlay matching section theme */}
       <div 
-        className="absolute inset-0 rounded-2xl opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none transform skew-x-12"
+        className="w-full h-full relative flex items-center justify-center bg-[#050f21] overflow-hidden"
         style={{
-          boxShadow: `inset 0 0 20px ${glowColor}, 0 0 20px ${glowColor}`
+          clipPath: hexClipPath
         }}
-      />
+      >
+        {src && !imageError ? (
+          <img 
+            src={src} 
+            alt={initials} 
+            className={`w-full h-full object-cover transition-transform duration-500 ease-out ${hovered ? 'scale-110' : 'scale-100'}`}
+            onError={() => setImageError(true)}
+          />
+        ) : (
+          <span className="text-2xl font-bold text-white font-mono">{initials}</span>
+        )}
+        {/* Dynamic Glow Overlay matching section theme */}
+        <div 
+          className={`absolute inset-0 transition-opacity duration-300 pointer-events-none ${hovered ? 'opacity-100' : 'opacity-0'}`}
+          style={{
+            boxShadow: `inset 0 0 20px ${glowColor}, 0 0 20px ${glowColor}`
+          }}
+        />
+      </div>
     </div>
   );
 }
