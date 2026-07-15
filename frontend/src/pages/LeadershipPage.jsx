@@ -322,15 +322,13 @@ export default function LeadershipPage() {
             
             {/* Left Side: Portrait & Metrics */}
             <div className="md:col-span-5 flex flex-col items-center text-center space-y-6 md:border-r md:border-slate-800/80 md:pr-8">
-              <div className="relative p-1.5 rounded-2xl border-2 border-emerald-500/80 transition-all duration-300 group-hover:border-emerald-450">
-                <ExecutiveAvatar 
-                  initials="RZ" 
-                  src="/images/leadership/zain.jpg" 
-                  size="w-40 h-52" 
-                  borderAccent="border-emerald-500" 
-                  glowColor="rgba(16,185,129,0.2)"
-                />
-              </div>
+              <ExecutiveAvatar 
+                initials="RZ" 
+                src="/images/leadership/zain.jpg" 
+                size="w-40 h-52" 
+                borderAccent="border-emerald-500" 
+                glowColor="rgba(16,185,129,0.2)"
+              />
               <div>
                 <h2 className="text-lg sm:text-xl font-black text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Rana Muhammad Zain Ul Abideen</h2>
                 <div className="mt-2 inline-block px-3.5 py-1.5 bg-emerald-950/40 border border-emerald-500/20 rounded-full text-[10px] font-black text-emerald-400 uppercase tracking-widest">
