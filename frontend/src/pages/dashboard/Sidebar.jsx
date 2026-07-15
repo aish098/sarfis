@@ -10,6 +10,7 @@ import {
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
 import api from '../../services/api';
+import logoImg from '../../assets/logo/Logo 05.png';
 
 const NAV_SECTIONS = [
   {
@@ -193,37 +194,26 @@ export default function Sidebar({ collapsed, isMobile, onToggle }) {
         style={{ background: 'var(--blue-900)', borderRight: '1px solid rgba(255,255,255,0.05)' }}
       >
         {/* Logo */}
-        <div className="flex items-center h-[60px] px-4 border-b flex-shrink-0"
+        <div className="flex items-center justify-between h-[60px] px-4 border-b flex-shrink-0"
           style={{ borderColor: 'rgba(255,255,255,0.06)' }}>
-          <div className="flex items-center gap-3 min-w-0">
+          <div className="flex items-center justify-center flex-1 min-w-0">
             {settings?.logoUrl ? (
               <img
                 src={settings.logoUrl.startsWith('http') ? settings.logoUrl : `${import.meta.env.PROD ? window.location.origin : 'http://localhost:5001'}${settings.logoUrl}`}
-                alt="Logo"
-                className="w-8 h-8 object-contain rounded-lg flex-shrink-0 bg-white p-0.5"
+                alt="Accountellence"
+                className={`object-contain rounded-lg flex-shrink-0 bg-white p-0.5 transition-all duration-300 ${collapsed ? 'h-10 w-auto' : 'h-12 w-auto'}`}
               />
             ) : (
-              <div className="flex-shrink-0 w-8 h-8 rounded-lg flex items-center justify-center"
-                style={{ background: 'linear-gradient(135deg, var(--brand-primary, #10b981) 0%, #06b6d4 100%)' }}>
-                <Zap size={14} className="text-white fill-white" />
-              </div>
+              <img
+                src={logoImg}
+                alt="Accountellence"
+                className={`object-contain rounded-lg flex-shrink-0 bg-transparent transition-all duration-300 ${collapsed ? 'h-10 w-auto' : 'h-12 w-auto'}`}
+              />
             )}
-            <AnimatePresence>
-              {!collapsed && (
-                <Motion.span
-                  initial={{ opacity: 0, width: 0 }} animate={{ opacity: 1, width: 'auto' }}
-                  exit={{ opacity: 0, width: 0 }}
-                  className="font-display font-800 text-white text-[17px] tracking-tight overflow-hidden whitespace-nowrap"
-                  style={{ fontWeight: 800 }}
-                >
-                  ACCOUNTELLENCE
-                </Motion.span>
-              )}
-            </AnimatePresence>
           </div>
           <button
             onClick={onToggle}
-            className="ml-auto flex-shrink-0 w-7 h-7 rounded-md flex items-center justify-center transition-all"
+            className="flex-shrink-0 w-7 h-7 rounded-md flex items-center justify-center transition-all ml-1"
             style={{ color: 'rgba(255,255,255,0.4)', background: 'rgba(255,255,255,0.05)' }}
           >
             {collapsed ? <ChevronRight size={14} /> : <ChevronLeft size={14} />}
