@@ -278,21 +278,21 @@ export default function TutorialPage() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6, delay: 0.45, ease: "easeOut" }}
-            className="grid grid-cols-3 gap-4 max-w-2xl mx-auto p-5 bg-[#050f21]/60 border border-slate-900 rounded-2xl backdrop-blur-md shadow-xl text-center"
+            className="grid grid-cols-1 sm:grid-cols-3 gap-6 max-w-2xl mx-auto p-6 bg-[#050f21]/60 border border-slate-900 rounded-2xl backdrop-blur-md shadow-xl text-center"
           >
-            <div>
+            <div className="py-2 sm:py-0">
               <div className="text-2xl sm:text-3xl font-black text-emerald-400 font-mono">
                 <AnimatedCounter value={data.videos.length > 0 ? String(data.videos.length) : "20"} suffix="+" />
               </div>
               <div className="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">Training Videos</div>
             </div>
-            <div className="border-x border-slate-800">
+            <div className="border-y sm:border-y-0 sm:border-x border-slate-800/80 py-4 sm:py-0">
               <div className="text-2xl sm:text-3xl font-black text-white font-mono">
                 <AnimatedCounter value="150" suffix="+" />
               </div>
               <div className="text-[10px] text-slate-500 uppercase font-bold mt-1 tracking-wider">ERP Features</div>
             </div>
-            <div>
+            <div className="py-2 sm:py-0">
               <div className="text-2xl sm:text-3xl font-black text-cyan-400 font-mono">
                 <Motion.span
                   initial={{ opacity: 0, scale: 0.8 }}

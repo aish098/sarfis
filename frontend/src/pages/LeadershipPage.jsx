@@ -875,27 +875,27 @@ export default function LeadershipPage() {
               </div>
               
               {/* Vertical Line */}
-              <div className="w-0.5 h-8 bg-slate-800" />
+              <div className="w-0.5 h-8 bg-slate-800 hidden md:block" />
             </div>
 
             {/* Horizontal Connector bar */}
-            <div className="w-[80%] max-w-3xl flex items-center relative">
+            <div className="w-[80%] max-w-3xl items-center relative hidden md:flex">
               <div className="absolute inset-x-0 top-0 h-0.5 bg-slate-800" />
             </div>
 
             {/* Level 2 drops */}
-            <div className="w-[80%] max-w-3xl grid grid-cols-3 text-center">
+            <div className="w-full max-w-3xl flex flex-col md:grid md:grid-cols-3 gap-6 md:gap-0 text-center">
               
               {/* Column 1: Development */}
               <div className="flex flex-col items-center">
-                <div className="w-0.5 h-6 bg-slate-800" />
+                <div className="w-0.5 h-6 bg-slate-800 hidden md:block" />
                 <div className="bg-slate-950 border border-emerald-500/30 px-4 py-2.5 rounded-xl mt-1 transition-all duration-300 hover:scale-[1.02] hover:border-emerald-400 cursor-default">
                   <span className="text-[9px] text-emerald-400 font-bold uppercase block">Core Track</span>
                   <span className="text-[11px] font-bold text-white block">Development</span>
                   <span className="text-[10px] text-slate-400 font-medium block mt-0.5">Ayesha Kashif</span>
                 </div>
                 
-                <div className="w-0.5 h-6 bg-slate-800" />
+                <div className="w-0.5 h-6 bg-slate-800 hidden md:block" />
                 {/* DevOps */}
                 <div className="bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:border-emerald-500/35 cursor-default">
                   <span className="text-[9px] text-slate-500 font-bold uppercase block">Infrastructure</span>
@@ -903,7 +903,7 @@ export default function LeadershipPage() {
                   <span className="text-[10px] text-slate-400 font-medium block mt-0.5">Syed Ansar Ali</span>
                 </div>
 
-                <div className="w-0.5 h-6 bg-slate-800" />
+                <div className="w-0.5 h-6 bg-slate-800 hidden md:block" />
                 {/* Legal Advisor */}
                 <div className="bg-slate-950 border border-emerald-500/20 px-4 py-2.5 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:border-emerald-400 cursor-default">
                   <span className="text-[9px] text-emerald-400 font-bold uppercase block">Advisory</span>
@@ -914,13 +914,13 @@ export default function LeadershipPage() {
 
               {/* Column 2: Finance */}
               <div className="flex flex-col items-center">
-                <div className="w-0.5 h-6 bg-slate-800" />
+                <div className="w-0.5 h-6 bg-slate-800 hidden md:block" />
                 <div className="bg-slate-950 border border-emerald-500/20 px-4 py-2.5 rounded-xl mt-1 transition-all duration-300 hover:scale-[1.02] hover:border-emerald-400 cursor-default">
                   <span className="text-[9px] text-emerald-400 font-bold uppercase block">Core Advisor</span>
                   <span className="text-[11px] font-bold text-white block">Professor Saad Anwar Mughal</span>
                 </div>
                 
-                <div className="w-0.5 h-6 bg-slate-800" />
+                <div className="w-0.5 h-6 bg-slate-800 hidden md:block" />
                 {/* Financial Analyst */}
                 <div className="bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:border-emerald-500/35 cursor-default">
                   <span className="text-[9px] text-slate-500 font-bold uppercase block">Analysis</span>
@@ -931,13 +931,13 @@ export default function LeadershipPage() {
 
               {/* Column 3: Operations */}
               <div className="flex flex-col items-center">
-                <div className="w-0.5 h-6 bg-slate-800" />
+                <div className="w-0.5 h-6 bg-slate-800 hidden md:block" />
                 <div className="bg-slate-950 border border-emerald-500/20 px-4 py-2.5 rounded-xl mt-1 transition-all duration-300 hover:scale-[1.02] hover:border-emerald-400 cursor-default">
                   <span className="text-[9px] text-emerald-400 font-bold uppercase block">Core Advisor</span>
                   <span className="text-[11px] font-bold text-white block">Professor Muhammad Rehan Anjum</span>
                 </div>
                 
-                <div className="w-0.5 h-6 bg-slate-800" />
+                <div className="w-0.5 h-6 bg-slate-800 hidden md:block" />
                 {/* HR */}
                 <div className="bg-slate-950 border border-slate-800 px-4 py-2.5 rounded-xl transition-all duration-300 hover:scale-[1.02] hover:border-emerald-500/35 cursor-default">
                   <span className="text-[9px] text-slate-500 font-bold uppercase block">Management</span>
