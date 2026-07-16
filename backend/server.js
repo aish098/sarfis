@@ -61,6 +61,18 @@ async function startServer() {
             name: 'Budget Plan Approval',
             callback_service: 'budget.service',
             callback_method: 'activateBudget'
+          },
+          {
+            code: 'PURCHASE_REQUISITION',
+            name: 'Purchase Requisition Approval',
+            callback_service: 'purchase_requisition.service',
+            callback_method: 'approvePurchaseRequisition'
+          },
+          {
+            code: 'PURCHASE_ORDER',
+            name: 'Purchase Order Approval',
+            callback_service: 'purchase_order.service',
+            callback_method: 'approvePurchaseOrder'
           }
         ])
         .onConflict('code')
