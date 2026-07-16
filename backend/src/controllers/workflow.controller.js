@@ -304,12 +304,17 @@ exports.cancelDelegation = async (req, res) => {
 exports.getInstanceTimeline = async (req, res) => {
   const companyId = req.companyId;
   const { instanceId } = req.params;
+  
+  if (!instanceId || instanceId === 'undefined' || isNaN(parseInt(instanceId, 10))) {
+    return res.status(400).json({ error: 'Invalid or missing workflow instance ID.' });
+  }
+
   try {
     const timeline = await db('workflow_history as wh')
       .join('workflow_instances as wi', 'wh.workflow_instance_id', 'wi.id')
       .leftJoin('users as u', 'wh.user_id', 'u.id')
       .select('wh.*', 'u.name as actioned_name')
-      .where({ 'wi.id': instanceId, 'wi.company_id': companyId })
+      .where({ 'wi.id': parseInt(instanceId, 10), 'wi.company_id': companyId })
       .orderBy('wh.created_at', 'asc');
     res.json(timeline);
   } catch (err) {

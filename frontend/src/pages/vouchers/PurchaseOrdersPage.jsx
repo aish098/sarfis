@@ -104,10 +104,11 @@ export default function PurchaseOrdersPage() {
       const historyRes = await api.get('/workflows/history').catch(() => ({ data: [] }));
       
       const allInstances = [...approvalsRes.data, ...historyRes.data];
-      const match = allInstances.find(inst => inst.document_type_code === 'PURCHASE_ORDER' && inst.document_id === poId);
+      const match = allInstances.find(inst => inst.document_type_code === 'PURCHASE_ORDER' && String(inst.document_id) === String(poId));
       
-      if (match) {
-        const { data } = await api.get(`/workflows/timeline/${match.instance_id}`);
+      const instanceId = match?.instance_id || match?.workflow_instance_id;
+      if (instanceId) {
+        const { data } = await api.get(`/workflows/timeline/${instanceId}`);
         setPoTimeline(data);
       } else {
         setPoTimeline([]);
