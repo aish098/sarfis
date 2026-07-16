@@ -51,8 +51,10 @@ class PurchaseOrderService {
   static async getPurchaseOrderById(id, companyId, trx = db) {
     const po = await trx('purchase_orders as po')
       .leftJoin('vendors as v', 'po.vendor_id', 'v.id')
+      .leftJoin('users as u', 'po.created_by', 'u.id')
+      .leftJoin('purchase_requisitions as pr', 'po.purchase_requisition_id', 'pr.id')
       .where({ 'po.id': id, 'po.company_id': companyId })
-      .select('po.*', 'v.name as vendor_name')
+      .select('po.*', 'v.name as vendor_name', 'u.name as creator_name', 'pr.requisition_number as source_requisition_number')
       .first();
 
     if (!po) return null;
@@ -66,13 +68,28 @@ class PurchaseOrderService {
   }
 
   /**
-   * Creates a draft PO
+   * Creates a Purchase Order draft
    */
-  static async createPurchaseOrder({ companyId, vendorId, date, notes, items, userId }) {
+  static async createPurchaseOrder({ companyId, vendorId, date, notes, items, userId, purchase_requisition_id }, externalTrx = null) {
     if (!companyId) throw new Error('Company context required.');
     if (!items || items.length === 0) throw new Error('PO must contain at least one item.');
 
-    return await db.transaction(async (trx) => {
+    const action = async (trx) => {
+      const SettingsModel = require('../models/settings.model');
+      const settings = await SettingsModel.getSettings(companyId);
+      const policy = settings.procurementPolicy || 'REQUISITION_REQUIRED';
+
+      if (policy === 'REQUISITION_REQUIRED' && !purchase_requisition_id) {
+        throw new Error('Purchase Orders must be generated from an approved Purchase Requisition. Please complete the requisition approval process first.');
+      }
+
+      if (purchase_requisition_id) {
+        const pr = await trx('purchase_requisitions').where({ id: purchase_requisition_id, company_id: companyId }).first();
+        if (!pr || pr.status !== 'APPROVED') {
+          throw new Error('Purchase Orders must be generated from an approved Purchase Requisition. Please complete the requisition approval process first.');
+        }
+      }
+
       const poNumber = await this.generatePONumber(companyId, trx);
       
       let totalAmount = 0;
@@ -105,6 +122,7 @@ class PurchaseOrderService {
           total_amount: totalAmount,
           tax_amount: 0.00,
           created_by: userId,
+          purchase_requisition_id: purchase_requisition_id || null,
           notes
         })
         .returning('*');
@@ -113,8 +131,22 @@ class PurchaseOrderService {
         itemRows.map(row => ({ ...row, purchase_order_id: po.id }))
       );
 
+      // Add audit log
+      await trx('transaction_audit_logs').insert({
+        company_id: companyId,
+        action: 'CREATE',
+        user_id: userId,
+        description: `Created Purchase Order Draft ${poNumber}.`
+      });
+
       return po;
-    });
+    };
+
+    if (externalTrx) {
+      return await action(externalTrx);
+    } else {
+      return await db.transaction(action);
+    }
   }
 
   /**
@@ -165,6 +197,14 @@ class PurchaseOrderService {
         itemRows.map(row => ({ ...row, purchase_order_id: id }))
       );
 
+      // Add audit log
+      await trx('transaction_audit_logs').insert({
+        company_id: companyId,
+        action: 'UPDATE',
+        user_id: userId,
+        description: `Updated Purchase Order Draft ${po.po_number}.`
+      });
+
       return await this.getPurchaseOrderById(id, companyId, trx);
     });
   }
@@ -198,6 +238,14 @@ class PurchaseOrderService {
         .where({ id, company_id: companyId })
         .update({ status, updated_at: trx.fn.now() });
 
+      // Add audit log
+      await trx('transaction_audit_logs').insert({
+        company_id: companyId,
+        action: 'SUBMIT',
+        user_id: userId,
+        description: `Submitted Purchase Order ${po.po_number} for approval routing.`
+      });
+
       return await this.getPurchaseOrderById(id, companyId, trx);
     });
   }
@@ -206,18 +254,36 @@ class PurchaseOrderService {
    * Unified workflow callback method (approves the PO)
    */
   static async approvePurchaseOrder(id, companyId, userId, trx = db) {
+    const po = await trx('purchase_orders').where({ id, company_id: companyId }).first();
     await trx('purchase_orders')
       .where({ id, company_id: companyId })
       .update({ status: 'APPROVED', approved_by: userId, updated_at: trx.fn.now() });
+
+    // Add audit log
+    await trx('transaction_audit_logs').insert({
+      company_id: companyId,
+      action: 'APPROVE',
+      user_id: userId,
+      description: `Approved Purchase Order ${po?.po_number || id}.`
+    });
   }
 
   /**
    * Rejects the PO (invoked via generic approval or custom endpoint)
    */
   static async rejectPurchaseOrder(id, companyId, userId, trx = db) {
+    const po = await trx('purchase_orders').where({ id, company_id: companyId }).first();
     await trx('purchase_orders')
       .where({ id, company_id: companyId })
       .update({ status: 'REJECTED', updated_at: trx.fn.now() });
+
+    // Add audit log
+    await trx('transaction_audit_logs').insert({
+      company_id: companyId,
+      action: 'REJECT',
+      user_id: userId,
+      description: `Rejected Purchase Order ${po?.po_number || id}.`
+    });
   }
 
   /**
@@ -274,6 +340,14 @@ class PurchaseOrderService {
       await trx('vouchers')
         .where({ id: voucher.id })
         .update({ purchase_order_id: id });
+
+      // Add audit log
+      await trx('transaction_audit_logs').insert({
+        company_id: companyId,
+        action: 'CREATE_VOUCHER',
+        user_id: userId,
+        description: `Generated Purchase Voucher ${voucher.voucher_number} from PO ${po.po_number}.`
+      });
 
       return voucher;
     });

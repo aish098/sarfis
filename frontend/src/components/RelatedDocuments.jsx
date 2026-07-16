@@ -9,7 +9,8 @@ const TYPE_CONFIG = {
   VOUCHER: { label: 'ERP Voucher', colorClass: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
   DELIVERY: { label: 'Delivery Order', colorClass: 'text-amber-600 bg-amber-50 border-amber-100' },
   SALES_ORDER: { label: 'Sales Order', colorClass: 'text-indigo-600 bg-indigo-50 border-indigo-100' },
-  PAYMENT_RECEIPT: { label: 'Payment Receipt', colorClass: 'text-emerald-600 bg-emerald-50 border-emerald-100' }
+  PAYMENT_RECEIPT: { label: 'Payment Receipt', colorClass: 'text-emerald-600 bg-emerald-50 border-emerald-100' },
+  PAYMENT: { label: 'Supplier Payment', colorClass: 'text-emerald-650 bg-emerald-50 border-emerald-100' }
 };
 
 const STATUS_STYLE_MAP = {
@@ -71,7 +72,7 @@ export default function RelatedDocuments({ documents = [], currentType }) {
   // Is it fully completed/posted?
   const isPoPosted = hasVoucher && (currentType === 'VOUCHER' || activeDocs.some(d => d.type === 'VOUCHER' && d.status === 'POSTED'));
   const isDelivered = hasDelivery && (currentType === 'DELIVERY' || activeDocs.some(d => d.type === 'DELIVERY' && d.status === 'DELIVERED'));
-  const isPaid = hasVoucher && activeDocs.some(d => d.type === 'VOUCHER' && d.status === 'PAID');
+  const isPaid = activeDocs.some(d => d.type === 'PAYMENT');
 
   const journeySteps = isOpeningBalanceFlow
     ? [

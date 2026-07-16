@@ -16,6 +16,7 @@ import NotificationPreferencesTab from './NotificationPreferencesTab';
 const TABS = [
   { id: 'company', label: 'Company Info', icon: Building2 },
   { id: 'accounting', label: 'Accounting Preferences', icon: Calculator },
+  { id: 'procurement', label: 'Procurement Settings', icon: Settings },
   { id: 'branding', label: 'Branding & Form Styles', icon: Palette },
   { id: 'currency', label: 'Currencies', icon: Globe },
   { id: 'modules', label: 'Feature Toggles', icon: Settings },
@@ -186,6 +187,7 @@ export default function SettingsPage() {
         passwordComplexity: raw.passwordComplexity ?? false,
         sessionTimeout: raw.sessionTimeout || '1hour',
         mfaRequired: raw.mfaRequired ?? false,
+        procurementPolicy: raw.procurementPolicy || 'REQUISITION_REQUIRED',
       };
       
       setLocalSettings(initialSettings);
@@ -1167,6 +1169,55 @@ export default function SettingsPage() {
                     )}
                   </div>
                 </div>
+              </div>
+            </div>
+          </div>
+        );
+
+      case 'procurement':
+        return (
+          <div className="space-y-6">
+            <h2 className="text-[18px] font-black text-slate-900 border-b border-slate-100 pb-3 flex items-center gap-2">
+              <Settings size={20} className="text-emerald-500" /> Procurement Settings
+            </h2>
+            
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-6 space-y-4">
+              <span className="block font-bold text-slate-400 text-[10px] uppercase tracking-wide">Purchase Policy</span>
+              <div className="space-y-3">
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="procurementPolicy"
+                    value="REQUISITION_REQUIRED"
+                    checked={localSettings.procurementPolicy === 'REQUISITION_REQUIRED'}
+                    onChange={() => update('procurementPolicy', 'REQUISITION_REQUIRED')}
+                    disabled={!canEdit}
+                    className="mt-0.5"
+                  />
+                  <div>
+                    <span className="text-[13px] font-bold text-slate-800 block">Requisition Required (Recommended)</span>
+                    <span className="text-[11.5px] text-slate-500 block mt-0.5 font-semibold">
+                      Enforce approval workflow. Purchase Orders can only be generated from approved Purchase Requisitions.
+                    </span>
+                  </div>
+                </label>
+                <label className="flex items-start gap-3 cursor-pointer">
+                  <input
+                    type="radio"
+                    name="procurementPolicy"
+                    value="DIRECT_PURCHASE_ALLOWED"
+                    checked={localSettings.procurementPolicy === 'DIRECT_PURCHASE_ALLOWED'}
+                    onChange={() => update('procurementPolicy', 'DIRECT_PURCHASE_ALLOWED')}
+                    disabled={!canEdit}
+                    className="mt-0.5"
+                  />
+                  <div>
+                    <span className="text-[13px] font-bold text-slate-800 block">Direct Purchase Allowed</span>
+                    <span className="text-[11.5px] text-slate-500 block mt-0.5 font-semibold">
+                      Allow direct creation of Purchase Orders without requiring an approved Purchase Requisition.
+                    </span>
+                  </div>
+                </label>
               </div>
             </div>
           </div>

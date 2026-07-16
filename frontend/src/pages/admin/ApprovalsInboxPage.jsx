@@ -120,17 +120,23 @@ export default function ApprovalsInboxPage() {
     setSubmittingReview(false);
   };
 
-  const filteredPending = pendingApprovals.filter(p => 
-    p.docSummary?.toLowerCase().includes(search.toLowerCase()) ||
-    p.stage_name?.toLowerCase().includes(search.toLowerCase()) ||
-    p.submitter_name?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredPending = pendingApprovals.filter(p => {
+    const query = (search || '').toLowerCase();
+    return (
+      (p.docSummary || '').toLowerCase().includes(query) ||
+      (p.stage_name || '').toLowerCase().includes(query) ||
+      (p.submitter_name || '').toLowerCase().includes(query)
+    );
+  });
 
-  const filteredHistory = history.filter(h => 
-    h.stage_name?.toLowerCase().includes(search.toLowerCase()) ||
-    h.actioned_name?.toLowerCase().includes(search.toLowerCase()) ||
-    h.comments?.toLowerCase().includes(search.toLowerCase())
-  );
+  const filteredHistory = history.filter(h => {
+    const query = (search || '').toLowerCase();
+    return (
+      (h.stage_name || '').toLowerCase().includes(query) ||
+      (h.actioned_name || '').toLowerCase().includes(query) ||
+      (h.comments || '').toLowerCase().includes(query)
+    );
+  });
 
   const fmt = (val) => {
     return new Intl.NumberFormat('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 }).format(val);

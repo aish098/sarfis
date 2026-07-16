@@ -31,6 +31,14 @@ class GoodsReceiptService {
     const { companyId, purchaseOrderId, vendorId, warehouseId, receivedDate, supplierReference, notes, items, userId } = data;
     if (!items || items.length === 0) throw new Error('At least one item is required.');
 
+    if (purchaseOrderId) {
+      const po = await trx('purchase_orders').where({ id: purchaseOrderId, company_id: companyId }).first();
+      if (!po) throw new Error('Purchase Order not found.');
+      if (po.status !== 'APPROVED' && po.status !== 'PARTIALLY_RECEIVED') {
+        throw new Error('Goods Receipt cannot be created until the Purchase Order has been approved.');
+      }
+    }
+
     const grnNumber = await this.generateGrnNumber(companyId, trx);
 
     const [grnId] = await trx('goods_receipts')
@@ -60,6 +68,14 @@ class GoodsReceiptService {
     }));
 
     await trx('goods_receipt_items').insert(itemRows);
+
+    // Add audit log
+    await trx('transaction_audit_logs').insert({
+      company_id: companyId,
+      action: 'CREATE',
+      user_id: userId,
+      description: `Created Goods Receipt Note Draft ${grnNumber}.`
+    });
 
     return await this.getGoodsReceiptById(insertedId, companyId, trx);
   }
@@ -174,6 +190,14 @@ class GoodsReceiptService {
           .where({ id: grn.purchase_order_id })
           .update({ status: newPoStatus, updated_at: trx.fn.now() });
       }
+
+      // Add audit log
+      await trx('transaction_audit_logs').insert({
+        company_id: companyId,
+        action: 'RECEIVE_GOODS',
+        user_id: userId,
+        description: `Posted Goods Receipt Note ${grn.grn_number}.`
+      });
 
       return await this.getGoodsReceiptById(id, companyId, trx);
     });
@@ -312,7 +336,9 @@ class GoodsReceiptService {
         payload: voucherPayload,
         totalAmount,
         taxAmount: 0.00,
-        userId
+        userId,
+        goods_receipt_id: id,
+        purchase_order_id: grn.purchase_order_id || null
       }, trx);
 
       // Set links on the created voucher
@@ -322,6 +348,19 @@ class GoodsReceiptService {
           goods_receipt_id: id,
           purchase_order_id: grn.purchase_order_id || null
         });
+
+      // Update GRN status to converted
+      await trx('goods_receipts')
+        .where({ id, company_id: companyId })
+        .update({ status: 'CONVERTED', updated_at: trx.fn.now() });
+
+      // Add audit log
+      await trx('transaction_audit_logs').insert({
+        company_id: companyId,
+        action: 'CREATE_VOUCHER',
+        user_id: userId,
+        description: `Generated Purchase Voucher ${voucher.voucher_number} from Goods Receipt ${grn.grn_number}.`
+      });
 
       return {
         voucherId: voucher.id,

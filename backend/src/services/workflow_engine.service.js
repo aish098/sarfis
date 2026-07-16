@@ -32,15 +32,44 @@ class WorkflowEngineService {
    */
   static async submitToWorkflow(companyId, docTypeCode, docId, amount, userId, trx = db) {
     // 1. Check if a workflow definition exists for this company & doc type
-    const def = await trx('workflow_definitions')
+    let def = await trx('workflow_definitions')
       .where({ company_id: companyId, document_type_code: docTypeCode, is_active: true })
       .first();
 
-    // If no workflow definition exists, automatically approve and post
+    // If no workflow definition exists, dynamically seed a standard one instead of auto-approving
     if (!def) {
-      console.log(`[WORKFLOW] No active definition for ${docTypeCode} in company ${companyId}. Auto-approving...`);
-      await WorkflowRegistryService.executeCallback(docTypeCode, docId, companyId, 'APPROVE', userId, trx);
-      return { status: 'APPROVED', autoApproved: true };
+      console.log(`[WORKFLOW] No active definition for ${docTypeCode} in company ${companyId}. Dynamic seeding...`);
+      
+      const defaultNames = {
+        'PURCHASE_REQUISITION': { defName: 'Standard Purchase Requisition Approval Process', stageName: 'Department Manager Requisition Review' },
+        'BUDGET': { defName: 'Standard Budget Approval Process', stageName: 'Finance Manager Budget Review' },
+        'PURCHASE_ORDER': { defName: 'Standard Purchase Order Approval Process', stageName: 'Manager Purchase Review' }
+      };
+
+      const defaults = defaultNames[docTypeCode] || { 
+        defName: `Standard ${docTypeCode} Approval Process`, 
+        stageName: `Manager ${docTypeCode} Review` 
+      };
+
+      const [inserted] = await trx('workflow_definitions')
+        .insert({
+          company_id: companyId,
+          document_type_code: docTypeCode,
+          name: defaults.defName,
+          is_active: true
+        })
+        .returning('*');
+      
+      def = inserted;
+
+      await trx('workflow_stages').insert({
+        workflow_definition_id: def.id,
+        stage_sequence: 1,
+        name: defaults.stageName,
+        required_role: null,
+        required_permission: null,
+        approval_mode: 'SEQUENTIAL'
+      });
     }
 
     // 2. Load all stages and filter them based on conditions

@@ -73,6 +73,14 @@ class PurchaseRequisitionService {
       }))
     );
 
+    // Add audit log
+    await trx('transaction_audit_logs').insert({
+      company_id: companyId,
+      action: 'CREATE',
+      user_id: requestedBy,
+      description: `Created Purchase Requisition Draft ${requisitionNumber}.`
+    });
+
     return await this.getPurchaseRequisitionById(insertedId, companyId, trx);
   }
 
@@ -177,12 +185,58 @@ class PurchaseRequisitionService {
     // Fetch linked POs if any
     const relatedPos = await trx('purchase_orders')
       .where({ purchase_requisition_id: id })
-      .select('id', 'po_number', 'status');
+      .select('id', 'po_number', 'status', 'created_at');
+
+    const poIds = relatedPos.map(po => po.id);
+    let relatedGrns = [];
+    let relatedVouchers = [];
+
+    if (poIds.length > 0) {
+      relatedGrns = await trx('goods_receipts')
+        .whereIn('purchase_order_id', poIds)
+        .select('id', 'grn_number', 'status', 'created_at');
+
+      const grnIds = relatedGrns.map(g => g.id);
+      let voucherQuery = trx('vouchers').whereIn('purchase_order_id', poIds);
+      if (grnIds.length > 0) {
+        voucherQuery = voucherQuery.orWhereIn('goods_receipt_id', grnIds);
+      }
+      relatedVouchers = await voucherQuery.select('id', 'voucher_number', 'status', 'created_at', 'type');
+    }
+
+    // Fetch active workflow instance current stage name
+    let currentStageName = null;
+    if (pr.status === 'PENDING_APPROVAL') {
+      const activeWorkflow = await trx('workflow_instances as wi')
+        .join('workflow_definitions as wd', 'wi.workflow_definition_id', 'wd.id')
+        .where({
+          'wi.company_id': companyId,
+          'wd.document_type_code': 'PURCHASE_REQUISITION',
+          'wi.document_id': id,
+          'wi.status': 'PENDING'
+        })
+        .first();
+
+      if (activeWorkflow) {
+        const currentStage = await trx('workflow_stages')
+          .where({
+            workflow_definition_id: activeWorkflow.workflow_definition_id,
+            stage_sequence: activeWorkflow.current_stage_sequence
+          })
+          .first();
+        if (currentStage) {
+          currentStageName = currentStage.name;
+        }
+      }
+    }
 
     return {
       ...pr,
       items,
-      relatedPos
+      relatedPos,
+      relatedGrns,
+      relatedVouchers,
+      currentStageName
     };
   }
 
@@ -215,6 +269,14 @@ class PurchaseRequisitionService {
         trx
       );
 
+      // Add audit log
+      await trx('transaction_audit_logs').insert({
+        company_id: companyId,
+        action: 'SUBMIT',
+        user_id: userId,
+        description: `Submitted Purchase Requisition ${pr.requisition_number} for approval routing.`
+      });
+
       return await this.getPurchaseRequisitionById(id, companyId, trx);
     });
   }
@@ -234,18 +296,35 @@ class PurchaseRequisitionService {
         approved_at: trx.fn.now(),
         updated_at: trx.fn.now()
       });
+
+    // Add audit log
+    await trx('transaction_audit_logs').insert({
+      company_id: companyId,
+      action: 'APPROVE',
+      user_id: userId,
+      description: `Approved Purchase Requisition ${pr?.requisition_number || id}.`
+    });
   }
 
   /**
    * Unified workflow callback (Rejects the PR)
    */
   static async rejectPurchaseRequisition(id, companyId, userId, trx = db) {
+    const pr = await trx('purchase_requisitions').where({ id, company_id: companyId }).first();
     await trx('purchase_requisitions')
       .where({ id, company_id: companyId })
       .update({
         status: 'REJECTED',
         updated_at: trx.fn.now()
       });
+
+    // Add audit log
+    await trx('transaction_audit_logs').insert({
+      company_id: companyId,
+      action: 'REJECT',
+      user_id: userId,
+      description: `Rejected Purchase Requisition ${pr?.requisition_number || id}.`
+    });
   }
 
   /**
@@ -277,7 +356,8 @@ class PurchaseRequisitionService {
         date: new Date(),
         notes: `Converted from Purchase Requisition ${pr.requisition_number}. Reason: ${pr.reason || ''}`,
         items: poItems,
-        userId
+        userId,
+        purchase_requisition_id: id
       }, trx);
 
       // Set the link on the PO
@@ -289,6 +369,14 @@ class PurchaseRequisitionService {
       await trx('purchase_requisitions')
         .where({ id, company_id: companyId })
         .update({ status: 'CONVERTED_TO_PO', updated_at: trx.fn.now() });
+
+      // Add audit log
+      await trx('transaction_audit_logs').insert({
+        company_id: companyId,
+        action: 'GENERATE_PO',
+        user_id: userId,
+        description: `Generated Purchase Order ${po.po_number} from Purchase Requisition ${pr.requisition_number}.`
+      });
 
       return {
         purchaseOrderId: po.id,

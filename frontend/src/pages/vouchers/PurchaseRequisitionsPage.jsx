@@ -6,6 +6,7 @@ import useAuthStore from '../../store/authStore';
 import RelatedDocuments from '../../components/RelatedDocuments';
 import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 import StatusBadge from '../../components/ui/StatusBadge';
+import ActivityFeed from '../../components/ui/ActivityFeed';
 
 const STATUS_CONFIG = {
   DRAFT: { label: 'Draft', bg: 'bg-amber-50 text-amber-700 border border-amber-100' },
@@ -33,6 +34,21 @@ export default function PurchaseRequisitionsPage() {
   const [selectedReq, setSelectedReq] = useState(null);
   const [loadingTimeline, setLoadingTimeline] = useState(false);
   const [reqTimeline, setReqTimeline] = useState([]);
+  const [lineageDocs, setLineageDocs] = useState([]);
+  const [loadingLineage, setLoadingLineage] = useState(false);
+
+  const loadLineage = async (reqId) => {
+    if (!activeCompany) return;
+    setLoadingLineage(true);
+    try {
+      const res = await api.get(`/purchase-orders/${activeCompany.id}/PURCHASE_REQUISITION/${reqId}/lineage`);
+      setLineageDocs(res.data);
+    } catch (err) {
+      console.error('Failed to load lineage:', err);
+      setLineageDocs([]);
+    }
+    setLoadingLineage(false);
+  };
 
   // Filters
   const [searchQuery, setSearchQuery] = useState('');
@@ -101,6 +117,7 @@ export default function PurchaseRequisitionsPage() {
       const res = await api.get(`/purchase-requisitions/${activeCompany.id}/${req.id}`);
       setSelectedReq(res.data);
       loadTimeline(req.id);
+      loadLineage(req.id);
     } catch (err) {
       console.error(err);
     }
@@ -144,6 +161,7 @@ export default function PurchaseRequisitionsPage() {
         const updated = await api.get(`/purchase-requisitions/${activeCompany.id}/${id}`);
         setSelectedReq(updated.data);
         loadTimeline(id);
+        loadLineage(id);
       }
     } catch (err) {
       alert(err.response?.data?.error || 'Failed to submit requisition.');
@@ -324,7 +342,7 @@ export default function PurchaseRequisitionsPage() {
             </div>
 
             {/* Meta information */}
-            <div className="grid grid-cols-2 gap-y-3.5 gap-x-2 text-[12px] text-slate-600 border-b border-slate-100 pb-4">
+            <div className="grid grid-cols-2 gap-y-3.5 gap-x-2 text-[12px] text-slate-650 border-b border-slate-100 pb-4">
               <div>
                 <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Requested By</span>
                 <span className="font-bold text-slate-800 flex items-center gap-1 mt-0.5">
@@ -346,12 +364,22 @@ export default function PurchaseRequisitionsPage() {
                   {PRIORITY_CONFIG[selectedReq.priority]?.label}
                 </span>
               </div>
+              <div>
+                <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Submitted By</span>
+                <span className="font-bold text-slate-800 mt-0.5 block">
+                  {reqTimeline.find(t => t.action === 'SUBMIT')?.approver_name || selectedReq.requested_by_name || 'N/A'}
+                </span>
+              </div>
+              <div>
+                <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Current Stage</span>
+                <span className="font-bold text-indigo-600 mt-0.5 block">{selectedReq.currentStageName || (selectedReq.status === 'APPROVED' ? 'Approved' : selectedReq.status === 'CONVERTED_TO_PO' ? 'Completed' : 'Draft')}</span>
+              </div>
             </div>
 
             {selectedReq.reason && (
               <div className="space-y-1">
                 <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Business Justification</span>
-                <p className="text-[12px] italic text-slate-600 leading-relaxed bg-slate-50/50 p-3 rounded-xl border border-slate-100/50">{selectedReq.reason}</p>
+                <p className="text-[12px] italic text-slate-600 leading-relaxed bg-slate-50/50 p-3 rounded-xl border border-slate-100/50 font-semibold">{selectedReq.reason}</p>
               </div>
             )}
 
@@ -372,7 +400,7 @@ export default function PurchaseRequisitionsPage() {
                       <tr key={idx} className="hover:bg-slate-50/30">
                         <td className="px-3 py-2">
                           <span className="block font-bold text-slate-800">{item.product_name}</span>
-                          {item.description && <span className="block text-[9.5px] text-slate-400">{item.description}</span>}
+                          {item.description && <span className="block text-[9.5px] text-slate-450 font-semibold">{item.description}</span>}
                         </td>
                         <td className="px-3 py-2 text-right font-mono font-bold text-slate-800">{parseFloat(item.quantity)}</td>
                         <td className="px-3 py-2 text-right font-mono font-bold text-slate-800">PKR {parseFloat(item.estimated_price).toLocaleString()}</td>
@@ -388,24 +416,16 @@ export default function PurchaseRequisitionsPage() {
             </div>
 
             {/* Document Journey and relationships mapping */}
-            {(() => {
-              const relatedDocs = [];
-              // Purchase order link if converted
-              if (selectedReq.relatedPos && selectedReq.relatedPos.length > 0) {
-                selectedReq.relatedPos.forEach(po => {
-                  relatedDocs.push({
-                    type: 'PURCHASE_ORDER',
-                    id: po.id,
-                    number: po.po_number,
-                    status: po.status,
-                    link: `/dashboard/purchase-orders?id=${po.id}`
-                  });
-                });
-              }
-              return <RelatedDocuments documents={relatedDocs} currentType="PURCHASE_REQUISITION" />;
-            })()}
+            <div className="space-y-2 pt-3 border-t border-slate-100">
+              <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Document Journey & Relationships</span>
+              {loadingLineage ? (
+                <div className="text-[11px] text-slate-400 italic"><RefreshCw size={11} className="animate-spin inline mr-1" /> Loading journey...</div>
+              ) : (
+                <RelatedDocuments documents={lineageDocs} currentType="PURCHASE_REQUISITION" />
+              )}
+            </div>
 
-            {/* Approvals history timeline */}
+            {/* Approvals history timeline using ActivityFeed */}
             <div className="space-y-3 pt-3.5 border-t border-slate-150">
               <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Approval Workflow Timeline</span>
               {loadingTimeline ? (
@@ -413,23 +433,24 @@ export default function PurchaseRequisitionsPage() {
               ) : reqTimeline.length === 0 ? (
                 <div className="text-[11px] text-slate-400 italic bg-slate-50 p-2.5 rounded-lg border border-dashed border-slate-200">No workflow approvals history generated yet.</div>
               ) : (
-                <div className="space-y-3.5 border-l-2 border-slate-100 pl-4.5 py-0.5 ml-2.5">
-                  {reqTimeline.map((item, idx) => (
-                    <div key={item.id} className="relative text-[11px]">
-                      <span className={`absolute -left-[24.5px] top-0.5 w-3.5 h-3.5 rounded-full border bg-white flex items-center justify-center ${
-                        item.action === 'SUBMITTED' ? 'border-indigo-400 text-indigo-500' :
-                        item.action === 'APPROVED' ? 'border-emerald-400 text-emerald-500' :
-                        'border-rose-400 text-rose-500'
-                      }`}>
-                        <span className="w-1.5 h-1.5 rounded-full bg-current" />
-                      </span>
-                      <div className="space-y-0.5">
-                        <p className="font-bold text-slate-800">{item.action} — {item.stage_name}</p>
-                        <p className="text-[9px] text-slate-450 font-bold">By {item.actioned_name || 'System'} • {new Date(item.created_at).toLocaleDateString()} at {new Date(item.created_at).toLocaleTimeString()}</p>
-                      </div>
-                    </div>
-                  ))}
-                </div>
+                <ActivityFeed
+                  events={(reqTimeline || []).map((item, idx) => {
+                    let statusColor = 'blue';
+                    if (item.action === 'APPROVED') statusColor = 'green';
+                    else if (item.action === 'REJECTED') statusColor = 'red';
+                    else if (item.action === 'SUBMIT') statusColor = 'blue';
+                    else if (item.action === 'SKIPPED') statusColor = 'gray';
+
+                    return {
+                      id: item.id || idx,
+                      title: `${item.stage_name || 'Workflow Step'}: ${item.action}`,
+                      description: item.comments ? `"${item.comments}"` : 'No comments provided.',
+                      timestamp: item.action_date || item.created_at,
+                      statusColor,
+                      meta: `Processed by ${item.approver_name || 'System'}`
+                    };
+                  })}
+                />
               )}
             </div>
 

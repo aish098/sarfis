@@ -37,7 +37,9 @@ export default function VoucherForm() {
   const [customArAccountId, setCustomArAccountId] = useState('');
   const [customApAccountId, setCustomApAccountId] = useState('');
   const [amount, setAmount] = useState('');
-  
+  const [unpaidVouchers, setUnpaidVouchers] = useState([]);
+  const [linkedPurchaseVoucherId, setLinkedPurchaseVoucherId] = useState('');
+
   // Document line items for Sales/Purchase
   const [items, setItems] = useState([{ productId: '', quantity: '', unitPrice: '', unitCost: '' }]);
 
@@ -145,6 +147,7 @@ export default function VoucherForm() {
           setCashAccountId(v.payload?.cashAccountId || '');
           setCustomApAccountId(v.payload?.ap_account_id || '');
           setAmount(v.payload?.amount || '');
+          setLinkedPurchaseVoucherId(v.payload?.purchase_voucher_id || '');
         } else if (v.type === 'JOURNAL') {
           if (v.payload?.lines) {
             setJournalLines(v.payload.lines.map(l => ({
@@ -210,6 +213,38 @@ export default function VoucherForm() {
       setActiveOverrideRequest(null);
     }
   }, [vendorId, type, checkPartnerRisk]);
+
+  useEffect(() => {
+    const fetchUnpaidVouchers = async () => {
+      if (type === 'PAYMENT' && vendorId && activeCompany) {
+        try {
+          const res = await api.get(`/vouchers/${activeCompany.id}?type=PURCHASE&status=POSTED`);
+          const unpaid = res.data.filter(v => v.status === 'POSTED');
+          setUnpaidVouchers(unpaid);
+        } catch (err) {
+          console.error('Failed to load unpaid vouchers:', err);
+          setUnpaidVouchers([]);
+        }
+      } else {
+        setUnpaidVouchers([]);
+      }
+    };
+    fetchUnpaidVouchers();
+  }, [type, vendorId, activeCompany]);
+
+  const handleLinkedVoucherChange = (voucherId) => {
+    setLinkedPurchaseVoucherId(voucherId);
+    if (voucherId) {
+      const selected = unpaidVouchers.find(v => String(v.id) === String(voucherId));
+      if (selected) {
+        setAmount(String(selected.total_amount));
+        setTotalAmount(parseFloat(selected.total_amount));
+      }
+    } else {
+      setAmount('');
+      setTotalAmount(0);
+    }
+  };
 
   useEffect(() => {
     const init = async () => {
@@ -526,7 +561,8 @@ export default function VoucherForm() {
           vendorId: parseInt(vendorId),
           cashAccountId: cashAccountId ? parseInt(cashAccountId) : undefined,
           ap_account_id: customApAccountId ? parseInt(customApAccountId) : undefined,
-          amount: parseFloat(amount)
+          amount: parseFloat(amount),
+          purchase_voucher_id: linkedPurchaseVoucherId ? parseInt(linkedPurchaseVoucherId, 10) : undefined
         };
       } else if (type === 'JOURNAL') {
         const validLines = journalLines.filter(l => l.accountId && (parseFloat(l.debit) > 0 || parseFloat(l.credit) > 0));
@@ -698,7 +734,25 @@ export default function VoucherForm() {
             animate={{ opacity: 1, y: 0 }}
             className="card !rounded-2xl border border-slate-100 bg-white p-6 lg:p-8 space-y-6"
           >
-            <form onSubmit={handleSubmit} className="space-y-6">
+            {type === 'PURCHASE' && !id ? (
+              <div className="bg-amber-50/50 border border-amber-250 p-8 rounded-3xl text-center space-y-4 max-w-xl mx-auto shadow-sm my-6 border-dashed">
+                <AlertTriangle className="text-amber-500 mx-auto" size={48} />
+                <h3 className="text-[15px] font-black text-slate-800 uppercase tracking-wider">Manual Purchase Voucher Blocked</h3>
+                <p className="text-[12.5px] text-slate-650 leading-relaxed font-semibold">
+                  Purchase Vouchers must be generated directly from a Posted Goods Receipt. Please navigate to Inventory ➔ Goods Receipts to select a receipt.
+                </p>
+                <div className="pt-2">
+                  <button
+                    type="button"
+                    onClick={() => navigate('/dashboard/goods-receipts')}
+                    className="px-5 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[12.5px] font-bold shadow transition cursor-pointer border-none"
+                  >
+                    Go to Goods Receipts
+                  </button>
+                </div>
+              </div>
+            ) : (
+              <form onSubmit={handleSubmit} className="space-y-6">
               {formError && (
                 <div className="flex items-start gap-2.5 p-4 rounded-xl bg-rose-55 bg-rose-50 border border-rose-100 text-rose-700">
                   <AlertTriangle size={16} className="mt-0.5 flex-shrink-0" />
@@ -1031,6 +1085,26 @@ export default function VoucherForm() {
                     <span className="text-[11px] font-black uppercase tracking-widest text-slate-400">Cash Flow Setup</span>
                   </div>
 
+                  {type === 'PAYMENT' && (
+                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-2">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-450 mb-1">Link to Purchase Voucher *</label>
+                      <select 
+                        required 
+                        className="input-enterprise text-[13px]"
+                        value={linkedPurchaseVoucherId} 
+                        onChange={e => handleLinkedVoucherChange(e.target.value)}
+                      >
+                        <option value="">— Select Posted Unpaid Voucher —</option>
+                        {unpaidVouchers.map(v => (
+                          <option key={v.id} value={v.id}>
+                            {v.voucher_number} (Date: {new Date(v.date).toLocaleDateString()}, Total: PKR {parseFloat(v.total_amount).toLocaleString()})
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] text-slate-500 font-semibold">Pre-populates the outstanding payable amount from the posted invoice.</p>
+                    </div>
+                  )}
+
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                     <div>
                       <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Liquid Cash / Bank Account *</label>
@@ -1266,6 +1340,7 @@ export default function VoucherForm() {
                 </button>
               </div>
             </form>
+            )}
           </Motion.div>
         </div>
 

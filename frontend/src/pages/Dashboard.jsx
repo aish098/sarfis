@@ -109,6 +109,7 @@ function DashboardOverview() {
     recentMsgs: []
   });
   const [obStatus, setObStatus] = useState('POSTED');
+  const [procurementCounts, setProcurementCounts] = useState({ requisitionsPending: 0, posPending: 0, receiptsPending: 0, vouchersPending: 0, paymentsPending: 0 });
 
   const loadEmployeeData = useCallback(async () => {
     if (!activeCompany) return;
@@ -165,6 +166,13 @@ function DashboardOverview() {
         expenses: parseFloat(r.expenses || 0),
         cashFlow: parseFloat(r.profit || 0),
       })));
+
+      try {
+        const countsRes = await api.get(`/purchase-orders/${activeCompany.id}/procurement/dashboard-counts`);
+        setProcurementCounts(countsRes.data);
+      } catch (e) {
+        console.error('Failed to load procurement dashboard counts:', e);
+      }
     } catch (err) {
       console.error("Dashboard data load error", err);
     }
@@ -425,6 +433,31 @@ function DashboardOverview() {
                   {item.label}
                 </button>
               ))}
+            </div>
+          </PowerBICard>
+
+          <PowerBICard title="Procurement Queue" subtitle="Actions requiring attention today">
+            <div className="grid grid-cols-2 gap-3 pt-1.5 font-sans">
+              <div onClick={() => navigate('/dashboard/purchase-requisitions')} className="p-3 bg-[#f3f2f1] rounded-xl border border-[#edebe9] hover:bg-[#edebe9] cursor-pointer transition-all">
+                <span className="text-[10px] text-slate-400 font-extrabold uppercase block leading-tight">PR Pending</span>
+                <span className="text-[18px] font-black text-slate-800 block mt-1">{procurementCounts.requisitionsPending}</span>
+              </div>
+              <div onClick={() => navigate('/dashboard/purchase-orders')} className="p-3 bg-[#f3f2f1] rounded-xl border border-[#edebe9] hover:bg-[#edebe9] cursor-pointer transition-all">
+                <span className="text-[10px] text-slate-400 font-extrabold uppercase block leading-tight">PO Pending</span>
+                <span className="text-[18px] font-black text-slate-800 block mt-1">{procurementCounts.posPending}</span>
+              </div>
+              <div onClick={() => navigate('/dashboard/goods-receipts')} className="p-3 bg-[#f3f2f1] rounded-xl border border-[#edebe9] hover:bg-[#edebe9] cursor-pointer transition-all">
+                <span className="text-[10px] text-slate-400 font-extrabold uppercase block leading-tight">To Receive</span>
+                <span className="text-[18px] font-black text-slate-800 block mt-1">{procurementCounts.receiptsPending}</span>
+              </div>
+              <div onClick={() => navigate('/dashboard/goods-receipts')} className="p-3 bg-[#f3f2f1] rounded-xl border border-[#edebe9] hover:bg-[#edebe9] cursor-pointer transition-all">
+                <span className="text-[10px] text-slate-400 font-extrabold uppercase block leading-tight">To Bill</span>
+                <span className="text-[18px] font-black text-slate-800 block mt-1">{procurementCounts.vouchersPending}</span>
+              </div>
+              <div onClick={() => navigate('/dashboard/vouchers')} className="p-3 bg-[#f3f2f1] rounded-xl border border-[#edebe9] hover:bg-[#edebe9] cursor-pointer transition-all col-span-2">
+                <span className="text-[10px] text-slate-400 font-extrabold uppercase block leading-tight">Unpaid Invoices</span>
+                <span className="text-[18px] font-black text-emerald-600 block mt-1">{procurementCounts.paymentsPending}</span>
+              </div>
             </div>
           </PowerBICard>
 

@@ -73,11 +73,29 @@ class VoucherService {
   /**
    * Creates a draft voucher
    */
-  static async createDraft({ companyId, type, date, payload, totalAmount, taxAmount, userId }) {
+  static async createDraft({ companyId, type, date, payload, totalAmount, taxAmount, userId, goods_receipt_id, purchase_order_id }, externalTrx = null) {
     if (!companyId) throw new Error('Company context required.');
     if (!type) throw new Error('Voucher type required.');
 
-    return await db.transaction(async (trx) => {
+    const action = async (trx) => {
+      if (type.toUpperCase() === 'PURCHASE') {
+        if (!goods_receipt_id) {
+          throw new Error('Purchase Voucher can only be generated from an approved Goods Receipt.');
+        }
+        const grn = await trx('goods_receipts').where({ id: goods_receipt_id, company_id: companyId }).first();
+        if (!grn || grn.status !== 'RECEIVED') {
+          throw new Error('Purchase Voucher can only be generated from an approved Goods Receipt.');
+        }
+      }
+
+      if (type.toUpperCase() === 'PAYMENT' && payload?.purchase_voucher_id) {
+        const purchaseVoucherId = payload.purchase_voucher_id;
+        const pv = await trx('vouchers').where({ id: purchaseVoucherId, company_id: companyId }).first();
+        if (!pv || pv.type !== 'PURCHASE' || pv.status !== 'POSTED') {
+          throw new Error('Supplier Payments can only be recorded against a posted Purchase Voucher.');
+        }
+      }
+
       const voucherNumber = await this.generateVoucherNumber(companyId, type, trx);
       const overrideRequestId = payload?.override_request_id ? parseInt(payload.override_request_id) : null;
 
@@ -92,6 +110,8 @@ class VoucherService {
           total_amount: parseFloat(totalAmount || 0),
           tax_amount: parseFloat(taxAmount || 0),
           override_request_id: overrideRequestId,
+          goods_receipt_id: goods_receipt_id || null,
+          purchase_order_id: purchase_order_id || null,
           created_by: userId
         })
         .returning('*');
@@ -105,7 +125,13 @@ class VoucherService {
       });
 
       return voucher;
-    });
+    };
+
+    if (externalTrx) {
+      return await action(externalTrx);
+    } else {
+      return await db.transaction(action);
+    }
   }
 
   /**
@@ -235,6 +261,22 @@ class VoucherService {
           updated_at: t.fn.now()
         })
         .returning('*');
+
+      // Update parent Purchase Voucher status to PAID if this is a PAYMENT voucher
+      if (voucher.type === 'PAYMENT' && voucher.payload?.purchase_voucher_id) {
+        const pvId = parseInt(voucher.payload.purchase_voucher_id, 10);
+        await t('vouchers')
+          .where({ id: pvId, company_id: companyId })
+          .update({ status: 'PAID', updated_at: t.fn.now() });
+
+        await t('transaction_audit_logs').insert({
+          company_id: companyId,
+          voucher_id: pvId,
+          action: 'PAY_SUPPLIER',
+          user_id: userId,
+          description: `Voucher paid via Payment Voucher ${voucher.voucher_number}.`
+        });
+      }
 
       return updated;
     };
