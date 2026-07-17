@@ -1008,8 +1008,8 @@ export default function ReportsPage() {
 }
 
 function TrialBalance({ data }) {
-  if (!data) return <Empty />;
-  const rows = (data || []).map(acc => {
+  if (!data || !Array.isArray(data)) return <Empty />;
+  const rows = data.map(acc => {
     const d = parseFloat(acc.total_debit) || 0, c = parseFloat(acc.total_credit) || 0, net = d - c;
     return { ...acc, finalDebit: net > 0 ? net : 0, finalCredit: net < 0 ? Math.abs(net) : 0 };
   }).filter(r => r.finalDebit > 0 || r.finalCredit > 0);
