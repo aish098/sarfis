@@ -49,7 +49,7 @@ export default function AccountsPage({ globalSearch = "" }) {
     if (!isExpanded && !subledgerData[code]) {
       setSubledgerLoading(prev => ({ ...prev, [code]: true }));
       try {
-        const isAR = acc.is_control && acc.name.toLowerCase().includes('receivable');
+        const isAR = acc.name === 'Accounts Receivable' || (acc.is_control && acc.name.toLowerCase().includes('receivable'));
         const endpoint = isAR ? '/subledger/receivables' : '/subledger/payables';
         const res = await api.get(endpoint);
         setSubledgerData(prev => ({ ...prev, [code]: res.data }));
@@ -249,8 +249,8 @@ export default function AccountsPage({ globalSearch = "" }) {
                 </tr>
               ) : (
                 filtered.map(acc => {
-                  const isAR = acc.is_control && acc.name.toLowerCase().includes('receivable');
-                  const isAP = acc.is_control && acc.name.toLowerCase().includes('payable');
+                  const isAR = acc.name === 'Accounts Receivable' || (acc.is_control && acc.name.toLowerCase().includes('receivable'));
+                  const isAP = acc.name === 'Accounts Payable' || (acc.is_control && acc.name.toLowerCase().includes('payable'));
                   const isControlAcc = isAR || isAP;
                   const isExpanded = !!expandedControlAccounts[acc.code];
 
