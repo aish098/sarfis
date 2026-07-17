@@ -404,18 +404,43 @@ export default function ReportsPage() {
       const ytd = revLines.reduce((s,n)=>s+n,0) - expLines.reduce((s,n)=>s+n,0);
       if (Math.abs(ytd) > 0.001) equity.push({ name: 'Current Year Earnings', net: ytd });
       
+      const currentAssets = assets.filter(a => a.current_classification !== 'NON_CURRENT');
+      const nonCurrentAssets = assets.filter(a => a.current_classification === 'NON_CURRENT');
+      const currentLiabs = liabs.filter(a => a.current_classification !== 'NON_CURRENT');
+      const nonCurrentLiabs = liabs.filter(a => a.current_classification === 'NON_CURRENT');
+      
+      const tCA = currentAssets.reduce((s,r)=>s+r.net,0);
+      const tNCA = nonCurrentAssets.reduce((s,r)=>s+r.net,0);
+      const tCL = currentLiabs.reduce((s,r)=>s+r.net,0);
+      const tNCL = nonCurrentLiabs.reduce((s,r)=>s+r.net,0);
+      const tA = assets.reduce((s,r)=>s+r.net,0);
+      const tL = liabs.reduce((s,r)=>s+r.net,0);
+      const tE = equity.reduce((s,r)=>s+r.net,0);
+
       rows = [
-        ['ASSETS', ''],
-        ...assets.map(a => [a.name, fmt(a.net)]),
-        ['Total Assets', fmt(assets.reduce((s,r)=>s+r.net,0))],
+        ['CURRENT ASSETS', ''],
+        ...currentAssets.map(a => [a.name, fmt(a.net)]),
+        ['Total Current Assets', fmt(tCA)],
         ['', ''],
-        ['LIABILITIES', ''],
-        ...liabs.map(l => [l.name, fmt(l.net)]),
-        ['Total Liabilities', fmt(liabs.reduce((s,r)=>s+r.net,0))],
+        ['NON-CURRENT ASSETS', ''],
+        ...nonCurrentAssets.map(a => [a.name, fmt(a.net)]),
+        ['Total Non-Current Assets', fmt(tNCA)],
+        ['', ''],
+        ['TOTAL ASSETS', fmt(tA)],
+        ['', ''],
+        ['CURRENT LIABILITIES', ''],
+        ...currentLiabs.map(l => [l.name, fmt(l.net)]),
+        ['Total Current Liabilities', fmt(tCL)],
+        ['', ''],
+        ['NON-CURRENT LIABILITIES', ''],
+        ...nonCurrentLiabs.map(l => [l.name, fmt(l.net)]),
+        ['Total Non-Current Liabilities', fmt(tNCL)],
+        ['', ''],
+        ['TOTAL LIABILITIES', fmt(tL)],
         ['', ''],
         ['EQUITY', ''],
         ...equity.map(e => [e.name, fmt(e.net)]),
-        ['Total Equity', fmt(equity.reduce((s,r)=>s+r.net,0))]
+        ['Total Equity', fmt(tE)]
       ];
     } else if (tab === 'cash_flow') {
       columns = ['Activity', 'Amount'];
