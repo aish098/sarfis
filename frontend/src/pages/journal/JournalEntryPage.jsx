@@ -234,14 +234,6 @@ export default function JournalEntryPage() {
     const codeStr = String(code);
     const nameLower = String(name || '').toLowerCase();
     
-    // Parent check
-    if (codeStr.length >= 3) {
-      const parentCode = codeStr.substring(0, 2) + '00';
-      const parentAcc = accounts.find(a => a.code === parentCode);
-      if (parentAcc && parentAcc.current_classification && parentAcc.current_classification !== 'NOT_APPLICABLE') {
-        return parentAcc.current_classification;
-      }
-    }
     if (codeStr.startsWith('15') || codeStr.startsWith('16') || codeStr.startsWith('22') || codeStr.startsWith('25')) {
       return 'NON_CURRENT';
     }
@@ -252,6 +244,14 @@ export default function JournalEntryPage() {
     ];
     if (nonCurrentKeywords.some(keyword => nameLower.includes(keyword))) {
       return 'NON_CURRENT';
+    }
+    // Parent check (fallback)
+    if (codeStr.length >= 3) {
+      const parentCode = codeStr.substring(0, 2) + '00';
+      const parentAcc = accounts.find(a => a.code === parentCode);
+      if (parentAcc && parentAcc.current_classification && parentAcc.current_classification !== 'NOT_APPLICABLE') {
+        return parentAcc.current_classification;
+      }
     }
     return 'CURRENT';
   };

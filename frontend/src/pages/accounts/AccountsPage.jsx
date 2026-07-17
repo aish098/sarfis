@@ -36,10 +36,10 @@ const suggestClassification = (code, name, accountsList) => {
   if (!code) return 'CURRENT';
   const prefix = code[0];
   if (prefix !== '1' && prefix !== '2') return 'NOT_APPLICABLE';
-  
+
   const codeStr = String(code);
   const nameLower = String(name || '').toLowerCase();
-  
+
   // 1. Check parent account first
   if (codeStr.length >= 3) {
     const parentCode = codeStr.substring(0, 2) + '00';
@@ -48,7 +48,7 @@ const suggestClassification = (code, name, accountsList) => {
       return parentAcc.current_classification;
     }
   }
-  
+
   // 2. Check code ranges (Non-Current)
   if (codeStr.startsWith('15') || codeStr.startsWith('16')) {
     return 'NON_CURRENT';
@@ -56,17 +56,17 @@ const suggestClassification = (code, name, accountsList) => {
   if (codeStr.startsWith('22') || codeStr.startsWith('25')) {
     return 'NON_CURRENT';
   }
-  
+
   // 3. Check name keywords
   const nonCurrentKeywords = [
-    'machinery', 'equipment', 'vehicle', 'lease', 'mortgage', 
-    'long-term', 'long term', 'building', 'land', 'furniture', 
+    'machinery', 'equipment', 'vehicle', 'lease', 'mortgage',
+    'long-term', 'long term', 'building', 'land', 'furniture',
     'depreciation', 'patent', 'copyright', 'goodwill', 'loan'
   ];
   if (nonCurrentKeywords.some(keyword => nameLower.includes(keyword))) {
     return 'NON_CURRENT';
   }
-  
+
   return 'CURRENT';
 };
 
@@ -130,13 +130,13 @@ export default function AccountsPage({ globalSearch = "" }) {
     for (const a of groupAccountsList) {
       netBalance += parseFloat(a.balance || 0);
     }
-    
+
     const groupDef = ACCOUNT_GROUPS.find(g => g.id === groupId);
     const normal = groupDef ? groupDef.normalBalance : 'Debit';
-    
+
     let indicator = 'Dr';
     let displayBalance = netBalance;
-    
+
     if (normal === 'Debit') {
       if (netBalance >= 0) {
         indicator = 'Dr';
@@ -152,7 +152,7 @@ export default function AccountsPage({ globalSearch = "" }) {
         displayBalance = Math.abs(netBalance);
       }
     }
-    
+
     return {
       count,
       balanceStr: `PKR ${displayBalance.toLocaleString(undefined, { minimumFractionDigits: 2 })} ${indicator}`
@@ -164,9 +164,9 @@ export default function AccountsPage({ globalSearch = "" }) {
     const parts = String(text).split(new RegExp(`(${query.replace(/[-\/\\^$*+?.()|[\]{}]/g, '\\$&')})`, 'gi'));
     return (
       <span>
-        {parts.map((part, i) => 
-          part.toLowerCase() === query.toLowerCase() 
-            ? <mark key={i} className="bg-amber-100 text-amber-950 font-bold px-0.5 rounded">{part}</mark> 
+        {parts.map((part, i) =>
+          part.toLowerCase() === query.toLowerCase()
+            ? <mark key={i} className="bg-amber-100 text-amber-950 font-bold px-0.5 rounded">{part}</mark>
             : part
         )}
       </span>
@@ -216,8 +216,8 @@ export default function AccountsPage({ globalSearch = "" }) {
     const searchVal = (subledgerSearch[code] || '').toLowerCase();
     const sortBy = subledgerSorting[code] || 'Alpha';
 
-    const filteredList = list.filter(item => 
-      item.name.toLowerCase().includes(searchVal) || 
+    const filteredList = list.filter(item =>
+      item.name.toLowerCase().includes(searchVal) ||
       item.code.toLowerCase().includes(searchVal)
     );
 
@@ -265,7 +265,7 @@ export default function AccountsPage({ globalSearch = "" }) {
   const filtered = accounts.filter(a => {
     const q = search.trim().toLowerCase();
     if (!q) return true;
-    
+
     // If query is numeric, match codes starting with the query or names containing it.
     // Otherwise, match names or codes containing it.
     const isNumeric = /^\d+$/.test(q);
@@ -284,7 +284,7 @@ export default function AccountsPage({ globalSearch = "" }) {
     const stdBalance = ['Asset', 'Expense'].includes(category) ? 'Debit' : 'Credit';
     const isAssetOrLiab = ['Asset', 'Liability'].includes(category);
     const suggested = isAssetOrLiab ? suggestClassification(val, form.name, accounts) : 'NOT_APPLICABLE';
-    
+
     setForm(prev => ({
       ...prev,
       code: val,
@@ -297,7 +297,7 @@ export default function AccountsPage({ globalSearch = "" }) {
   const handleNameChange = (val) => {
     const isAssetOrLiab = ['Asset', 'Liability'].includes(form.category);
     const suggested = isAssetOrLiab ? suggestClassification(form.code, val, accounts) : 'NOT_APPLICABLE';
-    
+
     setForm(prev => ({
       ...prev,
       name: val,
@@ -342,11 +342,11 @@ export default function AccountsPage({ globalSearch = "" }) {
 
   const handleEdit = (acc) => {
     setEditingId(acc.id);
-    setForm({ 
-      code: acc.code, 
-      name: acc.name, 
-      category: acc.category || acc.type, 
-      normal_balance: acc.normal_balance || 'Debit', 
+    setForm({
+      code: acc.code,
+      name: acc.name,
+      category: acc.category || acc.type,
+      normal_balance: acc.normal_balance || 'Debit',
       is_contra: acc.is_contra || false,
       current_classification: acc.current_classification || 'NOT_APPLICABLE'
     });
@@ -382,14 +382,14 @@ export default function AccountsPage({ globalSearch = "" }) {
         breadcrumbs={['ACCOUNTELLENCE', 'Finance', 'Chart of Accounts']}
         primaryAction={
           <div className="flex items-center gap-3">
-            <button 
+            <button
               onClick={() => navigate('/dashboard/accounts/opening-balances')}
               className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200/80 px-4.5 py-2 text-[12.5px] font-bold rounded-xl transition cursor-pointer select-none"
             >
               <Sliders size={14} /> Opening Balances
             </button>
-            <button 
-              onClick={() => setModalOpen(true)} 
+            <button
+              onClick={() => setModalOpen(true)}
               className="flex items-center gap-2 bg-[#10b981] hover:bg-[#059669] text-white px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer border-none"
             >
               <Plus size={14} /> Add Account
@@ -443,8 +443,8 @@ export default function AccountsPage({ globalSearch = "" }) {
                 {filtered.length} {filtered.length === 1 ? 'matching account' : 'matching accounts'} found
               </span>
             </div>
-            <button 
-              type="button" 
+            <button
+              type="button"
               onClick={() => setLocalSearch('')}
               className="text-[11px] font-extrabold uppercase text-emerald-600 hover:text-emerald-800 transition-colors border-none bg-transparent cursor-pointer font-sans"
             >
@@ -457,306 +457,305 @@ export default function AccountsPage({ globalSearch = "" }) {
         <div className="col-span-full">
           <div className="card overflow-hidden bg-white border border-slate-100 rounded-3xl">
             <div className="overflow-x-auto">
-          <table className="data-table">
-            <thead>
-              <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
-                <th style={{ width: '12%' }} className="!pl-5 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Code</th>
-                <th style={{ width: '33%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Account Name</th>
-                <th style={{ width: '15%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Category</th>
-                <th style={{ width: '15%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Classification</th>
-                <th style={{ width: '13%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Balance Type</th>
-                <th style={{ width: '12%' }} className="!text-left !pr-5 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Actions</th>
-              </tr>
-            </thead>
-            <Motion.tbody variants={stagger} initial="initial" animate="animate">
-              {isLoading ? (
-                Array.from({ length: 12 }).map((_, i) => (
-                  <tr key={i}>
-                    <td><div className="skeleton h-3.5 w-16" /></td>
-                    <td><div className="skeleton h-3.5 w-48" /></td>
-                    <td><div className="skeleton h-5 w-20 rounded-full" /></td>
-                    <td />
-                    <td />
-                    <td />
+              <table className="data-table">
+                <thead>
+                  <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
+                    <th style={{ width: '12%' }} className="!pl-5 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Code</th>
+                    <th style={{ width: '33%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Account Name</th>
+                    <th style={{ width: '15%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Category</th>
+                    <th style={{ width: '15%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Classification</th>
+                    <th style={{ width: '13%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Balance Type</th>
+                    <th style={{ width: '12%' }} className="!text-left !pr-5 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Actions</th>
                   </tr>
-                ))
-              ) : filtered.length === 0 ? (
-                <tr>
-                  <td colSpan={6} className="text-center py-16 text-slate-400">
-                    <Search size={28} className="mx-auto mb-2 text-slate-300" />
-                    <p className="text-[13px]">No accounts found</p>
-                  </td>
-                </tr>
-              ) : (
-                ACCOUNT_GROUPS.map(group => {
-                  const groupAccountsList = filtered.filter(a => getGroupKey(a.code) === group.id);
-                  if (search.trim() !== '' && groupAccountsList.length === 0) return null;
-
-                  const isExpanded = isGroupExpanded(group.id);
-                  const summary = getGroupSummary(group.id, groupAccountsList);
-
-                  return (
-                    <React.Fragment key={group.id}>
-                      {/* Sticky group header */}
-                      <tr 
-                        onClick={() => toggleGroup(group.id)}
-                        className="bg-slate-50 hover:bg-[#F2F6F4] border-y border-slate-200 select-none cursor-pointer z-10 transition-colors"
-                        style={{ backdropFilter: 'blur(8px)', position: 'sticky', top: 0, zIndex: 10 }}
-                      >
-                        <td colSpan={6} className="!py-3.5 px-4 font-bold text-slate-800">
-                          <div className="flex items-center justify-between w-full">
-                            <div className="flex items-center gap-2">
-                              <ChevronDown 
-                                size={16} 
-                                className={`text-slate-450 transition-transform duration-200 ${
-                                  isExpanded ? 'rotate-0' : '-rotate-90'
-                                }`} 
-                              />
-                              <span className="text-[14px] font-extrabold uppercase tracking-wide text-slate-800">
-                                {group.title} ({group.range})
-                              </span>
-                              <span className="text-[11px] bg-slate-200/80 text-slate-655 px-2 py-0.5 rounded-full font-black uppercase tracking-wider ml-2">
-                                {summary.count} {summary.count === 1 ? 'Account' : 'Accounts'}
-                              </span>
-                            </div>
-                            <div className="text-[13px] font-mono font-black text-slate-700 pr-4">
-                              {summary.balanceStr}
-                            </div>
-                          </div>
-                        </td>
+                </thead>
+                <Motion.tbody variants={stagger} initial="initial" animate="animate">
+                  {isLoading ? (
+                    Array.from({ length: 12 }).map((_, i) => (
+                      <tr key={i}>
+                        <td><div className="skeleton h-3.5 w-16" /></td>
+                        <td><div className="skeleton h-3.5 w-48" /></td>
+                        <td><div className="skeleton h-5 w-20 rounded-full" /></td>
+                        <td />
+                        <td />
+                        <td />
                       </tr>
+                    ))
+                  ) : filtered.length === 0 ? (
+                    <tr>
+                      <td colSpan={6} className="text-center py-16 text-slate-400">
+                        <Search size={28} className="mx-auto mb-2 text-slate-300" />
+                        <p className="text-[13px]">No accounts found</p>
+                      </td>
+                    </tr>
+                  ) : (
+                    ACCOUNT_GROUPS.map(group => {
+                      const groupAccountsList = filtered.filter(a => getGroupKey(a.code) === group.id);
+                      if (search.trim() !== '' && groupAccountsList.length === 0) return null;
 
-                      {/* Group accounts list */}
-                      {isExpanded && groupAccountsList.length === 0 && (
-                        <tr>
-                          <td colSpan={6} className="text-center py-6 text-slate-400 text-[12.5px] italic">
-                            No accounts in this category.
-                          </td>
-                        </tr>
-                      )}
+                      const isExpanded = isGroupExpanded(group.id);
+                      const summary = getGroupSummary(group.id, groupAccountsList);
 
-                      {isExpanded && groupAccountsList.map(acc => {
-                        const isAR = acc.name === 'Accounts Receivable' || (acc.is_control && acc.name.toLowerCase().includes('receivable'));
-                        const isAP = acc.name === 'Accounts Payable' || (acc.is_control && acc.name.toLowerCase().includes('payable'));
-                        const isControlAcc = isAR || isAP;
-                        const isSubExpanded = !!expandedControlAccounts[acc.code];
-
-                        return (
-                          <React.Fragment key={acc.id}>
-                            <Motion.tr variants={row} className="hover:bg-slate-50/40">
-                              <td>
-                                <span className="font-mono font-semibold text-[13px] text-slate-655">
-                                  {highlightText(acc.code, search)}
-                                </span>
-                              </td>
-                              <td>
-                                <div className="flex items-center gap-1.5">
-                                  {isControlAcc && (
-                                    <button 
-                                      type="button"
-                                      onClick={(e) => {
-                                        e.stopPropagation();
-                                        handleToggleExpand(acc);
-                                      }}
-                                      className="w-5 h-5 rounded hover:bg-slate-105 flex items-center justify-center text-slate-400 hover:text-slate-655 transition-all border-none bg-transparent cursor-pointer"
-                                    >
-                                      <ChevronDown 
-                                        size={13} 
-                                        className={`transition-transform duration-200 ${isSubExpanded ? 'rotate-0' : '-rotate-90'}`} 
-                                      />
-                                    </button>
-                                  )}
-                                  <span className={`font-medium text-[14px] text-slate-800 ${isControlAcc ? 'font-bold' : ''}`}>
-                                    {highlightText(acc.name, search)}
+                      return (
+                        <React.Fragment key={group.id}>
+                          {/* Sticky group header */}
+                          <tr
+                            onClick={() => toggleGroup(group.id)}
+                            className="bg-slate-50 hover:bg-[#F2F6F4] border-y border-slate-200 select-none cursor-pointer z-10 transition-colors"
+                            style={{ backdropFilter: 'blur(8px)', position: 'sticky', top: 0, zIndex: 10 }}
+                          >
+                            <td colSpan={6} className="!py-3.5 px-4 font-bold text-slate-800">
+                              <div className="flex items-center justify-between w-full">
+                                <div className="flex items-center gap-2">
+                                  <ChevronDown
+                                    size={16}
+                                    className={`text-slate-450 transition-transform duration-200 ${isExpanded ? 'rotate-0' : '-rotate-90'
+                                      }`}
+                                  />
+                                  <span className="text-[14px] font-extrabold uppercase tracking-wide text-slate-800">
+                                    {group.title} ({group.range})
+                                  </span>
+                                  <span className="text-[11px] bg-slate-200/80 text-slate-655 px-2 py-0.5 rounded-full font-black uppercase tracking-wider ml-2">
+                                    {summary.count} {summary.count === 1 ? 'Account' : 'Accounts'}
                                   </span>
                                 </div>
-                              </td>
-                              <td>
-                                <div className="flex flex-col gap-1">
-                                  <span className={`badge ${TYPE_BADGES[acc.category || acc.type] || 'badge-asset'} w-fit`}>
-                                    {acc.category || acc.type}
-                                  </span>
-                                  {acc.is_contra && <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Contra</span>}
+                                <div className="text-[13px] font-mono font-black text-slate-700 pr-4">
+                                  {summary.balanceStr}
                                 </div>
-                              </td>
-                              <td>
-                                {acc.current_classification === 'CURRENT' ? (
-                                  <span 
-                                    className="badge bg-emerald-50 text-emerald-700 border border-emerald-200 w-fit cursor-help font-bold text-[10.5px]"
-                                    title="Current — Expected to be realized or settled within 12 months."
-                                  >
-                                    🟢 Current
-                                  </span>
-                                ) : acc.current_classification === 'NON_CURRENT' ? (
-                                  <span 
-                                    className="badge bg-indigo-50 text-indigo-700 border border-indigo-200 w-fit cursor-help font-bold text-[10.5px]"
-                                    title="Non-Current — Long-term asset or liability."
-                                  >
-                                    🔵 Non-Current
-                                  </span>
-                                ) : (
-                                  <span 
-                                    className="badge bg-slate-50 text-slate-400 border border-slate-200 w-fit cursor-help font-semibold text-[10.5px]"
-                                    title="N/A — Classification not applicable."
-                                  >
-                                    ⚪ N/A
-                                  </span>
-                                )}
-                              </td>
-                              <td>
-                                <span className={`font-mono text-[12px] font-semibold ${acc.normal_balance === 'Debit' ? 'text-blue-600' : 'text-emerald-600'}`}>
-                                  {acc.normal_balance}
-                                </span>
-                              </td>
-                              <td className="!text-left">
-                                <div className="flex items-center gap-1">
-                                  <button onClick={() => handleEdit(acc)}
-                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-350 hover:text-emerald-600 hover:bg-emerald-50 transition-all cursor-pointer border-none bg-transparent">
-                                    <Edit2 size={14} />
-                                  </button>
-                                  <button onClick={() => handleDelete(acc.id)}
-                                    className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-355 hover:text-red-500 hover:bg-red-50 transition-all cursor-pointer border-none bg-transparent">
-                                    <Trash2 size={14} />
-                                  </button>
-                                </div>
-                              </td>
-                            </Motion.tr>
+                              </div>
+                            </td>
+                          </tr>
 
-                            {/* Expanded Subledger Rows */}
-                            {isControlAcc && isSubExpanded && (
-                              <>
-                                {/* Search & Sort Panel */}
-                                <tr className="bg-slate-50/50">
-                                  <td />
-                                  <td colSpan={5} className="py-2 px-5">
-                                    <div className="flex flex-wrap items-center gap-4">
-                                      {/* Compact Search box */}
-                                      <div className="relative w-[180px]">
-                                        <Search size={12} className="absolute left-[10px] top-1/2 -translate-y-1/2 text-slate-400" />
-                                        <input 
-                                          type="text" 
-                                          placeholder="Search partners..."
-                                          className="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-2 py-1 text-[11px] font-semibold text-slate-700 focus:outline-none focus:border-indigo-500"
-                                          value={subledgerSearch[acc.code] || ''}
-                                          onChange={e => {
-                                            const val = e.target.value;
-                                            setSubledgerSearch(prev => ({ ...prev, [acc.code]: val }));
+                          {/* Group accounts list */}
+                          {isExpanded && groupAccountsList.length === 0 && (
+                            <tr>
+                              <td colSpan={6} className="text-center py-6 text-slate-400 text-[12.5px] italic">
+                                No accounts in this category.
+                              </td>
+                            </tr>
+                          )}
+
+                          {isExpanded && groupAccountsList.map(acc => {
+                            const isAR = acc.name === 'Accounts Receivable' || (acc.is_control && acc.name.toLowerCase().includes('receivable'));
+                            const isAP = acc.name === 'Accounts Payable' || (acc.is_control && acc.name.toLowerCase().includes('payable'));
+                            const isControlAcc = isAR || isAP;
+                            const isSubExpanded = !!expandedControlAccounts[acc.code];
+
+                            return (
+                              <React.Fragment key={acc.id}>
+                                <Motion.tr variants={row} className="hover:bg-slate-50/40">
+                                  <td>
+                                    <span className="font-mono font-semibold text-[13px] text-slate-655">
+                                      {highlightText(acc.code, search)}
+                                    </span>
+                                  </td>
+                                  <td>
+                                    <div className="flex items-center gap-1.5">
+                                      {isControlAcc && (
+                                        <button
+                                          type="button"
+                                          onClick={(e) => {
+                                            e.stopPropagation();
+                                            handleToggleExpand(acc);
                                           }}
-                                        />
-                                      </div>
-
-                                      {/* Compact Sort dropdown */}
-                                      <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold">
-                                        <span>Sort:</span>
-                                        <select 
-                                          className="bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-[11px] font-bold text-slate-700 outline-none cursor-pointer"
-                                          value={subledgerSorting[acc.code] || 'Alpha'}
-                                          onChange={e => {
-                                            const val = e.target.value;
-                                            setSubledgerSorting(prev => ({ ...prev, [acc.code]: val }));
-                                          }}
+                                          className="w-5 h-5 rounded hover:bg-slate-105 flex items-center justify-center text-slate-400 hover:text-slate-655 transition-all border-none bg-transparent cursor-pointer"
                                         >
-                                          <option value="Alpha">Alphabetical</option>
-                                          <option value="BalanceHigh">Balance (Highest)</option>
-                                          <option value="BalanceLow">Balance (Lowest)</option>
-                                        </select>
-                                      </div>
+                                          <ChevronDown
+                                            size={13}
+                                            className={`transition-transform duration-200 ${isSubExpanded ? 'rotate-0' : '-rotate-90'}`}
+                                          />
+                                        </button>
+                                      )}
+                                      <span className={`font-medium text-[14px] text-slate-800 ${isControlAcc ? 'font-bold' : ''}`}>
+                                        {highlightText(acc.name, search)}
+                                      </span>
                                     </div>
                                   </td>
-                                </tr>
+                                  <td>
+                                    <div className="flex flex-col gap-1">
+                                      <span className={`badge ${TYPE_BADGES[acc.category || acc.type] || 'badge-asset'} w-fit`}>
+                                        {acc.category || acc.type}
+                                      </span>
+                                      {acc.is_contra && <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Contra</span>}
+                                    </div>
+                                  </td>
+                                  <td>
+                                    {acc.current_classification === 'CURRENT' ? (
+                                      <span
+                                        className="badge bg-emerald-50 text-emerald-700 border border-emerald-200 w-fit cursor-help font-bold text-[10.5px]"
+                                        title="Current — Expected to be realized or settled within 12 months."
+                                      >
+                                        🟢 Current
+                                      </span>
+                                    ) : acc.current_classification === 'NON_CURRENT' ? (
+                                      <span
+                                        className="badge bg-indigo-50 text-indigo-700 border border-indigo-200 w-fit cursor-help font-bold text-[10.5px]"
+                                        title="Non-Current — Long-term asset or liability."
+                                      >
+                                        🔵 Non-Current
+                                      </span>
+                                    ) : (
+                                      <span
+                                        className="badge bg-slate-50 text-slate-400 border border-slate-200 w-fit cursor-help font-semibold text-[10.5px]"
+                                        title="N/A — Classification not applicable."
+                                      >
+                                        ⚪ N/A
+                                      </span>
+                                    )}
+                                  </td>
+                                  <td>
+                                    <span className={`font-mono text-[12px] font-semibold ${acc.normal_balance === 'Debit' ? 'text-blue-600' : 'text-emerald-600'}`}>
+                                      {acc.normal_balance}
+                                    </span>
+                                  </td>
+                                  <td className="!text-left">
+                                    <div className="flex items-center gap-1">
+                                      <button onClick={() => handleEdit(acc)}
+                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-350 hover:text-emerald-600 hover:bg-emerald-50 transition-all cursor-pointer border-none bg-transparent">
+                                        <Edit2 size={14} />
+                                      </button>
+                                      <button onClick={() => handleDelete(acc.id)}
+                                        className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-355 hover:text-red-500 hover:bg-red-50 transition-all cursor-pointer border-none bg-transparent">
+                                        <Trash2 size={14} />
+                                      </button>
+                                    </div>
+                                  </td>
+                                </Motion.tr>
 
-                                {/* Subledger lines loading state */}
-                                {subledgerLoading[acc.code] ? (
-                                  <tr>
-                                    <td />
-                                    <td colSpan={5} className="py-6 text-center text-slate-400">
-                                      <div className="w-5 h-5 rounded-full border-2 border-transparent border-t-indigo-600 border-r-indigo-600 animate-spin mx-auto mb-1.5" />
-                                      <span className="text-[11px] font-semibold">Loading sub-accounts...</span>
-                                    </td>
-                                  </tr>
-                                ) : getSortedSubledger(acc.code).length === 0 ? (
-                                  <tr>
-                                    <td />
-                                    <td colSpan={5} className="py-6 text-center text-slate-400 text-[11.5px] font-semibold">
-                                      No sub-accounts found matching criteria.
-                                    </td>
-                                  </tr>
-                                ) : (
-                                  getSortedSubledger(acc.code).map(sub => {
-                                    const typeCode = sub.type === 'CUSTOMER' ? `CUS-${String(sub.id).padStart(4, '0')}` : `SUP-${String(sub.id).padStart(4, '0')}`;
-                                    return (
-                                      <tr key={`sub-${sub.type}-${sub.id}`} className="bg-slate-50/20 border-l-4 border-indigo-500 hover:bg-slate-50/50">
-                                        <td className="!pl-8">
-                                          <span className="font-mono text-[11.5px] text-slate-450 font-bold">{sub.code}</span>
-                                        </td>
-                                        <td>
-                                          <div className="flex items-center gap-2">
-                                            <span className="text-[9.5px] font-mono font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded border">
-                                              {typeCode}
-                                            </span>
-                                            <span 
-                                              onClick={() => setSelectedSubledgerPartner({ ...sub, virtualCode: sub.code, typeCode })}
-                                              className="text-[12.5px] font-bold text-slate-700 hover:text-indigo-650 cursor-pointer hover:underline"
-                                            >
-                                              {sub.name}
-                                            </span>
-                                          </div>
-                                        </td>
-                                        <td>
-                                          <span className="text-[10px] font-black uppercase text-indigo-500 tracking-wider">
-                                            {sub.type}
-                                          </span>
-                                        </td>
-                                        <td>
-                                          {/* Empty classification td to line columns up */}
-                                          <span className="text-slate-300 font-semibold">—</span>
-                                        </td>
-                                        <td className="font-mono text-[12px] font-bold text-slate-900">
-                                          PKR {sub.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                                        </td>
-                                        <td className="!text-left">
-                                          <div className="flex items-center gap-1.5">
-                                            <button 
-                                              onClick={() => setSelectedSubledgerPartner({ ...sub, virtualCode: sub.code, typeCode })}
-                                              className="px-2.5 py-1 bg-white hover:bg-indigo-50 text-indigo-600 border border-slate-200 hover:border-indigo-200 text-[10.5px] font-black rounded-lg transition shadow-sm cursor-pointer border-none"
-                                            >
-                                              Statement
-                                            </button>
-                                            <button 
-                                              onClick={() => {
-                                                const route = '/dashboard/vouchers';
-                                                navigate(route);
+                                {/* Expanded Subledger Rows */}
+                                {isControlAcc && isSubExpanded && (
+                                  <>
+                                    {/* Search & Sort Panel */}
+                                    <tr className="bg-slate-50/50">
+                                      <td />
+                                      <td colSpan={5} className="py-2 px-5">
+                                        <div className="flex flex-wrap items-center gap-4">
+                                          {/* Compact Search box */}
+                                          <div className="relative w-[180px]">
+                                            <Search size={12} className="absolute left-[10px] top-1/2 -translate-y-1/2 text-slate-400" />
+                                            <input
+                                              type="text"
+                                              placeholder="Search partners..."
+                                              className="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-2 py-1 text-[11px] font-semibold text-slate-700 focus:outline-none focus:border-indigo-500"
+                                              value={subledgerSearch[acc.code] || ''}
+                                              onChange={e => {
+                                                const val = e.target.value;
+                                                setSubledgerSearch(prev => ({ ...prev, [acc.code]: val }));
                                               }}
-                                              className="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-505 border border-slate-200 text-[10.5px] font-bold rounded-lg transition shadow-sm cursor-pointer border-none"
-                                            >
-                                              {sub.type === 'CUSTOMER' ? '+ Invoice' : '+ Bill'}
-                                            </button>
+                                            />
                                           </div>
+
+                                          {/* Compact Sort dropdown */}
+                                          <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold">
+                                            <span>Sort:</span>
+                                            <select
+                                              className="bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-[11px] font-bold text-slate-700 outline-none cursor-pointer"
+                                              value={subledgerSorting[acc.code] || 'Alpha'}
+                                              onChange={e => {
+                                                const val = e.target.value;
+                                                setSubledgerSorting(prev => ({ ...prev, [acc.code]: val }));
+                                              }}
+                                            >
+                                              <option value="Alpha">Alphabetical</option>
+                                              <option value="BalanceHigh">Balance (Highest)</option>
+                                              <option value="BalanceLow">Balance (Lowest)</option>
+                                            </select>
+                                          </div>
+                                        </div>
+                                      </td>
+                                    </tr>
+
+                                    {/* Subledger lines loading state */}
+                                    {subledgerLoading[acc.code] ? (
+                                      <tr>
+                                        <td />
+                                        <td colSpan={5} className="py-6 text-center text-slate-400">
+                                          <div className="w-5 h-5 rounded-full border-2 border-transparent border-t-indigo-600 border-r-indigo-600 animate-spin mx-auto mb-1.5" />
+                                          <span className="text-[11px] font-semibold">Loading sub-accounts...</span>
                                         </td>
                                       </tr>
-                                    );
-                                  })
+                                    ) : getSortedSubledger(acc.code).length === 0 ? (
+                                      <tr>
+                                        <td />
+                                        <td colSpan={5} className="py-6 text-center text-slate-400 text-[11.5px] font-semibold">
+                                          No sub-accounts found matching criteria.
+                                        </td>
+                                      </tr>
+                                    ) : (
+                                      getSortedSubledger(acc.code).map(sub => {
+                                        const typeCode = sub.type === 'CUSTOMER' ? `CUS-${String(sub.id).padStart(4, '0')}` : `SUP-${String(sub.id).padStart(4, '0')}`;
+                                        return (
+                                          <tr key={`sub-${sub.type}-${sub.id}`} className="bg-slate-50/20 border-l-4 border-indigo-500 hover:bg-slate-50/50">
+                                            <td className="!pl-8">
+                                              <span className="font-mono text-[11.5px] text-slate-450 font-bold">{sub.code}</span>
+                                            </td>
+                                            <td>
+                                              <div className="flex items-center gap-2">
+                                                <span className="text-[9.5px] font-mono font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded border">
+                                                  {typeCode}
+                                                </span>
+                                                <span
+                                                  onClick={() => setSelectedSubledgerPartner({ ...sub, virtualCode: sub.code, typeCode })}
+                                                  className="text-[12.5px] font-bold text-slate-700 hover:text-indigo-650 cursor-pointer hover:underline"
+                                                >
+                                                  {sub.name}
+                                                </span>
+                                              </div>
+                                            </td>
+                                            <td>
+                                              <span className="text-[10px] font-black uppercase text-indigo-500 tracking-wider">
+                                                {sub.type}
+                                              </span>
+                                            </td>
+                                            <td>
+                                              {/* Empty classification td to line columns up */}
+                                              <span className="text-slate-300 font-semibold">—</span>
+                                            </td>
+                                            <td className="font-mono text-[12px] font-bold text-slate-900">
+                                              PKR {sub.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                            </td>
+                                            <td className="!text-left">
+                                              <div className="flex items-center gap-1.5">
+                                                <button
+                                                  onClick={() => setSelectedSubledgerPartner({ ...sub, virtualCode: sub.code, typeCode })}
+                                                  className="px-2.5 py-1 bg-white hover:bg-indigo-50 text-indigo-600 border border-slate-200 hover:border-indigo-200 text-[10.5px] font-black rounded-lg transition shadow-sm cursor-pointer border-none"
+                                                >
+                                                  Statement
+                                                </button>
+                                                <button
+                                                  onClick={() => {
+                                                    const route = '/dashboard/vouchers';
+                                                    navigate(route);
+                                                  }}
+                                                  className="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-505 border border-slate-200 text-[10.5px] font-bold rounded-lg transition shadow-sm cursor-pointer border-none"
+                                                >
+                                                  {sub.type === 'CUSTOMER' ? '+ Invoice' : '+ Bill'}
+                                                </button>
+                                              </div>
+                                            </td>
+                                          </tr>
+                                        );
+                                      })
+                                    )}
+                                  </>
                                 )}
-                              </>
-                            )}
-                          </React.Fragment>
-                        );
-                      })}
-                    </React.Fragment>
-                  );
-                })
-              )}
-            </Motion.tbody>
-          </table>
-        </div>
+                              </React.Fragment>
+                            );
+                          })}
+                        </React.Fragment>
+                      );
+                    })
+                  )}
+                </Motion.tbody>
+              </table>
+            </div>
 
-        {!isLoading && (
-          <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/40">
-            <p className="text-[12px] text-slate-400">{filtered.length} accounts</p>
+            {!isLoading && (
+              <div className="px-5 py-3 border-t border-slate-100 bg-slate-50/40">
+                <p className="text-[12px] text-slate-400">{filtered.length} accounts</p>
+              </div>
+            )}
           </div>
-        )}
-      </div>
-      </div>
+        </div>
       </WorkspaceLayout>
 
       {/* Add Account Modal */}
@@ -802,9 +801,9 @@ export default function AccountsPage({ globalSearch = "" }) {
                     const newCategory = e.target.value;
                     const newStdBalance = ['Asset', 'Expense'].includes(newCategory) ? 'Debit' : 'Credit';
                     const isAssetOrLiab = ['Asset', 'Liability'].includes(newCategory);
-                    setForm({ 
-                      ...form, 
-                      category: newCategory, 
+                    setForm({
+                      ...form,
+                      category: newCategory,
                       normal_balance: form.is_contra ? (newStdBalance === 'Debit' ? 'Credit' : 'Debit') : newStdBalance,
                       current_classification: isAssetOrLiab ? 'CURRENT' : 'NOT_APPLICABLE'
                     });
@@ -825,12 +824,12 @@ export default function AccountsPage({ globalSearch = "" }) {
                     </div>
                     <div className="flex gap-4">
                       <label className="flex items-center gap-2 cursor-pointer group">
-                        <input 
-                          type="radio" 
-                          name="current_classification" 
-                          value="CURRENT" 
-                          checked={form.current_classification === 'CURRENT'} 
-                          onChange={() => setForm({ ...form, current_classification: 'CURRENT' })} 
+                        <input
+                          type="radio"
+                          name="current_classification"
+                          value="CURRENT"
+                          checked={form.current_classification === 'CURRENT'}
+                          onChange={() => setForm({ ...form, current_classification: 'CURRENT' })}
                           className="text-indigo-650 focus:ring-indigo-500 cursor-pointer"
                         />
                         <span className="text-[13px] font-bold text-slate-700 group-hover:text-indigo-600 transition-colors" title="Current — Expected to be realized or settled within 12 months.">
@@ -838,12 +837,12 @@ export default function AccountsPage({ globalSearch = "" }) {
                         </span>
                       </label>
                       <label className="flex items-center gap-2 cursor-pointer group">
-                        <input 
-                          type="radio" 
-                          name="current_classification" 
-                          value="NON_CURRENT" 
-                          checked={form.current_classification === 'NON_CURRENT'} 
-                          onChange={() => setForm({ ...form, current_classification: 'NON_CURRENT' })} 
+                        <input
+                          type="radio"
+                          name="current_classification"
+                          value="NON_CURRENT"
+                          checked={form.current_classification === 'NON_CURRENT'}
+                          onChange={() => setForm({ ...form, current_classification: 'NON_CURRENT' })}
                           className="text-indigo-655 focus:ring-indigo-500 cursor-pointer"
                         />
                         <span className="text-[13px] font-bold text-slate-700 group-hover:text-indigo-600 transition-colors" title="Non-Current — Long-term asset or liability.">
@@ -852,11 +851,11 @@ export default function AccountsPage({ globalSearch = "" }) {
                       </label>
                     </div>
                     <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
-                      {form.current_classification === 'CURRENT' 
+                      {form.current_classification === 'CURRENT'
                         ? "🟢 Current — Expected to be realized, sold, or settled within 12 months of the operating cycle."
                         : "🔵 Non-Current — Long-term investments, property, machinery, equipment, or long-term loan obligations."}
                     </p>
-                    
+
                     {/* Parent account check and conflict warning */}
                     {(() => {
                       if (form.code.length >= 3) {
@@ -913,7 +912,7 @@ export default function AccountsPage({ globalSearch = "" }) {
         )}
       </AnimatePresence>
 
-      <SubledgerDrawer 
+      <SubledgerDrawer
         isOpen={!!selectedSubledgerPartner}
         onClose={() => setSelectedSubledgerPartner(null)}
         partnerId={selectedSubledgerPartner?.id}
