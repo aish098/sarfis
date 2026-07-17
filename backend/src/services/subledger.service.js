@@ -258,6 +258,10 @@ class SubledgerService {
     return {
       clientId: client.id,
       clientName: client.name,
+      email: client.email || '',
+      phone: client.phone || '',
+      address: client.address || '',
+      credit_limit: client.credit_limit || 0,
       currentBalance: balance,
       statement
     };
@@ -312,6 +316,9 @@ class SubledgerService {
     return {
       vendorId: vendor.id,
       vendorName: vendor.name,
+      email: vendor.email || '',
+      phone: vendor.phone || '',
+      address: vendor.address || '',
       currentBalance: balance,
       statement
     };
