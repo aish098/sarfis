@@ -185,6 +185,7 @@ export default function JournalEntryPage() {
   const currencySymbol = getCurrencySymbol(settings?.baseCurrency || 'PKR');
 
   const canPost = user?.role === 'Super Admin' || (permissions || []).includes('journal.post');
+  const canManageAccounts = user?.role === 'Super Admin' || user?.role === 'Admin' || user?.role === 'Company Admin' || (permissions || []).includes('accounts.manage');
 
   // Form State
   const [date, setDate] = useState(new Date().toISOString().split('T')[0]);
@@ -1173,7 +1174,7 @@ export default function JournalEntryPage() {
               </div>
               <div className="flex flex-col gap-2 px-7 pb-7">
                 {/* Check accounts.manage permission */}
-                {(user?.role === 'Super Admin' || (permissions || []).includes('accounts.manage')) ? (
+                {canManageAccounts ? (
                   <button
                     onClick={() => {
                       setMissingAccountOpen(false);
@@ -1217,7 +1218,7 @@ export default function JournalEntryPage() {
                   🔵 Select Existing Account
                 </button>
 
-                {(user?.role === 'Super Admin' || (permissions || []).includes('accounts.manage')) && (
+                {canManageAccounts && (
                   <button
                     onClick={() => {
                       setMissingAccountOpen(false);
