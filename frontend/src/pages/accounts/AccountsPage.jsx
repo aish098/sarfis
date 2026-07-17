@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { motion as Motion, AnimatePresence } from 'framer-motion';
 import { Plus, Search, Filter, Trash2, X, AlertCircle, Edit2, ChevronDown, Database, CheckCircle2, AlertTriangle, Sliders } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
@@ -6,6 +6,7 @@ import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 import StatusBadge from '../../components/ui/StatusBadge';
+import SubledgerDrawer from '../../components/SubledgerDrawer';
 
 const TYPE_BADGES = {
   Asset: 'badge-asset', Liability: 'badge-liability', Equity: 'badge-equity',
@@ -31,6 +32,51 @@ export default function AccountsPage({ globalSearch = "" }) {
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
+
+  // Subledger state
+  const [expandedControlAccounts, setExpandedControlAccounts] = useState({});
+  const [subledgerData, setSubledgerData] = useState({});
+  const [subledgerLoading, setSubledgerLoading] = useState({});
+  const [subledgerSearch, setSubledgerSearch] = useState({});
+  const [subledgerSorting, setSubledgerSorting] = useState({});
+  const [selectedSubledgerPartner, setSelectedSubledgerPartner] = useState(null);
+
+  const handleToggleExpand = async (code) => {
+    const isExpanded = !!expandedControlAccounts[code];
+    setExpandedControlAccounts(prev => ({ ...prev, [code]: !isExpanded }));
+
+    if (!isExpanded && !subledgerData[code]) {
+      setSubledgerLoading(prev => ({ ...prev, [code]: true }));
+      try {
+        const endpoint = code === '1200' ? '/subledger/receivables' : '/subledger/payables';
+        const res = await api.get(endpoint);
+        setSubledgerData(prev => ({ ...prev, [code]: res.data }));
+      } catch (err) {
+        console.error('Failed to load subledger:', err);
+      }
+      setSubledgerLoading(prev => ({ ...prev, [code]: false }));
+    }
+  };
+
+  const getSortedSubledger = (code) => {
+    const list = subledgerData[code] || [];
+    const searchVal = (subledgerSearch[code] || '').toLowerCase();
+    const sortBy = subledgerSorting[code] || 'Alpha';
+
+    const filteredList = list.filter(item => 
+      item.name.toLowerCase().includes(searchVal) || 
+      item.code.toLowerCase().includes(searchVal)
+    );
+
+    if (sortBy === 'Alpha') {
+      return [...filteredList].sort((a, b) => a.name.localeCompare(b.name));
+    } else if (sortBy === 'BalanceHigh') {
+      return [...filteredList].sort((a, b) => b.balance - a.balance);
+    } else if (sortBy === 'BalanceLow') {
+      return [...filteredList].sort((a, b) => a.balance - b.balance);
+    }
+    return filteredList;
+  };
 
   const load = useCallback(async () => {
     if (!activeCompany) return;
@@ -200,41 +246,176 @@ export default function AccountsPage({ globalSearch = "" }) {
                   </td>
                 </tr>
               ) : (
-                filtered.map(acc => (
-                  <Motion.tr key={acc.id} variants={row}>
-                    <td>
-                      <span className="font-mono font-semibold text-[13px] text-slate-600">{acc.code}</span>
-                    </td>
-                    <td>
-                      <span className="font-medium text-[14px] text-slate-800">{acc.name}</span>
-                    </td>
-                    <td>
-                      <div className="flex flex-col gap-1">
-                        <span className={`badge ${TYPE_BADGES[acc.category || acc.type] || 'badge-asset'} w-fit`}>
-                          {acc.category || acc.type}
-                        </span>
-                        {acc.is_contra && <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Contra</span>}
-                      </div>
-                    </td>
-                    <td>
-                      <span className={`font-mono text-[12px] font-semibold ${acc.normal_balance === 'Debit' ? 'text-blue-600' : 'text-emerald-600'}`}>
-                        {acc.normal_balance}
-                      </span>
-                    </td>
-                    <td className="!text-left">
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => handleEdit(acc)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 transition-all">
-                          <Edit2 size={14} />
-                        </button>
-                        <button onClick={() => handleDelete(acc.id)}
-                          className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all">
-                          <Trash2 size={14} />
-                        </button>
-                      </div>
-                    </td>
-                  </Motion.tr>
-                ))
+                filtered.map(acc => {
+                  const isControlAcc = ['1200', '2010'].includes(acc.code);
+                  const isExpanded = !!expandedControlAccounts[acc.code];
+
+                  return (
+                    <React.Fragment key={acc.id}>
+                      <Motion.tr variants={row}>
+                        <td>
+                          <span className="font-mono font-semibold text-[13px] text-slate-600">{acc.code}</span>
+                        </td>
+                        <td>
+                          <div className="flex items-center gap-1.5">
+                            {isControlAcc && (
+                              <button 
+                                type="button"
+                                onClick={() => handleToggleExpand(acc.code)}
+                                className="w-5 h-5 rounded hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-650 transition-all border-none bg-transparent cursor-pointer"
+                              >
+                                <ChevronDown 
+                                  size={13} 
+                                  className={`transition-transform duration-200 ${isExpanded ? 'rotate-0' : '-rotate-90'}`} 
+                                />
+                              </button>
+                            )}
+                            <span className={`font-medium text-[14px] text-slate-800 ${isControlAcc ? 'font-bold' : ''}`}>{acc.name}</span>
+                          </div>
+                        </td>
+                        <td>
+                          <div className="flex flex-col gap-1">
+                            <span className={`badge ${TYPE_BADGES[acc.category || acc.type] || 'badge-asset'} w-fit`}>
+                              {acc.category || acc.type}
+                            </span>
+                            {acc.is_contra && <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Contra</span>}
+                          </div>
+                        </td>
+                        <td>
+                          <span className={`font-mono text-[12px] font-semibold ${acc.normal_balance === 'Debit' ? 'text-blue-600' : 'text-emerald-600'}`}>
+                            {acc.normal_balance}
+                          </span>
+                        </td>
+                        <td className="!text-left">
+                          <div className="flex items-center gap-1">
+                            <button onClick={() => handleEdit(acc)}
+                              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-emerald-600 hover:bg-emerald-50 transition-all">
+                              <Edit2 size={14} />
+                            </button>
+                            <button onClick={() => handleDelete(acc.id)}
+                              className="w-8 h-8 rounded-lg flex items-center justify-center text-slate-300 hover:text-red-500 hover:bg-red-50 transition-all">
+                              <Trash2 size={14} />
+                            </button>
+                          </div>
+                        </td>
+                      </Motion.tr>
+
+                      {/* Expanded Subledger Rows */}
+                      {isControlAcc && isExpanded && (
+                        <>
+                          {/* Search & Sort Panel */}
+                          <tr className="bg-slate-50/50">
+                            <td />
+                            <td colSpan={4} className="py-2 px-5">
+                              <div className="flex flex-wrap items-center gap-4">
+                                {/* Compact Search box */}
+                                <div className="relative w-[180px]">
+                                  <Search size={12} className="absolute left-[10px] top-1/2 -translate-y-1/2 text-slate-400" />
+                                  <input 
+                                    type="text" 
+                                    placeholder="Search partners..."
+                                    className="w-full bg-white border border-slate-200 rounded-lg pl-8 pr-2 py-1 text-[11px] font-semibold text-slate-700 focus:outline-none focus:border-indigo-500"
+                                    value={subledgerSearch[acc.code] || ''}
+                                    onChange={e => {
+                                      const val = e.target.value;
+                                      setSubledgerSearch(prev => ({ ...prev, [acc.code]: val }));
+                                    }}
+                                  />
+                                </div>
+
+                                {/* Compact Sort dropdown */}
+                                <div className="flex items-center gap-1.5 text-[11px] text-slate-500 font-bold">
+                                  <span>Sort:</span>
+                                  <select 
+                                    className="bg-white border border-slate-200 rounded-lg px-2 py-0.5 text-[11px] font-bold text-slate-700 outline-none cursor-pointer"
+                                    value={subledgerSorting[acc.code] || 'Alpha'}
+                                    onChange={e => {
+                                      const val = e.target.value;
+                                      setSubledgerSorting(prev => ({ ...prev, [acc.code]: val }));
+                                    }}
+                                  >
+                                    <option value="Alpha">Alphabetical</option>
+                                    <option value="BalanceHigh">Balance (Highest)</option>
+                                    <option value="BalanceLow">Balance (Lowest)</option>
+                                  </select>
+                                </div>
+                              </div>
+                            </td>
+                          </tr>
+
+                          {/* Subledger lines loading state */}
+                          {subledgerLoading[acc.code] ? (
+                            <tr>
+                              <td />
+                              <td colSpan={4} className="py-6 text-center text-slate-400">
+                                <div className="w-5 h-5 rounded-full border-2 border-transparent border-t-indigo-600 border-r-indigo-600 animate-spin mx-auto mb-1.5" />
+                                <span className="text-[11px] font-semibold">Loading sub-accounts...</span>
+                              </td>
+                            </tr>
+                          ) : getSortedSubledger(acc.code).length === 0 ? (
+                            <tr>
+                              <td />
+                              <td colSpan={4} className="py-6 text-center text-slate-400 text-[11.5px] font-semibold">
+                                No sub-accounts found matching criteria.
+                              </td>
+                            </tr>
+                          ) : (
+                            getSortedSubledger(acc.code).map(sub => {
+                              const typeCode = sub.type === 'CUSTOMER' ? `CUS-${String(sub.id).padStart(4, '0')}` : `SUP-${String(sub.id).padStart(4, '0')}`;
+                              return (
+                                <tr key={`sub-${sub.type}-${sub.id}`} className="bg-slate-50/20 border-l-4 border-indigo-500 hover:bg-slate-50/50">
+                                  <td className="!pl-8">
+                                    <span className="font-mono text-[11.5px] text-slate-450 font-bold">{sub.code}</span>
+                                  </td>
+                                  <td>
+                                    <div className="flex items-center gap-2">
+                                      <span className="text-[9.5px] font-mono font-bold text-slate-400 bg-slate-100 px-1.5 py-0.5 rounded border">
+                                        {typeCode}
+                                      </span>
+                                      <span 
+                                        onClick={() => setSelectedSubledgerPartner({ ...sub, virtualCode: sub.code, typeCode })}
+                                        className="text-[12.5px] font-bold text-slate-700 hover:text-indigo-650 cursor-pointer hover:underline"
+                                      >
+                                        {sub.name}
+                                      </span>
+                                    </div>
+                                  </td>
+                                  <td>
+                                    <span className="text-[10px] font-black uppercase text-indigo-500 tracking-wider">
+                                      {sub.type}
+                                    </span>
+                                  </td>
+                                  <td className="font-mono text-[12px] font-bold text-slate-900">
+                                    PKR {sub.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                                  </td>
+                                  <td className="!text-left">
+                                    <div className="flex items-center gap-1.5">
+                                      <button 
+                                        onClick={() => setSelectedSubledgerPartner({ ...sub, virtualCode: sub.code, typeCode })}
+                                        className="px-2.5 py-1 bg-white hover:bg-indigo-50 text-indigo-600 border border-slate-200 hover:border-indigo-200 text-[10.5px] font-black rounded-lg transition shadow-sm cursor-pointer"
+                                      >
+                                        Statement
+                                      </button>
+                                      <button 
+                                        onClick={() => {
+                                          const route = '/dashboard/vouchers';
+                                          navigate(route);
+                                        }}
+                                        className="px-2.5 py-1 bg-white hover:bg-slate-50 text-slate-500 border border-slate-200 text-[10.5px] font-bold rounded-lg transition shadow-sm cursor-pointer"
+                                      >
+                                        {sub.type === 'CUSTOMER' ? '+ Invoice' : '+ Bill'}
+                                      </button>
+                                    </div>
+                                  </td>
+                                </tr>
+                              );
+                            })
+                          )}
+                        </>
+                      )}
+                    </React.Fragment>
+                  );
+                })
               )}
             </Motion.tbody>
           </table>
@@ -334,6 +515,26 @@ export default function AccountsPage({ globalSearch = "" }) {
           </Motion.div>
         )}
       </AnimatePresence>
+
+      <SubledgerDrawer 
+        isOpen={!!selectedSubledgerPartner}
+        onClose={() => setSelectedSubledgerPartner(null)}
+        partnerId={selectedSubledgerPartner?.id}
+        partnerType={selectedSubledgerPartner?.type}
+        companyId={activeCompany?.id}
+        virtualCode={selectedSubledgerPartner?.virtualCode}
+        partnerName={selectedSubledgerPartner?.name}
+        onSaveSuccess={() => {
+          const code = selectedSubledgerPartner?.type === 'CUSTOMER' ? '1200' : '2010';
+          setSubledgerData(prev => {
+            const next = { ...prev };
+            delete next[code];
+            return next;
+          });
+          setExpandedControlAccounts(prev => ({ ...prev, [code]: false }));
+          setSelectedSubledgerPartner(null);
+        }}
+      />
     </>
   );
 }

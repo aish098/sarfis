@@ -52,6 +52,7 @@ app.use('/api/payroll', require('./routes/payroll.routes'));
 app.use('/api/periods', require('./routes/period_close.routes'));
 app.use('/api/scheduled-reports', require('./routes/scheduled_reports.routes'));
 app.use('/api/communications', require('./routes/communication.routes'));
+app.use('/api/subledger', require('./routes/subledger.routes'));
 
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
