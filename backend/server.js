@@ -158,6 +158,42 @@ async function startServer() {
         }
       }
       console.log('[Workflow Seed] Purchase Requisition approval definition/stages verified for all companies');
+
+      // 1. Clean up cached accounting settings with missing default inventory account mappings
+      const deletedSettingsCount = await db('company_accounting_settings')
+        .whereNull('default_inventory_account_id')
+        .del();
+      if (deletedSettingsCount > 0) {
+        console.log(`[Startup Maintenance] Deleted ${deletedSettingsCount} incomplete company accounting settings records.`);
+      }
+
+      // 2. Ensure all companies have open 2026 accounting periods
+      for (const company of companies) {
+        const periodsCount = await db('accounting_periods').where({ company_id: company.id }).count('* as count').first();
+        const count = parseInt(periodsCount.count || 0, 10);
+
+        if (count === 0) {
+          console.log(`[Startup Maintenance] Company ID ${company.id} has 0 accounting periods. Seeding 2026 periods...`);
+          const periodData = [];
+          for (let month = 1; month <= 12; month++) {
+            const monthStr = month < 10 ? `0${month}` : `${month}`;
+            const periodName = `2026-${monthStr}`;
+            
+            const endDateObj = new Date(2026, month, 0);
+            const endDay = endDateObj.getDate();
+            
+            periodData.push({
+              company_id: company.id,
+              period_name: periodName,
+              start_date: `2026-${monthStr}-01`,
+              end_date: `2026-${monthStr}-${endDay}`,
+              status: 'OPEN'
+            });
+          }
+          await db('accounting_periods').insert(periodData);
+          console.log(`[Startup Maintenance] Seeded periods for company ID ${company.id}.`);
+        }
+      }
     } catch (error) {
       console.error('[Migrations] Migration failed:', error.message);
       console.error(error.stack);
