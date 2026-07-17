@@ -225,8 +225,16 @@ export default function AccountsPage({ globalSearch = "" }) {
   }, []);
 
   const filtered = accounts.filter(a => {
-    const q = search.toLowerCase();
-    const matchSearch = a.name.toLowerCase().includes(q) || a.code.toLowerCase().includes(q);
+    const q = search.trim().toLowerCase();
+    if (!q) return true;
+    
+    // If query is numeric, match codes starting with the query or names containing it.
+    // Otherwise, match names or codes containing it.
+    const isNumeric = /^\d+$/.test(q);
+    const matchSearch = isNumeric
+      ? a.code.toLowerCase().startsWith(q) || a.name.toLowerCase().includes(q)
+      : a.name.toLowerCase().includes(q) || a.code.toLowerCase().includes(q);
+
     const matchType = filterType === 'All' || a.category === filterType || (filterType === 'Revenue' && a.category === 'Income');
     return matchSearch && matchType;
   });
