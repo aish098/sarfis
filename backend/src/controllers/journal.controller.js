@@ -23,6 +23,14 @@ exports.createJournalEntry = async (req, res) => {
     res.status(201).json({ id: entryId, message: 'Journal entry drafted successfully' });
   } catch (err) {
     console.error('Journal entry error:', err);
+    if (err.isAccountNotFound || err.isNotPostable) {
+      return res.status(400).json({
+        success: false,
+        error: err.isNotPostable ? 'ACCOUNT_NOT_POSTABLE' : 'ACCOUNT_NOT_FOUND',
+        message: err.message,
+        accountCode: err.accountCode || 'Unknown'
+      });
+    }
     res.status(400).json({ error: err.message });
   }
 };
@@ -47,6 +55,14 @@ exports.updateJournalEntry = async (req, res) => {
     res.json({ message: 'Journal entry draft updated successfully' });
   } catch (err) {
     console.error('Journal update error:', err);
+    if (err.isAccountNotFound || err.isNotPostable) {
+      return res.status(400).json({
+        success: false,
+        error: err.isNotPostable ? 'ACCOUNT_NOT_POSTABLE' : 'ACCOUNT_NOT_FOUND',
+        message: err.message,
+        accountCode: err.accountCode || 'Unknown'
+      });
+    }
     res.status(400).json({ error: err.message });
   }
 };
@@ -116,6 +132,14 @@ exports.postJournalEntry = async (req, res) => {
     res.json({ message: 'Journal entry posted successfully' });
   } catch (err) {
     console.error('Post Error:', err);
+    if (err.isAccountNotFound || err.isNotPostable) {
+      return res.status(400).json({
+        success: false,
+        error: err.isNotPostable ? 'ACCOUNT_NOT_POSTABLE' : 'ACCOUNT_NOT_FOUND',
+        message: err.message,
+        accountCode: err.accountCode || 'Unknown'
+      });
+    }
     res.status(400).json({ error: err.message });
   }
 };

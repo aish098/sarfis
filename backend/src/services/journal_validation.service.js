@@ -67,8 +67,11 @@ class JournalValidationService {
 
   static async validateAccounts(companyId, lines, conn) {
     const accountIds = lines.map(l => l.accountId).filter(Boolean);
-    if (accountIds.length === 0) {
-      throw new Error('Journal entry must point to valid accounts.');
+    if (accountIds.length === 0 || accountIds.length < lines.length) {
+      const err = new Error('Journal entry contains lines with missing or invalid accounts.');
+      err.isAccountNotFound = true;
+      err.accountCode = 'Unknown';
+      throw err;
     }
 
     const accounts = await conn('accounts')
@@ -80,10 +83,16 @@ class JournalValidationService {
     for (const line of lines) {
       const acc = accountMap.get(line.accountId.toString());
       if (!acc) {
-        throw new Error(`Account ID ${line.accountId} does not exist or belongs to another company.`);
+        const err = new Error(`Account ID ${line.accountId} does not exist or belongs to another company.`);
+        err.isAccountNotFound = true;
+        err.accountId = line.accountId;
+        throw err;
       }
       if (acc.is_postable === false || acc.is_postable === 0) {
-        throw new Error(`Account '${acc.name}' (${acc.code}) is a summary/header account and cannot accept postings.`);
+        const err = new Error(`Account '${acc.name}' (${acc.code}) is a summary/header account and cannot accept postings.`);
+        err.isNotPostable = true;
+        err.accountCode = acc.code;
+        throw err;
       }
     }
   }

@@ -5,7 +5,7 @@ import {
   ArrowLeft, Plus, Trash2, Save, RefreshCw,
   CheckCircle2, AlertCircle, X, Search, ChevronDown, Check, FileText, CheckSquare,
   Scale, Keyboard, BookOpen, Sparkles, HelpCircle, Activity,
-  ArrowRight, ToggleLeft, ToggleRight, Info, Eye, Zap, Layers
+  ArrowRight, ToggleLeft, ToggleRight, Info, Eye, Zap, Layers, AlertTriangle
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -13,12 +13,21 @@ import RequirePermission from '../../components/RequirePermission';
 import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 import StatusBadge from '../../components/ui/StatusBadge';
 
-function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown }) {
+function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onAccountNotFound, idx }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const ref = useRef();
   const triggerRef = useRef();
   const [openUpward, setOpenUpward] = useState(false);
+
+  const selected = accounts.find(a => String(a.id) === String(value));
+  const [inputValue, setInputValue] = useState(selected ? `${selected.code} — ${selected.name}` : '');
+
+  // Synchronize when value changes (e.g. from parent or draft loaded)
+  useEffect(() => {
+    const selectedAcc = accounts.find(a => String(a.id) === String(value));
+    setInputValue(selectedAcc ? `${selectedAcc.code} — ${selectedAcc.name}` : (value ? value : ''));
+  }, [value, accounts]);
 
   useEffect(() => {
     const handle = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
@@ -33,7 +42,7 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown }) {
       const viewportHeight = window.innerHeight;
       const spaceBelow = viewportHeight - rect.bottom;
       const spaceAbove = rect.top;
-      const dropdownHeight = 260; // search input + max list height + padding
+      const dropdownHeight = 260;
 
       if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
         setOpenUpward(true);
@@ -43,45 +52,74 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown }) {
     }
   }, [open]);
 
-  const selected = accounts.find(a => String(a.id) === String(value));
-  const filtered = accounts.filter(a => a.name.toLowerCase().includes(q.toLowerCase()) || a.code.includes(q));
-
   const handleSelect = (accId) => {
     onChange(accId);
     setOpen(false);
     setQ('');
-    setTimeout(() => {
-      triggerRef.current?.focus();
-    }, 20);
   };
+
+  const validateCode = (val) => {
+    if (!val || val.trim() === '') return;
+    const parts = val.split(' — ');
+    const codeToSearch = parts[0].trim();
+
+    const matched = accounts.find(a => a.code === codeToSearch || a.name.toLowerCase() === codeToSearch.toLowerCase());
+    if (matched) {
+      onChange(matched.id);
+    } else {
+      onAccountNotFound(codeToSearch, idx);
+    }
+  };
+
+  const handleBlur = (e) => {
+    if (ref.current && ref.current.contains(e.relatedTarget)) {
+      return;
+    }
+    setOpen(false);
+    validateCode(inputValue);
+  };
+
+  const filtered = accounts.filter(a => 
+    a.name.toLowerCase().includes(q.toLowerCase()) || 
+    a.code.includes(q)
+  );
 
   return (
     <div className="relative focus-within:z-[50]" ref={ref}>
-      <button
+      <input
         ref={triggerRef}
         id={id}
-        type="button"
+        type="text"
         disabled={disabled}
-        onClick={() => !disabled && setOpen(!open)}
+        value={inputValue}
+        placeholder="Select or enter account code..."
+        onFocus={() => {
+          setOpen(true);
+          setQ('');
+        }}
+        onBlur={handleBlur}
+        onChange={(e) => {
+          setInputValue(e.target.value);
+          setQ(e.target.value);
+        }}
         onKeyDown={(e) => {
           if (disabled) return;
-          if (e.key === 'Enter' || e.key === ' ') {
+          if (e.key === 'Enter') {
             e.preventDefault();
-            setOpen(prev => !prev);
+            validateCode(inputValue);
+            setOpen(false);
+            onKeyDown?.(e);
           } else if (e.key === 'Escape') {
             setOpen(false);
           } else {
             onKeyDown?.(e);
           }
         }}
-        className={`flex items-center justify-between w-full px-3 py-1.5 rounded-lg cursor-pointer transition-all text-[13px] bg-white border-2 border-slate-100 focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 outline-none text-left ${disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50'
-          }`}
-      >
-        <span className={selected ? 'text-slate-900 font-semibold truncate' : 'text-slate-400'}>
-          {selected ? `${selected.code} — ${selected.name}` : 'Select account...'}
-        </span>
-        <ChevronDown size={13} className={`text-slate-400 transition-transform flex-shrink-0 ml-1 ${open ? 'rotate-180' : ''}`} />
-      </button>
+        className={`w-full px-3 py-1.5 rounded-lg transition-all text-[13px] bg-white border-2 border-slate-105 focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 outline-none text-left ${
+          disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50'
+        }`}
+      />
+      
       <AnimatePresence>
         {open && (
           <motion.div
@@ -89,39 +127,32 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown }) {
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: openUpward ? -6 : 6, scale: 0.98 }}
             transition={{ duration: 0.12 }}
-            className={`absolute z-50 w-full bg-white rounded-xl shadow-card-lg overflow-hidden border border-slate-100 min-w-[280px] ${openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
-              }`}
+            className={`absolute z-50 w-full bg-white rounded-xl shadow-card-lg overflow-hidden border border-slate-100 min-w-[280px] ${
+              openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
+            }`}
           >
-            <div className="p-2 border-b border-slate-100">
-              <div className="relative">
-                <Search size={13} className="absolute left-2.5 top-1/2 -translate-y-1/2 text-slate-400" />
-                <input
-                  autoFocus
-                  className="w-full bg-white border border-slate-200 rounded-lg py-1.5 pl-8 pr-3 text-[13px] outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/15"
-                  placeholder="Search accounts..."
-                  value={q}
-                  onChange={e => setQ(e.target.value)}
-                />
-              </div>
-            </div>
             <div className="max-h-52 overflow-y-auto p-1.5 sarfis-scrollbar">
               {filtered.length === 0 ? (
                 <p className="text-[12px] text-slate-400 text-center py-3">No matches</p>
-              ) : filtered.map(acc => (
-                <button
-                  key={acc.id}
-                  type="button"
-                  onClick={() => handleSelect(acc.id)}
-                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg cursor-pointer text-[13px] text-left transition-colors ${String(value) === String(acc.id) ? 'bg-emerald-50 text-emerald-800 font-semibold' : 'hover:bg-slate-50 text-slate-700'
+              ) : (
+                filtered.map(acc => (
+                  <button
+                    key={acc.id}
+                    type="button"
+                    onMouseDown={(e) => e.preventDefault()}
+                    onClick={() => handleSelect(acc.id)}
+                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg cursor-pointer text-[13px] text-left transition-colors ${
+                      String(value) === String(acc.id) ? 'bg-emerald-50 text-emerald-800 font-semibold' : 'hover:bg-slate-50 text-slate-700'
                     }`}
-                >
-                  <div className="flex items-center gap-2 min-w-0">
-                    <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold">{acc.code}</span>
-                    <span className="truncate">{acc.name}</span>
-                  </div>
-                  {String(value) === String(acc.id) && <Check size={13} className="text-emerald-600 flex-shrink-0" />}
-                </button>
-              ))}
+                  >
+                    <div className="flex items-center gap-2 min-w-0">
+                      <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-105 text-slate-500 font-bold">{acc.code}</span>
+                      <span className="truncate">{acc.name}</span>
+                    </div>
+                    {String(value) === String(acc.id) && <Check size={13} className="text-emerald-600 flex-shrink-0" />}
+                  </button>
+                ))
+              )}
             </div>
           </motion.div>
         )}
@@ -179,6 +210,21 @@ export default function JournalEntryPage() {
   const [reversalReason, setReversalReason] = useState('');
   const [reversingEntry, setReversingEntry] = useState(null);
 
+  // Missing Account Dialog States
+  const [missingAccountOpen, setMissingAccountOpen] = useState(false);
+  const [missingCode, setMissingCode] = useState('');
+  const [targetLineIndex, setTargetLineIndex] = useState(null);
+
+  // Quick Create Modal States
+  const [quickCreateOpen, setQuickCreateOpen] = useState(false);
+  const [quickCode, setQuickCode] = useState('');
+  const [quickName, setQuickName] = useState('');
+  const [quickCategory, setQuickCategory] = useState('Asset');
+  const [quickNormalBalance, setQuickNormalBalance] = useState('Debit');
+  const [quickParentId, setQuickParentId] = useState('');
+  const [quickIsContra, setQuickIsContra] = useState(false);
+  const [quickCreateError, setQuickCreateError] = useState('');
+
   // Recent transactions sidebar state
   const [recentDrawerOpen, setRecentDrawerOpen] = useState(false);
   const [recentEntries, setRecentEntries] = useState([]);
@@ -187,6 +233,41 @@ export default function JournalEntryPage() {
   const [detailEntry, setDetailEntry] = useState(null);
   const [detailLoading, setDetailLoading] = useState(false);
   const [recentFilter, setRecentFilter] = useState('');
+
+  // Restore draft state if navigated back from COA page
+  useEffect(() => {
+    const saved = localStorage.getItem('pending_journal_draft');
+    if (saved) {
+      try {
+        const parsed = JSON.parse(saved);
+        setDate(parsed.date);
+        setReference(parsed.reference);
+        setLines(parsed.lines);
+        setPostingMode(parsed.postingMode || 'REALTIME');
+        setToastMessage('Journal draft restored from your session.');
+        setToast(true);
+        setTimeout(() => setToast(false), 3000);
+      } catch (e) {
+        console.error("Failed to restore journal draft:", e);
+      }
+      localStorage.removeItem('pending_journal_draft');
+    }
+  }, []);
+
+  const getSmartSuggestions = (code) => {
+    if (!code) return [];
+    const prefix = code.substring(0, 2);
+    return accounts
+      .filter(a => a.code.startsWith(prefix) && a.code !== code)
+      .slice(0, 3);
+  };
+
+  const handleAccountNotFound = (code, idx) => {
+    if (!code || code.trim() === '') return;
+    setMissingCode(code);
+    setTargetLineIndex(idx);
+    setMissingAccountOpen(true);
+  };
 
   // Fetch accounts on load
   useEffect(() => {
@@ -741,6 +822,8 @@ export default function JournalEntryPage() {
                             onChange={v => setLine(idx, 'accountId', v)}
                             disabled={accounts.length === 0}
                             onKeyDown={e => handleKeyDown(e, idx, 'account')}
+                            onAccountNotFound={handleAccountNotFound}
+                            idx={idx}
                           />
                         </td>
                         <td className="px-2 py-1.5">
@@ -1029,6 +1112,277 @@ export default function JournalEntryPage() {
                   className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-[12.5px] bg-amber-600 hover:bg-amber-700 text-white shadow-lg transition-all active:scale-95 cursor-pointer"
                 >
                   Override & Post
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Missing Account Warning Dialog */}
+      <AnimatePresence>
+        {missingAccountOpen && (
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="modal-box w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100"
+              initial={{ opacity: 0, scale: 0.95, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }} transition={{ duration: 0.2 }}>
+              <div className="px-7 pt-6 pb-4 border-b border-slate-100 bg-rose-50/50 flex items-center gap-2.5">
+                <AlertCircle className="text-rose-500" size={20} />
+                <div>
+                  <h2 className="font-display font-extrabold text-[16px] text-rose-950">Account Not Found</h2>
+                  <p className="text-[11.5px] text-rose-700 mt-0.5 font-medium">Valid Chart of Accounts entry required.</p>
+                </div>
+              </div>
+              <div className="p-7 space-y-4">
+                <p className="text-[13px] text-slate-600 font-semibold leading-relaxed">
+                  The account code <span className="font-mono text-rose-600 bg-rose-50 px-1.5 py-0.5 rounded font-bold">{missingCode}</span> does not exist in your Chart of Accounts.
+                </p>
+                
+                {/* Smart Suggestions */}
+                {(() => {
+                  const suggestions = getSmartSuggestions(missingCode);
+                  if (suggestions.length > 0) {
+                    return (
+                      <div className="space-y-2 bg-slate-50 border border-slate-100 rounded-xl p-3.5">
+                        <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Did you mean?</span>
+                        <div className="flex flex-col gap-1.5">
+                          {suggestions.map(s => (
+                            <button
+                              key={s.id}
+                              type="button"
+                              onClick={() => {
+                                setLine(targetLineIndex, 'accountId', s.id);
+                                setMissingAccountOpen(false);
+                              }}
+                              className="text-left font-semibold text-[12.5px] text-slate-650 hover:text-emerald-700 hover:bg-emerald-50 px-2.5 py-1.5 rounded-lg border border-transparent hover:border-emerald-200 transition-colors w-full flex items-center gap-2 cursor-pointer"
+                            >
+                              <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold">{s.code}</span>
+                              <span>{s.name}</span>
+                            </button>
+                          ))}
+                        </div>
+                      </div>
+                    );
+                  }
+                  return null;
+                })()}
+
+                <p className="text-[12px] text-slate-500 leading-relaxed">
+                  You must resolve this missing account before the journal entry can be posted.
+                </p>
+              </div>
+              <div className="flex flex-col gap-2 px-7 pb-7">
+                {/* Check accounts.manage permission */}
+                {(user?.role === 'Super Admin' || (permissions || []).includes('accounts.manage')) ? (
+                  <button
+                    onClick={() => {
+                      setMissingAccountOpen(false);
+                      setQuickCode(missingCode);
+                      setQuickName('');
+                      // Smart defaults based on code prefix
+                      const prefix = missingCode[0];
+                      if (prefix === '1') { setQuickCategory('Asset'); setQuickNormalBalance('Debit'); }
+                      else if (prefix === '2') { setQuickCategory('Liability'); setQuickNormalBalance('Credit'); }
+                      else if (prefix === '3') { setQuickCategory('Equity'); setQuickNormalBalance('Credit'); }
+                      else if (prefix === '4') { setQuickCategory('Revenue'); setQuickNormalBalance('Credit'); }
+                      else if (prefix === '5') { setQuickCategory('Expense'); setQuickNormalBalance('Debit'); }
+                      else { setQuickCategory('Asset'); setQuickNormalBalance('Debit'); }
+                      setQuickParentId('');
+                      setQuickIsContra(false);
+                      setQuickCreateError('');
+                      setQuickCreateOpen(true);
+                    }}
+                    className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-[13px] bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg transition-all active:scale-95 cursor-pointer border-none"
+                  >
+                    🟢 Create New Account (Quick Create)
+                  </button>
+                ) : (
+                  <div className="bg-amber-50 border border-amber-100 rounded-xl p-3 text-[11.5px] font-semibold text-amber-800">
+                    ℹ Account creation is restricted. Please select an existing account.
+                  </div>
+                )}
+                
+                <button
+                  onClick={() => {
+                    setMissingAccountOpen(false);
+                    // Reset line value
+                    setLine(targetLineIndex, 'accountId', '');
+                    setTimeout(() => {
+                      const el = document.getElementById(`je-input-${targetLineIndex}-account`);
+                      el?.focus();
+                    }, 50);
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-[13px] bg-sky-55 hover:bg-sky-100 text-sky-800 border border-sky-200 transition-all active:scale-95 cursor-pointer"
+                >
+                  🔵 Select Existing Account
+                </button>
+
+                {(user?.role === 'Super Admin' || (permissions || []).includes('accounts.manage')) && (
+                  <button
+                    onClick={() => {
+                      setMissingAccountOpen(false);
+                      const draftState = { date, reference, lines, postingMode };
+                      localStorage.setItem('pending_journal_draft', JSON.stringify(draftState));
+                      navigate('/dashboard/accounts');
+                    }}
+                    className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-[13px] bg-purple-55 hover:bg-purple-100 text-purple-800 border border-purple-200 transition-all active:scale-95 cursor-pointer"
+                  >
+                    🟣 Open Chart of Accounts
+                  </button>
+                )}
+
+                <button
+                  onClick={() => {
+                    setMissingAccountOpen(false);
+                  }}
+                  className="w-full inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-[13px] bg-slate-50 hover:bg-slate-100 text-slate-650 border border-slate-200 transition-all active:scale-95 cursor-pointer"
+                >
+                  ⚪ Cancel
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+
+      {/* Quick Create Account Modal */}
+      <AnimatePresence>
+        {quickCreateOpen && (
+          <motion.div className="modal-overlay" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="modal-box w-full max-w-md bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-100"
+              initial={{ opacity: 0, scale: 0.95, y: 16 }} animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.95, y: 16 }} transition={{ duration: 0.2 }}>
+              <div className="px-7 pt-6 pb-4 border-b border-slate-100 bg-emerald-50/50 flex items-center gap-2.5">
+                <Plus className="text-emerald-600" size={20} />
+                <div>
+                  <h2 className="font-display font-extrabold text-[16px] text-emerald-950">Quick Create Account</h2>
+                  <p className="text-[11.5px] text-emerald-700 mt-0.5 font-medium">Add new account to Chart of Accounts.</p>
+                </div>
+              </div>
+              <div className="p-7 space-y-4">
+                {quickCreateError && (
+                  <div className="flex items-center gap-2 bg-rose-50 border border-rose-100 rounded-xl p-3 text-[12px] font-bold text-rose-700">
+                    <AlertCircle size={14} className="shrink-0" />
+                    <span>{quickCreateError}</span>
+                  </div>
+                )}
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Account Code *</label>
+                  <input
+                    type="text"
+                    required
+                    className="input-enterprise font-mono font-bold focus:border-emerald-500/50 focus:ring-emerald-500/5 bg-white"
+                    placeholder="e.g. 5125"
+                    value={quickCode}
+                    onChange={(e) => {
+                      const codeVal = e.target.value;
+                      setQuickCode(codeVal);
+                      
+                      // Check for duplicate account codes in real-time
+                      if (accounts.some(a => a.code === codeVal)) {
+                        setQuickCreateError(`Account code ${codeVal} already exists!`);
+                      } else {
+                        setQuickCreateError('');
+                        
+                        // Update default category/balance based on code prefix
+                        const prefix = codeVal[0];
+                        if (prefix === '1') { setQuickCategory('Asset'); setQuickNormalBalance('Debit'); }
+                        else if (prefix === '2') { setQuickCategory('Liability'); setQuickNormalBalance('Credit'); }
+                        else if (prefix === '3') { setQuickCategory('Equity'); setQuickNormalBalance('Credit'); }
+                        else if (prefix === '4') { setQuickCategory('Revenue'); setQuickNormalBalance('Credit'); }
+                        else if (prefix === '5') { setQuickCategory('Expense'); setQuickNormalBalance('Debit'); }
+                      }
+                    }}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Account Name *</label>
+                  <input
+                    type="text"
+                    required
+                    className="input-enterprise font-bold focus:border-emerald-500/50 focus:ring-emerald-500/5 bg-white"
+                    placeholder="e.g. Office Renovation Expense"
+                    value={quickName}
+                    onChange={e => setQuickName(e.target.value)}
+                  />
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Category *</label>
+                    <select
+                      className="input-enterprise font-semibold focus:border-emerald-500/50 focus:ring-emerald-500/5 bg-white"
+                      value={quickCategory}
+                      onChange={e => setQuickCategory(e.target.value)}
+                    >
+                      {['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'].map(cat => (
+                        <option key={cat} value={cat}>{cat}</option>
+                      ))}
+                    </select>
+                  </div>
+                  <div>
+                    <label className="block text-[10px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Normal Balance *</label>
+                    <select
+                      className="input-enterprise font-semibold focus:border-emerald-500/50 focus:ring-emerald-500/5 bg-white"
+                      value={quickNormalBalance}
+                      onChange={e => setQuickNormalBalance(e.target.value)}
+                    >
+                      {['Debit', 'Credit'].map(bal => (
+                        <option key={bal} value={bal}>{bal}</option>
+                      ))}
+                    </select>
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 py-1">
+                  <input
+                    type="checkbox"
+                    id="quickIsContra"
+                    className="rounded border-slate-300 text-emerald-600 focus:ring-emerald-500/20"
+                    checked={quickIsContra}
+                    onChange={e => setQuickIsContra(e.target.checked)}
+                  />
+                  <label htmlFor="quickIsContra" className="text-[12px] font-bold text-slate-650 cursor-pointer">This is a Contra Account</label>
+                </div>
+              </div>
+              <div className="flex gap-3 px-7 pb-7">
+                <button
+                  type="button"
+                  onClick={() => setQuickCreateOpen(false)}
+                  className="flex-1 bg-slate-50 hover:bg-slate-100 text-slate-600 px-4 py-2.5 text-[12.5px] font-bold rounded-xl border border-slate-200 transition-all active:scale-95 cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="button"
+                  disabled={!quickCode || !quickName || !!quickCreateError}
+                  onClick={async () => {
+                    setQuickCreateError('');
+                    try {
+                      const res = await api.post('/accounts', {
+                        code: quickCode,
+                        name: quickName,
+                        category: quickCategory,
+                        normal_balance: quickNormalBalance,
+                        is_contra: quickIsContra
+                      });
+                      
+                      // Refresh accounts list cache
+                      const listRes = await api.get('/accounts');
+                      setAccounts(listRes.data);
+                      
+                      // Auto-insert newly created account into target line
+                      setLine(targetLineIndex, 'accountId', res.data.id);
+                      setQuickCreateOpen(false);
+                    } catch (err) {
+                      setQuickCreateError(err.response?.data?.message || err.response?.data?.error || 'Failed to create account.');
+                    }
+                  }}
+                  className="flex-1 inline-flex items-center justify-center gap-2 px-5 py-2.5 rounded-xl font-bold text-[12.5px] bg-emerald-600 hover:bg-emerald-700 text-white shadow-lg transition-all active:scale-95 disabled:opacity-50 cursor-pointer border-none"
+                >
+                  <Save size={13} /> Save Account
                 </button>
               </div>
             </motion.div>
