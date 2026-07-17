@@ -24,6 +24,13 @@ class SubledgerService {
     const receiptMap = {};
     receiptSums.forEach(r => { if (r.client_id) receiptMap[r.client_id] = parseFloat(r.total || 0); });
 
+    // Detect base AR code dynamically
+    const arAccount = await db('accounts')
+      .where({ company_id: companyId, is_control: true })
+      .where('name', 'ilike', '%receivable%')
+      .first();
+    const baseCode = arAccount ? parseInt(arAccount.code, 10) : 1200;
+
     return clients.map((c, idx) => {
       const salesTotal = salesMap[c.id] || 0;
       const receiptsTotal = receiptMap[c.id] || 0;
@@ -36,7 +43,7 @@ class SubledgerService {
         phone: c.phone,
         status: c.status || 'ACTIVE',
         credit_limit: parseFloat(c.credit_limit || 0),
-        code: String(1200 + idx + 1),
+        code: String(baseCode + idx + 1),
         category: 'Asset',
         type: 'CUSTOMER',
         balance
@@ -67,6 +74,13 @@ class SubledgerService {
     const paymentMap = {};
     paymentSums.forEach(p => { if (p.vendor_id) paymentMap[p.vendor_id] = parseFloat(p.total || 0); });
 
+    // Detect base AP code dynamically
+    const apAccount = await db('accounts')
+      .where({ company_id: companyId, is_control: true })
+      .where('name', 'ilike', '%payable%')
+      .first();
+    const baseCode = apAccount ? parseInt(apAccount.code, 10) : 2010;
+
     return vendors.map((v, idx) => {
       const purchaseTotal = purchaseMap[v.id] || 0;
       const paymentsTotal = paymentMap[v.id] || 0;
@@ -79,7 +93,7 @@ class SubledgerService {
         phone: v.phone,
         status: v.status || 'ACTIVE',
         credit_limit: parseFloat(v.credit_limit || 0),
-        code: String(2010 + idx + 1),
+        code: String(baseCode + idx + 1),
         category: 'Liability',
         type: 'SUPPLIER',
         balance

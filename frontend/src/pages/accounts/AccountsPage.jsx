@@ -41,14 +41,16 @@ export default function AccountsPage({ globalSearch = "" }) {
   const [subledgerSorting, setSubledgerSorting] = useState({});
   const [selectedSubledgerPartner, setSelectedSubledgerPartner] = useState(null);
 
-  const handleToggleExpand = async (code) => {
+  const handleToggleExpand = async (acc) => {
+    const code = acc.code;
     const isExpanded = !!expandedControlAccounts[code];
     setExpandedControlAccounts(prev => ({ ...prev, [code]: !isExpanded }));
 
     if (!isExpanded && !subledgerData[code]) {
       setSubledgerLoading(prev => ({ ...prev, [code]: true }));
       try {
-        const endpoint = code === '1200' ? '/subledger/receivables' : '/subledger/payables';
+        const isAR = acc.is_control && acc.name.toLowerCase().includes('receivable');
+        const endpoint = isAR ? '/subledger/receivables' : '/subledger/payables';
         const res = await api.get(endpoint);
         setSubledgerData(prev => ({ ...prev, [code]: res.data }));
       } catch (err) {
@@ -247,7 +249,9 @@ export default function AccountsPage({ globalSearch = "" }) {
                 </tr>
               ) : (
                 filtered.map(acc => {
-                  const isControlAcc = ['1200', '2010'].includes(acc.code);
+                  const isAR = acc.is_control && acc.name.toLowerCase().includes('receivable');
+                  const isAP = acc.is_control && acc.name.toLowerCase().includes('payable');
+                  const isControlAcc = isAR || isAP;
                   const isExpanded = !!expandedControlAccounts[acc.code];
 
                   return (
@@ -261,7 +265,7 @@ export default function AccountsPage({ globalSearch = "" }) {
                             {isControlAcc && (
                               <button 
                                 type="button"
-                                onClick={() => handleToggleExpand(acc.code)}
+                                onClick={() => handleToggleExpand(acc)}
                                 className="w-5 h-5 rounded hover:bg-slate-100 flex items-center justify-center text-slate-400 hover:text-slate-650 transition-all border-none bg-transparent cursor-pointer"
                               >
                                 <ChevronDown 
@@ -525,13 +529,19 @@ export default function AccountsPage({ globalSearch = "" }) {
         virtualCode={selectedSubledgerPartner?.virtualCode}
         partnerName={selectedSubledgerPartner?.name}
         onSaveSuccess={() => {
-          const code = selectedSubledgerPartner?.type === 'CUSTOMER' ? '1200' : '2010';
-          setSubledgerData(prev => {
-            const next = { ...prev };
-            delete next[code];
-            return next;
-          });
-          setExpandedControlAccounts(prev => ({ ...prev, [code]: false }));
+          const isCustomer = selectedSubledgerPartner?.type === 'CUSTOMER';
+          const arAcc = accounts.find(a => a.is_control && a.name.toLowerCase().includes('receivable'));
+          const apAcc = accounts.find(a => a.is_control && a.name.toLowerCase().includes('payable'));
+          const parentCode = isCustomer ? arAcc?.code : apAcc?.code;
+
+          if (parentCode) {
+            setSubledgerData(prev => {
+              const next = { ...prev };
+              delete next[parentCode];
+              return next;
+            });
+            setExpandedControlAccounts(prev => ({ ...prev, [parentCode]: false }));
+          }
           setSelectedSubledgerPartner(null);
         }}
       />
