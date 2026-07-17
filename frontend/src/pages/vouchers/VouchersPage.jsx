@@ -115,7 +115,7 @@ function VoucherList() {
   const countDraft = vouchers.filter(v => v.status === 'DRAFT').length;
   const countPending = vouchers.filter(v => v.status === 'PENDING_APPROVAL').length;
   const countReversed = vouchers.filter(v => v.is_reversed || v.status === 'REVERSED' || v.status === 'CANCELLED').length;
-  const countPosted = vouchers.filter(v => v.status === 'POSTED' && !v.is_reversed && v.status !== 'REVERSED' && v.status !== 'CANCELLED').length;
+  const countPosted = vouchers.filter(v => ['POSTED', 'PAID'].includes(v.status) && !v.is_reversed && v.status !== 'REVERSED' && v.status !== 'CANCELLED').length;
 
   const kpisList = [
     { label: 'Total Documents', value: countTotal, icon: FileText, iconBgClass: 'bg-blue-50', iconColorClass: 'text-blue-650' },

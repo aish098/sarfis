@@ -451,7 +451,7 @@ export default function VoucherDetails() {
   const { document, financial, inventory, business, risk, audit, comments, relatedDocuments, attachments } = details;
 
   // Derive metrics
-  const isPosted = document.status === 'POSTED';
+  const isPosted = ['POSTED', 'PAID'].includes(document.status);
   const hasInventory = inventory.movements && inventory.movements.length > 0;
   const isSales = document.type === 'SALES';
   const isPurchase = document.type === 'PURCHASE';
@@ -636,7 +636,7 @@ export default function VoucherDetails() {
             )}
 
             {/* Timeline Item: Approved */}
-            {document.status === 'POSTED' ? (
+            {['POSTED', 'PAID'].includes(document.status) ? (
               <div className="text-center space-y-1.5 flex flex-col items-center">
                 <div className="w-8 h-8 rounded-full bg-emerald-500 text-white flex items-center justify-center font-bold text-[11px] border-4 border-white shadow shadow-emerald-500/20">
                   ✓
@@ -658,7 +658,7 @@ export default function VoucherDetails() {
             )}
 
             {/* Timeline Item: Posted */}
-            {document.status === 'POSTED' ? (
+            {['POSTED', 'PAID'].includes(document.status) ? (
               <div className="text-center space-y-1.5 flex flex-col items-center">
                 <div className="w-8 h-8 rounded-full bg-indigo-600 text-white flex items-center justify-center font-bold text-[11px] border-4 border-white shadow shadow-indigo-500/20">
                   ✓
