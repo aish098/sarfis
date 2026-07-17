@@ -572,12 +572,12 @@ export default function BeginningBalancesPage() {
               <div key={item.s} className="flex items-center gap-2.5">
                 <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black border transition-all ${
                   isCompleted ? 'bg-emerald-500 text-white border-emerald-600' :
-                  isActive ? 'bg-blue-600 text-white border-blue-700 shadow-xs shadow-blue-600/10' :
+                  isActive ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs shadow-emerald-600/10' :
                   'bg-white text-slate-400 border-slate-200'
                 }`}>
                   {isCompleted ? '✓' : item.s}
                 </span>
-                <span className={`text-[12px] ${isActive ? 'text-blue-700 font-extrabold' : isCompleted ? 'text-slate-700 font-bold' : 'text-slate-400 font-medium'}`}>
+                <span className={`text-[12px] ${isActive ? 'text-emerald-700 font-extrabold' : isCompleted ? 'text-slate-700 font-bold' : 'text-slate-400 font-medium'}`}>
                   {item.label}
                 </span>
                 {item.s < 4 && <ChevronRight size={13} className="text-slate-300 ml-1" />}
@@ -684,7 +684,7 @@ export default function BeginningBalancesPage() {
                 </div>
               ) : (
                 <div className="card bg-white border border-slate-200 p-6 rounded-3xl flex flex-col items-center text-center space-y-4">
-                  <div className="p-4 bg-blue-50 text-blue-600 rounded-full">
+                  <div className="p-4 bg-emerald-50 text-emerald-600 rounded-full">
                     <Database size={32} />
                   </div>
                   <div>
@@ -698,7 +698,7 @@ export default function BeginningBalancesPage() {
                   </div>
                   <button 
                     onClick={() => setStep(2)}
-                    className="bg-blue-600 hover:bg-blue-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-md cursor-pointer transition active:scale-95 border-none flex items-center gap-1.5 text-[13px]"
+                    className="bg-emerald-600 hover:bg-emerald-700 text-white font-bold px-6 py-2.5 rounded-xl shadow-md cursor-pointer transition active:scale-95 border-none flex items-center gap-1.5 text-[13px]"
                   >
                     {status === 'DRAFT' ? 'Resume Migration Draft' : 'Begin Balance Setup'} <ChevronRight size={14} />
                   </button>
@@ -714,7 +714,7 @@ export default function BeginningBalancesPage() {
               {/* Excel/CSV Tool bar */}
               <div className="card bg-white border border-slate-200 p-5 rounded-3xl flex flex-wrap items-center justify-between gap-4 shadow-3xs">
                 <div className="flex items-center gap-3">
-                  <div className="p-2.5 bg-blue-50 text-blue-600 rounded-xl">
+                  <div className="p-2.5 bg-emerald-50 text-emerald-600 rounded-xl">
                     <FileSpreadsheet size={20} />
                   </div>
                   <div>
@@ -730,7 +730,7 @@ export default function BeginningBalancesPage() {
                   >
                     <Download size={14} /> Download Template
                   </button>
-                  <label className="flex items-center gap-1.5 bg-blue-600 hover:bg-blue-700 text-white px-4 py-2 text-[12.5px] font-bold rounded-xl transition cursor-pointer shadow-sm active:scale-95 select-none">
+                  <label className="flex items-center gap-1.5 bg-emerald-600 hover:bg-emerald-700 text-white px-4 py-2 text-[12.5px] font-bold rounded-xl transition cursor-pointer shadow-sm active:scale-95 select-none">
                     <FileText size={14} /> Import File
                     <input type="file" accept=".csv, .xlsx, .xls" onChange={handleFileUpload} className="hidden" />
                   </label>
@@ -952,7 +952,7 @@ export default function BeginningBalancesPage() {
                   <button 
                     onClick={() => setStep(3)}
                     disabled={activeLinesCount === 0 || unresolvedMissingCount > 0}
-                    className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 text-[13px] font-bold rounded-xl transition cursor-pointer shadow-md active:scale-95 border-none disabled:opacity-50"
+                    className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 text-[13px] font-bold rounded-xl transition cursor-pointer shadow-md active:scale-95 border-none disabled:opacity-50"
                     title={unresolvedMissingCount > 0 ? "Resolve missing accounts first" : ""}
                   >
                     Preview Trial Balance <ChevronRight size={14} />
@@ -1039,7 +1039,7 @@ export default function BeginningBalancesPage() {
                 <button 
                   onClick={() => setStep(4)}
                   disabled={diff > 0.01}
-                  className="flex items-center gap-1 bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 text-[13px] font-bold rounded-xl transition cursor-pointer shadow-md active:scale-95 border-none"
+                  className="flex items-center gap-1 bg-emerald-600 hover:bg-emerald-700 text-white px-6 py-2.5 text-[13px] font-bold rounded-xl transition cursor-pointer shadow-md active:scale-95 border-none"
                 >
                   Next: Post Balances <ChevronRight size={14} />
                 </button>
