@@ -14,9 +14,12 @@ const updateWarehouse = (id, companyId, data) =>
 const deleteWarehouse = (id, companyId) =>
   db('warehouses').where({ id, company_id: companyId }).delete();
 
-// ─── PRODUCTS ─────────────────────────────────────────────
 const getProducts = (companyId) =>
-  db('products').where({ company_id: companyId, is_active: true }).orderBy('sku');
+  db('products as p')
+    .leftJoin('v_stock_summary as s', 's.product_id', 'p.id')
+    .where({ 'p.company_id': companyId, 'p.is_active': true })
+    .select('p.*', db.raw('COALESCE(s.total_qty, 0) as total_qty'))
+    .orderBy('p.sku');
 
 const getProductById = (id, companyId) =>
   db('products').where({ id, company_id: companyId }).first();
