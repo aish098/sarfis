@@ -281,7 +281,7 @@ export default function ReportsPage() {
 
     // Footer info
     const finalY = doc.lastAutoTable.finalY + 12;
-    doc.setFont("Helvetica", "oblique");
+    doc.setFont("Helvetica", "italic");
     doc.setFontSize(8);
     doc.setTextColor(148, 163, 184);
     doc.text(`Generated Automatically by ACCOUNTELLENCE System on ${new Date(noteData.metadata.lastUpdated).toLocaleString()}`, 14, finalY);
@@ -476,7 +476,7 @@ export default function ReportsPage() {
     });
 
     const finalY = doc.lastAutoTable.finalY + 12;
-    doc.setFont("Helvetica", "oblique");
+    doc.setFont("Helvetica", "italic");
     doc.setFontSize(8);
     doc.setTextColor(148, 163, 184);
     doc.text(`Generated automatically by ACCOUNTELLENCE System on ${new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, 14, finalY);
