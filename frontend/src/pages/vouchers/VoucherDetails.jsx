@@ -478,42 +478,7 @@ export default function VoucherDetails() {
     totalCostAmount = document.totalAmount;
   }
 
-  const relatedDocs = [];
-  if (details?.relatedPo) {
-    relatedDocs.push({
-      type: 'PURCHASE_ORDER',
-      id: details.relatedPo.id,
-      number: details.relatedPo.po_number,
-      status: details.relatedPo.status,
-      created_at: details.relatedPo.created_at,
-      creator_name: details.relatedPo.creator_name,
-      link: `/dashboard/purchase-orders?id=${details.relatedPo.id}`
-    });
-  }
-  if (details?.relatedRequisition) {
-    relatedDocs.push({
-      type: 'PURCHASE_REQUISITION',
-      id: details.relatedRequisition.id,
-      number: details.relatedRequisition.requisition_number,
-      status: details.relatedRequisition.status,
-      created_at: details.relatedRequisition.created_at,
-      creator_name: details.relatedRequisition.creator_name,
-      link: `/dashboard/purchase-requisitions?id=${details.relatedRequisition.id}`
-    });
-  }
-  if (details?.relatedDeliveries && details.relatedDeliveries.length > 0) {
-    details.relatedDeliveries.forEach(del => {
-      relatedDocs.push({
-        type: 'DELIVERY',
-        id: del.id,
-        number: del.delivery_number,
-        status: del.status,
-        created_at: del.created_at,
-        creator_name: del.creator_name,
-        link: `/dashboard/distribution?id=${del.id}`
-      });
-    });
-  }
+  const relatedDocs = relatedDocuments || [];
 
   return (
     <div id="print-area" className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6] space-y-6">

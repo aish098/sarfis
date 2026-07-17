@@ -251,8 +251,9 @@ class TransactionInquiryService {
       try {
         const lineage = await ProcurementLineageService.getLineage('VOUCHER', voucher.id, companyId);
         relatedDocuments = lineage.map(doc => ({
-          type: doc.type,
+          ...doc,
           code: doc.number,
+          number: doc.number,
           label: doc.type === 'PURCHASE_REQUISITION' ? 'Purchase Requisition' :
                  doc.type === 'PURCHASE_ORDER' ? 'Purchase Order' :
                  doc.type === 'GOODS_RECEIPT' ? 'Goods Receipt Note' :
@@ -270,19 +271,19 @@ class TransactionInquiryService {
       }
     } else {
       if (voucher.payload?.quotation_number) {
-        relatedDocuments.push({ type: 'QUOTATION', code: voucher.payload.quotation_number, label: 'Sales Quotation' });
+        relatedDocuments.push({ type: 'QUOTATION', code: voucher.payload.quotation_number, number: voucher.payload.quotation_number, label: 'Sales Quotation' });
       }
       if (voucher.payload?.sales_order_number) {
-        relatedDocuments.push({ type: 'ORDER', code: voucher.payload.sales_order_number, label: 'Sales Order' });
+        relatedDocuments.push({ type: 'ORDER', code: voucher.payload.sales_order_number, number: voucher.payload.sales_order_number, label: 'Sales Order' });
       }
       if (voucher.payload?.delivery_number) {
-        relatedDocuments.push({ type: 'DELIVERY', code: voucher.payload.delivery_number, label: 'Delivery Note' });
+        relatedDocuments.push({ type: 'DELIVERY', code: voucher.payload.delivery_number, number: voucher.payload.delivery_number, label: 'Delivery Note' });
       }
 
-      relatedDocuments.push({ type: 'VOUCHER', code: voucher.voucher_number, id: voucher.id, label: `${voucher.type} Voucher`, active: true });
+      relatedDocuments.push({ type: 'VOUCHER', code: voucher.voucher_number, number: voucher.voucher_number, id: voucher.id, label: `${voucher.type} Voucher`, active: true });
 
       if (financial.journalEntry) {
-        relatedDocuments.push({ type: 'JOURNAL', code: financial.journalEntry.entry_number, label: 'Journal Entry' });
+        relatedDocuments.push({ type: 'JOURNAL', code: financial.journalEntry.entry_number, number: financial.journalEntry.entry_number, label: 'Journal Entry' });
       }
     }
 
