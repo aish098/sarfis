@@ -1167,28 +1167,27 @@ function BalanceSheet({ data, companyName, asOfDate, formatAmount, openNoteDrawe
   const tE = equity.reduce((s,r)=>s+r.net,0);
   const balanced = Math.abs(tA - (tL + tE)) < 0.01;
 
-  const getNoteRef = (code, name) => {
-    const c = String(code || '');
-    const n = String(name || '').toLowerCase();
-    if (c.startsWith('10')) return { num: 2, label: 'Cash & Cash Equivalents' };
-    if (c.startsWith('12') && !n.includes('allowance')) return { num: 3, label: 'Trade Receivables' };
-    if (n.includes('allowance') || n.includes('bad debt')) return { num: 4, label: 'Allowance for Doubtful Accounts' };
-    if (c.startsWith('13')) return { num: 5, label: 'Inventories' };
-    if (c.startsWith('15') || c.startsWith('16')) return { num: 7, label: 'Property, Plant & Equipment' };
-    if (c.startsWith('20') || c.startsWith('21')) return { num: 8, label: 'Trade and Other Payables' };
-    if (n.includes('tax') || c.startsWith('22')) return { num: 9, label: 'Taxation Liabilities' };
-    return null;
-  };
+  // Filter Assets and Liabilities by classification (default to Current if not set or NOT_APPLICABLE)
+  const currentAssets = assets.filter(a => a.current_classification !== 'NON_CURRENT');
+  const nonCurrentAssets = assets.filter(a => a.current_classification === 'NON_CURRENT');
+  const tCA = currentAssets.reduce((s,r)=>s+r.net,0);
+  const tNCA = nonCurrentAssets.reduce((s,r)=>s+r.net,0);
 
-  const RenderSection = ({ title, items, total, headerClass, totalBg, totalBorder, totalText }) => (
-    <div>
-      <div className={`stmt-section-header border-l-4 pl-2 font-extrabold text-[12px] mb-3 ${headerClass}`}>{title}</div>
-      <div className="rounded-xl border border-slate-100 overflow-hidden divide-y divide-[#E6EBE8] mb-3 bg-white shadow-xs">
-        {items.map((r, idx) => {
-          return (
+  const currentLiabs = liabs.filter(a => a.current_classification !== 'NON_CURRENT');
+  const nonCurrentLiabs = liabs.filter(a => a.current_classification === 'NON_CURRENT');
+  const tCL = currentLiabs.reduce((s,r)=>s+r.net,0);
+  const tNCL = nonCurrentLiabs.reduce((s,r)=>s+r.net,0);
+
+  const RenderSubSection = ({ title, items, total }) => {
+    if (items.length === 0) return null;
+    return (
+      <div className="mb-4">
+        <div className="text-[11px] font-black uppercase text-slate-400 tracking-wider mb-2 pl-1">{title}</div>
+        <div className="rounded-xl border border-slate-100 overflow-hidden divide-y divide-[#E6EBE8] bg-white shadow-xs">
+          {items.map((r, idx) => (
             <div 
               key={r.id || idx} 
-              className={`flex justify-between items-center py-3 px-3 text-slate-700 transition-all font-semibold text-[13.5px] hover:bg-slate-50/50 ${
+              className={`flex justify-between items-center py-2.5 px-3 text-slate-700 transition-all font-semibold text-[13px] hover:bg-slate-50/50 ${
                 idx % 2 === 0 ? 'bg-[#FFFDFB]' : 'bg-[#FAFAF9]'
               }`}
             >
@@ -1207,7 +1206,7 @@ function BalanceSheet({ data, companyName, asOfDate, formatAmount, openNoteDrawe
                           ? 'text-amber-700 bg-amber-50 border-amber-200 hover:bg-amber-100'
                           : r.noteMeta.reconciliationStatus === 'MISMATCH'
                           ? 'text-rose-700 bg-rose-50 border-rose-200 hover:bg-rose-100 animate-pulse font-extrabold'
-                          : 'text-slate-600 bg-slate-50 border-slate-200 hover:bg-slate-100'
+                          : 'text-slate-655 bg-slate-50 border-slate-200 hover:bg-slate-100'
                       }`}
                       title={`${r.noteMeta.label} (${r.noteMeta.reconciliationStatus})`}
                     >
@@ -1225,7 +1224,7 @@ function BalanceSheet({ data, companyName, asOfDate, formatAmount, openNoteDrawe
                       r.noteMeta.reconciliationStatus === 'VERIFIED'
                         ? 'text-emerald-600'
                         : r.noteMeta.reconciliationStatus === 'WARNING'
-                        ? 'text-amber-500'
+                        ? 'text-amber-505'
                         : r.noteMeta.reconciliationStatus === 'MISMATCH'
                         ? 'text-rose-500 font-black'
                         : 'text-slate-400'
@@ -1239,16 +1238,15 @@ function BalanceSheet({ data, companyName, asOfDate, formatAmount, openNoteDrawe
                 {formatAmount(r.net, r.is_contra)}
               </span>
             </div>
-          );
-        })}
-        {items.length === 0 && <p className="text-[12.5px] text-slate-400 italic py-3 px-3">No lines recorded</p>}
+          ))}
+        </div>
+        <div className="flex justify-between items-center mt-1.5 px-3 py-1.5 rounded-lg font-bold text-[12px] bg-slate-50 text-slate-650 border border-slate-100">
+          <span className="uppercase tracking-wider text-[9px] font-bold">Total {title}</span>
+          <span className="font-mono">{formatAmount(total)}</span>
+        </div>
       </div>
-      <div className={`flex justify-between items-center mt-2 px-3 py-2.5 rounded-xl font-black text-[13.5px] border ${totalBg} ${totalBorder}`}>
-        <span className={`${totalText} uppercase tracking-wider text-[10px] font-black`}>Total {title}</span>
-        <span className="font-mono font-black text-[15px]">{formatAmount(total)}</span>
-      </div>
-    </div>
-  );
+    );
+  };
 
   return (
     <div className="max-w-4xl mx-auto space-y-6">
@@ -1266,36 +1264,73 @@ function BalanceSheet({ data, companyName, asOfDate, formatAmount, openNoteDrawe
       </div>
       
       <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
-        <RenderSection 
-          title="Assets" 
-          items={assets} 
-          total={tA} 
-          headerClass="border-emerald-500 text-emerald-800"
-          totalBg="bg-[#EBFDF5]"
-          totalBorder="border-[#C2F3DC]"
-          totalText="text-[#064E3B]"
-        />
+        <div>
+          <div className="stmt-section-header border-l-4 pl-2 font-extrabold text-[13px] mb-3 border-emerald-500 text-emerald-800 uppercase tracking-wider">
+            Assets
+          </div>
+          
+          <div className="space-y-4 pl-2">
+            <RenderSubSection 
+              title="Current Assets" 
+              items={currentAssets} 
+              total={tCA} 
+            />
+            <RenderSubSection 
+              title="Non-Current Assets" 
+              items={nonCurrentAssets} 
+              total={tNCA} 
+            />
+          </div>
+
+          <div className="flex justify-between items-center mt-4 px-3 py-2.5 rounded-xl font-black text-[13.5px] border bg-[#EBFDF5] border-[#C2F3DC] text-[#064E3B]">
+            <span className="uppercase tracking-wider text-[10px] font-black">Total Assets</span>
+            <span className="font-mono font-black text-[15px]">{formatAmount(tA)}</span>
+          </div>
+        </div>
         
         <div className="space-y-6">
-          <RenderSection 
-            title="Liabilities" 
-            items={liabs} 
-            total={tL} 
-            headerClass="border-cyan-500 text-cyan-800"
-            totalBg="bg-cyan-50"
-            totalBorder="border-cyan-100"
-            totalText="text-cyan-900"
-          />
+          <div>
+            <div className="stmt-section-header border-l-4 pl-2 font-extrabold text-[13px] mb-3 border-cyan-500 text-cyan-800 uppercase tracking-wider">
+              Liabilities
+            </div>
+            
+            <div className="space-y-4 pl-2">
+              <RenderSubSection 
+                title="Current Liabilities" 
+                items={currentLiabs} 
+                total={tCL} 
+              />
+              <RenderSubSection 
+                title="Non-Current Liabilities" 
+                items={nonCurrentLiabs} 
+                total={tNCL} 
+              />
+            </div>
+
+            <div className="flex justify-between items-center mt-4 px-3 py-2.5 rounded-xl font-black text-[13.5px] border bg-cyan-50 border-cyan-100 text-cyan-900">
+              <span className="uppercase tracking-wider text-[10px] font-black">Total Liabilities</span>
+              <span className="font-mono font-black text-[15px]">{formatAmount(tL)}</span>
+            </div>
+          </div>
           
-          <RenderSection 
-            title="Equity" 
-            items={equity} 
-            total={tE} 
-            headerClass="border-emerald-500 text-emerald-800"
-            totalBg="bg-[#EBFDF5]"
-            totalBorder="border-[#C2F3DC]"
-            totalText="text-[#064E3B]"
-          />
+          <div>
+            <div className="stmt-section-header border-l-4 pl-2 font-extrabold text-[13px] mb-3 border-emerald-500 text-emerald-800 uppercase tracking-wider">
+              Equity
+            </div>
+            
+            <div className="space-y-4 pl-2">
+              <RenderSubSection 
+                title="Equity Capital" 
+                items={equity} 
+                total={tE} 
+              />
+            </div>
+
+            <div className="flex justify-between items-center mt-4 px-3 py-2.5 rounded-xl font-black text-[13.5px] border bg-[#EBFDF5] border-[#C2F3DC] text-[#064E3B]">
+              <span className="uppercase tracking-wider text-[10px] font-black">Total Equity</span>
+              <span className="font-mono font-black text-[15px]">{formatAmount(tE)}</span>
+            </div>
+          </div>
           
           <div className="bg-gradient-to-r from-[#10b981] to-[#06b6d4] text-white shadow-md shadow-emerald-500/10 p-4 rounded-xl flex justify-between items-center mt-6">
             <span className="font-display font-extrabold uppercase tracking-widest text-[12px] text-emerald-50">Total L & E</span>

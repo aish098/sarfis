@@ -138,7 +138,7 @@ class ReportModel {
     }
 
     let query = trx('accounts as a')
-      .select('a.id', 'a.code', 'a.name', 'a.category', 'a.normal_balance', 'a.is_contra')
+      .select('a.id', 'a.code', 'a.name', 'a.category', 'a.normal_balance', 'a.is_contra', 'a.current_classification')
       .sum('l.debit as total_debit')
       .sum('l.credit as total_credit')
       .where('a.company_id', companyId);
@@ -152,7 +152,7 @@ class ReportModel {
     }
 
     const rows = await query
-      .groupBy('a.id', 'a.code', 'a.name', 'a.category', 'a.normal_balance', 'a.is_contra')
+      .groupBy('a.id', 'a.code', 'a.name', 'a.category', 'a.normal_balance', 'a.is_contra', 'a.current_classification')
       .having(trx.raw('SUM(l.debit) <> 0 OR SUM(l.credit) <> 0'))
       .orderBy('a.category', 'asc')
       .orderBy('a.code', 'asc');

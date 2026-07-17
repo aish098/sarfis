@@ -7,7 +7,7 @@ const AccountModel = require('../models/account.model');
  */
 exports.createAccount = async (req, res) => {
   // Use validated body if available
-  const { code, name, category, normal_balance, is_contra } = req.validatedBody || req.body;
+  const { code, name, category, normal_balance, is_contra, current_classification } = req.validatedBody || req.body;
   const companyId = req.companyId;
 
   try {
@@ -17,7 +17,8 @@ exports.createAccount = async (req, res) => {
       name,
       category,
       normal_balance,
-      is_contra
+      is_contra,
+      current_classification
     });
     res.status(201).json(account);
   } catch (err) {
@@ -56,7 +57,7 @@ exports.getAccountsByCompany = async (req, res) => {
  */
 exports.updateAccount = async (req, res) => {
   const { id } = req.params;
-  const { name, category, code, normal_balance, is_contra } = req.validatedBody || req.body;
+  const { name, category, code, normal_balance, is_contra, current_classification } = req.validatedBody || req.body;
   const companyId = req.companyId;
 
   try {
@@ -65,7 +66,8 @@ exports.updateAccount = async (req, res) => {
       category,
       code,
       normal_balance,
-      is_contra
+      is_contra,
+      current_classification
     });
     if (!account) return res.status(404).json({ message: 'Account not found or access denied.' });
     res.json(account);

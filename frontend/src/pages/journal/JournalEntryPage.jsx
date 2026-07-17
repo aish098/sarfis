@@ -225,6 +225,36 @@ export default function JournalEntryPage() {
   const [quickParentId, setQuickParentId] = useState('');
   const [quickIsContra, setQuickIsContra] = useState(false);
   const [quickCreateError, setQuickCreateError] = useState('');
+  const [quickClassification, setQuickClassification] = useState('CURRENT');
+
+  const suggestQuickClassification = (code, name) => {
+    if (!code) return 'CURRENT';
+    const prefix = code[0];
+    if (prefix !== '1' && prefix !== '2') return 'NOT_APPLICABLE';
+    const codeStr = String(code);
+    const nameLower = String(name || '').toLowerCase();
+    
+    // Parent check
+    if (codeStr.length >= 3) {
+      const parentCode = codeStr.substring(0, 2) + '00';
+      const parentAcc = accounts.find(a => a.code === parentCode);
+      if (parentAcc && parentAcc.current_classification && parentAcc.current_classification !== 'NOT_APPLICABLE') {
+        return parentAcc.current_classification;
+      }
+    }
+    if (codeStr.startsWith('15') || codeStr.startsWith('16') || codeStr.startsWith('22') || codeStr.startsWith('25')) {
+      return 'NON_CURRENT';
+    }
+    const nonCurrentKeywords = [
+      'machinery', 'equipment', 'vehicle', 'lease', 'mortgage', 
+      'long-term', 'long term', 'building', 'land', 'furniture', 
+      'depreciation', 'patent', 'copyright', 'goodwill', 'loan'
+    ];
+    if (nonCurrentKeywords.some(keyword => nameLower.includes(keyword))) {
+      return 'NON_CURRENT';
+    }
+    return 'CURRENT';
+  };
 
   // Recent transactions sidebar state
   const [recentDrawerOpen, setRecentDrawerOpen] = useState(false);
@@ -1182,12 +1212,26 @@ export default function JournalEntryPage() {
                       setQuickName('');
                       // Smart defaults based on code prefix
                       const prefix = missingCode[0];
-                      if (prefix === '1') { setQuickCategory('Asset'); setQuickNormalBalance('Debit'); }
-                      else if (prefix === '2') { setQuickCategory('Liability'); setQuickNormalBalance('Credit'); }
-                      else if (prefix === '3') { setQuickCategory('Equity'); setQuickNormalBalance('Credit'); }
-                      else if (prefix === '4') { setQuickCategory('Revenue'); setQuickNormalBalance('Credit'); }
-                      else if (prefix === '5') { setQuickCategory('Expense'); setQuickNormalBalance('Debit'); }
-                      else { setQuickCategory('Asset'); setQuickNormalBalance('Debit'); }
+                      let defaultCat = 'Asset';
+                      let defaultBal = 'Debit';
+                      if (prefix === '1') { defaultCat = 'Asset'; defaultBal = 'Debit'; }
+                      else if (prefix === '2') { defaultCat = 'Liability'; defaultBal = 'Credit'; }
+                      else if (prefix === '3') { defaultCat = 'Equity'; defaultBal = 'Credit'; }
+                      else if (prefix === '4') { defaultCat = 'Revenue'; defaultBal = 'Credit'; }
+                      else if (prefix === '5') { defaultCat = 'Expense'; defaultBal = 'Debit'; }
+
+                      setQuickCategory(defaultCat);
+                      setQuickNormalBalance(defaultBal);
+
+                      let defaultClass = 'NOT_APPLICABLE';
+                      if (['Asset', 'Liability'].includes(defaultCat)) {
+                        if (missingCode.startsWith('15') || missingCode.startsWith('16') || missingCode.startsWith('22') || missingCode.startsWith('25')) {
+                          defaultClass = 'NON_CURRENT';
+                        } else {
+                          defaultClass = 'CURRENT';
+                        }
+                      }
+                      setQuickClassification(defaultClass);
                       setQuickParentId('');
                       setQuickIsContra(false);
                       setQuickCreateError('');
@@ -1288,11 +1332,18 @@ export default function JournalEntryPage() {
                         
                         // Update default category/balance based on code prefix
                         const prefix = codeVal[0];
-                        if (prefix === '1') { setQuickCategory('Asset'); setQuickNormalBalance('Debit'); }
-                        else if (prefix === '2') { setQuickCategory('Liability'); setQuickNormalBalance('Credit'); }
-                        else if (prefix === '3') { setQuickCategory('Equity'); setQuickNormalBalance('Credit'); }
-                        else if (prefix === '4') { setQuickCategory('Revenue'); setQuickNormalBalance('Credit'); }
-                        else if (prefix === '5') { setQuickCategory('Expense'); setQuickNormalBalance('Debit'); }
+                        let cat = quickCategory;
+                        let bal = quickNormalBalance;
+                        if (prefix === '1') { cat = 'Asset'; bal = 'Debit'; }
+                        else if (prefix === '2') { cat = 'Liability'; bal = 'Credit'; }
+                        else if (prefix === '3') { cat = 'Equity'; bal = 'Credit'; }
+                        else if (prefix === '4') { cat = 'Revenue'; bal = 'Credit'; }
+                        else if (prefix === '5') { cat = 'Expense'; bal = 'Debit'; }
+                        setQuickCategory(cat);
+                        setQuickNormalBalance(bal);
+
+                        const isAssetOrLiab = ['Asset', 'Liability'].includes(cat);
+                        setQuickClassification(isAssetOrLiab ? suggestQuickClassification(codeVal, quickName) : 'NOT_APPLICABLE');
                       }
                     }}
                   />
@@ -1306,7 +1357,12 @@ export default function JournalEntryPage() {
                     className="input-enterprise font-bold focus:border-emerald-500/50 focus:ring-emerald-500/5 bg-white"
                     placeholder="e.g. Office Renovation Expense"
                     value={quickName}
-                    onChange={e => setQuickName(e.target.value)}
+                    onChange={(e) => {
+                      const nameVal = e.target.value;
+                      setQuickName(nameVal);
+                      const isAssetOrLiab = ['Asset', 'Liability'].includes(quickCategory);
+                      setQuickClassification(isAssetOrLiab ? suggestQuickClassification(quickCode, nameVal) : 'NOT_APPLICABLE');
+                    }}
                   />
                 </div>
 
@@ -1316,7 +1372,12 @@ export default function JournalEntryPage() {
                     <select
                       className="input-enterprise font-semibold focus:border-emerald-500/50 focus:ring-emerald-500/5 bg-white"
                       value={quickCategory}
-                      onChange={e => setQuickCategory(e.target.value)}
+                      onChange={e => {
+                        const catVal = e.target.value;
+                        setQuickCategory(catVal);
+                        const isAssetOrLiab = ['Asset', 'Liability'].includes(catVal);
+                        setQuickClassification(isAssetOrLiab ? 'CURRENT' : 'NOT_APPLICABLE');
+                      }}
                     >
                       {['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'].map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
@@ -1337,6 +1398,67 @@ export default function JournalEntryPage() {
                   </div>
                 </div>
 
+                {['Asset', 'Liability'].includes(quickCategory) && (
+                  <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4 space-y-3">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[10px] font-black uppercase tracking-wider text-slate-555">Current / Non-Current Classification *</label>
+                      <span className="text-[9px] text-slate-400 font-bold bg-white px-2 py-0.5 rounded border">Required</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer group">
+                        <input 
+                          type="radio" 
+                          name="quick_classification" 
+                          value="CURRENT" 
+                          checked={quickClassification === 'CURRENT'} 
+                          onChange={() => setQuickClassification('CURRENT')} 
+                          className="text-indigo-650 focus:ring-indigo-500 cursor-pointer"
+                        />
+                        <span className="text-[12.5px] font-bold text-slate-700 group-hover:text-indigo-600 transition-colors" title="Current — Expected to be realized or settled within 12 months.">
+                          🟢 Current
+                        </span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer group">
+                        <input 
+                          type="radio" 
+                          name="quick_classification" 
+                          value="NON_CURRENT" 
+                          checked={quickClassification === 'NON_CURRENT'} 
+                          onChange={() => setQuickClassification('NON_CURRENT')} 
+                          className="text-indigo-655 focus:ring-indigo-500 cursor-pointer"
+                        />
+                        <span className="text-[12.5px] font-bold text-slate-700 group-hover:text-indigo-600 transition-colors" title="Non-Current — Long-term asset or liability.">
+                          🔵 Non-Current
+                        </span>
+                      </label>
+                    </div>
+                    <p className="text-[10.5px] text-slate-400 font-medium leading-relaxed">
+                      {quickClassification === 'CURRENT' 
+                        ? "🟢 Current — Realized or settled within 12 months."
+                        : "🔵 Non-Current — Long-term investments, fixed assets, or long-term obligations."}
+                    </p>
+                    
+                    {/* Parent account check and conflict warning */}
+                    {(() => {
+                      if (quickCode.length >= 3) {
+                        const parentCode = quickCode.substring(0, 2) + '00';
+                        const parentAcc = accounts.find(a => a.code === parentCode);
+                        if (parentAcc && parentAcc.current_classification && parentAcc.current_classification !== 'NOT_APPLICABLE' && parentAcc.current_classification !== quickClassification) {
+                          return (
+                            <div className="flex items-start gap-2 p-2 rounded-lg bg-amber-50 border border-amber-100 text-[10.5px] text-amber-800 font-semibold leading-relaxed">
+                              <AlertCircle size={13} className="text-amber-500 mt-0.5 flex-shrink-0" />
+                              <span>
+                                ⚠️ Warning: Parent account <strong>{parentAcc.code} {parentAcc.name}</strong> is <strong>{parentAcc.current_classification}</strong>.
+                              </span>
+                            </div>
+                          );
+                        }
+                      }
+                      return null;
+                    })()}
+                  </div>
+                )}
+
                 <div className="flex items-center gap-2 py-1">
                   <input
                     type="checkbox"
@@ -1345,7 +1467,7 @@ export default function JournalEntryPage() {
                     checked={quickIsContra}
                     onChange={e => setQuickIsContra(e.target.checked)}
                   />
-                  <label htmlFor="quickIsContra" className="text-[12px] font-bold text-slate-650 cursor-pointer">This is a Contra Account</label>
+                  <label htmlFor="quickIsContra" className="text-[12px] font-bold text-slate-655 cursor-pointer">This is a Contra Account</label>
                 </div>
               </div>
               <div className="flex gap-3 px-7 pb-7">
@@ -1367,7 +1489,8 @@ export default function JournalEntryPage() {
                         name: quickName,
                         category: quickCategory,
                         normal_balance: quickNormalBalance,
-                        is_contra: quickIsContra
+                        is_contra: quickIsContra,
+                        current_classification: ['Asset', 'Liability'].includes(quickCategory) ? quickClassification : 'NOT_APPLICABLE'
                       });
                       
                       // Refresh accounts list cache

@@ -32,6 +32,44 @@ const getGroupKey = (code) => {
   return '9';
 };
 
+const suggestClassification = (code, name, accountsList) => {
+  if (!code) return 'CURRENT';
+  const prefix = code[0];
+  if (prefix !== '1' && prefix !== '2') return 'NOT_APPLICABLE';
+  
+  const codeStr = String(code);
+  const nameLower = String(name || '').toLowerCase();
+  
+  // 1. Check parent account first
+  if (codeStr.length >= 3) {
+    const parentCode = codeStr.substring(0, 2) + '00';
+    const parentAcc = accountsList.find(a => a.code === parentCode);
+    if (parentAcc && parentAcc.current_classification && parentAcc.current_classification !== 'NOT_APPLICABLE') {
+      return parentAcc.current_classification;
+    }
+  }
+  
+  // 2. Check code ranges (Non-Current)
+  if (codeStr.startsWith('15') || codeStr.startsWith('16')) {
+    return 'NON_CURRENT';
+  }
+  if (codeStr.startsWith('22') || codeStr.startsWith('25')) {
+    return 'NON_CURRENT';
+  }
+  
+  // 3. Check name keywords
+  const nonCurrentKeywords = [
+    'machinery', 'equipment', 'vehicle', 'lease', 'mortgage', 
+    'long-term', 'long term', 'building', 'land', 'furniture', 
+    'depreciation', 'patent', 'copyright', 'goodwill', 'loan'
+  ];
+  if (nonCurrentKeywords.some(keyword => nameLower.includes(keyword))) {
+    return 'NON_CURRENT';
+  }
+  
+  return 'CURRENT';
+};
+
 const stagger = { animate: { transition: { staggerChildren: 0.04 } } };
 const row = {
   initial: { opacity: 0, x: -8 },
@@ -47,7 +85,7 @@ export default function AccountsPage({ globalSearch = "" }) {
   const search = globalSearch || localSearch;
   const [filterType, setFilterType] = useState('All');
   const [modalOpen, setModalOpen] = useState(false);
-  const [form, setForm] = useState({ code: '', name: '', category: 'Asset', normal_balance: 'Debit', is_contra: false });
+  const [form, setForm] = useState({ code: '', name: '', category: 'Asset', normal_balance: 'Debit', is_contra: false, current_classification: 'CURRENT' });
   const [formError, setFormError] = useState('');
   const [saving, setSaving] = useState(false);
   const [editingId, setEditingId] = useState(null);
@@ -239,6 +277,34 @@ export default function AccountsPage({ globalSearch = "" }) {
     return matchSearch && matchType;
   });
 
+  const handleCodeChange = (val) => {
+    const prefix = val[0];
+    const categoryMap = { '1': 'Asset', '2': 'Liability', '3': 'Equity', '4': 'Revenue', '5': 'Expense' };
+    const category = categoryMap[prefix] || form.category;
+    const stdBalance = ['Asset', 'Expense'].includes(category) ? 'Debit' : 'Credit';
+    const isAssetOrLiab = ['Asset', 'Liability'].includes(category);
+    const suggested = isAssetOrLiab ? suggestClassification(val, form.name, accounts) : 'NOT_APPLICABLE';
+    
+    setForm(prev => ({
+      ...prev,
+      code: val,
+      category,
+      normal_balance: prev.is_contra ? (stdBalance === 'Debit' ? 'Credit' : 'Debit') : stdBalance,
+      current_classification: suggested
+    }));
+  };
+
+  const handleNameChange = (val) => {
+    const isAssetOrLiab = ['Asset', 'Liability'].includes(form.category);
+    const suggested = isAssetOrLiab ? suggestClassification(form.code, val, accounts) : 'NOT_APPLICABLE';
+    
+    setForm(prev => ({
+      ...prev,
+      name: val,
+      current_classification: suggested
+    }));
+  };
+
   const handleSubmit = async (e) => {
     e.preventDefault();
     setFormError('');
@@ -248,16 +314,25 @@ export default function AccountsPage({ globalSearch = "" }) {
       setFormError(`Code prefix '${prefix}' doesn't match category '${form.category}'`);
       return;
     }
+
+    const isAssetOrLiab = ['Asset', 'Liability'].includes(form.category);
+    const classification = isAssetOrLiab ? form.current_classification : 'NOT_APPLICABLE';
+    if (isAssetOrLiab && classification === 'NOT_APPLICABLE') {
+      setFormError('Classification is required for Assets and Liabilities.');
+      return;
+    }
+
     setSaving(true);
     try {
+      const payload = { ...form, current_classification: classification };
       if (editingId) {
-        await api.put(`/accounts/${editingId}`, form);
+        await api.put(`/accounts/${editingId}`, payload);
       } else {
-        await api.post('/accounts', { ...form, company_id: activeCompany.id });
+        await api.post('/accounts', { ...payload, company_id: activeCompany.id });
       }
       setModalOpen(false);
       setEditingId(null);
-      setForm({ code: '', name: '', category: 'Asset', normal_balance: 'Debit', is_contra: false });
+      setForm({ code: '', name: '', category: 'Asset', normal_balance: 'Debit', is_contra: false, current_classification: 'CURRENT' });
       load();
     } catch (err) {
       setFormError(err.response?.data?.message || 'Failed to save account');
@@ -267,7 +342,14 @@ export default function AccountsPage({ globalSearch = "" }) {
 
   const handleEdit = (acc) => {
     setEditingId(acc.id);
-    setForm({ code: acc.code, name: acc.name, category: acc.category || acc.type, normal_balance: acc.normal_balance || 'Debit', is_contra: acc.is_contra || false });
+    setForm({ 
+      code: acc.code, 
+      name: acc.name, 
+      category: acc.category || acc.type, 
+      normal_balance: acc.normal_balance || 'Debit', 
+      is_contra: acc.is_contra || false,
+      current_classification: acc.current_classification || 'NOT_APPLICABLE'
+    });
     setModalOpen(true);
   };
 
@@ -378,11 +460,12 @@ export default function AccountsPage({ globalSearch = "" }) {
           <table className="data-table">
             <thead>
               <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
-                <th style={{ width: '15%' }} className="!pl-5 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Code</th>
-                <th style={{ width: '40%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Account Name</th>
+                <th style={{ width: '12%' }} className="!pl-5 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Code</th>
+                <th style={{ width: '33%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Account Name</th>
                 <th style={{ width: '15%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Category</th>
-                <th style={{ width: '15%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Balance Type</th>
-                <th style={{ width: '15%' }} className="!text-left !pr-5 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Actions</th>
+                <th style={{ width: '15%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Classification</th>
+                <th style={{ width: '13%' }} className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Balance Type</th>
+                <th style={{ width: '12%' }} className="!text-left !pr-5 px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">Actions</th>
               </tr>
             </thead>
             <Motion.tbody variants={stagger} initial="initial" animate="animate">
@@ -394,11 +477,12 @@ export default function AccountsPage({ globalSearch = "" }) {
                     <td><div className="skeleton h-5 w-20 rounded-full" /></td>
                     <td />
                     <td />
+                    <td />
                   </tr>
                 ))
               ) : filtered.length === 0 ? (
                 <tr>
-                  <td colSpan={5} className="text-center py-16 text-slate-400">
+                  <td colSpan={6} className="text-center py-16 text-slate-400">
                     <Search size={28} className="mx-auto mb-2 text-slate-300" />
                     <p className="text-[13px]">No accounts found</p>
                   </td>
@@ -419,7 +503,7 @@ export default function AccountsPage({ globalSearch = "" }) {
                         className="bg-slate-50 hover:bg-[#F2F6F4] border-y border-slate-200 select-none cursor-pointer z-10 transition-colors"
                         style={{ backdropFilter: 'blur(8px)', position: 'sticky', top: 0, zIndex: 10 }}
                       >
-                        <td colSpan={5} className="!py-3.5 px-4 font-bold text-slate-800">
+                        <td colSpan={6} className="!py-3.5 px-4 font-bold text-slate-800">
                           <div className="flex items-center justify-between w-full">
                             <div className="flex items-center gap-2">
                               <ChevronDown 
@@ -445,7 +529,7 @@ export default function AccountsPage({ globalSearch = "" }) {
                       {/* Group accounts list */}
                       {isExpanded && groupAccountsList.length === 0 && (
                         <tr>
-                          <td colSpan={5} className="text-center py-6 text-slate-400 text-[12.5px] italic">
+                          <td colSpan={6} className="text-center py-6 text-slate-400 text-[12.5px] italic">
                             No accounts in this category.
                           </td>
                         </tr>
@@ -461,7 +545,7 @@ export default function AccountsPage({ globalSearch = "" }) {
                           <React.Fragment key={acc.id}>
                             <Motion.tr variants={row} className="hover:bg-slate-50/40">
                               <td>
-                                <span className="font-mono font-semibold text-[13px] text-slate-650">
+                                <span className="font-mono font-semibold text-[13px] text-slate-655">
                                   {highlightText(acc.code, search)}
                                 </span>
                               </td>
@@ -474,7 +558,7 @@ export default function AccountsPage({ globalSearch = "" }) {
                                         e.stopPropagation();
                                         handleToggleExpand(acc);
                                       }}
-                                      className="w-5 h-5 rounded hover:bg-slate-105 flex items-center justify-center text-slate-400 hover:text-slate-650 transition-all border-none bg-transparent cursor-pointer"
+                                      className="w-5 h-5 rounded hover:bg-slate-105 flex items-center justify-center text-slate-400 hover:text-slate-655 transition-all border-none bg-transparent cursor-pointer"
                                     >
                                       <ChevronDown 
                                         size={13} 
@@ -494,6 +578,30 @@ export default function AccountsPage({ globalSearch = "" }) {
                                   </span>
                                   {acc.is_contra && <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">Contra</span>}
                                 </div>
+                              </td>
+                              <td>
+                                {acc.current_classification === 'CURRENT' ? (
+                                  <span 
+                                    className="badge bg-emerald-50 text-emerald-700 border border-emerald-200 w-fit cursor-help font-bold text-[10.5px]"
+                                    title="Current — Expected to be realized or settled within 12 months."
+                                  >
+                                    🟢 Current
+                                  </span>
+                                ) : acc.current_classification === 'NON_CURRENT' ? (
+                                  <span 
+                                    className="badge bg-indigo-50 text-indigo-700 border border-indigo-200 w-fit cursor-help font-bold text-[10.5px]"
+                                    title="Non-Current — Long-term asset or liability."
+                                  >
+                                    🔵 Non-Current
+                                  </span>
+                                ) : (
+                                  <span 
+                                    className="badge bg-slate-50 text-slate-400 border border-slate-200 w-fit cursor-help font-semibold text-[10.5px]"
+                                    title="N/A — Classification not applicable."
+                                  >
+                                    ⚪ N/A
+                                  </span>
+                                )}
                               </td>
                               <td>
                                 <span className={`font-mono text-[12px] font-semibold ${acc.normal_balance === 'Debit' ? 'text-blue-600' : 'text-emerald-600'}`}>
@@ -520,7 +628,7 @@ export default function AccountsPage({ globalSearch = "" }) {
                                 {/* Search & Sort Panel */}
                                 <tr className="bg-slate-50/50">
                                   <td />
-                                  <td colSpan={4} className="py-2 px-5">
+                                  <td colSpan={5} className="py-2 px-5">
                                     <div className="flex flex-wrap items-center gap-4">
                                       {/* Compact Search box */}
                                       <div className="relative w-[180px]">
@@ -561,7 +669,7 @@ export default function AccountsPage({ globalSearch = "" }) {
                                 {subledgerLoading[acc.code] ? (
                                   <tr>
                                     <td />
-                                    <td colSpan={4} className="py-6 text-center text-slate-400">
+                                    <td colSpan={5} className="py-6 text-center text-slate-400">
                                       <div className="w-5 h-5 rounded-full border-2 border-transparent border-t-indigo-600 border-r-indigo-600 animate-spin mx-auto mb-1.5" />
                                       <span className="text-[11px] font-semibold">Loading sub-accounts...</span>
                                     </td>
@@ -569,7 +677,7 @@ export default function AccountsPage({ globalSearch = "" }) {
                                 ) : getSortedSubledger(acc.code).length === 0 ? (
                                   <tr>
                                     <td />
-                                    <td colSpan={4} className="py-6 text-center text-slate-400 text-[11.5px] font-semibold">
+                                    <td colSpan={5} className="py-6 text-center text-slate-400 text-[11.5px] font-semibold">
                                       No sub-accounts found matching criteria.
                                     </td>
                                   </tr>
@@ -598,6 +706,10 @@ export default function AccountsPage({ globalSearch = "" }) {
                                           <span className="text-[10px] font-black uppercase text-indigo-500 tracking-wider">
                                             {sub.type}
                                           </span>
+                                        </td>
+                                        <td>
+                                          {/* Empty classification td to line columns up */}
+                                          <span className="text-slate-300 font-semibold">—</span>
                                         </td>
                                         <td className="font-mono text-[12px] font-bold text-slate-900">
                                           PKR {sub.balance.toLocaleString(undefined, { minimumFractionDigits: 2 })}
@@ -677,19 +789,25 @@ export default function AccountsPage({ globalSearch = "" }) {
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Account Code</label>
                   <input className="input-enterprise font-mono" placeholder="e.g. 1001" required
-                    value={form.code} onChange={e => setForm({ ...form, code: e.target.value })} />
+                    value={form.code} onChange={e => handleCodeChange(e.target.value)} />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Account Name</label>
                   <input className="input-enterprise" placeholder="e.g. Cash at Bank" required
-                    value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} />
+                    value={form.name} onChange={e => handleNameChange(e.target.value)} />
                 </div>
                 <div>
                   <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Category</label>
                   <select className="input-enterprise" value={form.category} onChange={e => {
                     const newCategory = e.target.value;
                     const newStdBalance = ['Asset', 'Expense'].includes(newCategory) ? 'Debit' : 'Credit';
-                    setForm({ ...form, category: newCategory, normal_balance: form.is_contra ? (newStdBalance === 'Debit' ? 'Credit' : 'Debit') : newStdBalance });
+                    const isAssetOrLiab = ['Asset', 'Liability'].includes(newCategory);
+                    setForm({ 
+                      ...form, 
+                      category: newCategory, 
+                      normal_balance: form.is_contra ? (newStdBalance === 'Debit' ? 'Credit' : 'Debit') : newStdBalance,
+                      current_classification: isAssetOrLiab ? 'CURRENT' : 'NOT_APPLICABLE'
+                    });
                   }}>
                     <option value="Asset">Asset (1xxx)</option>
                     <option value="Liability">Liability (2xxx)</option>
@@ -698,6 +816,68 @@ export default function AccountsPage({ globalSearch = "" }) {
                     <option value="Expense">Expense (5xxx)</option>
                   </select>
                 </div>
+
+                {['Asset', 'Liability'].includes(form.category) && (
+                  <div className="bg-slate-50/50 border border-slate-100 rounded-2xl p-4.5 space-y-3.5">
+                    <div className="flex items-center justify-between">
+                      <label className="block text-[11px] font-black uppercase tracking-wider text-slate-550">Current / Non-Current Classification *</label>
+                      <span className="text-[10px] text-slate-400 font-bold bg-white px-2 py-0.5 rounded border">Required</span>
+                    </div>
+                    <div className="flex gap-4">
+                      <label className="flex items-center gap-2 cursor-pointer group">
+                        <input 
+                          type="radio" 
+                          name="current_classification" 
+                          value="CURRENT" 
+                          checked={form.current_classification === 'CURRENT'} 
+                          onChange={() => setForm({ ...form, current_classification: 'CURRENT' })} 
+                          className="text-indigo-650 focus:ring-indigo-500 cursor-pointer"
+                        />
+                        <span className="text-[13px] font-bold text-slate-700 group-hover:text-indigo-600 transition-colors" title="Current — Expected to be realized or settled within 12 months.">
+                          🟢 Current Assets/Liab.
+                        </span>
+                      </label>
+                      <label className="flex items-center gap-2 cursor-pointer group">
+                        <input 
+                          type="radio" 
+                          name="current_classification" 
+                          value="NON_CURRENT" 
+                          checked={form.current_classification === 'NON_CURRENT'} 
+                          onChange={() => setForm({ ...form, current_classification: 'NON_CURRENT' })} 
+                          className="text-indigo-655 focus:ring-indigo-500 cursor-pointer"
+                        />
+                        <span className="text-[13px] font-bold text-slate-700 group-hover:text-indigo-600 transition-colors" title="Non-Current — Long-term asset or liability.">
+                          🔵 Non-Current Assets/Liab.
+                        </span>
+                      </label>
+                    </div>
+                    <p className="text-[11px] text-slate-400 font-medium leading-relaxed">
+                      {form.current_classification === 'CURRENT' 
+                        ? "🟢 Current — Expected to be realized, sold, or settled within 12 months of the operating cycle."
+                        : "🔵 Non-Current — Long-term investments, property, machinery, equipment, or long-term loan obligations."}
+                    </p>
+                    
+                    {/* Parent account check and conflict warning */}
+                    {(() => {
+                      if (form.code.length >= 3) {
+                        const parentCode = form.code.substring(0, 2) + '00';
+                        const parentAcc = accounts.find(a => a.code === parentCode);
+                        if (parentAcc && parentAcc.current_classification && parentAcc.current_classification !== 'NOT_APPLICABLE' && parentAcc.current_classification !== form.current_classification) {
+                          return (
+                            <div className="flex items-start gap-2 p-2.5 rounded-lg bg-amber-55 border border-amber-100 text-[11px] text-amber-800 font-semibold leading-relaxed">
+                              <AlertCircle size={14} className="text-amber-500 mt-0.5 flex-shrink-0" />
+                              <span>
+                                ⚠️ Warning: Parent account <strong>{parentAcc.code} {parentAcc.name}</strong> is classified as <strong>{parentAcc.current_classification}</strong>. This child account should match the parent's classification.
+                              </span>
+                            </div>
+                          );
+                        }
+                      }
+                      return null;
+                    })()}
+                  </div>
+                )}
+
                 <div className="grid grid-cols-2 gap-4">
                   <div>
                     <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-500 mb-1.5">Normal Balance</label>
@@ -721,7 +901,7 @@ export default function AccountsPage({ globalSearch = "" }) {
                   </div>
                 </div>
                 <div className="flex gap-3 pt-1">
-                  <button type="button" onClick={() => setModalOpen(false)} className="btn btn-secondary flex-1">Cancel</button>
+                  <button type="button" onClick={() => { setModalOpen(false); setEditingId(null); setForm({ code: '', name: '', category: 'Asset', normal_balance: 'Debit', is_contra: false, current_classification: 'CURRENT' }); }} className="btn btn-secondary flex-1">Cancel</button>
                   <Motion.button whileHover={{ scale: 1.02 }} whileTap={{ scale: 0.97 }} type="submit"
                     disabled={saving} className="btn btn-primary flex-[2]">
                     {saving ? 'Saving...' : 'Save Account'}

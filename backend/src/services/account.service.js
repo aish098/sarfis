@@ -4,7 +4,7 @@ class AccountService {
   /**
    * Creates a new account with validation.
    */
-  static async createAccount({ companyId, code, name, category, normal_balance, is_contra }) {
+  static async createAccount({ companyId, code, name, category, normal_balance, is_contra, current_classification }) {
     if (!companyId) throw new Error('Company context required.');
     if (!code || !name || !category) throw new Error('Code, Name, and Category are required.');
 
@@ -22,13 +22,22 @@ class AccountService {
       throw new Error(`Invalid code prefix for account category '${category}'.`);
     }
 
+    const isAssetOrLiab = ['Asset', 'Liability'].includes(category);
+    let classification = current_classification || 'NOT_APPLICABLE';
+    if (!isAssetOrLiab) {
+      classification = 'NOT_APPLICABLE';
+    } else if (classification === 'NOT_APPLICABLE') {
+      throw new Error('Classification is required for Assets and Liabilities.');
+    }
+
     return await AccountModel.create({
       companyId,
       code,
       name,
       category,
       normal_balance,
-      is_contra
+      is_contra,
+      current_classification: classification
     });
   }
 }

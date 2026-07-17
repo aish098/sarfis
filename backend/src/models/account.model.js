@@ -10,6 +10,7 @@ class AccountModel {
         category: accountData.category,
         normal_balance: accountData.normal_balance,
         is_contra: accountData.is_contra,
+        current_classification: accountData.current_classification || 'NOT_APPLICABLE',
         balance: 0
       })
       .returning('*');
@@ -23,6 +24,9 @@ class AccountModel {
   }
 
   static async update(id, companyId, accountData) {
+    const isAssetOrLiab = ['Asset', 'Liability'].includes(accountData.category);
+    const classification = isAssetOrLiab ? (accountData.current_classification || 'NOT_APPLICABLE') : 'NOT_APPLICABLE';
+
     const [account] = await db('accounts')
       .where({ id, company_id: companyId })
       .update({
@@ -30,7 +34,8 @@ class AccountModel {
         category: accountData.category,
         code: accountData.code,
         normal_balance: accountData.normal_balance,
-        is_contra: accountData.is_contra
+        is_contra: accountData.is_contra,
+        current_classification: classification
       })
       .returning('*');
     return account;
