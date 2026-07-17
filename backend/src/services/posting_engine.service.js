@@ -20,6 +20,11 @@ class PostingEngineService {
       const accounts = await (trx ? db('accounts').transacting(trx) : db('accounts'))
         .where({ company_id: companyId });
 
+      const findIdByName = (nameQuery) => {
+        const found = accounts.find(a => a.name.toLowerCase().includes(nameQuery.toLowerCase()));
+        return found ? found.id : null;
+      };
+
       const findIdByCode = (prefix) => {
         const found = accounts.find(a => a.code.startsWith(prefix));
         return found ? found.id : null;
@@ -27,15 +32,15 @@ class PostingEngineService {
 
       settings = {
         company_id: companyId,
-        default_sales_account_id: findIdByCode('4') || findIdByCode('4010') || null, // Revenue/Income
-        default_ap_account_id: findIdByCode('2') || findIdByCode('2000') || null,    // Liabilities/AP
-        default_ar_account_id: findIdByCode('12') || findIdByCode('1200') || null,   // AR
-        default_inventory_account_id: findIdByCode('13') || findIdByCode('1300') || null, // Inventory Asset
-        default_cogs_account_id: findIdByCode('5') || findIdByCode('5010') || null,   // COGS/Expense
-        default_cash_account_id: findIdByCode('10') || findIdByCode('1010') || null,  // Cash
-        default_bad_debt_account_id: findIdByCode('5030') || findIdByCode('503') || null, // Bad Debt Expense
-        default_tax_payable_account_id: findIdByCode('2200') || findIdByCode('220') || null, // Output Tax Liability
-        default_tax_receivable_account_id: findIdByCode('1400') || findIdByCode('140') || null, // Input Tax Asset
+        default_sales_account_id: findIdByName('sales revenue') || findIdByName('service revenue') || findIdByCode('4') || null,
+        default_ap_account_id: findIdByName('accounts payable') || findIdByCode('2020') || findIdByCode('2') || null,
+        default_ar_account_id: findIdByName('accounts receivable') || findIdByCode('1100') || findIdByCode('12') || null,
+        default_inventory_account_id: findIdByName('inventory') || findIdByCode('1200') || findIdByCode('13') || null,
+        default_cogs_account_id: findIdByName('cost of goods sold') || findIdByName('cogs') || findIdByCode('5') || null,
+        default_cash_account_id: findIdByName('cash') || findIdByName('bank') || findIdByCode('10') || null,
+        default_bad_debt_account_id: findIdByName('bad debt') || findIdByCode('503') || null,
+        default_tax_payable_account_id: findIdByName('tax payable') || findIdByCode('220') || null,
+        default_tax_receivable_account_id: findIdByName('tax receivable') || findIdByCode('140') || null,
         tax_rate: 0.00
       };
 
