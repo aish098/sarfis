@@ -245,21 +245,45 @@ class TransactionInquiryService {
       }));
 
     // 8. Navigation Graph Links
-    const relatedDocuments = [];
-    if (voucher.payload?.quotation_number) {
-      relatedDocuments.push({ type: 'QUOTATION', code: voucher.payload.quotation_number, label: 'Sales Quotation' });
-    }
-    if (voucher.payload?.sales_order_number) {
-      relatedDocuments.push({ type: 'ORDER', code: voucher.payload.sales_order_number, label: 'Sales Order' });
-    }
-    if (voucher.payload?.delivery_number) {
-      relatedDocuments.push({ type: 'DELIVERY', code: voucher.payload.delivery_number, label: 'Delivery Note' });
-    }
+    let relatedDocuments = [];
+    if (voucher.type === 'PURCHASE' || voucher.type === 'PAYMENT') {
+      const ProcurementLineageService = require('./procurement_lineage.service');
+      try {
+        const lineage = await ProcurementLineageService.getLineage('VOUCHER', voucher.id, companyId);
+        relatedDocuments = lineage.map(doc => ({
+          type: doc.type,
+          code: doc.number,
+          label: doc.type === 'PURCHASE_REQUISITION' ? 'Purchase Requisition' :
+                 doc.type === 'PURCHASE_ORDER' ? 'Purchase Order' :
+                 doc.type === 'GOODS_RECEIPT' ? 'Goods Receipt Note' :
+                 doc.type === 'VOUCHER' ? 'Purchase Voucher' :
+                 doc.type === 'PAYMENT' ? 'Payment Voucher' : doc.type,
+          active: (doc.type === 'VOUCHER' || doc.type === 'PAYMENT') && String(doc.id) === String(voucher.id)
+        }));
+      } catch (lineageErr) {
+        console.error('Failed to resolve procurement lineage:', lineageErr);
+        relatedDocuments.push({ type: 'VOUCHER', code: voucher.voucher_number, id: voucher.id, label: `${voucher.type} Voucher`, active: true });
+      }
 
-    relatedDocuments.push({ type: 'VOUCHER', code: voucher.voucher_number, id: voucher.id, label: `${voucher.type} Voucher`, active: true });
+      if (financial.journalEntry) {
+        relatedDocuments.push({ type: 'JOURNAL', code: financial.journalEntry.entry_number, label: 'Journal Entry' });
+      }
+    } else {
+      if (voucher.payload?.quotation_number) {
+        relatedDocuments.push({ type: 'QUOTATION', code: voucher.payload.quotation_number, label: 'Sales Quotation' });
+      }
+      if (voucher.payload?.sales_order_number) {
+        relatedDocuments.push({ type: 'ORDER', code: voucher.payload.sales_order_number, label: 'Sales Order' });
+      }
+      if (voucher.payload?.delivery_number) {
+        relatedDocuments.push({ type: 'DELIVERY', code: voucher.payload.delivery_number, label: 'Delivery Note' });
+      }
 
-    if (financial.journalEntry) {
-      relatedDocuments.push({ type: 'JOURNAL', code: financial.journalEntry.entry_number, label: 'Journal Entry' });
+      relatedDocuments.push({ type: 'VOUCHER', code: voucher.voucher_number, id: voucher.id, label: `${voucher.type} Voucher`, active: true });
+
+      if (financial.journalEntry) {
+        relatedDocuments.push({ type: 'JOURNAL', code: financial.journalEntry.entry_number, label: 'Journal Entry' });
+      }
     }
 
     // 9. Static or dynamic Attachments
