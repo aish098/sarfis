@@ -286,6 +286,73 @@ class TransactionInquiryService {
       }
     }
 
+    // Resolve related PO, Requisition, and Deliveries/GRNs for procurement flow
+    let relatedPo = null;
+    let relatedRequisition = null;
+    let relatedDeliveries = [];
+
+    let targetPoId = voucher.purchase_order_id;
+    let targetGrnId = voucher.goods_receipt_id;
+
+    if (voucher.type === 'PAYMENT' && voucher.payload?.purchase_voucher_id) {
+      const parentPv = await db('vouchers').where({ id: voucher.payload.purchase_voucher_id }).first();
+      if (parentPv) {
+        targetPoId = parentPv.purchase_order_id;
+        targetGrnId = parentPv.goods_receipt_id;
+      }
+    }
+
+    if (targetGrnId) {
+      const grn = await db('goods_receipts as gr')
+        .leftJoin('users as u', 'gr.received_by', 'u.id')
+        .where('gr.id', targetGrnId)
+        .select('gr.*', 'u.name as creator_name')
+        .first();
+      if (grn) {
+        relatedDeliveries.push({
+          id: grn.id,
+          delivery_number: grn.grn_number,
+          status: grn.status,
+          created_at: grn.created_at,
+          creator_name: grn.creator_name
+        });
+        if (!targetPoId) targetPoId = grn.purchase_order_id;
+      }
+    }
+
+    if (targetPoId) {
+      const po = await db('purchase_orders as po')
+        .leftJoin('users as u', 'po.created_by', 'u.id')
+        .where('po.id', targetPoId)
+        .select('po.*', 'u.name as creator_name')
+        .first();
+      if (po) {
+        relatedPo = {
+          id: po.id,
+          po_number: po.po_number,
+          status: po.status,
+          created_at: po.created_at,
+          creator_name: po.creator_name
+        };
+        if (po.purchase_requisition_id) {
+          const pr = await db('purchase_requisitions as pr')
+            .leftJoin('users as u', 'pr.requested_by', 'u.id')
+            .where('pr.id', po.purchase_requisition_id)
+            .select('pr.*', 'u.name as creator_name')
+            .first();
+          if (pr) {
+            relatedRequisition = {
+              id: pr.id,
+              requisition_number: pr.requisition_number,
+              status: pr.status,
+              created_at: pr.created_at,
+              creator_name: pr.creator_name
+            };
+          }
+        }
+      }
+    }
+
     // 9. Static or dynamic Attachments
     const attachments = voucher.payload?.attachments || [
       { id: 1, name: 'Invoice_Copy.pdf', size: '142 KB', type: 'application/pdf' },
@@ -301,7 +368,10 @@ class TransactionInquiryService {
       audit,
       comments,
       relatedDocuments,
-      attachments
+      attachments,
+      relatedPo,
+      relatedRequisition,
+      relatedDeliveries
     };
   }
 }

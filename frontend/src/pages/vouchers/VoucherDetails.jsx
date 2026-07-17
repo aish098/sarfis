@@ -554,7 +554,7 @@ export default function VoucherDetails() {
           { label: 'Created By', value: document.creatorName || 'System', icon: User },
           { label: 'Posting Date', value: new Date(document.date).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' }), icon: Calendar },
           { label: 'Total Amount', value: `PKR ${document.totalAmount.toLocaleString(undefined, { minimumFractionDigits: 2 })}`, icon: DollarSign },
-          { label: 'Workflow Stage', value: document.status === 'POSTED' ? 'General Ledger' : 'Draft Approval', icon: ShieldCheck }
+          { label: 'Workflow Stage', value: ['POSTED', 'PAID'].includes(document.status) ? (document.status === 'PAID' ? 'Settled (Paid)' : 'General Ledger') : 'Draft Approval', icon: ShieldCheck }
         ]}
         actions={
           <>
