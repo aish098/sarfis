@@ -146,7 +146,7 @@ class VoucherService {
       if (!voucher) throw new Error('Voucher not found.');
       if (voucher.status === 'POSTED') throw new Error('Cannot edit a posted voucher.');
 
-      const overrideRequestId = payload?.override_request_id !== undefined 
+      const overrideRequestId = payload?.override_request_id !== undefined
         ? (payload.override_request_id ? parseInt(payload.override_request_id) : null)
         : voucher.override_request_id;
 
@@ -179,7 +179,7 @@ class VoucherService {
    */
   static async submitForApproval(id, companyId, userId) {
     const WorkflowEngineService = require('./workflow_engine.service');
-    
+
     return await db.transaction(async (trx) => {
       const voucher = await trx('vouchers').where({ id, company_id: companyId, deleted_at: null }).first();
       if (!voucher) throw new Error('Voucher not found.');
@@ -214,7 +214,7 @@ class VoucherService {
         voucher_id: id,
         action: 'SUBMIT_APPROVAL',
         user_id: userId,
-        description: status === 'POSTED' 
+        description: status === 'POSTED'
           ? `Submitted voucher ${voucher.voucher_number} (Auto-Approved & Posted).`
           : `Submitted voucher ${voucher.voucher_number} for approval stages routing.`
       });
@@ -278,6 +278,22 @@ class VoucherService {
         });
       }
 
+      // Update parent Sales Voucher status to PAID if this is a RECEIPT voucher
+      if (voucher.type === 'RECEIPT' && voucher.payload?.sales_invoice_id) {
+        const svId = parseInt(voucher.payload.sales_invoice_id, 10);
+        await t('vouchers')
+          .where({ id: svId, company_id: companyId })
+          .update({ status: 'PAID', updated_at: t.fn.now() });
+
+        await t('transaction_audit_logs').insert({
+          company_id: companyId,
+          voucher_id: svId,
+          action: 'RECEIVE_CUSTOMER_PAYMENT',
+          user_id: userId,
+          description: `Voucher paid via Cash Receipt ${voucher.voucher_number}.`
+        });
+      }
+
       return updated;
     };
 
@@ -333,7 +349,7 @@ class VoucherService {
 
       // 2. Load the original journal entry lines
       if (!voucher.journal_entry_id) throw new Error('Associated journal entry not found for this voucher.');
-      
+
       const lines = await trx('journal_lines')
         .where({ entry_id: voucher.journal_entry_id });
 

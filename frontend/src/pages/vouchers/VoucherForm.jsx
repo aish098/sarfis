@@ -39,6 +39,7 @@ export default function VoucherForm() {
   const [amount, setAmount] = useState('');
   const [unpaidVouchers, setUnpaidVouchers] = useState([]);
   const [linkedPurchaseVoucherId, setLinkedPurchaseVoucherId] = useState('');
+  const [linkedSalesInvoiceId, setLinkedSalesInvoiceId] = useState('');
 
   // Document line items for Sales/Purchase
   const [items, setItems] = useState([{ productId: '', quantity: '', unitPrice: '', unitCost: '' }]);
@@ -142,6 +143,7 @@ export default function VoucherForm() {
           setCashAccountId(v.payload?.cashAccountId || '');
           setCustomArAccountId(v.payload?.ar_account_id || '');
           setAmount(v.payload?.amount || '');
+          setLinkedSalesInvoiceId(v.payload?.sales_invoice_id || '');
         } else if (v.type === 'PAYMENT') {
           setVendorId(v.payload?.vendorId || '');
           setCashAccountId(v.payload?.cashAccountId || '');
@@ -225,15 +227,38 @@ export default function VoucherForm() {
           console.error('Failed to load unpaid vouchers:', err);
           setUnpaidVouchers([]);
         }
+      } else if (type === 'RECEIPT' && clientId && activeCompany) {
+        try {
+          const res = await api.get(`/vouchers/${activeCompany.id}?type=SALES&status=POSTED`);
+          const unpaid = res.data.filter(v => v.status === 'POSTED' && String(v.payload?.clientId) === String(clientId));
+          setUnpaidVouchers(unpaid);
+        } catch (err) {
+          console.error('Failed to load unpaid customer invoices:', err);
+          setUnpaidVouchers([]);
+        }
       } else {
         setUnpaidVouchers([]);
       }
     };
     fetchUnpaidVouchers();
-  }, [type, vendorId, activeCompany]);
+  }, [type, vendorId, clientId, activeCompany]);
 
   const handleLinkedVoucherChange = (voucherId) => {
     setLinkedPurchaseVoucherId(voucherId);
+    if (voucherId) {
+      const selected = unpaidVouchers.find(v => String(v.id) === String(voucherId));
+      if (selected) {
+        setAmount(String(selected.total_amount));
+        setTotalAmount(parseFloat(selected.total_amount));
+      }
+    } else {
+      setAmount('');
+      setTotalAmount(0);
+    }
+  };
+
+  const handleLinkedInvoiceChange = (voucherId) => {
+    setLinkedSalesInvoiceId(voucherId);
     if (voucherId) {
       const selected = unpaidVouchers.find(v => String(v.id) === String(voucherId));
       if (selected) {
@@ -551,7 +576,8 @@ export default function VoucherForm() {
           clientId: parseInt(clientId),
           cashAccountId: cashAccountId ? parseInt(cashAccountId) : undefined,
           ar_account_id: customArAccountId ? parseInt(customArAccountId) : undefined,
-          amount: parseFloat(amount)
+          amount: parseFloat(amount),
+          sales_invoice_id: linkedSalesInvoiceId ? parseInt(linkedSalesInvoiceId, 10) : undefined
         };
       } else if (type === 'PAYMENT') {
         if (!vendorId) throw new Error('Supplier is required.');
@@ -1102,6 +1128,26 @@ export default function VoucherForm() {
                         ))}
                       </select>
                       <p className="text-[10px] text-slate-500 font-semibold">Pre-populates the outstanding payable amount from the posted invoice.</p>
+                    </div>
+                  )}
+
+                  {type === 'RECEIPT' && (
+                    <div className="bg-slate-50 border border-slate-200 p-4 rounded-xl space-y-2">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-450 mb-1">Link to Sales Invoice *</label>
+                      <select 
+                        required 
+                        className="input-enterprise text-[13px]"
+                        value={linkedSalesInvoiceId} 
+                        onChange={e => handleLinkedInvoiceChange(e.target.value)}
+                      >
+                        <option value="">— Select Posted Unpaid Invoice —</option>
+                        {unpaidVouchers.map(v => (
+                          <option key={v.id} value={v.id}>
+                            {v.voucher_number} (Date: {new Date(v.date).toLocaleDateString()}, Total: PKR {parseFloat(v.total_amount).toLocaleString()})
+                          </option>
+                        ))}
+                      </select>
+                      <p className="text-[10px] text-slate-500 font-semibold">Pre-populates the outstanding receivable amount from the posted invoice.</p>
                     </div>
                   )}
 
