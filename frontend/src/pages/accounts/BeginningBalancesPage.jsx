@@ -109,7 +109,7 @@ export default function BeginningBalancesPage() {
         
         // Retrieve auditor meta from settings
         const metaKey = `ob_migration_meta_${selectedFyId}`;
-        const settingsRes = await api.get('/settings');
+        const settingsRes = await api.get(`/settings/${activeCompany.id}`);
         if (settingsRes.data && settingsRes.data[metaKey]) {
           const m = settingsRes.data[metaKey];
           setImportMeta({
