@@ -74,24 +74,66 @@ export default function FixedAssetsDashboard() {
   const [alerts, setAlerts] = useState({ critical: [], warning: [], info: [] });
   const [loading, setLoading] = useState(true);
 
-  // Analytics Forecasts Data
-  const forecastData = [
-    { year: '2026 Forecast', amount: 24000000 },
-    { year: '2027 Forecast', amount: 21000000 },
-    { year: '2028 Forecast', amount: 18000000 }
-  ];
+  const [workOrders, setWorkOrders] = useState([]);
 
-  const maintenanceTrendData = [
-    { name: 'Motor Vehicles', cost: 2200000 },
-    { name: 'Industrial Machinery', cost: 5400000 },
-    { name: 'Buildings & Structures', cost: 800000 }
-  ];
+  // Analytics Forecasts Data computed dynamically from active assets (straight-line depreciation)
+  const forecastData = React.useMemo(() => {
+    const currentYear = new Date().getFullYear();
+    const years = [currentYear, currentYear + 1, currentYear + 2];
+    const forecast = years.map(y => ({ year: `${y} Forecast`, amount: 0 }));
 
-  const utilizationData = [
-    { name: 'Toyota Corolla (V-290)', rate: 90 },
-    { name: 'Power Generator G-40', rate: 65 },
-    { name: 'Office Printer P-102', rate: 15 }
-  ];
+    assets.forEach(a => {
+      if (a.status !== 'ACTIVE' && a.status !== 'UNDER_MAINTENANCE') return;
+      
+      const cost = parseFloat(a.purchase_cost || 0);
+      const salvage = parseFloat(a.salvage_value || 0);
+      const lifeYears = parseInt(a.useful_life_years || 5);
+      const annualDep = lifeYears > 0 ? (cost - salvage) / lifeYears : 0;
+      
+      const purchaseYear = new Date(a.purchase_date).getFullYear();
+      
+      years.forEach((y, idx) => {
+        if (y >= purchaseYear && y < purchaseYear + lifeYears) {
+          forecast[idx].amount += annualDep;
+        }
+      });
+    });
+
+    return forecast;
+  }, [assets]);
+
+  // Maintenance Trends computed dynamically from work orders and category associations
+  const maintenanceTrendData = React.useMemo(() => {
+    const categoriesMap = {};
+    assets.forEach(a => {
+      categoriesMap[a.category_name || 'Unspecified'] = 0;
+    });
+
+    workOrders.forEach(wo => {
+      const asset = assets.find(as => as.id === wo.asset_id);
+      const cat = asset?.category_name || 'Unspecified';
+      const cost = parseFloat(wo.maintenance_cost || 0) + parseFloat(wo.labor_cost || 0);
+      categoriesMap[cat] = (categoriesMap[cat] || 0) + cost;
+    });
+
+    // Format for Recharts Bar Chart
+    const entries = Object.entries(categoriesMap).map(([name, cost]) => ({ name, cost }));
+    return entries.length > 0 ? entries : [{ name: 'No Categories', cost: 0 }];
+  }, [assets, workOrders]);
+
+  // Capacity utilization computed dynamically from active usage logs compared to estimated useful units
+  const utilizationData = React.useMemo(() => {
+    const activeWithUnits = assets.filter(a => parseFloat(a.estimated_total_units || 0) > 0);
+    if (activeWithUnits.length === 0) {
+      return [{ name: 'No Usage Logs', rate: 0 }];
+    }
+    return activeWithUnits
+      .map(a => {
+        const rate = Math.round((parseFloat(a.current_units_used || 0) / parseFloat(a.estimated_total_units)) * 100);
+        return { name: a.asset_name, rate: Math.min(100, rate) };
+      })
+      .slice(0, 5);
+  }, [assets]);
 
   useEffect(() => {
     fetchDashboardData();
@@ -115,6 +157,7 @@ export default function FixedAssetsDashboard() {
       const rawSessions = sessionsRes.data || [];
 
       setAssets(rawAssets);
+      setWorkOrders(rawWorkOrders);
       if (rawAssets.length > 0 && !selectedLifecycleAssetId) {
         setSelectedLifecycleAssetId(rawAssets[0].id);
       }
@@ -919,7 +962,7 @@ export default function FixedAssetsDashboard() {
               </select>
             </div>
 
-            {lifecycleCostInfo && (
+            {lifecycleCostInfo ? (
               <div className="grid grid-cols-1 md:grid-cols-4 gap-4 text-xs font-semibold text-slate-600">
                 <div className="p-4 bg-slate-50 border border-slate-100 rounded-xl">
                   <span className="text-[9.5px] text-slate-400 block uppercase">Original Purchase Cost</span>
@@ -937,6 +980,11 @@ export default function FixedAssetsDashboard() {
                   <span className="text-[9.5px] text-emerald-500 block uppercase">Current Carrying Net Value</span>
                   <strong className="text-sm font-mono text-emerald-700 mt-1 block">PKR {lifecycleCostInfo.currentValue.toLocaleString()}</strong>
                 </div>
+              </div>
+            ) : (
+              <div className="p-6 text-center text-slate-400 bg-slate-50 border border-dashed border-slate-200 rounded-xl">
+                <p className="font-bold text-[13px] text-slate-700">No active asset selected or capitalized</p>
+                <p className="text-[11px] mt-1">Register assets and perform lifecycle actions (purchases, work order maintenance, or depreciation runs) to visualize real-time lifecycle costs here.</p>
               </div>
             )}
           </div>
