@@ -798,27 +798,54 @@ export default function FixedAssetsDashboard() {
           </div>
 
           {/* Lowest Health Summary Row */}
-          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3">
-            <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider border-b border-slate-50 pb-2">Asset Health Scores</h3>
+          <div className="bg-white p-5 rounded-2xl border border-slate-100 shadow-sm space-y-3.5">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-2 border-b border-slate-50 pb-2">
+              <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Asset Health Scores</h3>
+              <span className="text-[10px] text-slate-400 font-semibold bg-slate-100 px-2.5 py-0.5 rounded-full">
+                ℹ️ Calculated from useful life elapsed, repair logs, and warranty coverage.
+              </span>
+            </div>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {assetHealthList.map(a => (
-                <div key={a.id} className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex justify-between items-center text-xs">
-                  <div>
-                    <p className="font-black text-slate-800">{a.name}</p>
-                    <p className="text-[9px] text-slate-400 font-mono">Code: {a.code}</p>
-                  </div>
-                  <div className="text-right">
-                    <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${a.badge}`}>
-                      {a.score}% ({a.label})
-                    </span>
-                    <div className="text-[9.5px] text-slate-400 space-y-0.5 mt-1.5 font-semibold">
-                      <p>Useful Life remaining: {a.remainingLife}%</p>
-                      <p>Warranty rating: {a.warranty}%</p>
-                      <p>Material Work Orders: {a.workOrders}</p>
+              {assetHealthList.length === 0 ? (
+                <div className="col-span-full py-4 text-center text-slate-400 text-xs italic">
+                  No active assets found to calculate health scores.
+                </div>
+              ) : (
+                assetHealthList.map(a => (
+                  <div key={a.id} className="p-4 bg-slate-50 rounded-xl border border-slate-100 flex flex-col gap-3 text-xs">
+                    <div className="flex justify-between items-start">
+                      <div>
+                        <p className="font-black text-slate-800 line-clamp-1">{a.name}</p>
+                        <p className="text-[9px] text-slate-400 font-mono mt-0.5">Code: {a.code}</p>
+                      </div>
+                      <span className={`px-2 py-0.5 rounded text-[10px] font-black border ${a.badge}`}>
+                        {a.score}% ({a.label})
+                      </span>
+                    </div>
+
+                    {/* Progress Bar */}
+                    <div className="w-full bg-slate-200 h-1.5 rounded-full overflow-hidden">
+                      <div 
+                        className={`h-full rounded-full transition-all ${
+                          a.score < 50 ? 'bg-rose-500' : a.score < 80 ? 'bg-amber-500' : 'bg-emerald-500'
+                        }`} 
+                        style={{ width: `${a.score}%` }}
+                      ></div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-y-1.5 text-[9.5px] text-slate-500 font-semibold border-t border-slate-100/50 pt-2.5">
+                      <div>Useful Life remaining:</div>
+                      <div className="text-right text-slate-800">{a.remainingLife}%</div>
+                      
+                      <div>Work Order Penalty:</div>
+                      <div className="text-right text-slate-800">{a.workOrders} order{a.workOrders !== 1 ? 's' : ''}</div>
+                      
+                      <div>Warranty status:</div>
+                      <div className="text-right text-emerald-600">{a.warranty === 100 ? 'Active' : 'Standard'}</div>
                     </div>
                   </div>
-                </div>
-              ))}
+                ))
+              )}
             </div>
           </div>
         </div>

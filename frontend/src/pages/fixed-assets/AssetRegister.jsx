@@ -1420,8 +1420,41 @@ export default function AssetRegister() {
                 <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto"></div>
                 <p className="text-slate-400 text-xs mt-4">Retrieving sub-ledger records...</p>
               </div>
-            ) : inquiryDetails ? (
-              <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
+            ) : inquiryDetails ? (() => {
+              const purchaseDate = new Date(inquiryDetails.asset.purchase_date);
+              const now = new Date();
+              const diffTime = Math.abs(now - purchaseDate);
+              const ageYears = diffTime / (1000 * 60 * 60 * 24 * 365.25);
+              const usefulLifeMonths = parseInt(inquiryDetails.asset.useful_life_years || 5) * 12;
+              const elapsedMonths = Math.floor(ageYears * 12);
+              const remainingMonths = Math.max(0, usefulLifeMonths - elapsedMonths);
+              const remainingLifeScore = usefulLifeMonths > 0 ? Math.round((remainingMonths / usefulLifeMonths) * 100) : 100;
+
+              const woCount = inquiryDetails.maintenance?.length || 0;
+              let maintenanceFactor = 100 - (woCount * 10);
+              if (inquiryDetails.asset.status === 'UNDER_MAINTENANCE') {
+                maintenanceFactor -= 15;
+              }
+              maintenanceFactor = Math.max(0, maintenanceFactor);
+
+              const hasWarranty = inquiryDetails.asset.notes?.toLowerCase().includes('warranty') || false;
+              const warrantyFactor = hasWarranty ? 100 : 80;
+
+              let healthScore = Math.round((remainingLifeScore * 0.5) + (maintenanceFactor * 0.4) + (warrantyFactor * 0.1));
+              healthScore = Math.max(10, Math.min(100, healthScore));
+
+              let healthLabel = 'Excellent';
+              let healthColorClass = 'bg-emerald-50 text-emerald-700 border-emerald-100';
+              if (healthScore < 50) {
+                healthLabel = 'Poor';
+                healthColorClass = 'bg-rose-50 text-rose-700 border-rose-100';
+              } else if (healthScore < 80) {
+                healthLabel = 'Fair';
+                healthColorClass = 'bg-amber-50 text-amber-700 border-amber-100';
+              }
+
+              return (
+                <div className="flex-1 overflow-y-auto flex flex-col min-h-0">
                 {/* Master summary banner */}
                 <div className="p-5 border-b border-slate-100 grid grid-cols-2 sm:grid-cols-4 gap-4 bg-slate-50/50">
                   <div>
@@ -1526,20 +1559,22 @@ export default function AssetRegister() {
                           <h4 className="font-black text-slate-800 uppercase text-[10px] tracking-wider text-emerald-600">Asset Health Score Detail</h4>
                           <div className="flex justify-between items-center bg-white p-3 rounded-lg border border-slate-100">
                             <span className="font-bold text-slate-600">Carrying Health Rating:</span>
-                            <span className="px-2 py-0.5 rounded text-[11px] font-black bg-emerald-50 text-emerald-700 border border-emerald-100">82% (Good Condition)</span>
+                            <span className={`px-2 py-0.5 rounded text-[11px] font-black border ${healthColorClass}`}>{healthScore}% ({healthLabel})</span>
                           </div>
                           <div className="space-y-2 text-[10px] font-semibold text-slate-500">
                             <div className="flex justify-between">
                               <span>Remaining Useful Life Factor:</span>
-                              <span className="text-slate-800">85%</span>
+                              <span className="text-slate-800">{remainingLifeScore}% ({remainingMonths} months left)</span>
                             </div>
                             <div className="flex justify-between">
                               <span>Maintenance Logs Penalty:</span>
-                              <span className="text-slate-800">100% (No Breakdowns)</span>
+                              <span className="text-slate-800">{maintenanceFactor}% ({woCount} Work Order{woCount !== 1 ? 's' : ''})</span>
                             </div>
                             <div className="flex justify-between">
                               <span>Warranty Status check:</span>
-                              <span className="text-emerald-600">100% Active</span>
+                              <span className={hasWarranty ? "text-emerald-600 font-bold" : "text-slate-500"}>
+                                {hasWarranty ? "100% Active (Warranty Notes Present)" : "80% Standard (No Active Warranty Details)"}
+                              </span>
                             </div>
                           </div>
                         </div>
@@ -1829,7 +1864,8 @@ export default function AssetRegister() {
                   </div>
                 )}
               </div>
-            ) : null}
+            );
+          })() : null}
           </div>
         </div>
       )}
