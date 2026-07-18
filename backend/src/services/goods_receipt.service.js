@@ -136,6 +136,18 @@ class GoodsReceiptService {
           notes: `Received via ${grn.grn_number}. Ref: ${grn.supplier_reference || ''}`,
           created_by: userId
         });
+
+        // Create cost layer for purchase
+        await require('./inventory_costing.service').recordAcquisition(trx, {
+          companyId,
+          warehouseId: grn.warehouse_id,
+          productId: item.product_id,
+          quantity: qty,
+          unitCost: c_curr,
+          sourceDocument: grn.grn_number || String(id),
+          sourceType: 'goods_receipt',
+          userId
+        });
       }
 
       // 2. Update status of the GRN

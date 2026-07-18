@@ -185,6 +185,18 @@ class PostingEngineService {
                 notes: payload.notes || 'Purchase posted',
                 created_by: userId
               });
+
+              // Create cost layer for purchase
+              await require('./inventory_costing.service').recordAcquisition(trx, {
+                companyId,
+                warehouseId,
+                productId: item.productId,
+                quantity: qty,
+                unitCost: unitCost,
+                sourceDocument: voucher?.voucher_number || String(voucherId),
+                sourceType: 'voucher',
+                userId
+              });
             }
           }
 
@@ -243,8 +255,9 @@ class PostingEngineService {
           }
 
           let isLinkedToDelivery = false;
+          let linkedDelivery = null;
           if (voucherId) {
-            const linkedDelivery = await trx('deliveries').where({ voucher_id: voucherId }).first();
+            linkedDelivery = await trx('deliveries').where({ voucher_id: voucherId }).first();
             if (linkedDelivery) {
               isLinkedToDelivery = true;
             }
@@ -259,13 +272,22 @@ class PostingEngineService {
 
             const qty = parseFloat(item.quantity);
             const unitPrice = parseFloat(item.unitPrice);
-            const unitCost = parseFloat(product.cost_price || 0); // Using product WAC cost
+            let unitCost = parseFloat(product.cost_price || 0);
+
+            if (isLinkedToDelivery && linkedDelivery) {
+              // Retrieve exact unit cost from delivery items to maintain costing method consistency
+              const dItem = await trx('delivery_items')
+                .where({ delivery_id: linkedDelivery.id, product_id: item.productId })
+                .first();
+              if (dItem) {
+                unitCost = parseFloat(dItem.unit_cost || 0);
+              }
+            }
 
             const lineRevenue = qty * unitPrice;
-            const lineCOGS = qty * unitCost;
+            let lineCOGS = qty * unitCost;
 
             totalRevenue += lineRevenue;
-            totalCOGS += lineCOGS;
 
             if (!isLinkedToDelivery) {
               // Stock availability check
@@ -281,20 +303,42 @@ class PostingEngineService {
               // Deduct inventory
               const newQty = await inventoryModel.upsertInventory(trx, item.productId, warehouseId, -qty);
 
-              // Record stock log
-              await inventoryModel.insertStockLog(trx, {
+              // Record stock log (with placeholder unit_cost)
+              const stockLog = await inventoryModel.insertStockLog(trx, {
                 product_id: item.productId,
                 warehouse_id: warehouseId,
                 type: 'SALE',
                 quantity_change: -qty,
                 quantity_after: newQty,
-                unit_cost: unitCost,
+                unit_cost: 0,
                 reference_id: voucherId || null,
                 reference_type: 'voucher',
                 notes: payload.notes || 'Sales Invoice posted',
                 created_by: userId
               });
+
+              // Consume costing layers
+              const costingResult = await require('./inventory_costing.service').consumeIssue(trx, {
+                companyId,
+                warehouseId,
+                productId: item.productId,
+                quantity: qty,
+                documentType: 'voucher',
+                documentNumber: voucher?.voucher_number || String(voucherId),
+                stockLogId: stockLog.id,
+                userId
+              });
+
+              unitCost = costingResult.blendedUnitCost;
+              lineCOGS = costingResult.totalCOGS;
+
+              // Update stock log with actual cost
+              await trx('stock_logs')
+                .where({ id: stockLog.id })
+                .update({ unit_cost: unitCost });
             }
+
+            totalCOGS += lineCOGS;
 
             // Dr COGS, Cr Inventory lines (accrued per item)
             cogsLines.push(

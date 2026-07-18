@@ -14,11 +14,26 @@ class SettingsModel {
     const hasAccountingKeys = [
       'defaultSalesAccountId', 'defaultApAccountId', 'defaultArAccountId', 
       'defaultInventoryAccountId', 'defaultCogsAccountId', 'defaultCashAccountId', 
-      'defaultSalariesAccountId', 'taxRate', 'negativeBalanceStyle'
+      'defaultSalariesAccountId', 'taxRate', 'negativeBalanceStyle', 'inventoryCostingMethod'
     ].some(k => value.hasOwnProperty(k));
     
     if (hasAccountingKeys) {
       const mapping = {};
+      if (value.hasOwnProperty('inventoryCostingMethod')) {
+        const newMethod = value.inventoryCostingMethod;
+        const currentSettings = await this.getSettings(companyId);
+        const oldMethod = currentSettings.inventoryCostingMethod || 'AVERAGE';
+        if (newMethod !== oldMethod) {
+          const hasTransactions = await db('stock_logs as sl')
+            .join('products as p', 'sl.product_id', 'p.id')
+            .where('p.company_id', companyId)
+            .first();
+          if (hasTransactions) {
+            throw new Error('Cannot change inventory costing method: company has existing inventory transactions.');
+          }
+        }
+        mapping.inventory_costing_method = newMethod;
+      }
       if (value.hasOwnProperty('defaultSalesAccountId')) mapping.default_sales_account_id = value.defaultSalesAccountId ? parseInt(value.defaultSalesAccountId, 10) : null;
       if (value.hasOwnProperty('defaultApAccountId')) mapping.default_ap_account_id = value.defaultApAccountId ? parseInt(value.defaultApAccountId, 10) : null;
       if (value.hasOwnProperty('defaultArAccountId')) mapping.default_ar_account_id = value.defaultArAccountId ? parseInt(value.defaultArAccountId, 10) : null;

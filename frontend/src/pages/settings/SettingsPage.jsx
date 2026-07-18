@@ -153,6 +153,7 @@ export default function SettingsPage() {
         
         defaultSalesAccountId: raw.defaultSalesAccountId || raw.default_sales_account_id || '',
         negativeBalanceStyle: raw.negativeBalanceStyle || raw.negative_balance_style || 'minus',
+        inventoryCostingMethod: raw.inventoryCostingMethod || raw.inventory_costing_method || 'AVERAGE',
         defaultApAccountId: raw.defaultApAccountId || raw.default_ap_account_id || '',
         defaultArAccountId: raw.defaultArAccountId || raw.default_ar_account_id || '',
         defaultInventoryAccountId: raw.defaultInventoryAccountId || raw.default_inventory_account_id || '',
@@ -718,6 +719,19 @@ export default function SettingsPage() {
                   <option value="minus">Minus Sign (-2,000,000.00)</option>
                   <option value="parentheses">Parentheses ((2,000,000.00))</option>
                   <option value="red">Red Highlights (-2,000,000.00 in Red)</option>
+                </select>
+              </Field>
+
+              <Field label="Inventory Costing Method" hint="Valuation policy for stock issue and COGS calculations. Cannot be changed once transactions exist.">
+                <select
+                  value={localSettings.inventoryCostingMethod || 'AVERAGE'}
+                  onChange={e => update('inventoryCostingMethod', e.target.value)}
+                  disabled={!canEdit}
+                  className="w-full h-10 px-3 rounded-lg border border-slate-300 text-[13px] text-slate-800 outline-none focus:border-emerald-500 focus:ring-2 focus:ring-emerald-500/20 disabled:bg-slate-50 disabled:text-slate-500 transition-all font-semibold"
+                >
+                  <option value="AVERAGE">Weighted Average Cost (WAC)</option>
+                  <option value="FIFO">First-In, First-Out (FIFO)</option>
+                  <option value="LIFO">Last-In, First-Out (LIFO)</option>
                 </select>
               </Field>
             </div>
