@@ -20,25 +20,64 @@ class VoucherService {
     };
 
     const prefix = defaultPrefixes[type.toUpperCase()] || 'VO';
+    const queryExecutor = trx || db;
 
-    const getSeq = db('voucher_sequences').where({ company_id: companyId, type });
-    if (trx) getSeq.transacting(trx);
-    let seq = await getSeq.first();
+    // 1. Get or create sequence record with row locking if in transaction
+    let seq;
+    if (trx) {
+      seq = await trx('voucher_sequences')
+        .where({ company_id: companyId, type })
+        .forUpdate()
+        .first();
+    } else {
+      seq = await db('voucher_sequences')
+        .where({ company_id: companyId, type })
+        .first();
+    }
 
     if (!seq) {
       seq = { company_id: companyId, type, prefix, next_val: 1 };
-      const insertQuery = db('voucher_sequences');
-      if (trx) insertQuery.transacting(trx);
-      await insertQuery.insert(seq);
+      await queryExecutor('voucher_sequences')
+        .insert(seq)
+        .onConflict(['company_id', 'type'])
+        .ignore();
+      
+      // Reload sequence to ensure we have the row (or existing row if concurrent insert occurred)
+      if (trx) {
+        seq = await trx('voucher_sequences')
+          .where({ company_id: companyId, type })
+          .forUpdate()
+          .first();
+      } else {
+        seq = await db('voucher_sequences')
+          .where({ company_id: companyId, type })
+          .first();
+      }
     }
 
-    const num = `${seq.prefix}-${String(seq.next_val).padStart(5, '0')}`;
+    let nextVal = seq.next_val;
+    let num;
+    let exists = true;
 
-    const updateQuery = db('voucher_sequences')
+    // 2. Loop to find the next unused voucher number, healing any out-of-sync sequences
+    while (exists) {
+      num = `${seq.prefix}-${String(nextVal).padStart(5, '0')}`;
+      
+      const check = await queryExecutor('vouchers')
+        .where({ company_id: companyId, type, voucher_number: num })
+        .first();
+        
+      if (!check) {
+        exists = false;
+      } else {
+        nextVal++;
+      }
+    }
+
+    // 3. Update the sequence table with the next sequence value
+    await queryExecutor('voucher_sequences')
       .where({ company_id: companyId, type })
-      .increment('next_val', 1);
-    if (trx) updateQuery.transacting(trx);
-    await updateQuery;
+      .update({ next_val: nextVal + 1 });
 
     return num;
   }

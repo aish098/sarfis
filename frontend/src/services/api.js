@@ -37,7 +37,15 @@ api.interceptors.request.use(
 
     // ERP routes usually follow patterns like /warehouses/:companyId
     // We check if any part of the path is a number and follows a known resource name
-    const erpResources = ['warehouses', 'products', 'stock', 'inventory', 'sectors', 'clients', 'deliveries', 'distribution', 'payroll', 'employees', 'audit'];
+    const erpResources = [
+      'warehouses', 'products', 'stock', 'inventory', 'sectors', 'clients', 'deliveries', 
+      'distribution', 'payroll', 'employees', 'audit', 'vouchers', 'vendors', 'periods', 
+      'budgets', 'fixed-assets', 'workflows', 'purchase-orders', 'purchase-requisitions', 
+      'goods-receipts', 'sales-orders', 'reports', 'settings', 'subledger', 'accounts', 
+      'company', 'trial-balance', 'adjusted-trial-balance', 'income-statement', 
+      'balance-sheet', 'cash-flow', 'equity', 'comparative', 'close-period', 'ap-aging', 
+      'ar-aging', 'vendor-statement', 'customer-statement'
+    ];
     erpResources.forEach(resource => {
       const idx = urlParts.indexOf(resource);
       if (idx !== -1 && urlParts[idx + 1]) {
