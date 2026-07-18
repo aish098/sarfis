@@ -866,7 +866,7 @@ export default function SalesOrdersPage() {
         companyId={activeCompany?.id}
         virtualCode={selectedSubledgerPartner?.virtualCode}
         partnerName={selectedSubledgerPartner?.name}
-        onSaveSuccess={loadOrders}
+        onSaveSuccess={loadData}
       />
     </>
   );
