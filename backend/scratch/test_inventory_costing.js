@@ -213,6 +213,45 @@ async function runCostingTest() {
       console.log('✅ Transaction settings lock verified successfully!');
     }
 
+    // ==========================================
+    // TEST CASE 4: Historical Valuation Snapshot
+    // ==========================================
+    console.log('\n--- Test Scenario 4: Historical Valuation Report ---');
+    const InventoryController = require('../src/controllers/inventory.controller');
+    
+    // Set policy to FIFO
+    await db('company_accounting_settings')
+      .where({ company_id: companyId })
+      .update({ inventory_costing_method: 'FIFO' });
+
+    // Clean and seed some fresh layers
+    await db('inventory_layer_consumptions').delete();
+    await db('inventory_layers').delete();
+    await addPurchase(10, 100.00, 'PO-VAL-1'); // Date is now
+    
+    const mockReq = {
+      params: { companyId: 1 },
+      query: { asOfDate: new Date().toISOString() }
+    };
+    
+    let jsonOutput = null;
+    const mockRes = {
+      json: (data) => { jsonOutput = data; },
+      status: (code) => ({
+        json: (data) => { console.error(`Error status ${code}:`, data); }
+      })
+    };
+    
+    await InventoryController.getValuationReport(mockReq, mockRes);
+    
+    console.log('Valuation Summary:', jsonOutput?.summary);
+    if (jsonOutput && jsonOutput.summary.totalValue === 1000) {
+      console.log('✅ Valuation Report Snapshot Passed!');
+    } else {
+      console.error('❌ Valuation Report Snapshot Failed! Output:', jsonOutput);
+      process.exit(1);
+    }
+
     console.log('\n=========================================================');
     console.log('         ALL INVENTORY COSTING TESTS PASSED              ');
     console.log('=========================================================');

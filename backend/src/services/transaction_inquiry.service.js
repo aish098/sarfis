@@ -107,20 +107,62 @@ class TransactionInquiryService {
       }
     }
 
-    if (voucher.journal_entry_id) {
-      const movements = await db('stock_logs as sl')
-        .join('products as p', 'sl.product_id', 'p.id')
-        .where({ 'sl.reference_id': voucher.journal_entry_id, 'sl.reference_type': 'journal_entry' })
-        .select('sl.*', 'p.name as product_name', 'p.sku as product_sku')
-        .orderBy('sl.created_at', 'asc');
+    // Fetch all stock logs matching this voucher or its linked entries
+    const linkedDeliveries = await db('deliveries').where({ voucher_id: voucherId });
+    const deliveryIds = linkedDeliveries.map(d => d.id);
 
-      inventory.movements = movements.map(m => ({
+    const movementsQuery = db('stock_logs as sl')
+      .join('products as p', 'sl.product_id', 'p.id')
+      .where(function() {
+        this.where({ 'sl.reference_id': voucherId, 'sl.reference_type': 'voucher' });
+        if (voucher.journal_entry_id) {
+          this.orWhere({ 'sl.reference_id': voucher.journal_entry_id, 'sl.reference_type': 'journal_entry' });
+        }
+        if (deliveryIds.length > 0) {
+          this.orWhere(function() {
+            this.whereIn('sl.reference_id', deliveryIds).andWhere('sl.reference_type', 'delivery');
+          });
+        }
+      });
+
+    const movements = await movementsQuery
+      .select('sl.*', 'p.name as product_name', 'p.sku as product_sku')
+      .orderBy('sl.created_at', 'asc');
+
+    inventory.movements = await Promise.all(movements.map(async (m) => {
+      const qtyChange = parseFloat(m.quantity_change || 0);
+      const unitCost = parseFloat(m.unit_cost || 0);
+
+      // If this is a reduction (issue), resolve costing layer consumptions
+      let consumptions = [];
+      if (qtyChange < 0) {
+        consumptions = await db('inventory_layer_consumptions as ilc')
+          .join('inventory_layers as il', 'ilc.layer_id', 'il.id')
+          .where('ilc.stock_log_id', m.id)
+          .select(
+            'ilc.issued_qty',
+            'ilc.unit_cost',
+            'ilc.extended_cost',
+            'il.source_document as layer_source_document',
+            'il.source_type as layer_source_type'
+          );
+        consumptions = consumptions.map(c => ({
+          issued_qty: parseFloat(c.issued_qty),
+          unit_cost: parseFloat(c.unit_cost),
+          extended_cost: parseFloat(c.extended_cost),
+          layer_source_document: c.layer_source_document,
+          layer_source_type: c.layer_source_type
+        }));
+      }
+
+      return {
         ...m,
-        quantity_change: parseFloat(m.quantity_change || 0),
+        quantity_change: qtyChange,
         quantity_after: parseFloat(m.quantity_after || 0),
-        unit_cost: parseFloat(m.unit_cost || 0)
-      }));
-    }
+        unit_cost: unitCost,
+        consumptions
+      };
+    }));
 
     // 4. Fetch Business Partner Credit & Utilization summary
     let business = {

@@ -1,7 +1,7 @@
-import { useState, useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, Link } from 'react-router-dom';
 import { 
-  ChevronLeft, Printer, Download, Mail, Copy, RotateCcw, 
+  ChevronLeft, Printer, Download, Mail, Copy, RotateCcw, ChevronDown, ChevronUp,
   DollarSign, Package, User, TrendingUp, ShieldAlert, 
   MessageSquare, Paperclip, ShieldCheck, AlertCircle, FileText,
   Calendar, CheckCircle, ArrowRight, Eye, Send
@@ -62,6 +62,7 @@ export default function VoucherDetails() {
   const [error, setError] = useState('');
   const [commentText, setCommentText] = useState('');
   const [submittingComment, setSubmittingComment] = useState(false);
+  const [expandedMovementIdx, setExpandedMovementIdx] = useState(null);
 
   const loadDetails = async () => {
     if (!activeCompany) return;
@@ -807,6 +808,7 @@ export default function VoucherDetails() {
                 <table className="w-full text-left border-collapse text-[12.5px]">
                   <thead>
                     <tr className="bg-slate-50 border-b border-slate-100 text-[10px] font-black uppercase tracking-wider text-slate-400">
+                      <th className="px-4 py-2.5" style={{ width: 40 }}></th>
                       <th className="px-4 py-2.5">Product SKU</th>
                       <th className="px-4 py-2.5">Product Title</th>
                       <th className="px-4 py-2.5 text-center">Movement Qty</th>
@@ -815,19 +817,83 @@ export default function VoucherDetails() {
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-slate-50 text-slate-600 font-mono">
-                    {inventory.movements.map((log, idx) => (
-                      <tr key={idx} className="hover:bg-slate-50/20 bg-white">
-                        <td className="px-4 py-3 font-bold text-slate-400">{log.product_sku}</td>
-                        <td className="px-4 py-3 font-sans text-slate-700">{log.product_name}</td>
-                        <td className={`px-4 py-3 text-center font-bold ${log.quantity_change < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
-                          {log.quantity_change > 0 ? `+${log.quantity_change}` : log.quantity_change}
-                        </td>
-                        <td className="px-4 py-3 text-center font-bold text-slate-600">{log.quantity_after}</td>
-                        <td className="px-4 py-3 text-right">
-                          PKR {log.unit_cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
-                        </td>
-                      </tr>
-                    ))}
+                    {inventory.movements.map((log, idx) => {
+                      const hasConsumptions = log.consumptions && log.consumptions.length > 0;
+                      const isExpanded = expandedMovementIdx === idx;
+                      return (
+                        <React.Fragment key={idx}>
+                          <tr 
+                            onClick={() => {
+                              if (hasConsumptions) {
+                                setExpandedMovementIdx(isExpanded ? null : idx);
+                              }
+                            }}
+                            className={`bg-white hover:bg-slate-50/20 transition-colors ${hasConsumptions ? 'cursor-pointer' : ''}`}
+                          >
+                            <td className="px-4 py-3 text-center text-slate-400">
+                              {hasConsumptions && (
+                                isExpanded ? <ChevronUp size={14} className="text-slate-500" /> : <ChevronDown size={14} className="text-slate-500" />
+                              )}
+                            </td>
+                            <td className="px-4 py-3 font-bold text-slate-400">{log.product_sku}</td>
+                            <td className="px-4 py-3 font-sans text-slate-700">{log.product_name}</td>
+                            <td className={`px-4 py-3 text-center font-bold ${log.quantity_change < 0 ? 'text-rose-600' : 'text-emerald-600'}`}>
+                              {log.quantity_change > 0 ? `+${log.quantity_change}` : log.quantity_change}
+                            </td>
+                            <td className="px-4 py-3 text-center font-bold text-slate-600">{log.quantity_after}</td>
+                            <td className="px-4 py-3 text-right">
+                              PKR {log.unit_cost.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            </td>
+                          </tr>
+                          {isExpanded && hasConsumptions && (
+                            <tr>
+                              <td colSpan={6} className="bg-slate-50/50 p-4.5 border-t border-b border-slate-100 font-sans">
+                                <div className="space-y-2">
+                                  <div className="flex justify-between items-center">
+                                    <h4 className="text-[10px] font-black uppercase text-slate-500 tracking-wider">
+                                      FIFO/LIFO Cost Flow Details (Consumed Layers)
+                                    </h4>
+                                    <span className="text-[9.5px] text-slate-400 font-semibold uppercase">
+                                      Valuation: Real-time Cost Layers
+                                    </span>
+                                  </div>
+                                  <div className="border border-slate-150 rounded-xl overflow-hidden bg-white shadow-xs">
+                                    <table className="w-full text-left text-[11px] border-collapse">
+                                      <thead>
+                                        <tr className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 border-b border-slate-100">
+                                          <th className="px-3 py-1.5">Layer ID</th>
+                                          <th className="px-3 py-1.5">Layer Source Doc</th>
+                                          <th className="px-3 py-1.5 text-center">Layer Source Type</th>
+                                          <th className="px-3 py-1.5 text-right">Issued Quantity</th>
+                                          <th className="px-3 py-1.5 text-right">Unit Cost</th>
+                                          <th className="px-3 py-1.5 text-right font-bold">Extended Cost</th>
+                                        </tr>
+                                      </thead>
+                                      <tbody className="divide-y divide-slate-50 font-mono text-[10.5px] text-slate-600">
+                                        {log.consumptions.map((c, cIdx) => (
+                                          <tr key={cIdx}>
+                                            <td className="px-3 py-1.5 font-bold text-slate-800">#{c.layer_id || cIdx + 1}</td>
+                                            <td className="px-3 py-1.5 font-sans">{c.layer_source_document || 'N/A'}</td>
+                                            <td className="px-3 py-1.5 text-center font-sans">
+                                              <span className="px-1.5 py-0.5 rounded text-[8px] font-black bg-slate-100 text-slate-500 uppercase border border-slate-200">
+                                                {c.layer_source_type}
+                                              </span>
+                                            </td>
+                                            <td className="px-3 py-1.5 text-right">{parseFloat(c.issued_qty).toLocaleString()}</td>
+                                            <td className="px-3 py-1.5 text-right text-emerald-600">PKR {parseFloat(c.unit_cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                            <td className="px-3 py-1.5 text-right text-slate-800 font-bold">PKR {parseFloat(c.extended_cost).toLocaleString(undefined, { minimumFractionDigits: 2 })}</td>
+                                          </tr>
+                                        ))}
+                                      </tbody>
+                                    </table>
+                                  </div>
+                                </div>
+                              </td>
+                            </tr>
+                          )}
+                        </React.Fragment>
+                      );
+                    })}
                   </tbody>
                 </table>
               </div>

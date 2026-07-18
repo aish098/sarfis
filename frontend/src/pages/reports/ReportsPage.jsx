@@ -3,18 +3,21 @@ import { useNavigate } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import { 
   Download, Calendar, AlertTriangle, CheckCircle2, ShieldAlert, RefreshCw, 
-  Calculator, Activity, PieChart, FileText, Zap, X, FileSpreadsheet, Printer, ArrowRight
+  Calculator, Activity, PieChart, FileText, Zap, X, FileSpreadsheet, Printer, ArrowRight,
+  Layers
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import InventoryValuationReport from './InventoryValuationReport';
 
 const TABS = [
   { id: 'trial_balance', label: 'Trial Balance', icon: Calculator },
   { id: 'income_statement', label: 'Income Statement', icon: Activity },
   { id: 'balance_sheet', label: 'Balance Sheet', icon: PieChart },
   { id: 'cash_flow', label: 'Cash Flow', icon: FileText },
+  { id: 'inventory_valuation', label: 'Inventory Valuation', icon: Layers },
 ];
 
 const fmt = v => {
@@ -29,24 +32,27 @@ export default function ReportsPage() {
   const navigate = useNavigate();
   const { activeCompany, settings } = useAuthStore();
   const currencyLabel = settings?.baseCurrency || 'PKR';
+
   const [tab, setTab] = useState('trial_balance');
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState('');
   const [data, setData] = useState(null);
-  
+
   // Financial Note Drawer States
   const [noteDrawerOpen, setNoteDrawerOpen] = useState(false);
   const [selectedNoteAccount, setSelectedNoteAccount] = useState(null);
-  const [noteData, setNoteData] = useState(null);
   const [noteLoading, setNoteLoading] = useState(false);
+  const [noteData, setNoteData] = useState(null);
   const [noteError, setNoteError] = useState('');
   const [statementVersion, setStatementVersion] = useState('Draft');
-  const [loading, setLoading] = useState(false);
-  const [error, setError] = useState('');
-  const [startDate, setStartDate] = useState('2020-01-01');
+
+  const [startDate, setStartDate] = useState(new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().split('T')[0]);
   const [endDate, setEndDate] = useState(new Date().toISOString().split('T')[0]);
   const [asOfDate, setAsOfDate] = useState(new Date().toISOString().split('T')[0]);
   const [closeModal, setCloseModal] = useState(false);
   const [closeDate, setCloseDate] = useState(new Date().toISOString().split('T')[0]);
   const [closeMemo, setCloseMemo] = useState('Year-End Closing');
+
   const [closing, setClosing] = useState(false);
   const [closeResult, setCloseResult] = useState(null);
 
@@ -63,6 +69,7 @@ export default function ReportsPage() {
         income_statement: { url: `/reports/income-statement/${activeCompany.id}`, params: { startDate, endDate } },
         balance_sheet: { url: `/reports/balance-sheet/${activeCompany.id}`, params: { asOfDate } },
         cash_flow: { url: `/reports/cash-flow/${activeCompany.id}`, params: { startDate, endDate } },
+        inventory_valuation: { url: `/inventory/${activeCompany.id}/valuation-report`, params: { asOfDate } },
       };
       const { url, params } = endpointMap[tab];
       const res = await api.get(url, { params });
@@ -587,7 +594,7 @@ export default function ReportsPage() {
           <div className="flex flex-wrap items-center gap-3">
             <div className="flex items-center gap-2.5 px-4 py-2 rounded-xl bg-white border-2 border-slate-100 shadow-sm focus-within:border-emerald-500/50 focus-within:ring-4 focus-within:ring-emerald-500/5">
               <Calendar size={14} className="text-slate-400 flex-shrink-0" />
-              {tab === 'balance_sheet' ? (
+              {tab === 'balance_sheet' || tab === 'inventory_valuation' ? (
                 <div className="flex items-center gap-1.5">
                   <span className="text-[10px] font-black uppercase tracking-wider text-slate-400">AS OF</span>
                   <input 
@@ -673,6 +680,7 @@ export default function ReportsPage() {
                 {tab === 'income_statement' && <IncomeStatement data={data} companyName={activeCompany?.name} startDate={startDate} endDate={endDate} />}
                 {tab === 'balance_sheet' && <BalanceSheet data={data} companyName={activeCompany?.name} asOfDate={asOfDate} formatAmount={formatAmount} openNoteDrawer={openNoteDrawer} />}
                 {tab === 'cash_flow' && <CashFlow data={data} companyName={activeCompany?.name} startDate={startDate} endDate={endDate} />}
+                {tab === 'inventory_valuation' && <InventoryValuationReport data={data} asOfDate={asOfDate} companyName={activeCompany?.name} />}
               </motion.div>
             </AnimatePresence>
           )}

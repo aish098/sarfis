@@ -26,6 +26,10 @@ router.get('/stock/:companyId',            companyGuard, requirePermission('inve
 router.get('/stock/:companyId/low',        companyGuard, requirePermission('inventory.view'), invCtrl.getLowStockAlerts);
 router.get('/stock/product/:productId',    requirePermission('inventory.view'), invCtrl.getStockByProduct);
 router.get('/stock/logs/:productId',       requirePermission('inventory.view'), invCtrl.getStockLogs);
+router.get('/inventory/:companyId/cost-layers', companyGuard, requirePermission('inventory.view'), invCtrl.getCostLayers);
+router.get('/inventory/:companyId/cost-layers/:layerId/audit', companyGuard, requirePermission('inventory.view'), invCtrl.getLayerAudit);
+router.get('/inventory/:companyId/layer-consumptions/:stockLogId', companyGuard, requirePermission('inventory.view'), invCtrl.getLayerConsumptions);
+router.get('/inventory/:companyId/valuation-report', companyGuard, requirePermission('inventory.view'), invCtrl.getValuationReport);
 
 // Operations
 router.post('/stock/:companyId/purchase',  companyGuard, requirePermission('inventory.edit'), invCtrl.processPurchase);

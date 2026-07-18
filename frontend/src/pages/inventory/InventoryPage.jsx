@@ -9,6 +9,7 @@ import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 import StatusBadge from '../../components/ui/StatusBadge';
+import CostLayersTab from './CostLayersTab';
 
 const stagger = { animate: { transition: { staggerChildren: 0.05 } } };
 const fadeUp = { initial: { opacity: 0, y: 14 }, animate: { opacity: 1, y: 0, transition: { duration: 0.35 } } };
@@ -298,6 +299,7 @@ export default function InventoryPage({ globalSearch = "" }) {
               { id: 'products', label: 'Products' },
               { id: 'stock', label: 'Stock Levels' },
               { id: 'logs', label: 'Movement Log' },
+              { id: 'cost_layers', label: 'Inventory Cost Layers' },
             ].map(t => (
               <button key={t.id} onClick={() => setTab(t.id)} className={`tab-item px-4.5 py-2 text-[12.5px] font-bold rounded-lg flex items-center gap-1.5 transition-all border-none bg-transparent cursor-pointer ${tab === t.id ? 'bg-emerald-50 text-emerald-700 shadow-xs' : 'text-slate-500 hover:text-slate-700'}`}>
                 {t.label}
@@ -517,6 +519,11 @@ export default function InventoryPage({ globalSearch = "" }) {
             </table>
           </div>
         </div>
+      )}
+
+      {/* Inventory Cost Layers Tab */}
+      {tab === 'cost_layers' && (
+        <CostLayersTab />
       )}
 
       {/* ─── Add Product Modal ─── */}
