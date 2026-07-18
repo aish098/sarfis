@@ -6,6 +6,7 @@ import useAuthStore from '../../store/authStore';
 import RelatedDocuments from '../../components/RelatedDocuments';
 import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 import StatusBadge from '../../components/ui/StatusBadge';
+import SubledgerDrawer from '../../components/SubledgerDrawer';
 
 const STATUS_CONFIG = {
   DRAFT: { label: 'Draft', bg: 'bg-slate-50 text-slate-650' },
@@ -28,6 +29,7 @@ export default function OrderTrackingPage() {
   const [updating, setUpdating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
   const [selectedOrder, setSelectedOrder] = useState(null);
+  const [selectedSubledgerPartner, setSelectedSubledgerPartner] = useState(null);
 
   // Dispatch Modal State
   const [dispatchModal, setDispatchModal] = useState(false);
@@ -452,7 +454,18 @@ export default function OrderTrackingPage() {
               <div className="grid grid-cols-2 gap-y-3 gap-x-2 text-[12.0px] text-slate-650 border-b border-slate-100 pb-3.5">
                 <div>
                   <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Customer</span>
-                  <span className="font-bold text-slate-800 mt-0.5 block">{selectedOrder.client_name}</span>
+                  <button
+                    type="button"
+                    onClick={() => setSelectedSubledgerPartner({
+                      id: selectedOrder.client_id,
+                      type: 'CUSTOMER',
+                      name: selectedOrder.client_name,
+                      virtualCode: `CUS-${String(selectedOrder.client_id).padStart(4, '0')}`
+                    })}
+                    className="font-bold text-indigo-600 hover:text-indigo-800 hover:underline mt-0.5 block text-left bg-transparent border-none p-0 cursor-pointer"
+                  >
+                    {selectedOrder.client_name}
+                  </button>
                 </div>
                 <div>
                   <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Warehouse</span>
@@ -780,6 +793,17 @@ export default function OrderTrackingPage() {
           </div>
         </div>
       )}
+
+      <SubledgerDrawer
+        isOpen={!!selectedSubledgerPartner}
+        onClose={() => setSelectedSubledgerPartner(null)}
+        partnerId={selectedSubledgerPartner?.id}
+        partnerType={selectedSubledgerPartner?.type}
+        companyId={activeCompany?.id}
+        virtualCode={selectedSubledgerPartner?.virtualCode}
+        partnerName={selectedSubledgerPartner?.name}
+        onSaveSuccess={loadOrders}
+      />
     </>
   );
 }
