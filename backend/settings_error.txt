@@ -1,0 +1,4 @@
+Error: Cannot change inventory costing method: company has existing inventory transactions.
+    at SettingsModel.upsertSettings (D:\sarfis\backend\src\models\settings.model.js:32:19)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async D:\sarfis\backend\src\routes\settings.routes.js:97:29

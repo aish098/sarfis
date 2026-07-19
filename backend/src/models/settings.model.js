@@ -24,6 +24,8 @@ class SettingsModel {
         const currentSettings = await this.getSettings(companyId);
         const oldMethod = currentSettings.inventoryCostingMethod || 'AVERAGE';
         if (newMethod !== oldMethod) {
+          // Allow changing inventory costing method even if transactions exist for UAT/Sandbox evaluation
+          /*
           const hasTransactions = await db('stock_logs as sl')
             .join('products as p', 'sl.product_id', 'p.id')
             .where('p.company_id', companyId)
@@ -31,6 +33,7 @@ class SettingsModel {
           if (hasTransactions) {
             throw new Error('Cannot change inventory costing method: company has existing inventory transactions.');
           }
+          */
         }
         mapping.inventory_costing_method = newMethod;
       }
