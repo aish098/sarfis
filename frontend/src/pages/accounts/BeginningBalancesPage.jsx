@@ -39,7 +39,7 @@ export default function BeginningBalancesPage() {
   const [missingAccounts, setMissingAccounts] = useState([]); // { code, name, debit, credit, status: 'Missing'|'Mapped'|'Ignored'|'Created', mappedId }
   const [activeMappingIndex, setActiveMappingIndex] = useState(null); // Index of missing account currently being mapped
   const [showCreateModal, setShowCreateModal] = useState(false);
-  const [newAccountForm, setNewAccountForm] = useState({ code: '', name: '', category: 'Asset', normal_balance: 'Debit' });
+  const [newAccountForm, setNewAccountForm] = useState({ code: '', name: '', category: 'Asset', normal_balance: 'Debit', current_classification: 'CURRENT', is_contra: false });
   const [mappingSelectId, setMappingSelectId] = useState('');
 
   // Clear Confirmation
@@ -332,15 +332,48 @@ export default function BeginningBalancesPage() {
     });
   };
 
-  // Create & Continue Unmatched Account Action
   const openCreateAccountModal = (index) => {
     const missing = missingAccounts[index];
     setActiveMappingIndex(index);
+
+    let category = 'Asset';
+    let normal_balance = 'Debit';
+    let current_classification = 'CURRENT';
+
+    if (missing.code) {
+      const prefix = missing.code.trim().charAt(0);
+      if (prefix === '2') {
+        category = 'Liability';
+        normal_balance = 'Credit';
+        current_classification = 'CURRENT';
+      } else if (prefix === '3') {
+        category = 'Equity';
+        normal_balance = 'Credit';
+        current_classification = 'NOT_APPLICABLE';
+      } else if (prefix === '4') {
+        category = 'Revenue';
+        normal_balance = 'Credit';
+        current_classification = 'NOT_APPLICABLE';
+      } else if (prefix === '5' || prefix === '6') {
+        category = 'Expense';
+        normal_balance = 'Debit';
+        current_classification = 'NOT_APPLICABLE';
+      }
+    }
+
+    const nameLower = (missing.name || '').toLowerCase();
+    const isContra = nameLower.includes('accumulated depreciation') || nameLower.includes('allowance for doubtful') || nameLower.includes('contra');
+    if (isContra) {
+      normal_balance = normal_balance === 'Debit' ? 'Credit' : 'Debit';
+    }
+
     setNewAccountForm({
       code: missing.code,
       name: missing.name,
-      category: 'Asset',
-      normal_balance: 'Debit'
+      category,
+      normal_balance,
+      current_classification,
+      is_contra: isContra
     });
     setShowCreateModal(true);
   };
@@ -1206,7 +1239,18 @@ export default function BeginningBalancesPage() {
                     <select 
                       className="input-enterprise w-full cursor-pointer"
                       value={newAccountForm.category}
-                      onChange={e => setNewAccountForm(prev => ({ ...prev, category: e.target.value }))}
+                      onChange={e => {
+                        const newCat = e.target.value;
+                        const isAssetOrLiab = ['Asset', 'Liability'].includes(newCat);
+                        const classification = isAssetOrLiab ? 'CURRENT' : 'NOT_APPLICABLE';
+                        const stdBalance = ['Asset', 'Expense'].includes(newCat) ? 'Debit' : 'Credit';
+                        setNewAccountForm(prev => ({
+                          ...prev,
+                          category: newCat,
+                          normal_balance: stdBalance,
+                          current_classification: classification
+                        }));
+                      }}
                     >
                       {['Asset', 'Liability', 'Equity', 'Revenue', 'Expense'].map(cat => (
                         <option key={cat} value={cat}>{cat}</option>
@@ -1225,6 +1269,38 @@ export default function BeginningBalancesPage() {
                     </select>
                   </div>
                 </div>
+
+                {['Asset', 'Liability'].includes(newAccountForm.category) && (
+                  <div className="grid grid-cols-2 gap-4">
+                    <div>
+                      <label className="text-slate-400 font-semibold block text-[11px] uppercase mb-1">Classification</label>
+                      <select 
+                        className="input-enterprise w-full cursor-pointer"
+                        value={newAccountForm.current_classification}
+                        onChange={e => setNewAccountForm(prev => ({ ...prev, current_classification: e.target.value }))}
+                      >
+                        <option value="CURRENT">Current</option>
+                        <option value="NON_CURRENT">Non-Current</option>
+                      </select>
+                    </div>
+                    <div className="flex items-center pt-5">
+                      <label className="flex items-center gap-2 cursor-pointer text-slate-500 font-bold">
+                        <input 
+                          type="checkbox"
+                          checked={newAccountForm.is_contra}
+                          onChange={e => {
+                            const isContra = e.target.checked;
+                            const stdBalance = ['Asset', 'Expense'].includes(newAccountForm.category) ? 'Debit' : 'Credit';
+                            const normal_balance = isContra ? (stdBalance === 'Debit' ? 'Credit' : 'Debit') : stdBalance;
+                            setNewAccountForm(prev => ({ ...prev, is_contra: isContra, normal_balance }));
+                          }}
+                          className="w-4 h-4 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500"
+                        />
+                        Contra Account
+                      </label>
+                    </div>
+                  </div>
+                )}
               </div>
 
               <div className="flex justify-end gap-3 pt-4 border-t border-slate-100">
