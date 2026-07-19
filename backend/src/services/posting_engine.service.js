@@ -95,6 +95,12 @@ class PostingEngineService {
       // Fetch company mappings
       const settings = await this.getAccountingSettings(companyId, trx);
 
+      // Fetch voucher if voucherId is provided to resolve references
+      let voucher = null;
+      if (voucherId) {
+        voucher = await trx('vouchers').where({ id: voucherId }).first();
+      }
+
       // 1b. Validate entity relationship status and credit policy limits via RiskService
       const RiskService = require('./risk.service');
       const validationResult = await RiskService.validateTransaction(companyId, type, { ...payload, voucherId }, trx);
