@@ -98,7 +98,12 @@ router.put('/:companyId', companyGuard, requirePermission('settings.manage'), as
     res.json(updatedSettings);
   } catch (error) {
     console.error('Failed to update settings:', error);
-    res.status(500).json({ error: 'Failed to update settings' });
+    try {
+      require('fs').writeFileSync('d:\\sarfis\\backend\\settings_error.txt', error.stack || error.message || String(error), 'utf8');
+    } catch (fsErr) {
+      console.error(fsErr);
+    }
+    res.status(500).json({ error: error.message || 'Failed to update settings' });
   }
 });
 
