@@ -432,7 +432,7 @@ export default function LeadershipPage() {
                 <div className="flex flex-col items-center text-center">
                   <ExecutiveAvatar 
                     initials="RA" 
-                    src="/images/leadership/rehan.jpg" 
+                    src="/images/leadership/rehan.png" 
                     size="w-44 h-44" 
                     borderAccent="border-emerald-500/60" 
                     glowColor="rgba(6,182,212,0.15)"
