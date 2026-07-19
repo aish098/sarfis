@@ -51,9 +51,10 @@ exports.getOverview = async (req, res) => {
     await assertCompanyAdmin(req, companyId);
 
     const [members, companies] = await Promise.all([
-      db('company_users as cu')
-        .join('users as u', 'u.id', 'cu.user_id')
-        .where('cu.company_id', companyId)
+      db('users as u')
+        .leftJoin('company_users as cu', function() {
+          this.on('cu.user_id', '=', 'u.id').andOn('cu.company_id', '=', db.raw('?', [companyId]));
+        })
         .select('u.id', 'u.name', 'u.email', 'u.role as global_role', 'u.created_at', 'cu.role as company_role')
         .orderBy('u.name', 'asc'),
       req.user.role === 'Super Admin'
@@ -587,7 +588,6 @@ exports.getActiveSessions = async (req, res) => {
 
     const sessions = await db('user_sessions as us')
       .join('users as u', 'u.id', 'us.user_id')
-      .where('us.company_id', companyId)
       .select('us.id', 'u.name', 'u.email', 'us.ip_address', 'us.device', 'us.login_time', 'us.last_activity', 'us.is_active', 'us.user_id')
       .orderBy('us.last_activity', 'desc');
 
