@@ -722,7 +722,7 @@ export default function FixedAssetsDashboard() {
               </div>
 
               <div className="h-44">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <PieChart>
                     <Pie
                       data={distData}
@@ -902,7 +902,7 @@ export default function FixedAssetsDashboard() {
               <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Depreciation Cost Forecast</h3>
               <p className="text-[10px] text-slate-400 font-semibold">Accounting book carrying value projection estimates.</p>
               <div className="h-52">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <RechartsBarChart data={forecastData}>
                     <XAxis dataKey="year" tickLine={false} style={{ fontSize: 10, fill: '#888' }} />
                     <YAxis tickFormatter={(v) => `${(v/1000000).toFixed(0)}M`} tickLine={false} style={{ fontSize: 10, fill: '#888' }} />
@@ -918,7 +918,7 @@ export default function FixedAssetsDashboard() {
               <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Maintenance Trends by Category</h3>
               <p className="text-[10px] text-slate-400 font-semibold">Total parts and labor expenses per class profile.</p>
               <div className="h-52">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <RechartsBarChart data={maintenanceTrendData}>
                     <XAxis dataKey="name" tickLine={false} style={{ fontSize: 9, fill: '#888' }} />
                     <YAxis tickFormatter={(v) => `${(v/1000).toFixed(0)}k`} tickLine={false} style={{ fontSize: 10, fill: '#888' }} />
@@ -934,7 +934,7 @@ export default function FixedAssetsDashboard() {
               <h3 className="text-[12.5px] font-black uppercase text-slate-800 tracking-wider">Asset Capacity Utilization Rate</h3>
               <p className="text-[10px] text-slate-400 font-semibold">Active usage statistics computed from logged metrics.</p>
               <div className="h-52">
-                <ResponsiveContainer width="100%" height="100%">
+                <ResponsiveContainer width="100%" height="100%" minWidth={0}>
                   <RechartsBarChart data={utilizationData}>
                     <XAxis dataKey="name" tickLine={false} style={{ fontSize: 9, fill: '#888' }} />
                     <YAxis tickFormatter={(v) => `${v}%`} tickLine={false} style={{ fontSize: 10, fill: '#888' }} />
