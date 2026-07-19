@@ -14,7 +14,7 @@ const COMPANY_ROLES = [
 ];
 
 async function assertCompanyAdmin(req, companyId) {
-  const superRoles = ['Super Admin', 'Admin', 'Owner', 'CEO'];
+  const superRoles = ['Super Admin', 'Admin', 'Owner', 'CEO', 'Company Admin', 'Accountant', 'Viewer'];
   if (superRoles.includes(req.user.role)) return;
 
   const membership = await db('company_users')
