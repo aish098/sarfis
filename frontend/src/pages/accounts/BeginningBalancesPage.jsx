@@ -416,6 +416,109 @@ export default function BeginningBalancesPage() {
     }
   };
 
+  const handleAutoCreateAll = async () => {
+    const toCreate = missingAccounts.filter(a => !a.status || a.status === 'Missing');
+    if (toCreate.length === 0) {
+      alert('No missing accounts to auto-create.');
+      return;
+    }
+
+    setSaving(true);
+    setError('');
+    setSuccess('');
+
+    let successCount = 0;
+    let failCount = 0;
+    const createdAccounts = [];
+    const balancesUpdate = {};
+    const updatedMissing = [...missingAccounts];
+
+    const resolveAccountMeta = (missing) => {
+      let category = 'Asset';
+      let normal_balance = 'Debit';
+      let current_classification = 'CURRENT';
+
+      if (missing.code) {
+        const prefix = missing.code.trim().charAt(0);
+        if (prefix === '2') {
+          category = 'Liability';
+          normal_balance = 'Credit';
+          current_classification = 'CURRENT';
+        } else if (prefix === '3') {
+          category = 'Equity';
+          normal_balance = 'Credit';
+          current_classification = 'NOT_APPLICABLE';
+        } else if (prefix === '4') {
+          category = 'Revenue';
+          normal_balance = 'Credit';
+          current_classification = 'NOT_APPLICABLE';
+        } else if (prefix === '5' || prefix === '6') {
+          category = 'Expense';
+          normal_balance = 'Debit';
+          current_classification = 'NOT_APPLICABLE';
+        }
+      }
+
+      const nameLower = (missing.name || '').toLowerCase();
+      const isContra = nameLower.includes('accumulated depreciation') || nameLower.includes('allowance for doubtful') || nameLower.includes('contra');
+      if (isContra) {
+        normal_balance = normal_balance === 'Debit' ? 'Credit' : 'Debit';
+      }
+
+      return { category, normal_balance, current_classification, is_contra: isContra };
+    };
+
+    for (let i = 0; i < updatedMissing.length; i++) {
+      const missing = updatedMissing[i];
+      if (missing.status && missing.status !== 'Missing') continue;
+
+      const meta = resolveAccountMeta(missing);
+      try {
+        const res = await api.post('/accounts', {
+          code: missing.code,
+          name: missing.name,
+          ...meta,
+          company_id: activeCompany.id
+        });
+
+        const newAccount = res.data;
+        createdAccounts.push(newAccount);
+        
+        balancesUpdate[newAccount.id] = {
+          debit: missing.debit || 0,
+          credit: missing.credit || 0
+        };
+
+        updatedMissing[i] = {
+          ...missing,
+          status: 'Created',
+          mappedId: newAccount.id
+        };
+        successCount++;
+      } catch (err) {
+        console.error(`Failed to create account ${missing.code}:`, err);
+        failCount++;
+      }
+    }
+
+    if (createdAccounts.length > 0) {
+      setAccounts(prev => [...prev, ...createdAccounts]);
+      setBalances(prev => ({
+        ...prev,
+        ...balancesUpdate
+      }));
+    }
+
+    setMissingAccounts(updatedMissing);
+    setSaving(false);
+
+    if (failCount === 0) {
+      setSuccess(`Successfully auto-created and mapped all ${successCount} missing accounts!`);
+    } else {
+      setError(`Auto-created ${successCount} accounts. Failed to create ${failCount} accounts. Please map the remaining ones manually.`);
+    }
+  };
+
   // Clear Draft Action with Dialog
   const handleClearDraft = async () => {
     if (status === 'POSTED') return;
@@ -773,12 +876,24 @@ export default function BeginningBalancesPage() {
               {/* Unresolved / Missing Accounts mapping section */}
               {missingAccounts.length > 0 && (
                 <div className="card bg-amber-50/40 border border-amber-200 rounded-3xl p-5 space-y-4">
-                  <div className="flex items-start gap-2.5">
-                    <AlertTriangle className="text-amber-600 mt-0.5" size={18} />
-                    <div>
-                      <h4 className="text-[14px] font-bold text-amber-900">Unmatched Accounts Detected ({unresolvedMissingCount} unresolved)</h4>
-                      <p className="text-[12px] text-amber-700 mt-0.5">The following accounts from your import file do not match your current Chart of Accounts. Choose an action for each row.</p>
+                  <div className="flex items-start justify-between gap-4">
+                    <div className="flex items-start gap-2.5">
+                      <AlertTriangle className="text-amber-600 mt-0.5" size={18} />
+                      <div>
+                        <h4 className="text-[14px] font-bold text-amber-900">Unmatched Accounts Detected ({unresolvedMissingCount} unresolved)</h4>
+                        <p className="text-[12px] text-amber-700 mt-0.5">The following accounts from your import file do not match your current Chart of Accounts. Choose an action for each row.</p>
+                      </div>
                     </div>
+                    {unresolvedMissingCount > 0 && (
+                      <button
+                        onClick={handleAutoCreateAll}
+                        disabled={saving}
+                        className="flex items-center gap-1.5 bg-amber-600 hover:bg-amber-700 disabled:bg-amber-400 text-white px-4 py-2 text-[12px] font-black rounded-xl transition cursor-pointer shadow-sm active:scale-95 select-none shrink-0"
+                      >
+                        <Database size={13} />
+                        {saving ? 'Creating...' : 'Auto-Create & Map All'}
+                      </button>
+                    )}
                   </div>
 
                   <div className="overflow-x-auto max-h-[300px] border border-amber-100 rounded-2xl bg-white">
