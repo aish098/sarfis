@@ -911,7 +911,7 @@ export default function AssetRegister() {
                             <UserPlus size={14} />
                           </button>
                         )}
-                        {asset.status === 'ACTIVE' && (
+                        {asset.status !== 'DISPOSED' && asset.status !== 'SOLD' && (
                           <button onClick={() => { setSelectedAssetId(asset.id); setMaintenanceData({ maintenance_type: 'PREVENTIVE', description: '', technician_name: '', parts_used: '', labor_cost: 0, maintenance_cost: 0, maintenance_date: new Date().toISOString().split('T')[0], next_scheduled_date: '', status: 'OPEN' }); setShowMaintenanceForm(true); }} title="Log maintenance work orders" className="p-1 text-slate-400 hover:text-amber-500 hover:bg-slate-100 rounded transition-all">
                             <Wrench size={14} />
                           </button>
@@ -1191,6 +1191,120 @@ export default function AssetRegister() {
                 className="px-4 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-black transition-all shadow-md"
               >
                 Submit Request
+              </button>
+            </div>
+          </form>
+        </div>
+      )}
+
+      {/* Log Maintenance Work Order Modal */}
+      {showMaintenanceForm && selectedAssetId && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-xs flex items-center justify-center z-50 p-4">
+          <form onSubmit={handleWorkOrderSubmit} className="bg-white rounded-xl border border-slate-100 shadow-2xl max-w-md w-full p-5 space-y-4 animate-in fade-in zoom-in-95 duration-150">
+            <h3 className="text-sm font-black text-amber-600 flex items-center gap-1.5 uppercase">
+              <Wrench size={16} /> Log Maintenance Work Order
+            </h3>
+            <p className="text-[10px] text-slate-400 font-semibold font-mono">
+              Asset: {assets.find(a => a.id === selectedAssetId)?.asset_name} ({assets.find(a => a.id === selectedAssetId)?.asset_code})
+            </p>
+            <div className="grid grid-cols-2 gap-3 text-xs font-semibold">
+              <div className="space-y-1 col-span-2">
+                <label className="text-slate-500">Maintenance Type</label>
+                <select
+                  value={maintenanceData.maintenance_type}
+                  onChange={(e) => setMaintenanceData({ ...maintenanceData, maintenance_type: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-amber-500 focus:bg-white text-slate-600 font-bold"
+                >
+                  <option value="PREVENTIVE">Preventive Maintenance</option>
+                  <option value="CORRECTIVE">Corrective Repair</option>
+                  <option value="UPGRADE">Hardware / Software Upgrade</option>
+                  <option value="INSPECTION">Routine Inspection</option>
+                </select>
+              </div>
+
+              <div className="space-y-1 col-span-1">
+                <label className="text-slate-500">Technician Name</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. John Doe"
+                  value={maintenanceData.technician_name}
+                  onChange={(e) => setMaintenanceData({ ...maintenanceData, technician_name: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-amber-500 focus:bg-white text-slate-600 font-bold"
+                />
+              </div>
+
+              <div className="space-y-1 col-span-1">
+                <label className="text-slate-500">Execution Date</label>
+                <input
+                  type="date"
+                  required
+                  value={maintenanceData.maintenance_date}
+                  onChange={(e) => setMaintenanceData({ ...maintenanceData, maintenance_date: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-amber-500 focus:bg-white font-semibold font-mono"
+                />
+              </div>
+
+              <div className="space-y-1 col-span-1">
+                <label className="text-slate-500">Labor Cost (PKR)</label>
+                <input
+                  type="number"
+                  min="0"
+                  required
+                  value={maintenanceData.labor_cost}
+                  onChange={(e) => setMaintenanceData({ ...maintenanceData, labor_cost: parseFloat(e.target.value || 0) })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-amber-500 focus:bg-white font-mono"
+                />
+              </div>
+
+              <div className="space-y-1 col-span-1">
+                <label className="text-slate-500">Total Material/Parts Cost (PKR)</label>
+                <input
+                  type="number"
+                  min="0"
+                  required
+                  value={maintenanceData.maintenance_cost}
+                  onChange={(e) => setMaintenanceData({ ...maintenanceData, maintenance_cost: parseFloat(e.target.value || 0) })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-amber-500 focus:bg-white font-mono"
+                />
+              </div>
+
+              <div className="space-y-1 col-span-2">
+                <label className="text-slate-500">Parts / Materials Used (Optional)</label>
+                <input
+                  type="text"
+                  placeholder="e.g. RAM Stick, Thermal Paste"
+                  value={maintenanceData.parts_used}
+                  onChange={(e) => setMaintenanceData({ ...maintenanceData, parts_used: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-amber-500 focus:bg-white"
+                />
+              </div>
+
+              <div className="space-y-1 col-span-2">
+                <label className="text-slate-500">Maintenance Description</label>
+                <textarea
+                  placeholder="Describe the issue found and repairs completed..."
+                  rows={2}
+                  required
+                  value={maintenanceData.description}
+                  onChange={(e) => setMaintenanceData({ ...maintenanceData, description: e.target.value })}
+                  className="w-full px-3 py-1.5 bg-slate-50 border border-slate-200 rounded-lg outline-none focus:border-amber-500 focus:bg-white"
+                />
+              </div>
+            </div>
+            <div className="flex justify-end gap-2">
+              <button 
+                type="button" 
+                onClick={() => setShowMaintenanceForm(false)} 
+                className="px-3 py-1.5 border border-slate-200 bg-white hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-black transition-all"
+              >
+                Cancel
+              </button>
+              <button 
+                type="submit" 
+                className="px-4 py-1.5 bg-amber-500 hover:bg-amber-600 text-white rounded-lg text-xs font-black transition-all shadow-md border-none"
+              >
+                Log Work Order
               </button>
             </div>
           </form>
