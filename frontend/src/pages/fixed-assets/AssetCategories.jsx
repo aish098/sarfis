@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
 import { 
-  Settings, Save, AlertCircle, PlusCircle, Edit, Info, Database, BarChart3, TrendingDown, ArrowLeft
+  Settings, Save, AlertCircle, PlusCircle, Edit, Info, Database, BarChart3, TrendingDown, ArrowLeft,
+  Layers, ClipboardList
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -220,6 +221,50 @@ export default function AssetCategories() {
       }
     >
       <div className="col-span-full space-y-6">
+
+      {/* Fixed Assets Module Sub-Navigation Tabs */}
+      <div className="flex border-b border-slate-100 pb-1 mb-4 gap-4 overflow-x-auto">
+        <Link
+          to="/dashboard/fixed-assets"
+          className={`pb-2.5 text-xs font-black transition-all border-b-2 flex items-center gap-1.5 cursor-pointer no-underline ${
+            window.location.pathname === '/dashboard/fixed-assets'
+              ? 'border-emerald-600 text-emerald-600 font-extrabold'
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <Layers size={14} /> Dashboard Overview
+        </Link>
+        <Link
+          to="/dashboard/fixed-assets/register"
+          className={`pb-2.5 text-xs font-black transition-all border-b-2 flex items-center gap-1.5 cursor-pointer no-underline ${
+            window.location.pathname === '/dashboard/fixed-assets/register'
+              ? 'border-emerald-600 text-emerald-600 font-extrabold'
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <ClipboardList size={14} /> Asset Register
+        </Link>
+        <Link
+          to="/dashboard/fixed-assets/categories"
+          className={`pb-2.5 text-xs font-black transition-all border-b-2 flex items-center gap-1.5 cursor-pointer no-underline ${
+            window.location.pathname === '/dashboard/fixed-assets/categories'
+              ? 'border-emerald-600 text-emerald-600 font-extrabold'
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <Settings size={14} /> Asset Categories
+        </Link>
+        <Link
+          to="/dashboard/fixed-assets/wizard"
+          className={`pb-2.5 text-xs font-black transition-all border-b-2 flex items-center gap-1.5 cursor-pointer no-underline ${
+            window.location.pathname === '/dashboard/fixed-assets/wizard'
+              ? 'border-emerald-600 text-emerald-600 font-extrabold'
+              : 'border-transparent text-slate-400 hover:text-slate-600'
+          }`}
+        >
+          <TrendingDown size={14} /> Depreciation Wizard
+        </Link>
+      </div>
 
       {/* Main Grid split-view */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
