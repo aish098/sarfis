@@ -708,7 +708,7 @@ export default function EmailCenterPage() {
               <option value="">— Select Recipient —</option>
               {employees.map(emp => (
                 <option key={emp.id} value={emp.id}>
-                  {emp.name} ({emp.user_email || emp.email})
+                  {emp.name} ({emp.user_email || emp.email || 'Internal Chat'})
                 </option>
               ))}
             </select>

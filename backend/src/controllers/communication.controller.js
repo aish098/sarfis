@@ -91,6 +91,24 @@ exports.getAdminThread = async (req, res) => {
   }
 };
 
+const ensureCustomCommunicationEvent = async () => {
+  try {
+    const exists = await db('notification_events').where({ event_code: 'CUSTOM_COMMUNICATION' }).first();
+    if (!exists) {
+      await db('notification_events').insert({
+        event_code: 'CUSTOM_COMMUNICATION',
+        event_name: 'Custom Communication',
+        module: 'Communications',
+        category: 'General',
+        priority: 'MEDIUM',
+        description: 'Manual internal communications and custom emails'
+      }).onConflict('event_code').ignore();
+    }
+  } catch (e) {
+    console.warn('ensureCustomCommunicationEvent warning:', e.message);
+  }
+};
+
 exports.adminComposeMessage = async (req, res) => {
   try {
     const companyId = req.companyId;
@@ -104,14 +122,11 @@ exports.adminComposeMessage = async (req, res) => {
     const employee = await db('employees as e')
       .leftJoin('users as u', 'e.user_id', 'u.id')
       .where({ 'e.id': employeeId, 'e.company_id': companyId })
-      .select('e.*', 'u.email as email')
+      .select('e.*', 'u.email as user_email')
       .first();
     if (!employee) return res.status(404).json({ error: 'Employee not found.' });
 
-    const recipientEmail = employee.email || null;
-    if (!recipientEmail) {
-      return res.status(400).json({ error: 'Selected employee does not have a valid email address.' });
-    }
+    const recipientEmail = employee.user_email || employee.email || employee.work_email || employee.personal_email || null;
 
     const [communication] = await db('communications')
       .insert({
@@ -121,23 +136,33 @@ exports.adminComposeMessage = async (req, res) => {
         sender_type: 'ADMIN',
         subject,
         body,
-        status: 'QUEUED'
+        status: recipientEmail ? 'QUEUED' : 'SENT'
       })
       .returning('*');
 
-    await db('notification_queue').insert({
-      company_id: companyId,
-      user_id: employee.user_id || senderId,
-      event_code: 'CUSTOM_COMMUNICATION',
-      recipient_email: recipientEmail,
-      subject,
-      body,
-      status: 'PENDING',
-      attempts: 0,
-      max_attempts: 3
-    });
+    if (recipientEmail) {
+      try {
+        await ensureCustomCommunicationEvent();
+        await db('notification_queue').insert({
+          company_id: companyId,
+          user_id: employee.user_id || senderId,
+          event_code: 'CUSTOM_COMMUNICATION',
+          recipient_email: recipientEmail,
+          subject,
+          body,
+          status: 'PENDING',
+          attempts: 0,
+          max_attempts: 3
+        });
+      } catch (queueErr) {
+        console.warn('Notification queue insert skipped:', queueErr.message);
+      }
+    }
 
-    res.status(201).json(communication);
+    res.status(201).json({
+      ...communication,
+      notice: recipientEmail ? undefined : 'Message dispatched to employee internal workspace chat.'
+    });
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
@@ -159,9 +184,11 @@ exports.adminReplyMessage = async (req, res) => {
     const employee = await db('employees as e')
       .leftJoin('users as u', 'e.user_id', 'u.id')
       .where({ 'e.id': parentMsg.employee_id })
-      .select('e.*', 'u.email as email')
+      .select('e.*', 'u.email as user_email')
       .first();
     if (!employee) return res.status(404).json({ error: 'Employee not found.' });
+
+    const recipientEmail = employee.user_email || employee.email || employee.work_email || employee.personal_email || null;
 
     const [reply] = await db('communications')
       .insert({
@@ -171,23 +198,28 @@ exports.adminReplyMessage = async (req, res) => {
         sender_type: 'ADMIN',
         subject: `Re: ${parentMsg.subject}`,
         body,
-        status: 'QUEUED',
+        status: recipientEmail ? 'QUEUED' : 'SENT',
         parent_id: parentId
       })
       .returning('*');
 
-    if (employee.email) {
-      await db('notification_queue').insert({
-        company_id: companyId,
-        user_id: employee.user_id || senderId,
-        event_code: 'CUSTOM_COMMUNICATION',
-        recipient_email: employee.email,
-        subject: `Re: ${parentMsg.subject}`,
-        body,
-        status: 'PENDING',
-        attempts: 0,
-        max_attempts: 3
-      });
+    if (recipientEmail) {
+      try {
+        await ensureCustomCommunicationEvent();
+        await db('notification_queue').insert({
+          company_id: companyId,
+          user_id: employee.user_id || senderId,
+          event_code: 'CUSTOM_COMMUNICATION',
+          recipient_email: recipientEmail,
+          subject: `Re: ${parentMsg.subject}`,
+          body,
+          status: 'PENDING',
+          attempts: 0,
+          max_attempts: 3
+        });
+      } catch (queueErr) {
+        console.warn('Notification queue reply insert skipped:', queueErr.message);
+      }
     }
 
     res.status(201).json(reply);
