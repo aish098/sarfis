@@ -77,7 +77,7 @@ class TransactionInquiryService {
           .join('accounts as a', 'jl.account_id', 'a.id')
           .where('jl.entry_id', je.id)
           .select('jl.*', 'a.name as account_name', 'a.code as account_code')
-          .orderBy('jl.debit', 'desc');
+          .orderBy('jl.id', 'asc');
 
         financial = {
           journalEntry: {
