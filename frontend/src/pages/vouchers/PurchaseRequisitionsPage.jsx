@@ -146,9 +146,17 @@ export default function PurchaseRequisitionsPage() {
     if (field === 'productId' && value) {
       const prod = products.find(p => String(p.id) === String(value));
       if (prod) {
-        items[idx].estimatedPrice = parseFloat(prod.cost_price || 0).toFixed(2);
+        const defaultCost = parseFloat(prod.cost_price || 0).toFixed(2);
+        items[idx].estimatedPrice = defaultCost;
+        items[idx].unitPurchasePrice = defaultCost;
         items[idx].description = `Purchase of ${prod.name}`;
       }
+    }
+    if (field === 'unitPurchasePrice') {
+      items[idx].estimatedPrice = value;
+    }
+    if (field === 'estimatedPrice') {
+      items[idx].unitPurchasePrice = value;
     }
     setReqForm(f => ({ ...f, items }));
   };
@@ -591,72 +599,84 @@ export default function PurchaseRequisitionsPage() {
                   <div className="overflow-x-auto">
                     <div className="min-w-[700px] divide-y divide-slate-100 text-[12px] bg-white">
                       {/* Header */}
-                      <div className="grid grid-cols-12 gap-3.5 px-4 py-2.5 bg-slate-50 border-b border-slate-200 text-[9.5px] font-black uppercase tracking-widest text-slate-500">
-                        <div className="col-span-4">Product *</div>
+                      <div className="grid grid-cols-12 gap-2 px-3 py-2.5 bg-slate-50 border-b border-slate-200 text-[9.5px] font-black uppercase tracking-widest text-slate-500">
+                        <div className="col-span-3">Product *</div>
                         <div className="col-span-3">Description</div>
                         <div className="col-span-2">Quantity *</div>
-                        <div className="col-span-2 text-right">Est. Price *</div>
+                        <div className="col-span-2 text-right">Unit Price *</div>
+                        <div className="col-span-1 text-right">Total</div>
                         <div className="col-span-1 text-center">Action</div>
                       </div>
 
                       {/* Rows */}
-                      {reqForm.items.map((item, idx) => (
-                        <div key={idx} className="grid grid-cols-12 gap-3.5 px-4 py-2.5 items-center hover:bg-slate-50/30">
-                          <div className="col-span-4">
-                            <select 
-                              required 
-                              className="input-enterprise py-1.5 text-[12px]" 
-                              value={item.productId} 
-                              onChange={e => handleItemChange(idx, 'productId', e.target.value)}
-                            >
-                              <option value="">— Choose product —</option>
-                              {products.map(p => <option key={p.id} value={p.id}>{p.sku} - {p.name}</option>)}
-                            </select>
-                          </div>
-                          <div className="col-span-3">
-                            <input 
-                              type="text" 
-                              placeholder="Notes / specs" 
-                              className="input-enterprise py-1.5 text-[12px]" 
-                              value={item.description} 
-                              onChange={e => handleItemChange(idx, 'description', e.target.value)} 
-                            />
-                          </div>
-                          <div className="col-span-2">
-                            <input 
-                              type="number" 
-                              step="0.01" 
-                              required 
-                              placeholder="0.00" 
-                              className="input-enterprise py-1.5 font-mono text-[12px] text-right" 
-                              value={item.quantity} 
-                              onChange={e => handleItemChange(idx, 'quantity', e.target.value)} 
-                            />
-                          </div>
-                          <div className="col-span-2">
-                            <input 
-                              type="number" 
-                              step="0.01" 
-                              required 
-                              placeholder="0.00" 
-                              className="input-enterprise py-1.5 font-mono text-[12px] text-right" 
-                              value={item.estimatedPrice} 
-                              onChange={e => handleItemChange(idx, 'estimatedPrice', e.target.value)} 
-                            />
-                          </div>
-                          <div className="col-span-1 flex justify-center">
-                            {reqForm.items.length > 1 && (
-                              <button 
-                                type="button" 
-                                onClick={() => removeFormItem(idx)}
-                                className="w-6 h-6 rounded text-red-500 hover:bg-red-50 flex items-center justify-center border border-red-100 hover:border-red-200 transition bg-white cursor-pointer"
+                      {reqForm.items.map((item, idx) => {
+                        const qty = Number(item.quantity || 0);
+                        const price = Number(item.unitPurchasePrice || item.estimatedPrice || 0);
+                        const lineTotal = qty * price;
+
+                        return (
+                          <div key={idx} className="grid grid-cols-12 gap-2 px-3 py-2.5 items-center hover:bg-slate-50/30">
+                            <div className="col-span-3">
+                              <select 
+                                required 
+                                className="input-enterprise py-1.5 text-[11.5px]" 
+                                value={item.productId} 
+                                onChange={e => handleItemChange(idx, 'productId', e.target.value)}
                               >
-                                <X size={12} />
-                              </button>
-                            )}
+                                <option value="">— Choose product —</option>
+                                {products.map(p => <option key={p.id} value={p.id}>{p.sku} - {p.name}</option>)}
+                              </select>
+                            </div>
+                            <div className="col-span-3">
+                              <input 
+                                type="text" 
+                                placeholder="Notes / specs" 
+                                className="input-enterprise py-1.5 text-[11.5px]" 
+                                value={item.description} 
+                                onChange={e => handleItemChange(idx, 'description', e.target.value)} 
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <input 
+                                type="number" 
+                                step="0.01" 
+                                min="0.01"
+                                required 
+                                placeholder="0.00" 
+                                className="input-enterprise py-1.5 font-mono text-[11.5px] text-right" 
+                                value={item.quantity} 
+                                onChange={e => handleItemChange(idx, 'quantity', e.target.value)} 
+                              />
+                            </div>
+                            <div className="col-span-2">
+                              <input 
+                                type="number" 
+                                step="0.01" 
+                                min="0"
+                                required 
+                                placeholder="0.00" 
+                                className="input-enterprise py-1.5 font-mono text-[11.5px] text-right" 
+                                value={item.unitPurchasePrice || item.estimatedPrice || ''} 
+                                onChange={e => handleItemChange(idx, 'unitPurchasePrice', e.target.value)} 
+                              />
+                            </div>
+                            <div className="col-span-1 text-right font-mono font-bold text-[11px] text-slate-700">
+                              {lineTotal > 0 ? lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '-'}
+                            </div>
+                            <div className="col-span-1 flex justify-center">
+                              {reqForm.items.length > 1 && (
+                                <button 
+                                  type="button" 
+                                  onClick={() => removeFormItem(idx)}
+                                  className="w-6 h-6 rounded text-red-500 hover:bg-red-50 flex items-center justify-center border border-red-100 hover:border-red-200 transition bg-white cursor-pointer"
+                                >
+                                  <X size={12} />
+                                </button>
+                              )}
+                            </div>
                           </div>
-                        </div>
-                      ))}
+                        );
+                      })}
                     </div>
                   </div>
 

@@ -36,7 +36,7 @@ class PurchaseRequisitionService {
     let estimatedTotal = 0;
     const itemRows = items.map(item => {
       const qty = parseFloat(item.quantity || 0);
-      const price = parseFloat(item.estimatedPrice || item.estimated_price || 0);
+      const price = parseFloat(item.unitPurchasePrice || item.unit_purchase_price || item.estimatedPrice || item.estimated_price || 0);
       const total = qty * price;
       estimatedTotal += total;
 
@@ -44,6 +44,7 @@ class PurchaseRequisitionService {
         product_id: item.productId || item.product_id,
         description: item.description || '',
         quantity: qty,
+        unit_purchase_price: price,
         estimated_price: price,
         line_total: total
       };
@@ -108,7 +109,7 @@ class PurchaseRequisitionService {
       estimatedTotal = 0;
       const itemRows = items.map(item => {
         const qty = parseFloat(item.quantity || 0);
-        const price = parseFloat(item.estimatedPrice || item.estimated_price || 0);
+        const price = parseFloat(item.unitPurchasePrice || item.unit_purchase_price || item.estimatedPrice || item.estimated_price || 0);
         const total = qty * price;
         estimatedTotal += total;
 
@@ -117,6 +118,7 @@ class PurchaseRequisitionService {
           product_id: item.productId || item.product_id,
           description: item.description || '',
           quantity: qty,
+          unit_purchase_price: price,
           estimated_price: price,
           line_total: total
         };
