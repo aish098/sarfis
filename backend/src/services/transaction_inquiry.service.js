@@ -79,16 +79,18 @@ class TransactionInquiryService {
           .select('jl.*', 'a.name as account_name', 'a.code as account_code')
           .orderBy('jl.id', 'asc');
 
+        const formattedLines = lines.map(l => ({
+          ...l,
+          debit: parseFloat(l.debit || 0),
+          credit: parseFloat(l.credit || 0)
+        }));
+
         financial = {
           journalEntry: {
             ...je,
             entry_number: `JE-${String(je.id).padStart(5, '0')}`
           },
-          journalLines: lines.map(l => ({
-            ...l,
-            debit: parseFloat(l.debit || 0),
-            credit: parseFloat(l.credit || 0)
-          }))
+          journalLines: TransactionInquiryService.pairJournalLines(formattedLines)
         };
       }
     }
@@ -416,6 +418,42 @@ class TransactionInquiryService {
       relatedRequisition,
       relatedDeliveries
     };
+  }
+
+  static pairJournalLines(lines) {
+    if (!lines || lines.length <= 1) return lines;
+
+    const debits = lines.filter(l => (parseFloat(l.debit || 0) > 0));
+    const credits = lines.filter(l => (parseFloat(l.credit || 0) > 0));
+    const zeros = lines.filter(l => parseFloat(l.debit || 0) === 0 && parseFloat(l.credit || 0) === 0);
+
+    const result = [];
+    const usedCreditIndices = new Set();
+
+    for (const dr of debits) {
+      result.push(dr);
+      const drAmt = parseFloat(dr.debit || 0);
+
+      let matchedCrIndex = credits.findIndex((cr, idx) => !usedCreditIndices.has(idx) && Math.abs(parseFloat(cr.credit || 0) - drAmt) < 0.01);
+
+      if (matchedCrIndex === -1) {
+        matchedCrIndex = credits.findIndex((cr, idx) => !usedCreditIndices.has(idx));
+      }
+
+      if (matchedCrIndex !== -1) {
+        usedCreditIndices.add(matchedCrIndex);
+        result.push(credits[matchedCrIndex]);
+      }
+    }
+
+    credits.forEach((cr, idx) => {
+      if (!usedCreditIndices.has(idx)) {
+        result.push(cr);
+      }
+    });
+
+    result.push(...zeros);
+    return result;
   }
 }
 
