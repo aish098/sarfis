@@ -37,7 +37,7 @@ const createDeliveryOrder = async ({
     const delivery = await distModel.createDelivery(trx, {
       company_id: companyId,
       client_id: clientId,
-      sector_id: sectorId,
+      sector_id: sectorId || client?.sector_id || null,
       warehouse_id: warehouseId,
       delivery_number: deliveryNumber,
       delivery_date: deliveryDate || new Date(),
