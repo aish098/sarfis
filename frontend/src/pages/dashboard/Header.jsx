@@ -392,25 +392,35 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
     }
     closeAll();
     
+    const entityType = (notif.entity_type || '').toLowerCase();
+    const eventCode = (notif.event_code || '').toUpperCase();
+    const titleMessage = ((notif.title || '') + ' ' + (notif.message || '')).toUpperCase();
+
     // Deep-link mappings
-    if (notif.event_code === 'LOW_STOCK_ALERT' || notif.entity_type === 'warehouse') {
-      navigate('/dashboard/warehouses');
-    } else if (notif.event_code === 'ASSET_TRANSFER_PENDING' || notif.entity_type === 'asset') {
-      navigate('/dashboard/fixed-assets/register');
-    } else if (notif.event_code === 'DEPRECIATION_RUN_COMPLETE') {
-      navigate('/dashboard/fixed-assets/wizard');
-    } else if (notif.event_code === 'RISK_OVERRIDE_REQUESTED' || notif.event_code === 'RISK_OVERRIDE_APPROVED' || notif.event_code === 'RISK_OVERRIDE_REJECTED' || notif.entity_type === 'risk') {
-      navigate('/dashboard/risk');
-    } else if (notif.event_code === 'JOURNAL_POSTED') {
-      navigate('/dashboard/journal');
-    } else if (notif.entity_type === 'voucher') {
+    if (entityType === 'purchase_requisition' || entityType === 'requisition' || eventCode.includes('PURCHASE_REQUISITION') || titleMessage.includes('PURCHASE_REQUISITION')) {
+      navigate('/dashboard/purchase-requisitions');
+    } else if (entityType === 'purchase_order' || eventCode.includes('PURCHASE_ORDER') || titleMessage.includes('PURCHASE_ORDER')) {
+      navigate('/dashboard/purchase-orders');
+    } else if (entityType === 'goods_receipt' || eventCode.includes('GOODS_RECEIPT') || titleMessage.includes('GOODS_RECEIPT')) {
+      navigate('/dashboard/goods-receipts');
+    } else if (entityType === 'voucher' || eventCode.includes('VOUCHER') || titleMessage.includes('VOUCHER')) {
       navigate('/dashboard/vouchers');
-    } else if (notif.entity_type === 'journal') {
-      navigate('/dashboard/ledger');
-    } else if (notif.entity_type === 'permission' || notif.entity_type === 'override') {
+    } else if (entityType === 'journal' || eventCode.includes('JOURNAL') || titleMessage.includes('JOURNAL')) {
+      navigate('/dashboard/journal');
+    } else if (eventCode === 'LOW_STOCK_ALERT' || entityType === 'warehouse') {
+      navigate('/dashboard/warehouses');
+    } else if (eventCode === 'ASSET_TRANSFER_PENDING' || entityType === 'asset') {
+      navigate('/dashboard/fixed-assets/register');
+    } else if (eventCode === 'DEPRECIATION_RUN_COMPLETE') {
+      navigate('/dashboard/fixed-assets/wizard');
+    } else if (eventCode.includes('RISK_OVERRIDE') || entityType === 'risk') {
+      navigate('/dashboard/risk');
+    } else if (entityType === 'permission' || entityType === 'override') {
       navigate('/dashboard/admin?tab=permissions');
-    } else if (notif.entity_type === 'period') {
+    } else if (entityType === 'period') {
       navigate('/dashboard/admin?tab=periods');
+    } else {
+      navigate('/dashboard');
     }
   };
 
