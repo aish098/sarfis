@@ -245,13 +245,17 @@ class PurchaseRequisitionService {
       }
     }
 
+    const DocumentRevisionService = require('./document_revision.service');
+    const revisions = await DocumentRevisionService.getRevisions(companyId, 'PURCHASE_REQUISITION', id, trx);
+
     return {
       ...pr,
       items,
       relatedPos,
       relatedGrns,
       relatedVouchers,
-      currentStageName
+      currentStageName,
+      revisions
     };
   }
 
@@ -269,6 +273,23 @@ class PurchaseRequisitionService {
       // Check if workflow engine is registered
       const WorkflowEngineService = require('./workflow_engine.service');
       
+      // Save submission snapshot
+      const items = await trx('purchase_requisition_items').where({ purchase_requisition_id: id });
+      const DocumentRevisionService = require('./document_revision.service');
+      await DocumentRevisionService.saveSnapshot({
+        companyId,
+        documentType: 'PURCHASE_REQUISITION',
+        documentId: id,
+        revisionNumber: pr.revision_number || 0,
+        snapshotType: 'SUBMITTED',
+        previousStatus: 'DRAFT',
+        newStatus: 'PENDING_APPROVAL',
+        header: pr,
+        items,
+        userId,
+        trx
+      });
+
       // Update PR status to PENDING_APPROVAL
       await trx('purchase_requisitions')
         .where({ id, company_id: companyId })
@@ -297,11 +318,102 @@ class PurchaseRequisitionService {
   }
 
   /**
+   * Resubmits a rejected Purchase Requisition with revision notes
+   */
+  static async resubmitForApproval(id, companyId, userId, revisionNotes, expectedVersion = null) {
+    return await db.transaction(async (trx) => {
+      const pr = await trx('purchase_requisitions').where({ id, company_id: companyId }).forUpdate().first();
+      if (!pr) throw new Error('Requisition not found.');
+      if (pr.status !== 'REJECTED') {
+        const err = new Error('Only rejected Requisitions can be resubmitted for approval.');
+        err.statusCode = 409;
+        throw err;
+      }
+
+      if (expectedVersion !== null && expectedVersion !== undefined && pr.version !== expectedVersion) {
+        const err = new Error('Document has been modified by another user. Please refresh and try again.');
+        err.statusCode = 409;
+        throw err;
+      }
+
+      const items = await trx('purchase_requisition_items').where({ purchase_requisition_id: id });
+      if (!items || items.length === 0) throw new Error('Requisition must contain at least one product line.');
+
+      const nextRevision = (pr.revision_number || 0) + 1;
+      const nextVersion = (pr.version || 1) + 1;
+
+      // Save Resubmitted Snapshot
+      const DocumentRevisionService = require('./document_revision.service');
+      await DocumentRevisionService.saveSnapshot({
+        companyId,
+        documentType: 'PURCHASE_REQUISITION',
+        documentId: id,
+        revisionNumber: nextRevision,
+        snapshotType: 'RESUBMITTED',
+        previousStatus: 'REJECTED',
+        newStatus: 'PENDING_APPROVAL',
+        header: pr,
+        items,
+        revisionNotes,
+        userId,
+        trx
+      });
+
+      // Update PR record
+      await trx('purchase_requisitions')
+        .where({ id, company_id: companyId })
+        .update({
+          status: 'PENDING_APPROVAL',
+          revision_number: nextRevision,
+          version: nextVersion,
+          resubmitted_at: trx.fn.now(),
+          resubmitted_by: userId,
+          updated_at: trx.fn.now()
+        });
+
+      // Submit to Workflow Engine
+      const WorkflowEngineService = require('./workflow_engine.service');
+      await WorkflowEngineService.submitToWorkflow(
+        companyId,
+        'PURCHASE_REQUISITION',
+        id,
+        pr.estimated_total,
+        userId,
+        trx
+      );
+
+      // Audit Log & Notification Outbox
+      await trx('transaction_audit_logs').insert({
+        company_id: companyId,
+        action: 'RESUBMIT',
+        user_id: userId,
+        description: `Resubmitted Purchase Requisition ${pr.requisition_number} (Revision ${nextRevision}). Notes: ${revisionNotes || 'No notes'}`
+      });
+
+      const NotificationOutboxService = require('./notification_outbox.service');
+      await NotificationOutboxService.enqueueNotification({
+        companyId,
+        eventType: 'PURCHASE_REQUISITION_RESUBMITTED',
+        aggregateType: 'PURCHASE_REQUISITION',
+        aggregateId: id,
+        payload: {
+          title: `Requisition Resubmitted: ${pr.requisition_number}`,
+          message: `Purchase Requisition ${pr.requisition_number} was resubmitted for approval (Revision ${nextRevision}). Notes: ${revisionNotes || 'None'}`,
+          userIds: [pr.requested_by]
+        },
+        trx
+      });
+
+      return await this.getPurchaseRequisitionById(id, companyId, trx);
+    });
+  }
+
+  /**
    * Unified workflow callback (Approves the PR)
    */
   static async approvePurchaseRequisition(id, companyId, userId, trx = db) {
     const pr = await trx('purchase_requisitions').where({ id, company_id: companyId }).first();
-    if (pr.status === 'APPROVED' || pr.status === 'CONVERTED_TO_PO') return; // Idempotency
+    if (pr.status === 'APPROVED' || pr.status === 'CONVERTED_TO_PO') return;
 
     await trx('purchase_requisitions')
       .where({ id, company_id: companyId })
@@ -312,7 +424,22 @@ class PurchaseRequisitionService {
         updated_at: trx.fn.now()
       });
 
-    // Add audit log
+    const items = await trx('purchase_requisition_items').where({ purchase_requisition_id: id });
+    const DocumentRevisionService = require('./document_revision.service');
+    await DocumentRevisionService.saveSnapshot({
+      companyId,
+      documentType: 'PURCHASE_REQUISITION',
+      documentId: id,
+      revisionNumber: pr.revision_number || 0,
+      snapshotType: 'APPROVED',
+      previousStatus: 'PENDING_APPROVAL',
+      newStatus: 'APPROVED',
+      header: pr,
+      items,
+      userId,
+      trx
+    });
+
     await trx('transaction_audit_logs').insert({
       company_id: companyId,
       action: 'APPROVE',
@@ -324,21 +451,41 @@ class PurchaseRequisitionService {
   /**
    * Unified workflow callback (Rejects the PR)
    */
-  static async rejectPurchaseRequisition(id, companyId, userId, trx = db) {
+  static async rejectPurchaseRequisition(id, companyId, userId, reasonCode = 'REJECTED', reasonText = '', trx = db) {
     const pr = await trx('purchase_requisitions').where({ id, company_id: companyId }).first();
     await trx('purchase_requisitions')
       .where({ id, company_id: companyId })
       .update({
         status: 'REJECTED',
+        last_rejected_at: trx.fn.now(),
+        last_rejected_by: userId,
+        last_rejection_code: reasonCode,
+        last_rejection_reason: reasonText,
         updated_at: trx.fn.now()
       });
 
-    // Add audit log
+    const items = await trx('purchase_requisition_items').where({ purchase_requisition_id: id });
+    const DocumentRevisionService = require('./document_revision.service');
+    await DocumentRevisionService.saveSnapshot({
+      companyId,
+      documentType: 'PURCHASE_REQUISITION',
+      documentId: id,
+      revisionNumber: pr.revision_number || 0,
+      snapshotType: 'REJECTED',
+      previousStatus: 'PENDING_APPROVAL',
+      newStatus: 'REJECTED',
+      header: pr,
+      items,
+      revisionNotes: reasonText,
+      userId,
+      trx
+    });
+
     await trx('transaction_audit_logs').insert({
       company_id: companyId,
       action: 'REJECT',
       user_id: userId,
-      description: `Rejected Purchase Requisition ${pr?.requisition_number || id}.`
+      description: `Rejected Purchase Requisition ${pr?.requisition_number || id}. Reason: [${reasonCode}] ${reasonText}`
     });
   }
 

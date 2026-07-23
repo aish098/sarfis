@@ -7,6 +7,9 @@ import RelatedDocuments from '../../components/RelatedDocuments';
 import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 import StatusBadge from '../../components/ui/StatusBadge';
 import ActivityFeed from '../../components/ui/ActivityFeed';
+import RejectionBanner from '../../components/vouchers/RejectionBanner';
+import ResubmitModal from '../../components/vouchers/ResubmitModal';
+import RevisionDiffModal from '../../components/vouchers/RevisionDiffModal';
 
 const STATUS_CONFIG = {
   DRAFT: { label: 'Draft', bg: 'bg-amber-50 text-amber-700 border border-amber-100' },
@@ -55,8 +58,13 @@ export default function PurchaseRequisitionsPage() {
   const [statusFilter, setStatusFilter] = useState('ALL');
   const [isLoading, setIsLoading] = useState(true);
 
-  // Modals
+  // Modals & Revision Management
   const [createModal, setCreateModal] = useState(false);
+  const [editingReqId, setEditingReqId] = useState(null);
+  const [showResubmitModal, setShowResubmitModal] = useState(false);
+  const [showDiffModal, setShowDiffModal] = useState(false);
+  const [isResubmitting, setIsResubmitting] = useState(false);
+
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState('');
   const [reqForm, setReqForm] = useState({
@@ -64,8 +72,46 @@ export default function PurchaseRequisitionsPage() {
     requiredDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
     priority: 'NORMAL',
     reason: '',
-    items: [{ productId: '', quantity: '', estimatedPrice: '', description: '' }]
+    items: [{ productId: '', quantity: '', unitPurchasePrice: '', estimatedPrice: '', description: '' }]
   });
+
+  const handleOpenEditModal = (req) => {
+    setEditingReqId(req.id);
+    setReqForm({
+      department: req.department || 'Finance',
+      requiredDate: req.required_date ? new Date(req.required_date).toISOString().split('T')[0] : new Date().toISOString().split('T')[0],
+      priority: req.priority || 'NORMAL',
+      reason: req.reason || '',
+      items: req.items && req.items.length > 0 ? req.items.map(i => ({
+        productId: String(i.product_id),
+        quantity: String(i.quantity),
+        unitPurchasePrice: String(i.unit_purchase_price || i.estimated_price || ''),
+        estimatedPrice: String(i.estimated_price || i.unit_purchase_price || ''),
+        description: i.description || ''
+      })) : [{ productId: '', quantity: '', unitPurchasePrice: '', estimatedPrice: '', description: '' }]
+    });
+    setCreateModal(true);
+  };
+
+  const handleResubmitConfirm = async (revisionNotes) => {
+    if (!selectedReq || !activeCompany) return;
+    setIsResubmitting(true);
+    try {
+      await api.post(`/purchase-requisitions/${activeCompany.id}/${selectedReq.id}/resubmit`, {
+        revisionNotes,
+        expectedVersion: selectedReq.version
+      });
+      setShowResubmitModal(false);
+      loadData();
+      const updated = await api.get(`/purchase-requisitions/${activeCompany.id}/${selectedReq.id}`);
+      setSelectedReq(updated.data);
+      loadTimeline(selectedReq.id);
+      loadLineage(selectedReq.id);
+    } catch (err) {
+      alert(err.response?.data?.error || 'Failed to resubmit requisition.');
+    }
+    setIsResubmitting(false);
+  };
 
   const loadData = useCallback(async () => {
     if (!activeCompany) return;
@@ -216,15 +262,26 @@ export default function PurchaseRequisitionsPage() {
 
       if (validItems.length === 0) throw new Error('Add at least one product line.');
 
-      await api.post(`/purchase-requisitions/${activeCompany.id}`, {
-        department: reqForm.department,
-        requiredDate: reqForm.requiredDate,
-        priority: reqForm.priority,
-        reason: reqForm.reason,
-        items: validItems
-      });
+      if (editingReqId) {
+        await api.put(`/purchase-requisitions/${activeCompany.id}/${editingReqId}`, {
+          department: reqForm.department,
+          requiredDate: reqForm.requiredDate,
+          priority: reqForm.priority,
+          reason: reqForm.reason,
+          items: validItems
+        });
+      } else {
+        await api.post(`/purchase-requisitions/${activeCompany.id}`, {
+          department: reqForm.department,
+          requiredDate: reqForm.requiredDate,
+          priority: reqForm.priority,
+          reason: reqForm.reason,
+          items: validItems
+        });
+      }
 
       setCreateModal(false);
+      setEditingReqId(null);
       setReqForm({
         department: 'Finance',
         requiredDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
@@ -233,6 +290,10 @@ export default function PurchaseRequisitionsPage() {
         items: [{ productId: '', quantity: '', unitPurchasePrice: '', estimatedPrice: '', description: '' }]
       });
       loadData();
+      if (selectedReq?.id) {
+        const updated = await api.get(`/purchase-requisitions/${activeCompany.id}/${selectedReq.id}`);
+        setSelectedReq(updated.data);
+      }
     } catch (err) {
       setFormError(err.response?.data?.error || err.message);
     }
@@ -362,16 +423,19 @@ export default function PurchaseRequisitionsPage() {
       <div className="lg:col-span-4 space-y-6">
         {selectedReq ? (
           <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-5">
-            <div className="flex justify-between items-center border-b border-slate-100 pb-3.5">
-              <div>
-                <h3 className="font-mono font-black text-slate-850 text-[15px] flex items-center gap-2">
-                  {selectedReq.requisition_number}
-                  <StatusBadge status={selectedReq.status} />
-                </h3>
-                <p className="text-[10px] font-bold uppercase text-slate-400 mt-0.5">Purchase Requisition Details</p>
-              </div>
-              <button onClick={() => setSelectedReq(null)} className="text-slate-400 hover:text-slate-605 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-50 border-none bg-transparent cursor-pointer"><X size={15} /></button>
-            </div>
+            {/* Rejection Banner if REJECTED */}
+            {selectedReq.status === 'REJECTED' && (
+              <RejectionBanner
+                lastRejectedAt={selectedReq.last_rejected_at}
+                lastRejectedBy={selectedReq.last_rejected_by}
+                lastRejectionCode={selectedReq.last_rejection_code}
+                lastRejectionReason={selectedReq.last_rejection_reason}
+                revisionNumber={selectedReq.revision_number}
+                onEdit={() => handleOpenEditModal(selectedReq)}
+                onResubmit={() => setShowResubmitModal(true)}
+                onViewDiff={() => setShowDiffModal(true)}
+              />
+            )}
 
             {/* Meta information */}
             <div className="grid grid-cols-2 gap-y-3.5 gap-x-2 text-[12px] text-slate-650 border-b border-slate-100 pb-4">
@@ -495,6 +559,22 @@ export default function PurchaseRequisitionsPage() {
                 >
                   Submit for Approval
                 </button>
+              )}
+              {selectedReq.status === 'REJECTED' && (
+                <div className="space-y-2 pt-2 border-t border-slate-100">
+                  <button 
+                    onClick={() => handleOpenEditModal(selectedReq)}
+                    className="w-full py-2.5 bg-white hover:bg-slate-50 text-slate-800 border border-slate-300 rounded-xl text-[12.5px] font-bold shadow-xs transition cursor-pointer flex items-center justify-center gap-1.5"
+                  >
+                    Edit Entries
+                  </button>
+                  <button 
+                    onClick={() => setShowResubmitModal(true)}
+                    className="w-full py-2.5 bg-emerald-600 text-white rounded-xl text-[12.5px] font-black shadow-sm hover:bg-emerald-700 transition cursor-pointer border-none flex items-center justify-center gap-1.5"
+                  >
+                    Reconsider & Resubmit
+                  </button>
+                </div>
               )}
               {selectedReq.status === 'APPROVED' && (
                 <div className="bg-emerald-50/50 border border-emerald-150 p-3.5 rounded-2xl space-y-2 shadow-sm">
@@ -741,6 +821,25 @@ export default function PurchaseRequisitionsPage() {
           </div>
         </div>
       )}
+      {/* Resubmit Modal */}
+      <ResubmitModal
+        isOpen={showResubmitModal}
+        onClose={() => setShowResubmitModal(false)}
+        onSubmit={handleResubmitConfirm}
+        documentNumber={selectedReq?.requisition_number}
+        currentRevision={selectedReq?.revision_number || 0}
+        totalAmount={selectedReq?.estimated_total || 0}
+        itemCount={selectedReq?.items?.length || 0}
+        isSubmitting={isResubmitting}
+      />
+
+      {/* Revision Diff Modal */}
+      <RevisionDiffModal
+        isOpen={showDiffModal}
+        onClose={() => setShowDiffModal(false)}
+        revisions={selectedReq?.revisions || []}
+        documentNumber={selectedReq?.requisition_number}
+      />
     </>
   );
 }

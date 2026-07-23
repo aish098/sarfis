@@ -1,4 +1,5 @@
 const prService = require('../services/purchase_requisition.service');
+const DocumentRevisionService = require('../services/document_revision.service');
 
 exports.getPurchaseRequisitions = async (req, res) => {
   try {
@@ -43,7 +44,8 @@ exports.updatePurchaseRequisition = async (req, res) => {
     });
     res.json(requisition);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    const status = err.statusCode || 400;
+    res.status(status).json({ error: err.message });
   }
 };
 
@@ -52,7 +54,38 @@ exports.submitForApproval = async (req, res) => {
     const requisition = await prService.submitForApproval(req.params.id, req.params.companyId, req.user?.id);
     res.json(requisition);
   } catch (err) {
-    res.status(400).json({ error: err.message });
+    const status = err.statusCode || 400;
+    res.status(status).json({ error: err.message });
+  }
+};
+
+exports.resubmitForApproval = async (req, res) => {
+  try {
+    const { revisionNotes, expectedVersion } = req.body;
+    const requisition = await prService.resubmitForApproval(
+      req.params.id,
+      req.params.companyId,
+      req.user?.id,
+      revisionNotes,
+      expectedVersion
+    );
+    res.json(requisition);
+  } catch (err) {
+    const status = err.statusCode || 400;
+    res.status(status).json({ error: err.message });
+  }
+};
+
+exports.getRevisions = async (req, res) => {
+  try {
+    const revisions = await DocumentRevisionService.getRevisions(
+      req.params.companyId,
+      'PURCHASE_REQUISITION',
+      req.params.id
+    );
+    res.json(revisions);
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 };
 
