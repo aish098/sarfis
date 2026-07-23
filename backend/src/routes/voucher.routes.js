@@ -15,8 +15,10 @@ router.delete('/vouchers/:companyId/:id',     companyGuard, requirePermission('v
 // Workflow states
 router.post('/vouchers/:companyId/:id/submit',  companyGuard, requirePermission('voucher.edit'), voucherCtrl.submitForApproval);
 router.post('/vouchers/:companyId/:id/post',    companyGuard, requirePermission('voucher.post'), voucherCtrl.postVoucher);
-router.post('/vouchers/:companyId/:id/reverse', companyGuard, requirePermission('voucher.post'), voucherCtrl.reverseVoucher);
-router.post('/vouchers/:companyId/:id/comment', companyGuard, requirePermission('voucher.edit'), voucherCtrl.addVoucherComment);
+router.post('/vouchers/:companyId/:id/request-correction', companyGuard, requirePermission('voucher.request_correction'), voucherCtrl.requestCorrection);
+router.post('/voucher-correction-requests/:companyId/:id/approve', companyGuard, requirePermission('voucher.approve_correction'), voucherCtrl.approveCorrectionRequest);
+router.post('/voucher-correction-requests/:companyId/:id/reject', companyGuard, requirePermission('voucher.reject_correction'), voucherCtrl.rejectCorrectionRequest);
+router.post('/voucher-correction-requests/:companyId/:id/execute', companyGuard, requirePermission('voucher.execute_correction'), voucherCtrl.executeCorrectionRequest);
 
 // --- VENDORS (SUPPLIERS) ---
 router.get('/vendors/:companyId',             companyGuard, requirePermission('vendor.manage'), voucherCtrl.getVendors);

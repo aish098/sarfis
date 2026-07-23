@@ -497,3 +497,88 @@ exports.getPeriodHistory = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+// --- CORRECTION WORKFLOW CONTROLLER ENDPOINTS ---
+const CorrectionWorkflowService = require('../services/correction_workflow.service');
+
+exports.requestCorrection = async (req, res) => {
+  const { companyId, id } = req.params;
+  const { reasonCode, reasonText, documentType } = req.body || {};
+  const userId = req.user.id;
+
+  try {
+    const voucher = await db('vouchers').where({ id, company_id: companyId }).first();
+    if (!voucher) return res.status(404).json({ error: 'Voucher not found' });
+
+    const docType = documentType || (voucher.type === 'PURCHASE' ? 'PURCHASE_VOUCHER' : 'SALES_VOUCHER');
+
+    const requestId = await CorrectionWorkflowService.requestCorrection({
+      companyId: parseInt(companyId),
+      userId,
+      documentType: docType,
+      documentId: parseInt(id),
+      reasonCode,
+      reasonText
+    });
+    res.status(201).json({ id: requestId, message: 'Voucher correction request submitted successfully.' });
+  } catch (err) {
+    const status = err.statusCode || 400;
+    res.status(status).json({ code: err.code || 'CORRECTION_REQUEST_FAILED', error: err.message });
+  }
+};
+
+exports.approveCorrectionRequest = async (req, res) => {
+  const { companyId, id } = req.params;
+  const userId = req.user.id;
+
+  try {
+    await CorrectionWorkflowService.approveCorrectionRequest({
+      companyId: parseInt(companyId),
+      userId,
+      requestId: parseInt(id)
+    });
+    res.json({ message: 'Correction request approved successfully.' });
+  } catch (err) {
+    const status = err.statusCode || 400;
+    res.status(status).json({ code: err.code || 'APPROVAL_FAILED', error: err.message });
+  }
+};
+
+exports.rejectCorrectionRequest = async (req, res) => {
+  const { companyId, id } = req.params;
+  const { rejectionReason } = req.body || {};
+  const userId = req.user.id;
+
+  try {
+    await CorrectionWorkflowService.rejectCorrectionRequest({
+      companyId: parseInt(companyId),
+      userId,
+      requestId: parseInt(id),
+      rejectionReason
+    });
+    res.json({ message: 'Correction request rejected.' });
+  } catch (err) {
+    const status = err.statusCode || 400;
+    res.status(status).json({ code: err.code || 'REJECTION_FAILED', error: err.message });
+  }
+};
+
+exports.executeCorrectionRequest = async (req, res) => {
+  const { companyId, id } = req.params;
+  const userId = req.user.id;
+
+  try {
+    const result = await CorrectionWorkflowService.executeCorrectionRequest({
+      companyId: parseInt(companyId),
+      userId,
+      requestId: parseInt(id)
+    });
+    res.json({
+      message: 'Correction request executed successfully. Reversal voucher and corrected draft copy generated.',
+      ...result
+    });
+  } catch (err) {
+    const status = err.statusCode || 400;
+    res.status(status).json({ code: err.code || 'EXECUTION_FAILED', error: err.message });
+  }
+};

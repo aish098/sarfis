@@ -301,6 +301,12 @@ class VoucherService {
         })
         .returning('*');
 
+      if (voucher.correction_of_voucher_id) {
+        await t('vouchers')
+          .where({ id: voucher.correction_of_voucher_id, company_id: companyId })
+          .update({ superseded_by_voucher_id: id, updated_at: t.fn.now() });
+      }
+
       // Update parent Purchase Voucher status to PAID if this is a PAYMENT voucher
       if (voucher.type === 'PAYMENT' && voucher.payload?.purchase_voucher_id) {
         const pvId = parseInt(voucher.payload.purchase_voucher_id, 10);

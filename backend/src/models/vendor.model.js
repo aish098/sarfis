@@ -63,10 +63,17 @@ class VendorModel {
   }
 
   static async updateBalance(id, companyId, amountDelta, trx) {
-    const query = db('vendors').where({ id, company_id: companyId });
-    if (trx) query.transacting(trx);
+    const queryExecutor = trx || db;
+    const vendor = await queryExecutor('vendors').where({ id, company_id: companyId }).first();
+    if (!vendor) return;
 
-    await query.increment('current_balance', amountDelta);
+    const current = isNaN(parseFloat(vendor.current_balance)) ? 0 : parseFloat(vendor.current_balance);
+    const delta = isNaN(parseFloat(amountDelta)) ? 0 : parseFloat(amountDelta);
+    const nextVal = (current + delta).toFixed(2);
+
+    await queryExecutor('vendors')
+      .where({ id, company_id: companyId })
+      .update({ current_balance: nextVal });
   }
 }
 
