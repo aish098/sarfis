@@ -192,11 +192,28 @@ export default function PurchaseRequisitionsPage() {
     setFormError('');
     setIsSaving(true);
     try {
-      const validItems = reqForm.items.filter(i => i.productId && parseFloat(i.quantity) > 0);
+      const validItems = reqForm.items
+        .filter(i => i.productId && parseFloat(i.quantity) > 0)
+        .map(i => {
+          const price = parseFloat(i.unitPurchasePrice || i.estimatedPrice || 0);
+          const qty = parseFloat(i.quantity || 0);
+          return {
+            productId: parseInt(i.productId, 10),
+            quantity: qty,
+            unitPurchasePrice: price,
+            estimatedPrice: price,
+            lineTotal: qty * price,
+            description: i.description || ''
+          };
+        });
+
       if (validItems.length === 0) throw new Error('Add at least one product line.');
 
       await api.post(`/purchase-requisitions/${activeCompany.id}`, {
-        ...reqForm,
+        department: reqForm.department,
+        requiredDate: reqForm.requiredDate,
+        priority: reqForm.priority,
+        reason: reqForm.reason,
         items: validItems
       });
 
@@ -206,7 +223,7 @@ export default function PurchaseRequisitionsPage() {
         requiredDate: new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split('T')[0],
         priority: 'NORMAL',
         reason: '',
-        items: [{ productId: '', quantity: '', estimatedPrice: '', description: '' }]
+        items: [{ productId: '', quantity: '', unitPurchasePrice: '', estimatedPrice: '', description: '' }]
       });
       loadData();
     } catch (err) {
