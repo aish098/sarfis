@@ -162,12 +162,20 @@ class WorkflowEngineService {
       return { status: 'APPROVED', autoApproved: true };
     }
 
-    // 3. Create workflow instance
+    // 3. Create workflow instance (calculating cycle_number)
+    const lastInstance = await trx('workflow_instances')
+      .where({ company_id: companyId, workflow_definition_id: def.id, document_id: docId })
+      .max('cycle_number as max_cycle')
+      .first();
+
+    const nextCycleNumber = Number(lastInstance?.max_cycle || 0) + 1;
+
     const [instance] = await trx('workflow_instances')
       .insert({
         company_id: companyId,
         workflow_definition_id: def.id,
         document_id: docId,
+        cycle_number: nextCycleNumber,
         current_stage_sequence: activeStages[0].stage_sequence,
         status: 'PENDING',
         created_by: userId
@@ -359,6 +367,9 @@ class WorkflowEngineService {
         await trx('journal_entries').where({ id: instance.document_id, company_id: companyId }).update({ status: 'DRAFT' });
       } else if (instance.document_type_code === 'PURCHASE_ORDER') {
         await trx('purchase_orders').where({ id: instance.document_id, company_id: companyId }).update({ status: 'REJECTED' });
+      } else if (instance.document_type_code === 'PURCHASE_REQUISITION') {
+        const prService = require('./purchase_requisition.service');
+        await prService.rejectPurchaseRequisition(instance.document_id, companyId, userId, 'REJECTED', comments || 'Rejected by workflow approver', trx);
       }
 
       // Notify the creator

@@ -89,12 +89,25 @@ class PurchaseRequisitionService {
    * Updates an existing draft Requisition
    */
   static async updatePurchaseRequisition(id, companyId, data, trx = db) {
-    const { department, requiredDate, priority, reason, items } = data;
+    const { department, requiredDate, priority, reason, items, expectedVersion } = data;
+    const queryExecutor = trx || db;
 
-    const requisition = await trx('purchase_requisitions').where({ id, company_id: companyId }).first();
+    const requisition = await queryExecutor('purchase_requisitions')
+      .where({ id, company_id: companyId })
+      .forUpdate()
+      .first();
+
     if (!requisition) throw new Error('Requisition not found.');
     if (requisition.status !== 'DRAFT' && requisition.status !== 'REJECTED') {
-      throw new Error('Only Draft or Rejected requisitions can be updated.');
+      const err = new Error('Posted or locked documents cannot be edited directly. Use the correction workflow.');
+      err.statusCode = 409;
+      throw err;
+    }
+
+    if (expectedVersion !== undefined && expectedVersion !== null && requisition.version !== expectedVersion) {
+      const err = new Error('Document has been modified by another user. Refresh and try again.');
+      err.statusCode = 409;
+      throw err;
     }
 
     let estimatedTotal = requisition.estimated_total;
@@ -103,7 +116,7 @@ class PurchaseRequisitionService {
       if (items.length === 0) throw new Error('At least one item is required.');
 
       // Clear old items
-      await trx('purchase_requisition_items').where({ purchase_requisition_id: id }).delete();
+      await queryExecutor('purchase_requisition_items').where({ purchase_requisition_id: id }).delete();
 
       // Insert new items
       estimatedTotal = 0;
@@ -124,23 +137,31 @@ class PurchaseRequisitionService {
         };
       });
 
-      await trx('purchase_requisition_items').insert(itemRows);
+      await queryExecutor('purchase_requisition_items').insert(itemRows);
     }
 
+    const nextVersion = (requisition.version || 1) + 1;
     const updateData = {
       estimated_total: estimatedTotal,
-      updated_at: trx.fn.now()
+      version: nextVersion,
+      updated_at: queryExecutor.fn.now()
     };
     if (department !== undefined) updateData.department = department;
     if (requiredDate !== undefined) updateData.required_date = requiredDate;
     if (priority !== undefined) updateData.priority = priority.toUpperCase();
     if (reason !== undefined) updateData.reason = reason;
 
-    await trx('purchase_requisitions')
-      .where({ id, company_id: companyId })
+    const updatedRows = await queryExecutor('purchase_requisitions')
+      .where({ id, company_id: companyId, version: requisition.version })
       .update(updateData);
 
-    return await this.getPurchaseRequisitionById(id, companyId, trx);
+    if (updatedRows === 0) {
+      const err = new Error('Document was modified by another user.');
+      err.statusCode = 409;
+      throw err;
+    }
+
+    return await this.getPurchaseRequisitionById(id, companyId, queryExecutor);
   }
 
   /**

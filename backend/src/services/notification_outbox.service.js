@@ -30,12 +30,15 @@ class NotificationOutboxService {
   static async processOutbox() {
     try {
       await db.transaction(async (trx) => {
-        // Select pending outbox messages with lock
-        const pendingEvents = await trx('notification_outbox')
-          .where({ status: 'PENDING' })
-          .orderBy('id', 'asc')
-          .limit(10)
-          .forUpdate();
+        // Select pending outbox messages with skipLocked to prevent worker contention
+        const isPostgres = db.client.config.client === 'pg';
+        let query = trx('notification_outbox').where({ status: 'PENDING' }).orderBy('id', 'asc').limit(10);
+        if (isPostgres) {
+          query = query.forUpdate().skipLocked();
+        } else {
+          query = query.forUpdate();
+        }
+        const pendingEvents = await query;
 
         if (pendingEvents.length === 0) return;
 
