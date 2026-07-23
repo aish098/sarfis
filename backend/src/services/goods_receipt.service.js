@@ -309,14 +309,20 @@ class GoodsReceiptService {
     return await db.transaction(async (trx) => {
       const grn = await this.getGoodsReceiptById(id, companyId, trx);
       if (!grn) throw new Error('Goods Receipt not found.');
-      if (grn.status !== 'RECEIVED') throw new Error('Only received Goods Receipts can be invoiced.');
 
-      // Check if already invoiced
+      // Check if already invoiced (idempotent fallback)
       const existingVoucher = await trx('vouchers')
         .where({ goods_receipt_id: id, company_id: companyId, deleted_at: null })
         .first();
       if (existingVoucher) {
-        throw new Error(`This Goods Receipt is already linked to Purchase Voucher ${existingVoucher.voucher_number}.`);
+        return {
+          voucherId: existingVoucher.id,
+          voucherNumber: existingVoucher.voucher_number
+        };
+      }
+
+      if (grn.status !== 'RECEIVED' && grn.status !== 'CONVERTED') {
+        throw new Error('Only received Goods Receipts can be converted to Purchase Vouchers.');
       }
 
       // Default AP account mapping from accounting settings

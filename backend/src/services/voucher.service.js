@@ -122,8 +122,8 @@ class VoucherService {
           throw new Error('Purchase Voucher can only be generated from an approved Goods Receipt.');
         }
         const grn = await trx('goods_receipts').where({ id: goods_receipt_id, company_id: companyId }).first();
-        if (!grn || grn.status !== 'RECEIVED') {
-          throw new Error('Purchase Voucher can only be generated from an approved Goods Receipt.');
+        if (!grn || (grn.status !== 'RECEIVED' && grn.status !== 'CONVERTED')) {
+          throw new Error('Purchase Voucher can only be generated from a received Goods Receipt.');
         }
       }
 
