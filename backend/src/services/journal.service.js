@@ -312,7 +312,7 @@ class JournalService {
 
       // Segregation of duties enforcement
       if (!allowSelfApproval && parseInt(req.requested_by, 10) === parseInt(userId, 10)) {
-        const err = new Error('SEGREGATION_OF_DUTIES: Requisition requester cannot approve their own correction request.');
+        const err = new Error('SEGREGATION_OF_DUTIES: Correction requester cannot approve their own correction request.');
         err.statusCode = 403;
         throw err;
       }
