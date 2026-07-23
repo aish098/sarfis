@@ -660,19 +660,23 @@ export default function PurchaseRequisitionsPage() {
                                 onChange={e => handleItemChange(idx, 'unitPurchasePrice', e.target.value)} 
                               />
                             </div>
-                            <div className="col-span-1 text-right font-mono font-bold text-[11px] text-slate-700">
-                              {lineTotal > 0 ? lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 }) : '-'}
+                            <div className="col-span-1 text-right font-mono font-bold text-[11px] text-slate-800 truncate" title={lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}>
+                              {lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
                             </div>
                             <div className="col-span-1 flex justify-center">
-                              {reqForm.items.length > 1 && (
-                                <button 
-                                  type="button" 
-                                  onClick={() => removeFormItem(idx)}
-                                  className="w-6 h-6 rounded text-red-500 hover:bg-red-50 flex items-center justify-center border border-red-100 hover:border-red-200 transition bg-white cursor-pointer"
-                                >
-                                  <X size={12} />
-                                </button>
-                              )}
+                              <button 
+                                type="button" 
+                                disabled={reqForm.items.length === 1}
+                                onClick={() => removeFormItem(idx)}
+                                title={reqForm.items.length === 1 ? "Minimum 1 item required" : "Remove item line"}
+                                className={`w-6 h-6 rounded flex items-center justify-center border transition ${
+                                  reqForm.items.length === 1 
+                                    ? 'text-slate-300 border-slate-100 bg-slate-50 cursor-not-allowed' 
+                                    : 'text-red-500 hover:bg-red-50 border-red-100 hover:border-red-200 bg-white cursor-pointer'
+                                }`}
+                              >
+                                <Trash2 size={12} />
+                              </button>
                             </div>
                           </div>
                         );
