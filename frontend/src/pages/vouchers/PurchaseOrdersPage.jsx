@@ -145,7 +145,9 @@ export default function PurchaseOrdersPage() {
     if (field === 'productId') {
       const prod = products.find(p => String(p.id) === String(value));
       if (prod) {
-        updated[index].unitPrice = parseFloat(prod.cost_price || 0.00);
+        if (!updated[index].unitPrice || updated[index].unitPrice === 0 || updated[index].unitPrice === '0') {
+          updated[index].unitPrice = parseFloat(prod.cost_price || 0.00);
+        }
       }
     }
     setItems(updated);

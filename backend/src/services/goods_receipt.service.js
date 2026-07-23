@@ -65,12 +65,24 @@ class GoodsReceiptService {
 
     const insertedId = typeof grnId === 'object' ? grnId.id : grnId;
 
+    let poItemsMap = {};
+    if (purchaseOrderId) {
+      const poItems = await trx('purchase_order_items').where({ purchase_order_id: purchaseOrderId });
+      poItems.forEach(poi => {
+        poItemsMap[poi.product_id] = parseFloat(poi.unit_price || 0);
+      });
+    }
+
     const itemRows = items.map(item => {
-      const uCost = parseFloat(item.unitCost || item.unit_cost || item.unitPrice || item.unit_price || 0);
+      const pId = item.productId || item.product_id;
+      let uCost = parseFloat(item.unitCost || item.unit_cost || item.unitPrice || item.unit_price || 0);
+      if ((!uCost || uCost === 0) && poItemsMap[pId]) {
+        uCost = poItemsMap[pId];
+      }
       const qRecv = parseFloat(item.quantityReceived || item.quantity_received || 0);
       return {
         goods_receipt_id: insertedId,
-        product_id: item.productId || item.product_id,
+        product_id: pId,
         quantity_ordered: parseFloat(item.quantityOrdered || item.quantity_ordered || 0),
         quantity_received: qRecv,
         quantity_rejected: parseFloat(item.quantityRejected || item.quantity_rejected || 0),
@@ -335,13 +347,22 @@ class GoodsReceiptService {
       const settings = await trx('company_accounting_settings').where({ company_id: companyId }).first();
       const apAccount = settings?.default_ap_account_id || null;
 
+      let poItemsMap = {};
+      if (grn.purchase_order_id) {
+        const poItems = await trx('purchase_order_items').where({ purchase_order_id: grn.purchase_order_id });
+        poItems.forEach(poi => {
+          poItemsMap[poi.product_id] = parseFloat(poi.unit_price || 0);
+        });
+      }
+
       // Compute total cost based on dynamic unit purchase cost from GRN/PO
       let totalAmount = 0;
       const voucherItems = grn.items.map(item => {
-        const qty = parseFloat(item.quantity_received);
-        const itemUnitCost = (item.unit_cost !== undefined && item.unit_cost !== null) ? parseFloat(item.unit_cost) :
-                             (item.unitCost !== undefined && item.unitCost !== null) ? parseFloat(item.unitCost) :
-                             (item.unit_price !== undefined && item.unit_price !== null) ? parseFloat(item.unit_price) : NaN;
+        const qty = parseFloat(item.quantity_received || item.quantity_ordered || 0);
+        const itemUnitCost = (item.unit_cost !== undefined && item.unit_cost !== null && parseFloat(item.unit_cost) > 0) ? parseFloat(item.unit_cost) :
+                             (item.unitCost !== undefined && item.unitCost !== null && parseFloat(item.unitCost) > 0) ? parseFloat(item.unitCost) :
+                             (item.unit_price !== undefined && item.unit_price !== null && parseFloat(item.unit_price) > 0) ? parseFloat(item.unit_price) :
+                             (poItemsMap[item.product_id] || NaN);
 
         const fallbackCost = parseFloat(item.default_catalog_cost || item.cost_price || 0);
         const cost = !isNaN(itemUnitCost) && itemUnitCost > 0 ? itemUnitCost : fallbackCost;

@@ -112,6 +112,7 @@ export default function GoodsReceiptsPage() {
         productSku: item.product_sku,
         quantityOrdered: parseFloat(item.quantity),
         quantityReceived: parseFloat(item.quantity),
+        unitCost: parseFloat(item.unit_price || item.unit_cost || item.cost_price || 0),
         quantityRejected: 0,
         notes: ''
       }));
