@@ -597,14 +597,14 @@ export default function PurchaseRequisitionsPage() {
                 </div>
                 <div className="border border-slate-200 rounded-xl overflow-hidden">
                   <div className="overflow-x-auto">
-                    <div className="min-w-[700px] divide-y divide-slate-100 text-[12px] bg-white">
+                    <div className="min-w-[820px] divide-y divide-slate-100 text-[12px] bg-white">
                       {/* Header */}
-                      <div className="grid grid-cols-12 gap-2 px-3 py-2.5 bg-slate-50 border-b border-slate-200 text-[9.5px] font-black uppercase tracking-widest text-slate-500">
+                      <div className="grid grid-cols-12 gap-2.5 px-3.5 py-2.5 bg-slate-50 border-b border-slate-200 text-[9.5px] font-black uppercase tracking-widest text-slate-500">
                         <div className="col-span-3">Product *</div>
-                        <div className="col-span-3">Description</div>
+                        <div className="col-span-2">Description</div>
                         <div className="col-span-2">Quantity *</div>
                         <div className="col-span-2 text-right">Unit Price *</div>
-                        <div className="col-span-1 text-right">Total</div>
+                        <div className="col-span-2 text-right">Total (PKR)</div>
                         <div className="col-span-1 text-center">Action</div>
                       </div>
 
@@ -615,7 +615,7 @@ export default function PurchaseRequisitionsPage() {
                         const lineTotal = qty * price;
 
                         return (
-                          <div key={idx} className="grid grid-cols-12 gap-2 px-3 py-2.5 items-center hover:bg-slate-50/30">
+                          <div key={idx} className="grid grid-cols-12 gap-2.5 px-3.5 py-2.5 items-center hover:bg-slate-50/30">
                             <div className="col-span-3">
                               <select 
                                 required 
@@ -627,7 +627,7 @@ export default function PurchaseRequisitionsPage() {
                                 {products.map(p => <option key={p.id} value={p.id}>{p.sku} - {p.name}</option>)}
                               </select>
                             </div>
-                            <div className="col-span-3">
+                            <div className="col-span-2">
                               <input 
                                 type="text" 
                                 placeholder="Notes / specs" 
@@ -660,8 +660,13 @@ export default function PurchaseRequisitionsPage() {
                                 onChange={e => handleItemChange(idx, 'unitPurchasePrice', e.target.value)} 
                               />
                             </div>
-                            <div className="col-span-1 text-right font-mono font-bold text-[11px] text-slate-800 truncate" title={lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}>
-                              {lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                            <div className="col-span-2 text-right">
+                              <span 
+                                className="inline-block w-full px-2 py-1.5 bg-slate-50 border border-slate-200/80 rounded-lg font-mono font-bold text-[12px] text-emerald-700 text-right"
+                                title={`PKR ${lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}`}
+                              >
+                                {lineTotal.toLocaleString(undefined, { minimumFractionDigits: 2 })}
+                              </span>
                             </div>
                             <div className="col-span-1 flex justify-center">
                               <button 
