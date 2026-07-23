@@ -148,6 +148,7 @@ export default function GoodsReceiptsPage() {
         productSku: item.product_sku,
         quantityOrdered: parseFloat(item.quantity),
         quantityReceived: parseFloat(item.quantity),
+        unitCost: parseFloat(item.unit_price || item.unit_cost || item.cost_price || 0),
         quantityRejected: 0,
         notes: ''
       }));
@@ -191,6 +192,7 @@ export default function GoodsReceiptsPage() {
           quantityOrdered: parseFloat(i.quantityOrdered || 0),
           quantityReceived: parseFloat(i.quantityReceived || 0),
           quantityRejected: parseFloat(i.quantityRejected || 0),
+          unitCost: parseFloat(i.unitCost || i.unit_cost || i.unitPrice || 0),
           notes: i.notes || ''
         }))
       };

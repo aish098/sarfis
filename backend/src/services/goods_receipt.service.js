@@ -65,14 +65,20 @@ class GoodsReceiptService {
 
     const insertedId = typeof grnId === 'object' ? grnId.id : grnId;
 
-    const itemRows = items.map(item => ({
-      goods_receipt_id: insertedId,
-      product_id: item.productId || item.product_id,
-      quantity_ordered: parseFloat(item.quantityOrdered || item.quantity_ordered || 0),
-      quantity_received: parseFloat(item.quantityReceived || item.quantity_received || 0),
-      quantity_rejected: parseFloat(item.quantityRejected || item.quantity_rejected || 0),
-      notes: item.notes || null
-    }));
+    const itemRows = items.map(item => {
+      const uCost = parseFloat(item.unitCost || item.unit_cost || item.unitPrice || item.unit_price || 0);
+      const qRecv = parseFloat(item.quantityReceived || item.quantity_received || 0);
+      return {
+        goods_receipt_id: insertedId,
+        product_id: item.productId || item.product_id,
+        quantity_ordered: parseFloat(item.quantityOrdered || item.quantity_ordered || 0),
+        quantity_received: qRecv,
+        quantity_rejected: parseFloat(item.quantityRejected || item.quantity_rejected || 0),
+        unit_cost: uCost,
+        received_value: qRecv * uCost,
+        notes: item.notes || null
+      };
+    });
 
     await trx('goods_receipt_items').insert(itemRows);
 
@@ -329,18 +335,21 @@ class GoodsReceiptService {
       const settings = await trx('company_accounting_settings').where({ company_id: companyId }).first();
       const apAccount = settings?.default_ap_account_id || null;
 
-      // Compute total cost based on WAC cost price in system
+      // Compute total cost based on dynamic unit purchase cost from GRN/PO
       let totalAmount = 0;
       const voucherItems = grn.items.map(item => {
         const qty = parseFloat(item.quantity_received);
-        const cost = parseFloat(item.cost_price || 0);
+        const itemUnitCost = parseFloat(item.unit_cost || 0);
+        const fallbackCost = parseFloat(item.cost_price || 0);
+        const cost = itemUnitCost > 0 ? itemUnitCost : fallbackCost;
         const total = qty * cost;
         totalAmount += total;
 
         return {
           productId: item.product_id,
           quantity: qty,
-          unitCost: cost
+          unitCost: cost,
+          unitPrice: cost
         };
       });
 
