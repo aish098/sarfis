@@ -179,13 +179,19 @@ export default function GoodsReceiptsPage() {
       if (grnForm.items.length === 0) throw new Error('At least one item line is required.');
 
       const payload = {
-        ...grnForm,
+        companyId: activeCompany.id,
+        purchaseOrderId: (grnForm.purchaseOrderId && grnForm.purchaseOrderId !== '' && grnForm.purchaseOrderId !== 'null') ? parseInt(grnForm.purchaseOrderId, 10) : null,
+        vendorId: parseInt(grnForm.vendorId, 10),
+        warehouseId: parseInt(grnForm.warehouseId, 10),
+        supplierReference: grnForm.supplierReference || null,
+        notes: grnForm.notes || null,
+        receivedDate: grnForm.receivedDate,
         items: grnForm.items.map(i => ({
-          productId: i.productId,
-          quantityOrdered: parseFloat(i.quantityOrdered),
+          productId: parseInt(i.productId, 10),
+          quantityOrdered: parseFloat(i.quantityOrdered || 0),
           quantityReceived: parseFloat(i.quantityReceived || 0),
           quantityRejected: parseFloat(i.quantityRejected || 0),
-          notes: i.notes
+          notes: i.notes || ''
         }))
       };
 

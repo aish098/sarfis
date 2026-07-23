@@ -29,13 +29,20 @@ class GoodsReceiptService {
    */
   static async createGoodsReceipt(data, trx = db) {
     const { companyId, purchaseOrderId, vendorId, warehouseId, receivedDate, supplierReference, notes, items, userId } = data;
-    if (!items || items.length === 0) throw new Error('At least one item is required.');
+    if (!items || items.length === 0) throw new Error('At least one item line is required.');
 
-    if (purchaseOrderId) {
-      const po = await trx('purchase_orders').where({ id: purchaseOrderId, company_id: companyId }).first();
-      if (!po) throw new Error('Purchase Order not found.');
-      if (po.status !== 'APPROVED' && po.status !== 'PARTIALLY_RECEIVED') {
-        throw new Error('Goods Receipt cannot be created until the Purchase Order has been approved.');
+    const cleanPoId = (purchaseOrderId && purchaseOrderId !== '' && purchaseOrderId !== 'null') ? parseInt(purchaseOrderId, 10) : null;
+    const cleanVendorId = vendorId ? parseInt(vendorId, 10) : null;
+    const cleanWarehouseId = warehouseId ? parseInt(warehouseId, 10) : null;
+
+    if (!cleanVendorId) throw new Error('Vendor / Supplier is required.');
+    if (!cleanWarehouseId) throw new Error('Target Warehouse is required.');
+
+    if (cleanPoId) {
+      const po = await trx('purchase_orders').where({ id: cleanPoId, company_id: companyId }).first();
+      if (!po) throw new Error('Selected Purchase Order was not found.');
+      if (po.status !== 'APPROVED' && po.status !== 'PARTIALLY_RECEIVED' && po.status !== 'GOODS_RECEIVED') {
+        throw new Error(`Goods Receipt cannot be created for Purchase Order ${po.po_number} because its current status is '${po.status}'. The Purchase Order must be Approved before receiving goods.`);
       }
     }
 
@@ -44,12 +51,12 @@ class GoodsReceiptService {
     const [grnId] = await trx('goods_receipts')
       .insert({
         company_id: companyId,
-        purchase_order_id: purchaseOrderId || null,
+        purchase_order_id: cleanPoId,
         grn_number: grnNumber,
-        vendor_id: vendorId,
-        warehouse_id: warehouseId,
-        received_date: receivedDate,
-        received_by: userId,
+        vendor_id: cleanVendorId,
+        warehouse_id: cleanWarehouseId,
+        received_date: receivedDate || new Date(),
+        received_by: userId || null,
         status: 'DRAFT',
         supplier_reference: supplierReference || null,
         notes: notes || null
