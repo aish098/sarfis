@@ -547,7 +547,6 @@ export default function GoodsReceiptsPage() {
                   <label className="field-label">Vendor / Supplier *</label>
                   <select 
                     required 
-                    disabled={!!grnForm.purchaseOrderId}
                     className="input-enterprise" 
                     value={grnForm.vendorId || ''} 
                     onChange={e => setGrnForm({ ...grnForm, vendorId: e.target.value })}
