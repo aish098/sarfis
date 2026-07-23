@@ -142,12 +142,13 @@ export default function PurchaseRequisitionsPage() {
     const items = [...reqForm.items];
     items[idx][field] = value;
     
-    // Auto-fill price from product lookup if empty
+    // Auto-fill product default cost as reference helper
     if (field === 'productId' && value) {
       const prod = products.find(p => String(p.id) === String(value));
       if (prod) {
         const defaultCost = parseFloat(prod.cost_price || 0).toFixed(2);
-        if (!items[idx].unitPurchasePrice || items[idx].unitPurchasePrice === '' || items[idx].unitPurchasePrice === '0') {
+        items[idx].defaultCost = defaultCost;
+        if (!items[idx].unitPurchasePrice) {
           items[idx].estimatedPrice = defaultCost;
           items[idx].unitPurchasePrice = defaultCost;
         }
@@ -199,7 +200,9 @@ export default function PurchaseRequisitionsPage() {
       const validItems = reqForm.items
         .filter(i => i.productId && parseFloat(i.quantity) > 0)
         .map(i => {
-          const price = parseFloat(i.unitPurchasePrice || i.estimatedPrice || 0);
+          const userPrice = (i.unitPurchasePrice !== '' && i.unitPurchasePrice !== undefined && i.unitPurchasePrice !== null) ? parseFloat(i.unitPurchasePrice) : NaN;
+          const fallbackPrice = parseFloat(i.estimatedPrice || i.defaultCost || 0);
+          const price = !isNaN(userPrice) ? userPrice : fallbackPrice;
           const qty = parseFloat(i.quantity || 0);
           return {
             productId: parseInt(i.productId, 10),
