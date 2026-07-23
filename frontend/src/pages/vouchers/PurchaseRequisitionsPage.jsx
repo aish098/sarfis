@@ -142,14 +142,18 @@ export default function PurchaseRequisitionsPage() {
     const items = [...reqForm.items];
     items[idx][field] = value;
     
-    // Auto-fill price from product lookup
+    // Auto-fill price from product lookup if empty
     if (field === 'productId' && value) {
       const prod = products.find(p => String(p.id) === String(value));
       if (prod) {
         const defaultCost = parseFloat(prod.cost_price || 0).toFixed(2);
-        items[idx].estimatedPrice = defaultCost;
-        items[idx].unitPurchasePrice = defaultCost;
-        items[idx].description = `Purchase of ${prod.name}`;
+        if (!items[idx].unitPurchasePrice || items[idx].unitPurchasePrice === '' || items[idx].unitPurchasePrice === '0') {
+          items[idx].estimatedPrice = defaultCost;
+          items[idx].unitPurchasePrice = defaultCost;
+        }
+        if (!items[idx].description) {
+          items[idx].description = `Purchase of ${prod.name}`;
+        }
       }
     }
     if (field === 'unitPurchasePrice') {
