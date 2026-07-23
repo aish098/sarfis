@@ -164,6 +164,12 @@ class JournalService {
 
         await t('journal_entries').where({ id: entryId }).update({ status: 'POSTED' });
 
+        if (header.correction_of_entry_id) {
+          await t('journal_entries')
+            .where({ id: header.correction_of_entry_id, company_id: companyId })
+            .update({ superseded_by_document_id: entryId });
+        }
+
         // Commit actual budget spend
         const BudgetService = require('./budget.service');
         await BudgetService.commitActualSpend('JOURNAL', entryId, companyId, journalData.entryDate, journalData.lines, t);
@@ -290,7 +296,7 @@ class JournalService {
   /**
    * Approves a posted Journal correction request
    */
-  static async approveCorrectionRequest({ companyId, userId, requestId }) {
+  static async approveCorrectionRequest({ companyId, userId, requestId, allowSelfApproval = false }) {
     return await db.transaction(async (trx) => {
       const req = await trx('document_correction_requests')
         .where({ id: requestId, company_id: companyId, document_type: 'JOURNAL' })
@@ -301,6 +307,13 @@ class JournalService {
       if (req.status !== 'PENDING_APPROVAL') {
         const err = new Error(`Cannot approve correction request in '${req.status}' state.`);
         err.statusCode = 409;
+        throw err;
+      }
+
+      // Segregation of duties enforcement
+      if (!allowSelfApproval && parseInt(req.requested_by, 10) === parseInt(userId, 10)) {
+        const err = new Error('SEGREGATION_OF_DUTIES: Requisition requester cannot approve their own correction request.');
+        err.statusCode = 403;
         throw err;
       }
 
@@ -350,10 +363,12 @@ class JournalService {
 
   /**
    * Executes an approved Journal Correction Request:
-   * 1. Creates & posts Inverted Reversal Journal Entry
-   * 2. Marks original journal entry is_reversed: true
-   * 3. Creates replacement Draft copy
-   * 4. Updates correction request status to EXECUTED
+   * 1. Enforces execution idempotency & lock
+   * 2. Validates period close & accounting dimensions
+   * 3. Creates & posts Inverted Reversal Journal Entry via canonical posting engine
+   * 4. Marks original journal entry is_reversed: true & sets correction_draft_id (Do NOT set superseded until posted!)
+   * 5. Creates replacement Draft copy (setting correction_of_entry_id)
+   * 6. Updates correction request status to EXECUTED
    */
   static async executeCorrectionRequest({ companyId, userId, requestId }) {
     try {
@@ -364,6 +379,16 @@ class JournalService {
           .first();
 
         if (!req) throw new Error('Correction request not found.');
+
+        // Idempotent execution check
+        if (req.status === 'EXECUTED') {
+          return {
+            reversalEntryId: req.reversal_document_id,
+            correctedDraftId: req.corrected_document_id,
+            idempotent: true
+          };
+        }
+
         if (req.status !== 'APPROVED') {
           const err = new Error(`Only APPROVED correction requests can be executed (Current status: ${req.status}).`);
           err.statusCode = 409;
@@ -391,49 +416,61 @@ class JournalService {
         const origLines = await trx('journal_lines').where({ entry_id: origEntry.id });
         if (!origLines || origLines.length === 0) throw new Error('Original journal entry has no line items.');
 
-        // Validate Period Close
+        // Validate Period Close at execution time
         const JournalValidationService = require('./journal_validation.service');
         await JournalValidationService.validatePeriod(companyId, origEntry.entry_date, trx);
 
-        // 1. Create Inverted Reversal Entry
+        // Calculate reversal lines preserving all dimensions
+        const reversalLines = origLines.map(line => {
+          const invDebit = parseFloat(line.credit) || 0;
+          const invCredit = parseFloat(line.debit) || 0;
+          return {
+            accountId: line.account_id,
+            debit: invDebit,
+            credit: invCredit,
+            department: line.department,
+            project: line.project,
+            branch: line.branch,
+            reversalOfLineId: line.id
+          };
+        });
+
+        // Assert reversal journal balance
+        const totalDebit = reversalLines.reduce((sum, l) => sum + l.debit, 0);
+        const totalCredit = reversalLines.reduce((sum, l) => sum + l.credit, 0);
+        if (Math.abs(totalDebit - totalCredit) > 0.001) {
+          throw new Error('REVERSAL_JOURNAL_NOT_BALANCED: Reversal debit total does not match credit total.');
+        }
+
+        // 1. Create Reversal Entry as Draft first
         const JournalModel = require('../models/journal.model');
         const reversalEntryId = await JournalModel.createEntry({
           companyId,
           entryDate: origEntry.entry_date,
           description: `Reversal of Journal #${origEntry.id}: ${origEntry.description || ''}`,
           reference: `REV-${origEntry.reference || origEntry.id}`,
+          reversalOfId: origEntry.id,
+          reversalReason: req.reason_text,
           userId,
-          status: 'POSTED'
+          status: 'DRAFT'
         }, trx);
 
-        // Invert lines (Debit <-> Credit)
-        for (const line of origLines) {
-          const invDebit = parseFloat(line.credit) || 0;
-          const invCredit = parseFloat(line.debit) || 0;
-
+        for (const line of reversalLines) {
           await JournalModel.createLine({
             entryId: reversalEntryId,
-            accountId: line.account_id,
-            debit: invDebit,
-            credit: invCredit,
+            accountId: line.accountId,
+            debit: line.debit,
+            credit: line.credit,
             department: line.department,
             project: line.project,
             branch: line.branch
           }, trx);
-
-          // Update Account GL Balance for Reversal
-          await AccountModel.updateBalance(line.account_id, companyId, invDebit, invCredit, trx);
         }
 
-        // 2. Mark Original Journal REVERSED
-        await trx('journal_entries')
-          .where({ id: origEntry.id })
-          .update({
-            is_reversed: true,
-            reversed_by_entry_id: reversalEntryId
-          });
+        // Post Reversal Journal through single canonical posting engine
+        await this.postJournalEntry(reversalEntryId, companyId, userId, true, trx);
 
-        // 3. Create Corrected Draft Copy
+        // 2. Create Corrected Draft Copy
         const correctedDraftId = await JournalModel.createEntry({
           companyId,
           entryDate: origEntry.entry_date,
@@ -455,10 +492,19 @@ class JournalService {
           }, trx);
         }
 
-        // Link original entry superseded link
+        // Update correction_of_entry_id link on corrected copy
+        await trx('journal_entries')
+          .where({ id: correctedDraftId })
+          .update({ correction_of_entry_id: origEntry.id });
+
+        // 3. Mark Original Journal REVERSED & store correction_draft_id (Do NOT mark superseded until draft is posted!)
         await trx('journal_entries')
           .where({ id: origEntry.id })
-          .update({ superseded_by_document_id: correctedDraftId });
+          .update({
+            is_reversed: true,
+            reversed_by_entry_id: reversalEntryId,
+            correction_draft_id: correctedDraftId
+          });
 
         // 4. Update Correction Request EXECUTED
         await trx('document_correction_requests')
