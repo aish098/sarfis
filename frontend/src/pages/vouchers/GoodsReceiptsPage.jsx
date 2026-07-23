@@ -191,10 +191,22 @@ export default function GoodsReceiptsPage() {
 
       const res = await api.post(`/goods-receipts/${activeCompany.id}`, payload);
       setCreateModal(false);
-      loadData();
-      handleSelectGrn(res.data);
+      setGrnForm({
+        purchaseOrderId: '',
+        vendorId: '',
+        warehouseId: '',
+        supplierReference: '',
+        notes: '',
+        receivedDate: new Date().toISOString().split('T')[0],
+        items: []
+      });
+      await loadData();
+      if (res.data && res.data.id) {
+        const fullGrn = await api.get(`/goods-receipts/${activeCompany.id}/${res.data.id}`);
+        setSelectedGrn(fullGrn.data);
+      }
     } catch (err) {
-      setFormError(err.response?.data?.error || err.message);
+      setFormError(err.response?.data?.error || err.message || 'Failed to create Goods Receipt.');
     }
     setIsSaving(false);
   };
@@ -202,21 +214,26 @@ export default function GoodsReceiptsPage() {
   const handleReceiveGoods = async (id) => {
     if (!window.confirm("Confirm receipt of goods? This will update warehouse stock levels.")) return;
     try {
-      const res = await api.post(`/goods-receipts/${activeCompany.id}/${id}/post`);
-      loadData();
-      setSelectedGrn(res.data);
+      await api.post(`/goods-receipts/${activeCompany.id}/${id}/post`);
+      await loadData();
+      const updated = await api.get(`/goods-receipts/${activeCompany.id}/${id}`);
+      setSelectedGrn(updated.data);
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to receive goods.');
+      const msg = err.response?.data?.error || err.message || 'Failed to receive goods.';
+      alert(msg);
     }
   };
 
   const handleConvertToVoucher = async (id) => {
     try {
       const res = await api.post(`/goods-receipts/${activeCompany.id}/${id}/convert`);
-      loadData();
-      navigate(`/dashboard/vouchers/details/${res.data.voucherId}`);
+      await loadData();
+      if (res.data && res.data.voucherId) {
+        navigate(`/dashboard/vouchers/details/${res.data.voucherId}`);
+      }
     } catch (err) {
-      alert(err.response?.data?.error || 'Failed to convert Goods Receipt to Voucher.');
+      const msg = err.response?.data?.error || err.message || 'Failed to convert Goods Receipt to Voucher.';
+      alert(msg);
     }
   };
 
