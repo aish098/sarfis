@@ -100,7 +100,7 @@ class PurchaseOrderService {
         if (!product) throw new Error(`Product ID ${item.productId} not found.`);
 
         const qty = parseFloat(item.quantity || 0);
-        const price = parseFloat(item.unitPrice || product.cost_price || 0);
+        const price = parseFloat(item.unitPrice || item.unit_price || item.unitPurchasePrice || item.unit_purchase_price || product.cost_price || 0);
         const lineTotal = qty * price;
         totalAmount += lineTotal;
 

@@ -349,7 +349,7 @@ class PurchaseRequisitionService {
       const poItems = pr.items.map(item => ({
         productId: item.product_id,
         quantity: item.quantity,
-        unitPrice: item.estimated_price
+        unitPrice: parseFloat(item.unit_purchase_price || item.estimated_price || 0)
       }));
 
       const po = await PurchaseOrderService.createPurchaseOrder({
