@@ -178,11 +178,24 @@ class PurchaseRequisitionService {
 
     if (!pr) return null;
 
-    const items = await trx('purchase_requisition_items as pri')
+    const rawItems = await trx('purchase_requisition_items as pri')
       .join('products as p', 'pri.product_id', 'p.id')
       .where({ 'pri.purchase_requisition_id': id })
-      .select('pri.*', 'p.name as product_name', 'p.sku as product_sku')
+      .select('pri.*', 'p.name as product_name', 'p.sku as product_sku', 'p.cost_price as default_catalog_cost')
       .orderBy('pri.id', 'asc');
+
+    const items = rawItems.map(item => {
+      const price = parseFloat(item.unit_purchase_price !== null && item.unit_purchase_price !== undefined ? item.unit_purchase_price : (item.estimated_price || item.default_catalog_cost || 0));
+      return {
+        ...item,
+        unit_purchase_price: price,
+        unitPurchasePrice: price,
+        estimated_price: price,
+        estimatedPrice: price,
+        line_total: parseFloat(item.line_total || 0) || (parseFloat(item.quantity || 0) * price),
+        lineTotal: parseFloat(item.line_total || 0) || (parseFloat(item.quantity || 0) * price)
+      };
+    });
 
     // Fetch linked POs if any
     const relatedPos = await trx('purchase_orders')
@@ -346,11 +359,17 @@ class PurchaseRequisitionService {
       const vendorId = firstVendor ? firstVendor.id : null;
 
       // Generate the PO draft
-      const poItems = pr.items.map(item => ({
-        productId: item.product_id,
-        quantity: item.quantity,
-        unitPrice: parseFloat(item.unit_purchase_price || item.estimated_price || 0)
-      }));
+      const poItems = pr.items.map(item => {
+        const price = parseFloat(item.unit_purchase_price !== null && item.unit_purchase_price !== undefined ? item.unit_purchase_price : (item.unitPurchasePrice || item.estimated_price || item.estimatedPrice || 0));
+        return {
+          productId: item.product_id || item.productId,
+          quantity: item.quantity,
+          unitPrice: price,
+          unit_price: price,
+          unitPurchasePrice: price,
+          unit_purchase_price: price
+        };
+      });
 
       const po = await PurchaseOrderService.createPurchaseOrder({
         companyId,

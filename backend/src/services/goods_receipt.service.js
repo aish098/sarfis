@@ -280,7 +280,7 @@ class GoodsReceiptService {
     const items = await trx('goods_receipt_items as gri')
       .join('products as p', 'gri.product_id', 'p.id')
       .where({ 'gri.goods_receipt_id': id })
-      .select('gri.*', 'p.name as product_name', 'p.sku as product_sku', 'p.cost_price')
+      .select('gri.*', 'p.name as product_name', 'p.sku as product_sku', 'p.cost_price as default_catalog_cost')
       .orderBy('gri.id', 'asc');
 
     // Fetch linked PO details if any
@@ -339,9 +339,12 @@ class GoodsReceiptService {
       let totalAmount = 0;
       const voucherItems = grn.items.map(item => {
         const qty = parseFloat(item.quantity_received);
-        const itemUnitCost = parseFloat(item.unit_cost || 0);
-        const fallbackCost = parseFloat(item.cost_price || 0);
-        const cost = itemUnitCost > 0 ? itemUnitCost : fallbackCost;
+        const itemUnitCost = (item.unit_cost !== undefined && item.unit_cost !== null) ? parseFloat(item.unit_cost) :
+                             (item.unitCost !== undefined && item.unitCost !== null) ? parseFloat(item.unitCost) :
+                             (item.unit_price !== undefined && item.unit_price !== null) ? parseFloat(item.unit_price) : NaN;
+
+        const fallbackCost = parseFloat(item.default_catalog_cost || item.cost_price || 0);
+        const cost = !isNaN(itemUnitCost) && itemUnitCost > 0 ? itemUnitCost : fallbackCost;
         const total = qty * cost;
         totalAmount += total;
 
@@ -349,7 +352,9 @@ class GoodsReceiptService {
           productId: item.product_id,
           quantity: qty,
           unitCost: cost,
-          unitPrice: cost
+          unitPrice: cost,
+          unit_cost: cost,
+          unit_price: cost
         };
       });
 

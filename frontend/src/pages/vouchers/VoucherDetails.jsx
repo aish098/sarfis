@@ -696,7 +696,7 @@ export default function VoucherDetails() {
                 <tbody className="divide-y divide-slate-50 text-slate-600">
                   {items.map((item, index) => {
                     const qty = parseFloat(item.quantity || 0);
-                    const costOrPrice = parseFloat(item.unitCost || item.unitPrice || 0);
+                    const costOrPrice = parseFloat(item.unitCost ?? item.unit_cost ?? item.unitPrice ?? item.unit_price ?? item.unitPurchasePrice ?? item.unit_purchase_price ?? 0);
                     const extVal = qty * costOrPrice;
                     const wac = parseFloat(item.wac || item.avgCost || 0);
                     const itemProfit = isSales ? extVal - (qty * wac) : 0;

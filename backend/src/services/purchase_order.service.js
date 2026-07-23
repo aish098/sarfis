@@ -100,7 +100,11 @@ class PurchaseOrderService {
         if (!product) throw new Error(`Product ID ${item.productId} not found.`);
 
         const qty = parseFloat(item.quantity || 0);
-        const price = parseFloat(item.unitPrice || item.unit_price || item.unitPurchasePrice || item.unit_purchase_price || product.cost_price || 0);
+        const userPrice = (item.unitPrice !== undefined && item.unitPrice !== null) ? parseFloat(item.unitPrice) :
+                          (item.unit_price !== undefined && item.unit_price !== null) ? parseFloat(item.unit_price) :
+                          (item.unitPurchasePrice !== undefined && item.unitPurchasePrice !== null) ? parseFloat(item.unitPurchasePrice) :
+                          (item.unit_purchase_price !== undefined && item.unit_purchase_price !== null) ? parseFloat(item.unit_purchase_price) : NaN;
+        const price = !isNaN(userPrice) ? userPrice : parseFloat(product.cost_price || 0);
         const lineTotal = qty * price;
         totalAmount += lineTotal;
 
