@@ -14,7 +14,9 @@ router.post('/', requirePermission('journal.create'), journalController.createJo
 router.put('/:id', requirePermission('journal.create'), journalController.updateJournalEntry);
 router.post('/:id/submit', requirePermission('journal.create'), journalController.submitJournalForApproval);
 router.post('/:id/post', requirePermission('journal.post'), journalController.postJournalEntry);
-router.post('/:id/reverse', requirePermission('journal.post'), journalController.reverseJournalEntry);
-router.delete('/:id', requirePermission('journal.create'), journalController.deleteJournalEntry); // Assuming creator can delete draft
+router.post('/:id/request-correction', requirePermission('journal.request_correction'), journalController.requestCorrection);
+router.post('/correction-requests/:id/approve', requirePermission('journal.approve_correction'), journalController.approveCorrectionRequest);
+router.post('/correction-requests/:id/reject', requirePermission('journal.reject_correction'), journalController.rejectCorrectionRequest);
+router.post('/correction-requests/:id/execute', requirePermission('journal.execute_correction'), journalController.executeCorrectionRequest);
 
 module.exports = router;

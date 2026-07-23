@@ -2,10 +2,8 @@ const db = require('../config/db');
 
 class JournalModel {
   static async createEntry(entryData, trx) {
-    const query = db('journal_entries');
-    if (trx) query.transacting(trx);
-
-    const [entry] = await query
+    const queryExecutor = trx || db;
+    const [entry] = await queryExecutor('journal_entries')
       .insert({
         company_id: entryData.companyId,
         entry_date: entryData.entryDate || new Date(),
@@ -23,10 +21,8 @@ class JournalModel {
   }
 
   static async createLine(lineData, trx) {
-    const query = db('journal_lines');
-    if (trx) query.transacting(trx);
-
-    await query.insert({
+    const queryExecutor = trx || db;
+    await queryExecutor('journal_lines').insert({
       entry_id: lineData.entryId,
       account_id: lineData.accountId,
       debit: lineData.debit || 0,

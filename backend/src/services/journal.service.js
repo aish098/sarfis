@@ -227,6 +227,287 @@ class JournalService {
       return await executePost(trx);
     }
   }
+
+  /**
+   * Requests correction for a posted Journal Entry
+   */
+  static async requestCorrection({ companyId, userId, entryId, reasonCode, reasonText }) {
+    if (!reasonCode || !reasonText || reasonText.trim().length < 5) {
+      throw new Error('A valid reason code and explanation (at least 5 characters) is required.');
+    }
+
+    return await db.transaction(async (trx) => {
+      const header = await trx('journal_entries').where({ id: entryId, company_id: companyId }).forUpdate().first();
+      if (!header) throw new Error('Journal entry not found.');
+      if (header.status !== 'POSTED') {
+        const err = new Error('Only posted journal entries can request a correction.');
+        err.statusCode = 409;
+        throw err;
+      }
+      if (header.is_reversed) {
+        const err = new Error('This journal entry has already been reversed.');
+        err.statusCode = 409;
+        throw err;
+      }
+
+      // Check for active correction request
+      const activeReq = await trx('document_correction_requests')
+        .where({ company_id: companyId, document_type: 'JOURNAL', document_id: entryId })
+        .whereIn('status', ['PENDING_APPROVAL', 'APPROVED', 'EXECUTING'])
+        .first();
+
+      if (activeReq) {
+        const err = new Error('An active correction request already exists for this journal entry.');
+        err.statusCode = 409;
+        throw err;
+      }
+
+      const [inserted] = await trx('document_correction_requests')
+        .insert({
+          company_id: companyId,
+          document_type: 'JOURNAL',
+          document_id: entryId,
+          reason_code: reasonCode,
+          reason_text: reasonText.trim(),
+          requested_by: userId,
+          status: 'PENDING_APPROVAL'
+        })
+        .returning('id');
+
+      const requestId = typeof inserted === 'object' ? inserted.id : inserted;
+
+      await trx('transaction_audit_logs').insert({
+        company_id: companyId,
+        action: 'CORRECTION_REQUESTED',
+        user_id: userId,
+        description: `Requested correction for Journal #${entryId} (Reason: [${reasonCode}] ${reasonText})`
+      });
+
+      return requestId;
+    });
+  }
+
+  /**
+   * Approves a posted Journal correction request
+   */
+  static async approveCorrectionRequest({ companyId, userId, requestId }) {
+    return await db.transaction(async (trx) => {
+      const req = await trx('document_correction_requests')
+        .where({ id: requestId, company_id: companyId, document_type: 'JOURNAL' })
+        .forUpdate()
+        .first();
+
+      if (!req) throw new Error('Correction request not found.');
+      if (req.status !== 'PENDING_APPROVAL') {
+        const err = new Error(`Cannot approve correction request in '${req.status}' state.`);
+        err.statusCode = 409;
+        throw err;
+      }
+
+      await trx('document_correction_requests')
+        .where({ id: requestId })
+        .update({
+          status: 'APPROVED',
+          approved_by: userId,
+          approved_at: trx.fn.now(),
+          updated_at: trx.fn.now()
+        });
+
+      return true;
+    });
+  }
+
+  /**
+   * Rejects a posted Journal correction request
+   */
+  static async rejectCorrectionRequest({ companyId, userId, requestId, rejectionReason }) {
+    return await db.transaction(async (trx) => {
+      const req = await trx('document_correction_requests')
+        .where({ id: requestId, company_id: companyId, document_type: 'JOURNAL' })
+        .forUpdate()
+        .first();
+
+      if (!req) throw new Error('Correction request not found.');
+      if (req.status !== 'PENDING_APPROVAL') {
+        const err = new Error(`Cannot reject correction request in '${req.status}' state.`);
+        err.statusCode = 409;
+        throw err;
+      }
+
+      await trx('document_correction_requests')
+        .where({ id: requestId })
+        .update({
+          status: 'REJECTED',
+          rejected_by: userId,
+          rejected_at: trx.fn.now(),
+          rejection_reason: rejectionReason || 'Correction request denied by approver.',
+          updated_at: trx.fn.now()
+        });
+
+      return true;
+    });
+  }
+
+  /**
+   * Executes an approved Journal Correction Request:
+   * 1. Creates & posts Inverted Reversal Journal Entry
+   * 2. Marks original journal entry is_reversed: true
+   * 3. Creates replacement Draft copy
+   * 4. Updates correction request status to EXECUTED
+   */
+  static async executeCorrectionRequest({ companyId, userId, requestId }) {
+    try {
+      return await db.transaction(async (trx) => {
+        const req = await trx('document_correction_requests')
+          .where({ id: requestId, company_id: companyId, document_type: 'JOURNAL' })
+          .forUpdate()
+          .first();
+
+        if (!req) throw new Error('Correction request not found.');
+        if (req.status !== 'APPROVED') {
+          const err = new Error(`Only APPROVED correction requests can be executed (Current status: ${req.status}).`);
+          err.statusCode = 409;
+          throw err;
+        }
+
+        // Mark request EXECUTING
+        await trx('document_correction_requests')
+          .where({ id: requestId })
+          .update({
+            status: 'EXECUTING',
+            execution_attempts: (req.execution_attempts || 0) + 1,
+            updated_at: trx.fn.now()
+          });
+
+        const origEntry = await trx('journal_entries')
+          .where({ id: req.document_id, company_id: companyId })
+          .forUpdate()
+          .first();
+
+        if (!origEntry) throw new Error('Original journal entry not found.');
+        if (origEntry.status !== 'POSTED') throw new Error('Original journal entry is no longer POSTED.');
+        if (origEntry.is_reversed) throw new Error('Original journal entry is already marked REVERSED.');
+
+        const origLines = await trx('journal_lines').where({ entry_id: origEntry.id });
+        if (!origLines || origLines.length === 0) throw new Error('Original journal entry has no line items.');
+
+        // Validate Period Close
+        const JournalValidationService = require('./journal_validation.service');
+        await JournalValidationService.validatePeriod(companyId, origEntry.entry_date, trx);
+
+        // 1. Create Inverted Reversal Entry
+        const JournalModel = require('../models/journal.model');
+        const reversalEntryId = await JournalModel.createEntry({
+          companyId,
+          entryDate: origEntry.entry_date,
+          description: `Reversal of Journal #${origEntry.id}: ${origEntry.description || ''}`,
+          reference: `REV-${origEntry.reference || origEntry.id}`,
+          userId,
+          status: 'POSTED'
+        }, trx);
+
+        // Invert lines (Debit <-> Credit)
+        for (const line of origLines) {
+          const invDebit = parseFloat(line.credit) || 0;
+          const invCredit = parseFloat(line.debit) || 0;
+
+          await JournalModel.createLine({
+            entryId: reversalEntryId,
+            accountId: line.account_id,
+            debit: invDebit,
+            credit: invCredit,
+            department: line.department,
+            project: line.project,
+            branch: line.branch
+          }, trx);
+
+          // Update Account GL Balance for Reversal
+          await AccountModel.updateBalance(line.account_id, companyId, invDebit, invCredit, trx);
+        }
+
+        // 2. Mark Original Journal REVERSED
+        await trx('journal_entries')
+          .where({ id: origEntry.id })
+          .update({
+            is_reversed: true,
+            reversed_by_entry_id: reversalEntryId
+          });
+
+        // 3. Create Corrected Draft Copy
+        const correctedDraftId = await JournalModel.createEntry({
+          companyId,
+          entryDate: origEntry.entry_date,
+          description: `Corrected Copy of Journal #${origEntry.id}: ${origEntry.description || ''}`,
+          reference: `CORR-${origEntry.reference || origEntry.id}`,
+          userId,
+          status: 'DRAFT'
+        }, trx);
+
+        for (const line of origLines) {
+          await JournalModel.createLine({
+            entryId: correctedDraftId,
+            accountId: line.account_id,
+            debit: parseFloat(line.debit) || 0,
+            credit: parseFloat(line.credit) || 0,
+            department: line.department,
+            project: line.project,
+            branch: line.branch
+          }, trx);
+        }
+
+        // Link original entry superseded link
+        await trx('journal_entries')
+          .where({ id: origEntry.id })
+          .update({ superseded_by_document_id: correctedDraftId });
+
+        // 4. Update Correction Request EXECUTED
+        await trx('document_correction_requests')
+          .where({ id: requestId })
+          .update({
+            status: 'EXECUTED',
+            executed_by: userId,
+            executed_at: trx.fn.now(),
+            reversal_document_id: reversalEntryId,
+            corrected_document_id: correctedDraftId,
+            updated_at: trx.fn.now()
+          });
+
+        // Audit Trail
+        await trx('transaction_audit_logs').insert({
+          company_id: companyId,
+          action: 'CORRECTION_EXECUTED',
+          user_id: userId,
+          description: `Executed Correction for Journal #${origEntry.id}. Created Reversal Journal #${reversalEntryId} and Draft Copy #${correctedDraftId}`
+        });
+
+        // Outbox Notification
+        const NotificationOutboxService = require('./notification_outbox.service');
+        await NotificationOutboxService.enqueueNotification({
+          companyId,
+          eventType: 'JOURNAL_CORRECTION_EXECUTED',
+          aggregateType: 'JOURNAL',
+          aggregateId: origEntry.id,
+          payload: {
+            title: `Journal Correction Executed: #${origEntry.id}`,
+            message: `Journal #${origEntry.id} was reversed by Reversal #${reversalEntryId}. Corrected draft #${correctedDraftId} created.`,
+            userIds: [origEntry.user_id, req.requested_by]
+          },
+          trx
+        });
+
+        return { reversalEntryId, correctedDraftId };
+      });
+    } catch (err) {
+      await db('document_correction_requests')
+        .where({ id: requestId })
+        .update({
+          status: 'FAILED',
+          execution_error: err.message,
+          updated_at: db.fn.now()
+        });
+      throw err;
+    }
+  }
 }
 
 module.exports = JournalService;

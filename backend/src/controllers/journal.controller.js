@@ -208,3 +208,83 @@ exports.reverseJournalEntry = async (req, res) => {
     res.status(400).json({ error: err.message });
   }
 };
+
+exports.requestCorrection = async (req, res) => {
+  const { id } = req.params;
+  const { reasonCode, reasonText } = req.body || {};
+  const companyId = req.companyId;
+  const userId = req.user.id;
+
+  try {
+    const requestId = await JournalService.requestCorrection({
+      companyId,
+      userId,
+      entryId: id,
+      reasonCode,
+      reasonText
+    });
+    res.status(201).json({ id: requestId, message: 'Correction request submitted successfully.' });
+  } catch (err) {
+    const status = err.statusCode || 400;
+    res.status(status).json({ error: err.message });
+  }
+};
+
+exports.approveCorrectionRequest = async (req, res) => {
+  const { id } = req.params;
+  const companyId = req.companyId;
+  const userId = req.user.id;
+
+  try {
+    await JournalService.approveCorrectionRequest({
+      companyId,
+      userId,
+      requestId: id
+    });
+    res.json({ message: 'Correction request approved successfully.' });
+  } catch (err) {
+    const status = err.statusCode || 400;
+    res.status(status).json({ error: err.message });
+  }
+};
+
+exports.rejectCorrectionRequest = async (req, res) => {
+  const { id } = req.params;
+  const { rejectionReason } = req.body || {};
+  const companyId = req.companyId;
+  const userId = req.user.id;
+
+  try {
+    await JournalService.rejectCorrectionRequest({
+      companyId,
+      userId,
+      requestId: id,
+      rejectionReason
+    });
+    res.json({ message: 'Correction request rejected.' });
+  } catch (err) {
+    const status = err.statusCode || 400;
+    res.status(status).json({ error: err.message });
+  }
+};
+
+exports.executeCorrectionRequest = async (req, res) => {
+  const { id } = req.params;
+  const companyId = req.companyId;
+  const userId = req.user.id;
+
+  try {
+    const result = await JournalService.executeCorrectionRequest({
+      companyId,
+      userId,
+      requestId: id
+    });
+    res.json({
+      message: 'Correction request executed successfully. Inverted reversal journal posted and corrected draft copy generated.',
+      ...result
+    });
+  } catch (err) {
+    const status = err.statusCode || 400;
+    res.status(status).json({ error: err.message });
+  }
+};
