@@ -218,12 +218,17 @@ export default function GoodsReceiptsPage() {
   };
 
   const handleReceiveGoods = async (id) => {
-    if (!window.confirm("Confirm receipt of goods? This will update warehouse stock levels.")) return;
+    if (!window.confirm("Confirm receipt of goods? This will update warehouse stock levels and generate the linked Purchase Voucher.")) return;
     try {
       await api.post(`/goods-receipts/${activeCompany.id}/${id}/post`);
+      const convRes = await api.post(`/goods-receipts/${activeCompany.id}/${id}/convert`);
       await loadData();
-      const updated = await api.get(`/goods-receipts/${activeCompany.id}/${id}`);
-      setSelectedGrn(updated.data);
+      if (convRes.data && convRes.data.voucherId) {
+        navigate(`/dashboard/vouchers/details/${convRes.data.voucherId}`);
+      } else {
+        const updated = await api.get(`/goods-receipts/${activeCompany.id}/${id}`);
+        setSelectedGrn(updated.data);
+      }
     } catch (err) {
       const msg = err.response?.data?.error || err.message || 'Failed to receive goods.';
       alert(msg);
@@ -487,9 +492,9 @@ export default function GoodsReceiptsPage() {
                 {selectedGrn.status === 'DRAFT' && (
                   <button 
                     onClick={() => handleReceiveGoods(selectedGrn.id)}
-                    className="w-full py-2.5 bg-emerald-600 text-white rounded-xl text-[12.5px] font-bold shadow-sm hover:bg-emerald-700 transition cursor-pointer border-none flex items-center justify-center gap-1"
+                    className="w-full py-2.5 bg-emerald-600 text-white rounded-xl text-[12.5px] font-bold shadow-sm hover:bg-emerald-700 transition cursor-pointer border-none flex items-center justify-center gap-1.5"
                   >
-                    <CheckCircle size={14} /> Receive Goods
+                    <CheckCircle size={14} /> Receive Goods & Create Purchase Voucher
                   </button>
                 )}
                 {selectedGrn.status === 'RECEIVED' && !selectedGrn.relatedVoucher && (
