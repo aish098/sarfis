@@ -22,5 +22,5 @@ export function resolveBreadcrumb(pathname) {
       ? pathname === '/dashboard' || pathname === '/dashboard/'
       : pathname === r.match || pathname.startsWith(`${r.match}/`)
   );
-  return hit || { section: 'SCAFIS', title: 'Dashboard' };
+  return hit || { section: 'ACCOUNTELLENCE', title: 'Dashboard' };
 }

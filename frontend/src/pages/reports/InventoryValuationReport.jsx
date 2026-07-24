@@ -193,28 +193,28 @@ export default function InventoryValuationReport({ data, asOfDate, companyName }
       </div>
 
       {/* Summary KPI Panel */}
-      <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-        <div className="p-4.5 bg-white border border-slate-100 rounded-2xl shadow-xs">
+      <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3 sm:gap-4">
+        <div className="p-4 bg-white border border-slate-100 rounded-2xl shadow-xs">
           <span className="text-[10px] text-slate-400 block uppercase font-bold">Total Inventory Carrying Value</span>
-          <strong className="text-lg font-mono text-slate-800 mt-1 block">
+          <strong className="text-sm sm:text-base md:text-lg font-mono text-slate-800 mt-1 block break-all">
             PKR {totalValuation.toLocaleString(undefined, { minimumFractionDigits: 2 })}
           </strong>
         </div>
-        <div className="p-4.5 bg-white border border-slate-100 rounded-2xl shadow-xs">
+        <div className="p-4 bg-white border border-slate-100 rounded-2xl shadow-xs">
           <span className="text-[10px] text-slate-400 block uppercase font-bold">Unique Product SKUs</span>
-          <strong className="text-lg font-sans text-slate-800 mt-1 block">
+          <strong className="text-sm sm:text-base md:text-lg font-sans text-slate-800 mt-1 block">
             {data.summary.productsCount}
           </strong>
         </div>
-        <div className="p-4.5 bg-white border border-slate-100 rounded-2xl shadow-xs">
+        <div className="p-4 bg-white border border-slate-100 rounded-2xl shadow-xs">
           <span className="text-[10px] text-slate-400 block uppercase font-bold">Active Valuation Layers</span>
-          <strong className="text-lg font-sans text-slate-800 mt-1 block">
+          <strong className="text-sm sm:text-base md:text-lg font-sans text-slate-800 mt-1 block">
             {data.summary.activeLayersCount}
           </strong>
         </div>
-        <div className="p-4.5 bg-white border border-slate-100 rounded-2xl shadow-xs">
+        <div className="p-4 bg-white border border-slate-100 rounded-2xl shadow-xs">
           <span className="text-[10px] text-slate-400 block uppercase font-bold">Active Costing Method</span>
-          <strong className="text-lg font-sans text-emerald-600 mt-1 block font-black">
+          <strong className="text-sm sm:text-base md:text-lg font-sans text-emerald-600 mt-1 block font-black">
             {data.summary.costingMethod}
           </strong>
         </div>

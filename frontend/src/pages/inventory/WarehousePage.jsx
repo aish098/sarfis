@@ -425,7 +425,7 @@ export default function WarehousePage({ globalSearch = "" }) {
                     </div>
                   </div>
 
-                  <div className="border border-slate-100 rounded-xl overflow-hidden shadow-2xs">
+                  <div className="border border-slate-100 rounded-xl overflow-x-auto shadow-2xs">
                     <table className="w-full text-left border-collapse">
                       <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-wider">
                         <tr className="border-b border-slate-100">
@@ -481,7 +481,7 @@ export default function WarehousePage({ globalSearch = "" }) {
               {activeTab === 'Movements' && (
                 <div className="bg-white border border-slate-100 rounded-xl p-5 shadow-3xs space-y-4">
                   <h3 className="font-extrabold text-slate-800 uppercase text-[10px] tracking-wider">Chronological Stock Log Ledger</h3>
-                  <div className="border border-slate-100 rounded-xl overflow-hidden shadow-2xs">
+                  <div className="border border-slate-100 rounded-xl overflow-x-auto shadow-2xs">
                     <table className="w-full text-left border-collapse">
                       <thead className="bg-slate-50 text-[9px] font-black uppercase text-slate-400 tracking-wider">
                         <tr className="border-b border-slate-100">

@@ -398,7 +398,7 @@ export default function RiskDashboard() {
       )}
 
       {/* Sub Tabs */}
-      <div className="bg-white border border-slate-100 rounded-xl p-1 flex w-fit shadow-sm">
+      <div className="bg-white border border-slate-100 rounded-xl p-1 flex items-center gap-1 overflow-x-auto hide-scrollbar whitespace-nowrap w-full sm:w-auto shadow-sm">
         {[
           { id: 'summary', label: 'Governance Overview' },
           { id: 'blacklists', label: `Active Watch/Blocks (${blacklisted.length})` },

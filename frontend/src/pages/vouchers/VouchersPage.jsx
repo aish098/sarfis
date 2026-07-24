@@ -80,7 +80,7 @@ function VoucherList() {
   };
 
   const handleReverse = async (id) => {
-    if (!window.confirm('Are you sure you want to REVERSE this posted transaction? SCAFIS will write automatic offsetting offset journal entries to zero out ledger and stock logs.')) return;
+    if (!window.confirm('Are you sure you want to REVERSE this posted transaction? ACCOUNTELLENCE will write automatic offsetting offset journal entries to zero out ledger and stock logs.')) return;
     setSubmittingId(id);
     try {
       await api.post(`/vouchers/${activeCompany.id}/${id}/reverse`);

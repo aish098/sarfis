@@ -5,7 +5,7 @@ export default function RightDrawer({ isOpen, onClose, title, subtitle, tabs, ac
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-y-0 right-0 w-[550px] bg-white border-l border-slate-200 shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-200">
+    <div className="fixed inset-y-0 right-0 w-full sm:w-[500px] max-w-full bg-white border-l border-slate-200 shadow-2xl z-50 flex flex-col animate-in slide-in-from-right duration-200">
       {/* Header */}
       <div className="p-5 border-b border-slate-100 bg-slate-50 flex items-center justify-between">
         <div className="flex items-center gap-3">

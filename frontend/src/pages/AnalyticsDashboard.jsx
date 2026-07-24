@@ -1592,7 +1592,7 @@ export default function AnalyticsDashboard({ companyId }) {
     >
       <div className="col-span-full space-y-6">
         {/* Analytics Navigation Tabs */}
-        <div className="flex items-center justify-center gap-2 overflow-x-auto pb-1.5 hide-scrollbar w-fit bg-white border border-slate-100 rounded-xl p-1 shadow-sm mx-auto">
+        <div className="flex items-center gap-2 overflow-x-auto pb-1.5 hide-scrollbar w-full sm:w-auto bg-white border border-slate-100 rounded-xl p-1 shadow-sm">
           {TABS.map(tab => (
             <button
               key={tab.id}
