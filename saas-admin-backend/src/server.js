@@ -15,12 +15,38 @@ async function startServer() {
     await db.migrate.latest();
     console.log('✅ Database migrations up to date.');
 
-    // 3. Run seeders if database is empty
-    const adminCount = await db('admins').count('id as count').first();
-    if (parseInt(adminCount.count || 0, 10) === 0) {
-      console.log('🌱 Database empty. Running initial seeders...');
+    // 3. Ensure Master Super Admin exists and credentials are synced on startup
+    const bcrypt = require('bcryptjs');
+    const initialEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@saas.com';
+    const initialPassword = process.env.INITIAL_ADMIN_PASSWORD || 'AdminPass123!';
+
+    const superAdminRole = await db('admin_roles').where({ name: 'SUPER_ADMIN' }).first();
+
+    if (!superAdminRole) {
+      console.log('🌱 Roles missing. Running initial seeders...');
       await db.seed.run();
-      console.log('✅ Initial database seed completed.');
+    } else {
+      const existingAdmin = await db('admins').whereRaw('LOWER(email) = ?', [initialEmail.toLowerCase()]).first();
+      const passwordHash = await bcrypt.hash(initialPassword, 10);
+
+      if (!existingAdmin) {
+        console.log(`🌱 Master Admin (${initialEmail}) missing. Creating master admin...`);
+        await db('admins').insert({
+          name: 'Master Admin',
+          email: initialEmail,
+          password_hash: passwordHash,
+          role_id: superAdminRole.id,
+          status: 'ACTIVE',
+          must_change_password: true
+        });
+      } else {
+        await db('admins').where({ id: existingAdmin.id }).update({
+          password_hash: passwordHash,
+          status: 'ACTIVE',
+          updated_at: new Date()
+        });
+        console.log(`✅ Master Admin (${initialEmail}) credentials synced successfully.`);
+      }
     }
 
     const server = app.listen(PORT, () => {
