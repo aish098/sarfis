@@ -145,12 +145,12 @@ function VoucherList() {
       >
         {/* Type & Status Filters */}
         <div className="col-span-full mb-3 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-          <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 border border-slate-100 rounded-xl w-fit">
+          <div className="flex items-center gap-1.5 p-1 bg-slate-100 border border-slate-100 rounded-xl w-full sm:w-auto overflow-x-auto hide-scrollbar">
             {['ALL', 'SALES', 'PURCHASE', 'RECEIPT', 'PAYMENT', 'JOURNAL'].map(t => (
               <button
                 key={t}
                 onClick={() => setFilterType(t)}
-                className={`px-4.5 py-2 text-[12.5px] font-bold rounded-lg transition-all border-none bg-transparent cursor-pointer ${
+                className={`px-3.5 py-1.5 text-[12px] font-bold rounded-lg transition-all border-none bg-transparent cursor-pointer whitespace-nowrap ${
                   filterType === t 
                     ? 'bg-white text-slate-800 shadow-xs' 
                     : 'text-slate-500 hover:text-slate-800'
@@ -161,9 +161,9 @@ function VoucherList() {
             ))}
           </div>
 
-          <div className="relative w-[180px]">
+          <div className="relative w-full sm:w-[180px]">
             <select
-              className="input-enterprise pr-10 text-[13px] cursor-pointer appearance-none pl-3"
+              className="input-enterprise pr-10 text-[13px] cursor-pointer appearance-none pl-3 w-full"
               value={filterStatus} onChange={e => setFilterStatus(e.target.value)}
             >
               <option value="ALL">All Statuses</option>

@@ -59,8 +59,6 @@ import BudgetRegisterPage from './finance/BudgetRegisterPage.jsx';
 import BudgetVsActualReport from './finance/BudgetVsActualReport.jsx';
 import BudgetDashboard from './finance/BudgetDashboard.jsx';
 
-import PageLoader from '../components/common/PageLoader.jsx';
-
 function ModuleProtectedRoute({ moduleKey, fallbackDefault = true, children }) {
   const { settings } = useAuthStore();
   const val = settings[moduleKey];
@@ -123,12 +121,12 @@ function DashboardOverview() {
         api.get(`/communications/ess/${activeCompany.id}/leave-balances`)
       ]);
       const unread = msgRes.data.reduce((acc, c) => acc + (c.unreadCount || 0), 0);
-      
+
       let lastNetPay = 0;
       try {
         const profRes = await api.get(`/communications/ess/${activeCompany.id}/profile`);
         lastNetPay = profRes.data?.salary || 0;
-      } catch (e) {}
+      } catch (e) { }
 
       setEmpStats({
         leaveBalance: balRes.data?.remaining || 0,
@@ -278,9 +276,8 @@ function DashboardOverview() {
                       <span className="font-extrabold text-[12px] text-slate-800">{l.leave_type} Leave</span>
                       <span className="block text-[10px] text-slate-400 mt-0.5">{new Date(l.start_date).toLocaleDateString()} - {new Date(l.end_date).toLocaleDateString()}</span>
                     </div>
-                    <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${
-                      l.status === 'Approved' ? 'bg-emerald-50 text-emerald-700' : l.status === 'Rejected' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
-                    }`}>
+                    <span className={`inline-flex px-2 py-0.5 rounded text-[10px] font-bold ${l.status === 'Approved' ? 'bg-emerald-50 text-emerald-700' : l.status === 'Rejected' ? 'bg-red-50 text-red-700' : 'bg-amber-50 text-amber-700'
+                      }`}>
                       {l.status}
                     </span>
                   </div>
@@ -322,7 +319,7 @@ function DashboardOverview() {
               <p className="text-[12px] text-amber-750 mt-0.5">Opening balances have not been finalized/posted for the current fiscal year {year}. Setup starting balances to ensure report accuracy.</p>
             </div>
           </div>
-          <button 
+          <button
             onClick={() => navigate('/dashboard/accounts/opening-balances')}
             className="bg-amber-600 hover:bg-amber-700 text-white font-bold px-4.5 py-2 text-[12px] rounded-xl border-none cursor-pointer transition active:scale-95"
           >
@@ -548,94 +545,92 @@ export default function Dashboard() {
       >
         <AnimatePresence mode="wait">
           <Motion.div
-            key={location.pathname}
+            key="route-content"
             variants={pageVariants}
             initial="initial"
             animate="animate"
             exit="exit"
             transition={{ duration: 0.3, ease: [0.4, 0, 0.2, 1] }}
           >
-            <React.Suspense fallback={<PageLoader message="Syncing workspace page..." />}>
-              <Routes>
-                <Route index element={<DashboardOverview />} />
-                <Route path="accounts" element={<AccountsPage globalSearch={globalSearch} />} />
-                <Route path="accounts/opening-balances" element={<BeginningBalancesPage />} />
-                <Route path="journal" element={<JournalEntryPage />} />
-                <Route path="ledger" element={<LedgerPage globalSearch={globalSearch} />} />
-                <Route path="reports" element={<ReportsPage />} />
-                <Route path="analytics" element={
-                  <ModuleProtectedRoute moduleKey="budgetingEnabled">
-                    <AnalyticsDashboard />
-                  </ModuleProtectedRoute>
-                } />
-                <Route path="inventory" element={
-                  <ModuleProtectedRoute moduleKey="inventoryEnabled">
-                    <InventoryPage globalSearch={globalSearch} />
-                  </ModuleProtectedRoute>
-                } />
-                <Route path="warehouses" element={
-                  <ModuleProtectedRoute moduleKey="warehousingEnabled">
-                    <WarehousePage globalSearch={globalSearch} />
-                  </ModuleProtectedRoute>
-                } />
-                <Route path="distribution" element={
-                  <ModuleProtectedRoute moduleKey="inventoryEnabled">
-                    <DistributionPage globalSearch={globalSearch} />
-                  </ModuleProtectedRoute>
-                } />
-                <Route path="payroll" element={
-                  <ModuleProtectedRoute moduleKey="payrollEnabled" fallbackDefault={false}>
-                    <PayrollPage />
-                  </ModuleProtectedRoute>
-                } />
-                <Route path="vouchers/*" element={<VouchersPage />} />
-                <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
-                <Route path="purchase-requisitions" element={<PurchaseRequisitionsPage />} />
-                <Route path="goods-receipts" element={<GoodsReceiptsPage />} />
-                <Route path="sales-orders" element={<SalesOrdersPage />} />
-                <Route path="order-tracking" element={<OrderTrackingPage />} />
-                <Route path="vendors" element={<VendorsPage />} />
-                <Route path="settings" element={<SettingsPage />} />
-                <Route path="admin" element={<AdminPage />} />
-                <Route path="email-center" element={<EmailCenterPage />} />
-                <Route path="notifications" element={<NotificationCenterPage />} />
-                <Route path="leave" element={<EmployeeLeavePage />} />
-                <Route path="documents" element={<EmployeeDocumentsPage />} />
-                <Route path="messages" element={<EmployeeMessagesPage />} />
-                <Route path="risk" element={
-                  <ModuleProtectedRoute moduleKey="riskEnabled">
-                    <RiskDashboard />
-                  </ModuleProtectedRoute>
-                } />
-                
-                <Route path="fixed-assets" element={
-                  <ModuleProtectedRoute moduleKey="fixedAssetsEnabled">
-                    <FixedAssetsDashboard />
-                  </ModuleProtectedRoute>
-                } />
-                <Route path="fixed-assets/register" element={
-                  <ModuleProtectedRoute moduleKey="fixedAssetsEnabled">
-                    <AssetRegister />
-                  </ModuleProtectedRoute>
-                } />
-                <Route path="fixed-assets/categories" element={
-                  <ModuleProtectedRoute moduleKey="fixedAssetsEnabled">
-                    <AssetCategories />
-                  </ModuleProtectedRoute>
-                } />
-                <Route path="fixed-assets/wizard" element={
-                  <ModuleProtectedRoute moduleKey="fixedAssetsEnabled">
-                    <DepreciationWizard />
-                  </ModuleProtectedRoute>
-                } />
-                <Route path="finance/close-wizard" element={<MonthEndCloseWizard />} />
-                <Route path="admin/workflows" element={<WorkflowConfigPage />} />
-                <Route path="admin/approvals" element={<ApprovalsInboxPage />} />
-                <Route path="finance/budgets" element={<BudgetRegisterPage />} />
-                <Route path="finance/budgets/dashboard" element={<BudgetDashboard />} />
-                <Route path="finance/budgets/vs-actual" element={<BudgetVsActualReport />} />
-              </Routes>
-            </React.Suspense>
+            <Routes>
+              <Route index element={<DashboardOverview />} />
+              <Route path="accounts" element={<AccountsPage globalSearch={globalSearch} />} />
+              <Route path="accounts/opening-balances" element={<BeginningBalancesPage />} />
+              <Route path="journal" element={<JournalEntryPage />} />
+              <Route path="ledger" element={<LedgerPage globalSearch={globalSearch} />} />
+              <Route path="reports" element={<ReportsPage />} />
+              <Route path="analytics" element={
+                <ModuleProtectedRoute moduleKey="budgetingEnabled">
+                  <AnalyticsDashboard />
+                </ModuleProtectedRoute>
+              } />
+              <Route path="inventory" element={
+                <ModuleProtectedRoute moduleKey="inventoryEnabled">
+                  <InventoryPage globalSearch={globalSearch} />
+                </ModuleProtectedRoute>
+              } />
+              <Route path="warehouses" element={
+                <ModuleProtectedRoute moduleKey="warehousingEnabled">
+                  <WarehousePage globalSearch={globalSearch} />
+                </ModuleProtectedRoute>
+              } />
+              <Route path="distribution" element={
+                <ModuleProtectedRoute moduleKey="inventoryEnabled">
+                  <DistributionPage globalSearch={globalSearch} />
+                </ModuleProtectedRoute>
+              } />
+              <Route path="payroll" element={
+                <ModuleProtectedRoute moduleKey="payrollEnabled" fallbackDefault={false}>
+                  <PayrollPage />
+                </ModuleProtectedRoute>
+              } />
+              <Route path="vouchers/*" element={<VouchersPage />} />
+              <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
+              <Route path="purchase-requisitions" element={<PurchaseRequisitionsPage />} />
+              <Route path="goods-receipts" element={<GoodsReceiptsPage />} />
+              <Route path="sales-orders" element={<SalesOrdersPage />} />
+              <Route path="order-tracking" element={<OrderTrackingPage />} />
+              <Route path="vendors" element={<VendorsPage />} />
+              <Route path="settings" element={<SettingsPage />} />
+              <Route path="admin" element={<AdminPage />} />
+              <Route path="email-center" element={<EmailCenterPage />} />
+              <Route path="notifications" element={<NotificationCenterPage />} />
+              <Route path="leave" element={<EmployeeLeavePage />} />
+              <Route path="documents" element={<EmployeeDocumentsPage />} />
+              <Route path="messages" element={<EmployeeMessagesPage />} />
+              <Route path="risk" element={
+                <ModuleProtectedRoute moduleKey="riskEnabled">
+                  <RiskDashboard />
+                </ModuleProtectedRoute>
+              } />
+
+              <Route path="fixed-assets" element={
+                <ModuleProtectedRoute moduleKey="fixedAssetsEnabled">
+                  <FixedAssetsDashboard />
+                </ModuleProtectedRoute>
+              } />
+              <Route path="fixed-assets/register" element={
+                <ModuleProtectedRoute moduleKey="fixedAssetsEnabled">
+                  <AssetRegister />
+                </ModuleProtectedRoute>
+              } />
+              <Route path="fixed-assets/categories" element={
+                <ModuleProtectedRoute moduleKey="fixedAssetsEnabled">
+                  <AssetCategories />
+                </ModuleProtectedRoute>
+              } />
+              <Route path="fixed-assets/wizard" element={
+                <ModuleProtectedRoute moduleKey="fixedAssetsEnabled">
+                  <DepreciationWizard />
+                </ModuleProtectedRoute>
+              } />
+              <Route path="finance/close-wizard" element={<MonthEndCloseWizard />} />
+              <Route path="admin/workflows" element={<WorkflowConfigPage />} />
+              <Route path="admin/approvals" element={<ApprovalsInboxPage />} />
+              <Route path="finance/budgets" element={<BudgetRegisterPage />} />
+              <Route path="finance/budgets/dashboard" element={<BudgetDashboard />} />
+              <Route path="finance/budgets/vs-actual" element={<BudgetVsActualReport />} />
+            </Routes>
           </Motion.div>
         </AnimatePresence>
       </Motion.main>

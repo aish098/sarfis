@@ -1269,7 +1269,7 @@ export default function SettingsPage() {
       <div className="col-span-full flex flex-col lg:flex-row gap-6">
         {/* Left Sidebar Nav */}
         <div className="w-full lg:w-64 shrink-0">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-hidden divide-y divide-slate-100">
+          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto hide-scrollbar flex lg:flex-col lg:divide-y divide-slate-100">
             {TABS.map(tab => {
               const Icon = tab.icon;
               const isActive = activeTab === tab.id;
@@ -1280,7 +1280,7 @@ export default function SettingsPage() {
                     setActiveTab(tab.id);
                     setMessage(null);
                   }}
-                  className={`w-full flex items-center gap-3 px-5 py-4 text-[13px] font-bold transition-all border-l-4 ${
+                  className={`flex items-center gap-2.5 px-4 py-3.5 text-[12.5px] font-bold transition-all whitespace-nowrap shrink-0 lg:shrink border-b-2 lg:border-b-0 lg:border-l-4 ${
                     isActive
                       ? 'border-emerald-500 bg-emerald-50/50 text-emerald-800'
                       : 'border-transparent text-slate-600 hover:bg-slate-50/50 hover:text-slate-900'
