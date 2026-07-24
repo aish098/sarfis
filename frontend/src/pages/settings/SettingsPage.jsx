@@ -440,7 +440,8 @@ export default function SettingsPage() {
       period: 'Official Import Schema Template',
       columns,
       rows,
-      filename
+      filename,
+      isTemplate: true
     });
   };
 
@@ -452,25 +453,44 @@ export default function SettingsPage() {
     const reader = new FileReader();
     reader.onload = (event) => {
       const text = event.target.result;
-      const lines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
-      if (lines.length < 2) {
+      const rawLines = text.split('\n').map(l => l.trim()).filter(l => l.length > 0);
+      if (rawLines.length < 2) {
         setMessage({ type: 'error', text: 'CSV file is empty or missing data rows.' });
         return;
       }
-      const headers = lines[0].split(',').map(h => h.trim());
+
+      // Find line where headers actually start (skip any metadata rows if present)
+      let headerLineIdx = rawLines.findIndex(line => {
+        const lower = line.toLowerCase();
+        return lower.includes('code') || lower.includes('name') || lower.includes('accountcode') || lower.includes('email');
+      });
+      if (headerLineIdx === -1) headerLineIdx = 0;
+
+      const cleanHeaderLine = rawLines[headerLineIdx].replace(/^[\uFEFF\uFFFE]/, ''); // Strip UTF-8 BOM if present
+      const headers = cleanHeaderLine.split(',').map(h => h.replace(/^["']|["']$/g, '').trim());
+      
       const parsed = [];
-      for (let i = 1; i < lines.length; i++) {
-        const values = lines[i].split(',').map(v => v.trim());
-        if (values.length === headers.length) {
+      for (let i = headerLineIdx + 1; i < rawLines.length; i++) {
+        const lineStr = rawLines[i];
+        if (!lineStr || lineStr.startsWith('Company,') || lineStr.startsWith('Period,') || lineStr.startsWith('Generated At,')) continue;
+        
+        const values = lineStr.split(',').map(v => v.replace(/^["']|["']$/g, '').trim());
+        if (values.length >= Math.min(headers.length, 2)) {
           const obj = {};
           headers.forEach((h, idx) => {
-            obj[h] = values[idx];
+            obj[h] = values[idx] || '';
           });
           parsed.push(obj);
         }
       }
+
+      if (parsed.length === 0) {
+        setMessage({ type: 'error', text: 'Could not parse data rows. Please ensure column headers match official template.' });
+        return;
+      }
+
       setImportPreview(parsed);
-      setMessage({ type: 'success', text: `Loaded ${parsed.length} rows from CSV. Review preview below.` });
+      setMessage({ type: 'success', text: `Successfully loaded ${parsed.length} rows from CSV! Review preview below.` });
     };
     reader.readAsText(file);
   };

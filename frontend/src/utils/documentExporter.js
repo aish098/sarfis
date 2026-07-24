@@ -157,8 +157,7 @@ function sanitizeCellValue(val) {
 
 /**
  * Standardized Unified CSV / Excel Exporter for ACCOUNTELLENCE ERP
- * Uses SheetJS native XLSX workbook format with generous column widths (wch: 25-45)
- * so Excel NEVER displays `#####` cell overflows or garbled characters.
+ * Supports `isTemplate: true` for pure raw CSV schema templates required by importers.
  */
 export function exportUnifiedCSV({
   title = 'FINANCIAL REPORT',
@@ -167,29 +166,32 @@ export function exportUnifiedCSV({
   kpis = [],
   columns = [],
   rows = [],
-  filename = 'financial_report.xlsx'
+  filename = 'financial_report.csv',
+  isTemplate = false
 }) {
   const headers = columns.map(c => typeof c === 'string' ? c : c.header);
   
   // Construct array of arrays for SheetJS
   const aoa = [];
 
-  // Header Block
-  aoa.push([`ACCOUNTELLENCE ERP - ${title.toUpperCase()} REPORT`]);
-  aoa.push(['Company', companyName]);
-  aoa.push(['Period', period]);
-  aoa.push(['Generated At', new Date().toLocaleString()]);
-  aoa.push([]);
-
-  // KPI Block
-  if (kpis && kpis.length > 0) {
-    kpis.forEach(k => {
-      aoa.push([k.label, sanitizeCellValue(k.value)]);
-    });
+  if (!isTemplate) {
+    // Header Block (Reports & Statements)
+    aoa.push([`ACCOUNTELLENCE ERP - ${title.toUpperCase()} REPORT`]);
+    aoa.push(['Company', companyName]);
+    aoa.push(['Period', period]);
+    aoa.push(['Generated At', new Date().toLocaleString()]);
     aoa.push([]);
+
+    // KPI Block
+    if (kpis && kpis.length > 0) {
+      kpis.forEach(k => {
+        aoa.push([k.label, sanitizeCellValue(k.value)]);
+      });
+      aoa.push([]);
+    }
   }
 
-  // Column Headers
+  // Column Headers (Row 1 for raw templates!)
   aoa.push(headers);
 
   // Data Rows
@@ -200,7 +202,7 @@ export function exportUnifiedCSV({
   });
 
   // Check if we should export as native XLSX or CSV
-  const isXLSX = filename.toLowerCase().endsWith('.xlsx') || !filename.toLowerCase().endsWith('.csv');
+  const isXLSX = !isTemplate && (filename.toLowerCase().endsWith('.xlsx') || !filename.toLowerCase().endsWith('.csv'));
   const targetFilename = isXLSX
     ? (filename.toLowerCase().endsWith('.xlsx') ? filename : filename.replace(/\.csv$/i, '.xlsx'))
     : filename;
@@ -209,10 +211,7 @@ export function exportUnifiedCSV({
     // Generate native Excel XLSX file with generous auto-calculated column widths
     const ws = XLSX.utils.aoa_to_sheet(aoa);
 
-    // Calculate maximum length for each column to auto-fit cell widths
-    // Ensure every data column gets a minimum width of 26 to prevent Excel `#####` overflows!
     const colWidths = headers.map(() => 26);
-
     aoa.forEach(row => {
       row.forEach((val, i) => {
         if (i < colWidths.length) {
@@ -228,12 +227,11 @@ export function exportUnifiedCSV({
     XLSX.utils.book_append_sheet(wb, ws, title.substring(0, 31).replace(/[\*\?:\/\\\[\]]/g, ''));
     XLSX.writeFile(wb, targetFilename);
   } else {
-    // Generate CSV file with UTF-8 BOM (\uFEFF) to force Excel to open in UTF-8
+    // Generate CSV file with UTF-8 BOM (\uFEFF) for raw templates / CSV files
     const csvLines = aoa.map(row => {
       return row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
     });
 
-    // \uFEFF is UTF-8 Byte Order Mark (BOM)
     const csvContent = '\uFEFF' + csvLines.join('\n');
     const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement('a');
