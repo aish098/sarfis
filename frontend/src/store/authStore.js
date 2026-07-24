@@ -81,7 +81,33 @@ const useAuthStore = create((set) => ({
     } catch (err) {
       const message = err.response?.data?.message || 'Google authentication failed';
       set({ error: message, isLoading: false });
-      return { success: false, error: message, code: err.response?.data?.code };
+      return {
+        success: false,
+        error: message,
+        code: err.response?.data?.code,
+        email: err.response?.data?.email,
+        profile: err.response?.data?.profile
+      };
+    }
+  },
+
+  createWorkspaceWithGoogle: async ({ credential, companyName }) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.post('/auth/google/create-workspace', { credential, companyName });
+      const { token, user, company } = response.data;
+      localStorage.setItem('token', token);
+      
+      set({ user, token, isAuthenticated: true, isLoading: false });
+      if (company) {
+        useAuthStore.getState().setActiveCompany(company);
+      }
+      await useAuthStore.getState().fetchUserCompanies();
+      return { success: true };
+    } catch (err) {
+      const message = err.response?.data?.message || 'Failed to create workspace with Google';
+      set({ error: message, isLoading: false });
+      return { success: false, error: message };
     }
   },
 

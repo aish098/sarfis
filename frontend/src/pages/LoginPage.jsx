@@ -1,15 +1,16 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShieldCheck, Building2, Check, ArrowRight } from 'lucide-react';
+import { ShieldCheck, Building2, Check, ArrowRight, ShieldAlert, Plus, RefreshCw } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { AuthLayout, AuthInput, AuthButton, AuthError, AuthWrapper } from './Auth';
 import GoogleSignInButton from '../components/auth/GoogleSignInButton';
 
 export default function LoginPage() {
   const navigate = useNavigate();
-  const { login, loginWithGoogle, isLoading, error } = useAuthStore();
+  const { login, loginWithGoogle, createWorkspaceWithGoogle, isLoading, error } = useAuthStore();
   const [formData, setFormData] = useState({ email: '', password: '', companySlug: '' });
   const [workspaceSelection, setWorkspaceSelection] = useState(null); // { userCompanies, credential }
+  const [unauthorizedModal, setUnauthorizedModal] = useState(null); // { email, credential, message }
 
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
@@ -20,6 +21,7 @@ export default function LoginPage() {
   };
 
   const handleGoogleCredential = async (credential) => {
+    setUnauthorizedModal(null);
     const res = await loginWithGoogle({
       credential,
       companySlug: formData.companySlug
@@ -31,7 +33,24 @@ export default function LoginPage() {
         credential,
         profile: res.profile
       });
+    } else if (res?.code === 'ACCOUNT_NOT_AUTHORIZED' || res?.error?.includes('not authorized')) {
+      setUnauthorizedModal({
+        email: res.email || 'ayeshakashif098789@gmail.com',
+        credential,
+        message: res.error || 'This Google account is not authorized for any active workspace. Please ask your administrator for an invitation.'
+      });
     } else if (res?.success) {
+      navigate('/dashboard');
+    }
+  };
+
+  const handleCreateWorkspaceWithGoogle = async () => {
+    if (!unauthorizedModal?.credential) return;
+    const res = await createWorkspaceWithGoogle({
+      credential: unauthorizedModal.credential
+    });
+    if (res?.success) {
+      setUnauthorizedModal(null);
       navigate('/dashboard');
     }
   };
@@ -97,6 +116,49 @@ export default function LoginPage() {
                 className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-600 text-xs font-bold rounded-xl transition-all cursor-pointer border-none"
               >
                 Cancel
+              </button>
+            </div>
+          </div>
+        )}
+
+        {/* StealthWriter Style Google Account Authorization Modal Overlay */}
+        {unauthorizedModal && (
+          <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200 space-y-5">
+              <div className="text-center space-y-2">
+                <div className="w-14 h-14 bg-amber-50 border border-amber-200 rounded-2xl flex items-center justify-center mx-auto text-amber-600 mb-1 shadow-xs">
+                  <ShieldAlert size={28} />
+                </div>
+                <span className="inline-block px-3 py-1 bg-amber-100/60 text-amber-900 border border-amber-200/80 rounded-full text-[11px] font-extrabold tracking-wide">
+                  {unauthorizedModal.email}
+                </span>
+                <h3 className="text-lg font-black text-slate-900 tracking-tight leading-snug">
+                  Workspace Authorization Required
+                </h3>
+                <p className="text-slate-600 text-xs font-semibold px-2 leading-relaxed">
+                  This Google account is not authorized for any active workspace. Please ask your administrator for an invitation.
+                </p>
+              </div>
+
+              <div className="bg-slate-50 border border-slate-200 rounded-2xl p-4 space-y-2.5">
+                <span className="block text-[10.5px] font-extrabold uppercase tracking-wider text-slate-400">
+                  What would you like to do?
+                </span>
+                <button
+                  onClick={handleCreateWorkspaceWithGoogle}
+                  disabled={isLoading}
+                  className="w-full py-3 px-4 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-xs font-extrabold flex items-center justify-center gap-2 transition cursor-pointer shadow-md shadow-emerald-600/10"
+                >
+                  {isLoading ? <RefreshCw size={15} className="animate-spin" /> : <Plus size={16} />}
+                  <span>Create New Company Workspace</span>
+                </button>
+              </div>
+
+              <button
+                onClick={() => setUnauthorizedModal(null)}
+                className="w-full py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer border-none"
+              >
+                Try Another Account
               </button>
             </div>
           </div>

@@ -168,34 +168,31 @@ class AuthIdentityService {
           throw Object.assign(new Error('Workspace license limit exceeded. Contact administrator to upgrade licenses.'), { code: 'LICENSE_LIMIT_EXCEEDED', statusCode: 402 });
         }
 
-        // Create User if new
         if (!user) {
           user = await trx('users').insert({
             name: profile.name || profile.email.split('@')[0],
             email: profile.email,
             password: await bcrypt.hash(Math.random().toString(36), 10),
-            role: invitation.role_name || 'Accountant'
+            role: invitation?.role_name || 'Accountant'
           }).returning('*').then(rows => rows[0] || rows);
           if (typeof user === 'number') {
             user = await trx('users').where({ id: user }).first();
           }
         }
 
-        // Add Company Membership
         await trx('company_users').insert({
           company_id: targetCompany.id,
           user_id: user.id,
-          role: invitation.role_name || 'Accountant'
+          role: invitation?.role_name || 'Accountant'
         });
 
-        // Mark Invitation ACCEPTED
         await trx('user_access_invitations').where({ id: invitation.id }).update({
           invitation_status: 'ACCEPTED',
           accepted_by_user_id: user.id,
           accepted_at: trx.fn.now()
         });
 
-        membership = { role: invitation.role_name || 'Accountant' };
+        membership = { role: invitation?.role_name || 'Accountant' };
       }
 
       // Link Identity if missing
@@ -313,6 +310,81 @@ class AuthIdentityService {
 
     await db('user_auth_identities').where({ user_id: userId, provider: 'GOOGLE' }).del();
     return { message: 'Google account unlinked successfully' };
+  }
+
+  /**
+   * Creates a new company workspace for an uninvited Google user
+   */
+  static async createWorkspaceWithGoogle({ credential, companyName, ip, userAgent }) {
+    const providerInstance = AuthProviderFactory.getProvider('GOOGLE');
+    const profile = await providerInstance.verifyIdentity(credential);
+
+    const nameStr = (companyName || `${profile.name || 'Corporate'}'s Workspace`).trim();
+    const slugStr = nameStr.toLowerCase().replace(/[^a-z0-9]/g, '-') + '-' + Date.now().toString(36);
+
+    return await db.transaction(async (trx) => {
+      let user = await trx('users').where({ email: profile.email }).first();
+      if (!user) {
+        user = await trx('users').insert({
+          name: profile.name || profile.email.split('@')[0],
+          email: profile.email,
+          password: await bcrypt.hash(Math.random().toString(36), 10),
+          role: 'Company Admin'
+        }).returning('*').then(rows => rows[0] || rows);
+        if (typeof user === 'number') {
+          user = await trx('users').where({ id: user }).first();
+        }
+      }
+
+      const [compRes] = await trx('companies').insert({
+        name: nameStr,
+        slug: slugStr,
+        currency: 'PKR',
+        tax_number: '1234567-8'
+      }).returning('id');
+      const companyId = typeof compRes === 'object' ? compRes.id : compRes;
+      const targetCompany = await trx('companies').where({ id: companyId }).first();
+
+      await trx('company_users').insert({
+        company_id: companyId,
+        user_id: user.id,
+        role: 'Company Admin'
+      });
+
+      const existingId = await trx('user_auth_identities').where({ provider: 'GOOGLE', provider_subject: profile.subject }).first();
+      if (!existingId) {
+        await trx('user_auth_identities').insert({
+          user_id: user.id,
+          provider: 'GOOGLE',
+          provider_subject: profile.subject,
+          provider_email: profile.email,
+          provider_email_verified: true,
+          provider_picture_url: profile.pictureUrl,
+          last_used_company_id: companyId
+        });
+      }
+
+      const session = await SessionService.createSession({
+        userId: user.id,
+        companyId: companyId,
+        role: 'Company Admin',
+        ipAddress: ip,
+        userAgent: userAgent
+      });
+
+      const token = jwt.sign(
+        { userId: user.id, companyId: companyId, role: 'Company Admin', sessionId: session.id },
+        process.env.JWT_SECRET || 'aisha098',
+        { expiresIn: '30d' }
+      );
+
+      return {
+        success: true,
+        token,
+        user: { id: user.id, name: user.name, email: user.email, role: 'Company Admin' },
+        company: targetCompany
+      };
+    });
   }
 }
 

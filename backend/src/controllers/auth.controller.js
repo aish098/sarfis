@@ -325,7 +325,32 @@ exports.googleLogin = async (req, res) => {
     res.status(err.statusCode || 500).json({
       success: false,
       code: err.code || 'GOOGLE_LOGIN_ERROR',
-      message: err.message || 'Google authentication failed'
+      message: err.message || 'Google authentication failed',
+      email: err.email || null,
+      profile: err.profile || null
+    });
+  }
+};
+
+exports.createWorkspaceWithGoogle = async (req, res) => {
+  const { credential, companyName } = req.body;
+  const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const userAgent = req.headers['user-agent'] || 'Unknown';
+
+  try {
+    const result = await AuthIdentityService.createWorkspaceWithGoogle({
+      credential,
+      companyName,
+      ip,
+      userAgent
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('Google workspace creation error:', err);
+    res.status(err.statusCode || 500).json({
+      success: false,
+      code: err.code || 'GOOGLE_WORKSPACE_CREATION_ERROR',
+      message: err.message || 'Failed to create workspace with Google'
     });
   }
 };
