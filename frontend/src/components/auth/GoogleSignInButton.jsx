@@ -16,7 +16,13 @@ export default function GoogleSignInButton({ onCredentialReceived, disabled }) {
         const google = await loadGoogleIdentityScript();
         if (cancelled || !buttonRef.current || !google?.accounts?.id) return;
 
-        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID || '1234567890-example.apps.googleusercontent.com';
+        const clientId = import.meta.env.VITE_GOOGLE_CLIENT_ID;
+
+        if (!clientId || clientId.includes('example.apps.googleusercontent.com')) {
+          setScriptError('Google OAuth Client ID not configured. Set VITE_GOOGLE_CLIENT_ID in frontend/.env');
+          setScriptLoading(false);
+          return;
+        }
 
         google.accounts.id.initialize({
           client_id: clientId,
