@@ -2,7 +2,7 @@ const UserModel = require('../models/user.model');
 const CompanyModel = require('../models/company.model');
 const AccountModel = require('../models/account.model');
 const db = require('../config/db');
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const jwt = require('jsonwebtoken');
 const { coa_data } = require('../../seed_coa');
 

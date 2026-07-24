@@ -54,7 +54,7 @@ exports.getCurrentUser = async (req, res) => {
 
 exports.seedKhaanUser = async (req, res) => {
   const db = require('../config/db');
-  const bcrypt = require('bcrypt');
+  const bcrypt = require('bcryptjs');
 
   const email = 'khaan@gmail.com';
   const rawPassword = 'khaan123';

@@ -1,4 +1,4 @@
-const bcrypt = require('bcrypt');
+const bcrypt = require('bcryptjs');
 const db = require('../config/db');
 const CompanyModel = require('../models/company.model');
 const AccountModel = require('../models/account.model');
