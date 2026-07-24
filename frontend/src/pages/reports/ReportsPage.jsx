@@ -330,11 +330,41 @@ export default function ReportsPage() {
     let kpis = [];
 
     if (tab === 'trial_balance') {
-      columns = ['Code', 'Account Name', 'Debit (PKR)', 'Credit (PKR)'];
-      rows = accountList.map(acc => {
-        const d = parseFloat(acc.total_debit) || 0, c = parseFloat(acc.total_credit) || 0, net = d - c;
-        return [acc.code, acc.name, net > 0 ? fmt(net) : '—', net < 0 ? fmt(Math.abs(net)) : '—'];
-      }).filter(r => r[2] !== '—' || r[3] !== '—');
+      columns = ['Code', 'Account Name', 'Category', 'Debit (PKR)', 'Credit (PKR)'];
+      const tbItems = accountList.map(acc => {
+        const d = parseFloat(acc.total_debit || acc.debit || 0);
+        const c = parseFloat(acc.total_credit || acc.credit || 0);
+        const net = d - c;
+        const finalDebit = net > 0 ? net : 0;
+        const finalCredit = net < 0 ? Math.abs(net) : 0;
+        return {
+          code: acc.code || '—',
+          name: acc.name || '—',
+          category: acc.category || '—',
+          finalDebit,
+          finalCredit
+        };
+      }).filter(r => r.finalDebit > 0 || r.finalCredit > 0);
+
+      const sumD = tbItems.reduce((s, r) => s + r.finalDebit, 0);
+      const sumC = tbItems.reduce((s, r) => s + r.finalCredit, 0);
+
+      kpis = [
+        { label: 'TOTAL DEBIT', value: `PKR ${fmt(sumD)}`, color: 'emerald' },
+        { label: 'TOTAL CREDIT', value: `PKR ${fmt(sumC)}`, color: 'rose' },
+        { label: 'STATUS', value: Math.abs(sumD - sumC) < 0.01 ? 'BALANCED' : 'UNBALANCED', color: 'blue' }
+      ];
+
+      rows = [
+        ...tbItems.map(i => [
+          i.code,
+          i.name,
+          i.category,
+          i.finalDebit > 0 ? fmt(i.finalDebit) : '—',
+          i.finalCredit > 0 ? fmt(i.finalCredit) : '—'
+        ]),
+        ['Grand Totals', 'Summary', 'Total', fmt(sumD), fmt(sumC)]
+      ];
     } else if (tab === 'income_statement') {
       columns = ['Account Code / Name', 'Category', 'Balance (PKR)'];
       const rev = accountList.filter(a => ['income', 'revenue'].includes(a.category?.toLowerCase() || a.type?.toLowerCase())).map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
