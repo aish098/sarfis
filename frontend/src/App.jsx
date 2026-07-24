@@ -12,6 +12,7 @@ import ContactPage from './pages/ContactPage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
 import Dashboard from './pages/Dashboard';
+import SaaSAdminDashboard from './pages/admin/SaaSAdminDashboard';
 import useAuthStore from './store/authStore';
 
 import ProtectedRoute from './components/ProtectedRoute';
@@ -34,6 +35,7 @@ function AnimatedRoutes() {
 
         <Route path="/login" element={<LoginPage />} />
         <Route path="/register" element={<RegisterPage />} />
+        <Route path="/saas-control" element={<SaaSAdminDashboard />} />
         <Route path="/dashboard/*" element={
           <ProtectedRoute>
             <Dashboard />
