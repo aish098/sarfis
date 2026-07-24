@@ -12,7 +12,14 @@ async function startServer() {
 
     // 2. Run automated Knex migrations on startup
     console.log('🔄 Checking & applying database migrations...');
-    await db.migrate.latest();
+    const path = require('path');
+    const saasMigrationsDir = path.join(__dirname, 'db/migrations');
+    const saasSeedsDir = path.join(__dirname, 'db/seeds');
+
+    await db.migrate.latest({
+      directory: saasMigrationsDir,
+      tableName: 'saas_admin_knex_migrations'
+    });
     console.log('✅ Database migrations up to date.');
 
     // 3. Ensure Master Super Admin exists and credentials are synced on startup
@@ -20,11 +27,17 @@ async function startServer() {
     const initialEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@saas.com';
     const initialPassword = process.env.INITIAL_ADMIN_PASSWORD || 'AdminPass123!';
 
+    const hasAdminsTable = await db.schema.hasTable('admins');
+    if (!hasAdminsTable) {
+      console.log('🌱 admins table missing. Running initial seeders...');
+      await db.seed.run({ directory: saasSeedsDir });
+    }
+
     const superAdminRole = await db('admin_roles').where({ name: 'SUPER_ADMIN' }).first();
 
     if (!superAdminRole) {
       console.log('🌱 Roles missing. Running initial seeders...');
-      await db.seed.run();
+      await db.seed.run({ directory: saasSeedsDir });
     } else {
       const existingAdmin = await db('admins').whereRaw('LOWER(email) = ?', [initialEmail.toLowerCase()]).first();
       const passwordHash = await bcrypt.hash(initialPassword, 10);

@@ -38,16 +38,30 @@ async function startServer() {
       // Run SaaS Admin Backend migrations & Master Admin Sync
       try {
         const saasDb = require('../saas-admin-backend/src/db/knex');
-        console.log('[SaaS Admin] Running SaaS Admin migrations...');
-        await saasDb.migrate.latest();
-        
+        const saasMigrationsDir = path.join(__dirname, '../saas-admin-backend/src/db/migrations');
+        const saasSeedsDir = path.join(__dirname, '../saas-admin-backend/src/db/seeds');
+
+        console.log('[SaaS Admin] Running SaaS Admin migrations from:', saasMigrationsDir);
+        await saasDb.migrate.latest({
+          directory: saasMigrationsDir,
+          tableName: 'saas_admin_knex_migrations'
+        });
+        console.log('[SaaS Admin] Migrations completed.');
+
         const bcrypt = require('bcryptjs');
         const initialEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@saas.com';
         const initialPassword = process.env.INITIAL_ADMIN_PASSWORD || 'AdminPass123!';
-        
+
+        const hasAdminsTable = await saasDb.schema.hasTable('admins');
+        if (!hasAdminsTable) {
+          console.log('[SaaS Admin] admins table missing, running seeders...');
+          await saasDb.seed.run({ directory: saasSeedsDir });
+        }
+
         const superAdminRole = await saasDb('admin_roles').where({ name: 'SUPER_ADMIN' }).first();
         if (!superAdminRole) {
-          await saasDb.seed.run();
+          console.log('[SaaS Admin] Roles missing, running seeders...');
+          await saasDb.seed.run({ directory: saasSeedsDir });
         } else {
           const existingAdmin = await saasDb('admins').whereRaw('LOWER(email) = ?', [initialEmail.toLowerCase()]).first();
           const passwordHash = await bcrypt.hash(initialPassword, 10);
@@ -70,7 +84,7 @@ async function startServer() {
         }
         console.log('[SaaS Admin] Master Admin credentials synced successfully.');
       } catch (saasErr) {
-        console.error('[SaaS Admin] Startup init error:', saasErr.message);
+        console.error('[SaaS Admin] Startup init error:', saasErr);
       }
 
       // Seed default document types if missing
