@@ -47,17 +47,32 @@ function HeaderDropdown({ open, onClose, align = 'right', children, className = 
   return (
     <AnimatePresence>
       {open && (
-        <Motion.div
-          ref={ref}
-          initial={{ opacity: 0, y: 8, scale: 0.96 }}
-          animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 8, scale: 0.96 }}
-          transition={{ duration: 0.16 }}
-          className={`fixed inset-x-2.5 top-16 sm:absolute sm:inset-auto sm:top-full sm:mt-1.5 bg-white rounded-2xl sm:rounded-xl border overflow-hidden z-50 shadow-2xl max-h-[80vh] sm:max-h-none overflow-y-auto ${align === 'right' ? 'sm:right-0' : 'sm:left-0'} ${className}`}
-          style={{ borderColor: PBI.border, boxShadow: '0 20px 40px rgba(15,23,42,0.18)' }}
-        >
-          {children}
-        </Motion.div>
+        <div className="fixed inset-0 z-[100] flex flex-col justify-end md:justify-start md:static">
+          {/* Backdrop Blur overlay for mobile */}
+          <Motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onClick={onClose}
+            className="fixed inset-0 bg-slate-900/50 backdrop-blur-xs md:hidden"
+          />
+          {/* Main Dropdown / Bottom Sheet Drawer */}
+          <Motion.div
+            ref={ref}
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: 20 }}
+            transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
+            className={`relative z-10 w-full md:w-auto bg-white rounded-t-3xl md:rounded-xl border border-slate-200 overflow-hidden shadow-2xl max-h-[85vh] md:max-h-none overflow-y-auto md:absolute md:top-full md:mt-1.5 ${align === 'right' ? 'md:right-0' : 'md:left-0'} ${className}`}
+            style={{ boxShadow: '0 20px 40px rgba(15,23,42,0.2)' }}
+          >
+            {/* Mobile Sheet Handle */}
+            <div className="md:hidden flex justify-center py-2 bg-slate-50 border-b border-slate-100 cursor-pointer" onClick={onClose}>
+              <div className="w-10 h-1 rounded-full bg-slate-300" />
+            </div>
+            {children}
+          </Motion.div>
+        </div>
       )}
     </AnimatePresence>
   );
