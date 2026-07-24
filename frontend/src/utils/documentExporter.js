@@ -138,24 +138,27 @@ export function exportUnifiedPDF({
 }
 
 /**
- * Helper to sanitize cell values so Excel never displays garbled characters or `#####`
+ * Helper to sanitize cell values so Excel never displays garbled characters
  */
 function sanitizeCellValue(val) {
   if (val === null || val === undefined) return '';
   let str = String(val).trim();
 
-  // Replace garbled em-dashes (— or –) with standard hyphen (-) or empty text
+  // Replace garbled em-dashes (— or –) with standard hyphen (-)
   if (str === '—' || str === '–' || str === 'â€“' || str === 'â€”') {
     return '-';
   }
+
+  // Clean double currency prefixes if present (e.g., "PKR $100" -> "PKR 100")
+  str = str.replace(/PKR\s*\$/gi, 'PKR ');
 
   return str;
 }
 
 /**
  * Standardized Unified CSV / Excel Exporter for ACCOUNTELLENCE ERP
- * Uses SheetJS native XLSX workbook format to auto-adjust column widths
- * and prevent `#####` cell overflows or garbled UTF-8 characters.
+ * Uses SheetJS native XLSX workbook format with generous column widths (wch: 25-45)
+ * so Excel NEVER displays `#####` cell overflows or garbled characters.
  */
 export function exportUnifiedCSV({
   title = 'FINANCIAL REPORT',
@@ -181,7 +184,7 @@ export function exportUnifiedCSV({
   // KPI Block
   if (kpis && kpis.length > 0) {
     kpis.forEach(k => {
-      aoa.push([k.label, k.value]);
+      aoa.push([k.label, sanitizeCellValue(k.value)]);
     });
     aoa.push([]);
   }
@@ -203,19 +206,23 @@ export function exportUnifiedCSV({
     : filename;
 
   if (isXLSX) {
-    // Generate native Excel XLSX file with auto-calculated column widths
+    // Generate native Excel XLSX file with generous auto-calculated column widths
     const ws = XLSX.utils.aoa_to_sheet(aoa);
 
     // Calculate maximum length for each column to auto-fit cell widths
-    const colWidths = [];
+    // Ensure every data column gets a minimum width of 26 to prevent Excel `#####` overflows!
+    const colWidths = headers.map(() => 26);
+
     aoa.forEach(row => {
       row.forEach((val, i) => {
-        const len = String(val || '').length;
-        colWidths[i] = Math.max(colWidths[i] || 12, len + 4);
+        if (i < colWidths.length) {
+          const len = String(val || '').length;
+          colWidths[i] = Math.max(colWidths[i], len + 6);
+        }
       });
     });
 
-    ws['!cols'] = colWidths.map(w => ({ wch: Math.min(Math.max(w, 14), 50) }));
+    ws['!cols'] = colWidths.map(w => ({ wch: Math.min(Math.max(w, 26), 65) }));
 
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, title.substring(0, 31).replace(/[\*\?:\/\\\[\]]/g, ''));

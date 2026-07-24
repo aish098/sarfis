@@ -350,8 +350,8 @@ export default function ReportsPage() {
       const sumC = tbItems.reduce((s, r) => s + r.finalCredit, 0);
 
       kpis = [
-        { label: 'TOTAL DEBIT', value: `PKR ${fmt(sumD)}`, color: 'emerald' },
-        { label: 'TOTAL CREDIT', value: `PKR ${fmt(sumC)}`, color: 'rose' },
+        { label: 'TOTAL DEBIT', value: fmt(sumD), color: 'emerald' },
+        { label: 'TOTAL CREDIT', value: fmt(sumC), color: 'rose' },
         { label: 'STATUS', value: Math.abs(sumD - sumC) < 0.01 ? 'BALANCED' : 'UNBALANCED', color: 'blue' }
       ];
 
