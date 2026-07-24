@@ -285,7 +285,7 @@ exports.exportCompanyBackup = async (req, res) => {
     if (req.query.format === 'xlsx') {
       const ExcelJS = require('exceljs');
       const workbook = new ExcelJS.Workbook();
-      workbook.creator = 'SARFIS ERP System';
+      workbook.creator = 'ACCOUNTELLENCE System';
       workbook.lastModifiedBy = req.user?.name || 'System Admin';
       workbook.created = new Date();
 
@@ -297,7 +297,7 @@ exports.exportCompanyBackup = async (req, res) => {
       // Executive Title Banner
       overviewSheet.mergeCells('A1:E2');
       const titleCell = overviewSheet.getCell('A1');
-      titleCell.value = 'SARFIS ERP — Enterprise Workspace Data Backup';
+      titleCell.value = 'ACCOUNTELLENCE — Enterprise Workspace Data Backup';
       titleCell.font = { name: 'Segoe UI', size: 16, bold: true, color: { argb: 'FFFFFF' } };
       titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '064E3B' } };
       titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
@@ -458,7 +458,7 @@ exports.exportCompanyBackup = async (req, res) => {
       }
 
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename=SARFIS_ERP_${type.toUpperCase()}_Backup_${(company ? company.name : 'Workspace').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      res.setHeader('Content-Disposition', `attachment; filename=ACCOUNTELLENCE_${type.toUpperCase()}_Backup_${(company ? company.name : 'Workspace').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
 
       const buffer = await workbook.xlsx.writeBuffer();
       return res.send(buffer);
