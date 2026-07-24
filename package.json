@@ -4,9 +4,10 @@
   "description": "SARFIS - Smart Accounting & Real-time Financial Intelligence System",
   "scripts": {
     "install-backend": "cd backend && npm install",
+    "install-saas-admin": "cd saas-admin-backend && npm install",
     "install-frontend": "cd frontend && npm install",
     "build-frontend": "cd frontend && npm run build",
-    "install-all": "npm run install-backend && npm run install-frontend",
+    "install-all": "npm run install-backend && npm run install-saas-admin && npm run install-frontend",
     "heroku-postbuild": "npm run install-all && npm run build-frontend",
     "build": "npm run install-all && npm run build-frontend",
     "migrate": "cd backend && npx knex migrate:latest --env production",
