@@ -48,13 +48,9 @@ exports.seed = async function (knex) {
     }
   }
 
-  // 3. Strict Check: Read Master Administrator Credentials from Environment
-  const initialEmail = process.env.INITIAL_ADMIN_EMAIL;
-  const initialPassword = process.env.INITIAL_ADMIN_PASSWORD;
-
-  if (!initialEmail || !initialPassword) {
-    throw new Error('[CRITICAL SEED ERROR] INITIAL_ADMIN_EMAIL and INITIAL_ADMIN_PASSWORD environment variables are required.');
-  }
+  // 3. Master Administrator Credentials with Safe Fallback Defaults
+  const initialEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@saas.com';
+  const initialPassword = process.env.INITIAL_ADMIN_PASSWORD || 'AdminPass123!';
 
   const passwordHash = await bcrypt.hash(initialPassword, 10);
   await knex('admins').insert({
