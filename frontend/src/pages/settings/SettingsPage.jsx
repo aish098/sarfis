@@ -1426,6 +1426,28 @@ function ScheduledReportsTab() {
     }
   };
 
+  const handleDownloadReport = async (id, reportFormat, type) => {
+    try {
+      const res = await api.get(`/scheduled-reports/${id}/download`, {
+        headers: { 'x-company-id': String(activeCompany.id) },
+        responseType: 'blob'
+      });
+      const blob = new Blob([res.data], { type: res.headers['content-type'] });
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      const ext = reportFormat.toLowerCase() === 'excel' ? 'csv' : reportFormat.toLowerCase();
+      a.download = `${type}_Report.${ext}`;
+      document.body.appendChild(a);
+      a.click();
+      a.remove();
+      window.URL.revokeObjectURL(url);
+    } catch (err) {
+      console.error('Failed to download report:', err);
+      alert('Failed to generate report download.');
+    }
+  };
+
   const handleToggle = async (id, enabled) => {
     try {
       await api.put(`/scheduled-reports/${id}/toggle`, { enabled }, { headers: { 'x-company-id': String(activeCompany.id) } });
@@ -1436,7 +1458,7 @@ function ScheduledReportsTab() {
   };
 
   const handleDelete = async (id) => {
-    if (!confirm('Are you sure you want to delete this schedule?')) return;
+    if (!window.confirm('Delete this scheduled report rule?')) return;
     try {
       await api.delete(`/scheduled-reports/${id}`, { headers: { 'x-company-id': String(activeCompany.id) } });
       loadSchedules();
@@ -1516,11 +1538,19 @@ function ScheduledReportsTab() {
                     <strong>Recipients:</strong> {s.emails.join(', ')}
                   </div>
 
-                  {s.next_run && (
-                    <div className="text-[11px] text-slate-400">
-                      Next execution: {new Date(s.next_run).toLocaleString()}
+                  <div className="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                    <div>
+                      {s.next_run && (
+                        <span>Next execution: <strong>{new Date(s.next_run).toLocaleString()}</strong></span>
+                      )}
                     </div>
-                  )}
+                    <button
+                      onClick={() => handleDownloadReport(s.id, s.format, s.report_type)}
+                      className="inline-flex items-center gap-1.5 px-3 py-1 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-[11px] font-bold transition-all shadow-sm cursor-pointer border-none"
+                    >
+                      <Download size={13} /> Generate & Download Now
+                    </button>
+                  </div>
 
                   {s.history && s.history.length > 0 && (
                     <div className="border-t border-slate-200/65 pt-2">

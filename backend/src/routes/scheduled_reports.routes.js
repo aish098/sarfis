@@ -8,6 +8,7 @@ router.post('/',       companyGuard, requirePermission('settings.manage'), ctrl.
 router.get('/',        companyGuard, requirePermission('settings.manage'), ctrl.getSchedules);
 router.put('/:id/toggle', companyGuard, requirePermission('settings.manage'), ctrl.toggleSchedule);
 router.delete('/:id',  companyGuard, requirePermission('settings.manage'), ctrl.deleteSchedule);
+router.get('/:id/download', companyGuard, requirePermission('settings.manage'), ctrl.downloadScheduleReport);
 router.post('/run',    companyGuard, requirePermission('settings.manage'), ctrl.runPending);
 
 module.exports = router;

@@ -57,3 +57,17 @@ exports.runPending = async (req, res) => {
     res.status(500).json({ error: err.message });
   }
 };
+
+exports.downloadScheduleReport = async (req, res) => {
+  const companyId = req.companyId;
+  const { id } = req.params;
+  try {
+    const { attachmentContent, mimeType, fileName } = await ScheduledReportsService.generateReportBuffer(companyId, parseInt(id));
+    res.setHeader('Content-Type', mimeType);
+    res.setHeader('Content-Disposition', `attachment; filename="${fileName}"`);
+    res.send(attachmentContent);
+  } catch (err) {
+    console.error('downloadScheduleReport error:', err);
+    res.status(500).json({ error: err.message });
+  }
+};

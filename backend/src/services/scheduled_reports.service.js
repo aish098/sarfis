@@ -265,6 +265,55 @@ class ScheduledReportsService {
       doc.end();
     });
   }
+
+  static async generateReportBuffer(companyId, scheduleId) {
+    const schedule = await db('scheduled_reports').where({ id: scheduleId, company_id: companyId }).first();
+    if (!schedule) throw new Error('Scheduled report rule not found.');
+
+    const company = await db('companies').where({ id: companyId }).first();
+    let period = await db('accounting_periods')
+      .where({ company_id: companyId, status: 'OPEN' })
+      .orderBy('start_date', 'desc')
+      .first();
+
+    if (!period) {
+      period = await db('accounting_periods')
+        .where({ company_id: companyId })
+        .orderBy('end_date', 'desc')
+        .first() || { period_name: 'Current Period', start_date: new Date(new Date().getFullYear(), 0, 1), end_date: new Date() };
+    }
+
+    let data;
+    if (schedule.report_type === 'BALANCE_SHEET') {
+      data = await ReportModel.getBalanceSheet(companyId, period.end_date);
+    } else if (schedule.report_type === 'INCOME_STATEMENT') {
+      data = await ReportModel.getIncomeStatement(companyId, period.start_date, period.end_date);
+    } else if (schedule.report_type === 'CASH_FLOW') {
+      data = await ReportModel.getCashFlow(companyId, period.start_date, period.end_date);
+    } else if (schedule.report_type === 'TRIAL_BALANCE') {
+      data = await ReportModel.getTrialBalance(companyId, period.start_date, period.end_date);
+    } else if (schedule.report_type === 'EQUITY') {
+      data = await ReportModel.getStatementOfChangesInEquity(companyId, period.start_date, period.end_date);
+    } else {
+      data = await ReportModel.getBalanceSheet(companyId, new Date());
+    }
+
+    let attachmentContent;
+    let mimeType;
+    const fileExt = schedule.format.toLowerCase() === 'excel' ? 'csv' : schedule.format.toLowerCase();
+    const fileName = `${schedule.report_type}_Report_${(period.period_name || 'Current').replace(/\s+/g, '_')}.${fileExt}`;
+
+    if (schedule.format === 'PDF') {
+      attachmentContent = await this.generatePDF(schedule.report_type, company?.name || 'ACCOUNTELLENCE', period.period_name || 'Current', data);
+      mimeType = 'application/pdf';
+    } else {
+      const csvText = this.generateCSV(schedule.report_type, data);
+      attachmentContent = Buffer.from(csvText, 'utf-8');
+      mimeType = 'text/csv';
+    }
+
+    return { attachmentContent, mimeType, fileName };
+  }
 }
 
 module.exports = ScheduledReportsService;
