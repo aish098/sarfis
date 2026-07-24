@@ -477,7 +477,9 @@ export default function AdminPage() {
     setRestoreFile(file);
     setMessage(null);
 
-    if (file.name.endsWith('.xlsx')) {
+    const isExcel = file.name.toLowerCase().endsWith('.xlsx') || file.name.toLowerCase().endsWith('.xls');
+
+    if (isExcel) {
       setSaving(true);
       try {
         const formData = new FormData();
@@ -486,19 +488,20 @@ export default function AdminPage() {
         const response = await api.post(`/admin/companies/${activeCompanyId}/backup/parse`, formData, requestConfig);
 
         const parsed = response.data;
+        const dataObj = parsed.data || {};
         const stats = {
-          accounts: parsed.data.accounts?.length || 0,
-          journalEntries: parsed.data.journal_entries?.length || 0,
-          vouchers: parsed.data.vouchers?.length || 0,
-          products: parsed.data.products?.length || 0,
-          clients: parsed.data.clients?.length || 0,
-          vendors: parsed.data.vendors?.length || 0,
+          accounts: dataObj.accounts?.length || 0,
+          journalEntries: dataObj.journal_entries?.length || 0,
+          vouchers: dataObj.vouchers?.length || 0,
+          products: dataObj.products?.length || 0,
+          clients: dataObj.clients?.length || 0,
+          vendors: dataObj.vendors?.length || 0,
         };
 
         setRestorePreview({
-          backupType: parsed.backupType,
-          originalCompany: parsed.companyName,
-          timestamp: parsed.timestamp,
+          backupType: parsed.backupType || 'full',
+          originalCompany: parsed.companyName || activeCompanyName || 'Workspace',
+          timestamp: parsed.timestamp || new Date().toISOString(),
           stats,
           rawPayload: parsed
         });
@@ -512,27 +515,28 @@ export default function AdminPage() {
       reader.onload = (event) => {
         try {
           const parsed = JSON.parse(event.target.result);
-          if (!parsed.data || !parsed.backupType) {
+          if (!parsed || (!parsed.data && !parsed.accounts)) {
             setMessage({ type: 'error', text: 'Invalid file format. Please upload a valid ACCOUNTELLENCE backup file.' });
             setRestorePreview(null);
             return;
           }
 
+          const dataObj = parsed.data || parsed;
           const stats = {
-            accounts: parsed.data.accounts?.length || 0,
-            journalEntries: parsed.data.journal_entries?.length || 0,
-            vouchers: parsed.data.vouchers?.length || 0,
-            products: parsed.data.products?.length || 0,
-            clients: parsed.data.clients?.length || 0,
-            vendors: parsed.data.vendors?.length || 0,
+            accounts: dataObj.accounts?.length || 0,
+            journalEntries: dataObj.journal_entries?.length || 0,
+            vouchers: dataObj.vouchers?.length || 0,
+            products: dataObj.products?.length || 0,
+            clients: dataObj.clients?.length || 0,
+            vendors: dataObj.vendors?.length || 0,
           };
 
           setRestorePreview({
-            backupType: parsed.backupType,
-            originalCompany: parsed.companyName,
-            timestamp: parsed.timestamp,
+            backupType: parsed.backupType || 'full',
+            originalCompany: parsed.companyName || activeCompanyName || 'Workspace',
+            timestamp: parsed.timestamp || new Date().toISOString(),
             stats,
-            rawPayload: parsed
+            rawPayload: { backupType: parsed.backupType || 'full', data: dataObj }
           });
         } catch (err) {
           setMessage({ type: 'error', text: 'Failed to parse backup JSON file.' });
@@ -541,6 +545,9 @@ export default function AdminPage() {
       };
       reader.readAsText(file);
     }
+
+    // Reset input value so re-selecting the exact same file fires onChange again
+    e.target.value = '';
   };
 
   const executeRestore = async () => {
