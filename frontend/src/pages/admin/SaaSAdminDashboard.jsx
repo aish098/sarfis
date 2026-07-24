@@ -134,6 +134,9 @@ export default function SaaSAdminDashboard() {
     } catch (err) {
       if (err.response?.status === 403 && err.response?.data?.errorCode === 'MUST_CHANGE_PASSWORD') {
         setMustChangePassword(true);
+      } else if (err.response?.status === 401) {
+        setToken('');
+        localStorage.removeItem('saas_admin_token');
       } else {
         setErrorMsg(err.response?.data?.message || 'Failed to fetch data.');
       }
