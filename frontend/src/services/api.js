@@ -15,6 +15,11 @@ api.interceptors.request.use(
       path.includes('/auth/login') || path.includes('/auth/register');
     const isCompaniesList = path.endsWith('/companies') || path.includes('/companies?');
 
+    // Automatically strip application/json for FormData so browser sets multipart boundary
+    if (config.data instanceof FormData) {
+      delete config.headers['Content-Type'];
+    }
+
     // Never send session headers on login/register — avoids stale JWT / company
     // context interfering with public auth endpoints.
     if (isPublicAuth) {

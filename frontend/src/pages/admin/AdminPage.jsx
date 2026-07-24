@@ -485,7 +485,9 @@ export default function AdminPage() {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await api.post(`/admin/companies/${activeCompanyId}/backup/parse`, formData, requestConfig);
+        const response = await api.post(`/admin/companies/${activeCompanyId}/backup/parse`, formData, {
+          headers: { 'x-company-id': String(activeCompanyId) }
+        });
 
         const parsed = response.data;
         const dataObj = parsed.data || {};
@@ -561,7 +563,9 @@ export default function AdminPage() {
     setMessage(null);
     try {
       // 1. Automatically extract rollback restore point backup for the client first
-      const rollbackRes = await api.get(`/admin/companies/${activeCompanyId}/backup?type=full`, requestConfig);
+      const rollbackRes = await api.get(`/admin/companies/${activeCompanyId}/backup?type=full`, {
+        headers: { 'x-company-id': String(activeCompanyId) }
+      });
       const rollbackBlob = new Blob([JSON.stringify(rollbackRes.data, null, 2)], { type: 'application/json' });
       const rollbackUrl = URL.createObjectURL(rollbackBlob);
       const rollbackLink = document.createElement('a');
@@ -575,7 +579,9 @@ export default function AdminPage() {
       await api.post(`/admin/companies/${activeCompanyId}/restore`, {
         backupType: restorePreview.backupType,
         data: restorePreview.rawPayload.data
-      }, requestConfig);
+      }, {
+        headers: { 'x-company-id': String(activeCompanyId) }
+      });
 
       setMessage({ type: 'success', text: 'Company state successfully restored. Rollback point downloaded.' });
       setRestoreFile(null);
