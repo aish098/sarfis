@@ -12,6 +12,7 @@ import useAuthStore from '../../store/authStore';
 import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 import NotificationPreferencesTab from './NotificationPreferencesTab';
 import ActiveSessionsCard from '../../components/settings/ActiveSessionsCard';
+import { exportUnifiedCSV } from '../../utils/documentExporter';
 
 // Tabs configuration
 const TABS = [
@@ -380,39 +381,67 @@ export default function SettingsPage() {
 
   // CSV template generation
   const downloadTemplate = (type) => {
-    let headers = '';
-    let filename = '';
+    let title = 'DATA IMPORT TEMPLATE';
+    let columns = [];
+    let rows = [];
+    let filename = 'import_template.csv';
+
     switch (type) {
       case 'coa':
-        headers = 'Code,Name,Type,Category,Description\n1010,Main Cash,Asset,Asset,Primary cash account\n2010,Accounts Payable,Liability,Liability,AP control account\n4010,Sales Revenue,Revenue,Revenue,Sales revenue';
+        title = 'CHART OF ACCOUNTS TEMPLATE';
+        columns = ['Code', 'Name', 'Type', 'Category', 'Description'];
+        rows = [
+          ['1010', 'Main Cash', 'Asset', 'Asset', 'Primary cash account'],
+          ['2010', 'Accounts Payable', 'Liability', 'Liability', 'AP control account'],
+          ['4010', 'Sales Revenue', 'Revenue', 'Revenue', 'Sales revenue']
+        ];
         filename = 'chart_of_accounts_template.csv';
         break;
       case 'customers':
-        headers = 'Name,Email,Phone,Address,NTN,STRN\nAcme Corp,acme@example.com,0300-1234567,123 Main St Lahore,1234567-8,9876543-2';
+        title = 'CUSTOMERS DIRECTORY TEMPLATE';
+        columns = ['Name', 'Email', 'Phone', 'Address', 'NTN', 'STRN'];
+        rows = [
+          ['Acme Corp', 'acme@example.com', '0300-1234567', '123 Main St Lahore', '1234567-8', '9876543-2']
+        ];
         filename = 'customers_template.csv';
         break;
       case 'vendors':
-        headers = 'Name,Email,Phone,Address,NTN,STRN\nGlobal Supplier,supplier@example.com,0321-7654321,456 Industrial Zone Karachi,8765432-1,2345678-9';
+        title = 'VENDORS DIRECTORY TEMPLATE';
+        columns = ['Name', 'Email', 'Phone', 'Address', 'NTN', 'STRN'];
+        rows = [
+          ['Global Supplier', 'supplier@example.com', '0321-7654321', '456 Industrial Zone Karachi', '8765432-1', '2345678-9']
+        ];
         filename = 'vendors_template.csv';
         break;
       case 'products':
-        headers = 'Code,Name,Description,Price,Cost,Sku\nPROD001,Premium Widget,Industrial widget,1500,1000,WIDG-PREM-1';
+        title = 'PRODUCT INVENTORY TEMPLATE';
+        columns = ['Code', 'Name', 'Description', 'Price', 'Cost', 'Sku'];
+        rows = [
+          ['PROD001', 'Premium Widget', 'Industrial widget', '1500.00', '1000.00', 'WIDG-PREM-1']
+        ];
         filename = 'products_template.csv';
         break;
       case 'balances':
-        headers = 'AccountCode,Debit,Credit,Date\n1010,50000,0,2026-06-01\n4010,0,50000,2026-06-01';
+        title = 'OPENING BALANCES TEMPLATE';
+        columns = ['AccountCode', 'Debit', 'Credit', 'Date'];
+        rows = [
+          ['1010', '50000.00', '0.00', '2026-06-01'],
+          ['4010', '0.00', '50000.00', '2026-06-01']
+        ];
         filename = 'opening_balances_template.csv';
         break;
+      default:
+        break;
     }
-    const blob = new Blob([headers], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', filename);
-    link.style.visibility = 'hidden';
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+
+    exportUnifiedCSV({
+      title,
+      companyName: activeCompany?.name || 'ACCOUNTELLENCE Corporate Workspace',
+      period: 'Official Import Schema Template',
+      columns,
+      rows,
+      filename
+    });
   };
 
   // CSV parsing
@@ -1631,9 +1660,9 @@ function ScheduledReportsTab() {
             <button
               type="submit"
               disabled={creating || !emails.trim()}
-              className="w-full bg-emerald-600 hover:bg-emerald-700 text-white py-2.5 rounded-xl text-[12.5px] font-bold transition-colors cursor-pointer"
+              className="w-full bg-emerald-600 hover:bg-emerald-700 disabled:opacity-40 text-white px-4 py-3 min-h-[44px] rounded-xl text-[13px] font-extrabold transition-all cursor-pointer shadow-md shadow-emerald-600/10 flex items-center justify-center text-center leading-snug whitespace-nowrap overflow-hidden"
             >
-              {creating ? 'Saving...' : 'Create Scheduled Report'}
+              {creating ? 'Saving Schedule...' : 'Create Scheduled Report'}
             </button>
           </form>
         </div>
