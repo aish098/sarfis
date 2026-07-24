@@ -637,8 +637,8 @@ export default function WarehousePage({ globalSearch = "" }) {
                 <div>
                   <label className="block text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-1.5">Location / Address</label>
                   <div className="relative">
-                    <MapPin size={14} className="absolute left-3 top-3.5 text-slate-400" />
-                    <input className="input-enterprise pl-10 text-[12px]" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="e.g. 123 Logistics Way, NY" />
+                    <MapPin size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                    <input className="input-enterprise pl-9 text-[12px]" value={form.location} onChange={e => setForm({ ...form, location: e.target.value })} placeholder="e.g. 123 Logistics Way, NY" />
                   </div>
                 </div>
 
@@ -663,12 +663,12 @@ export default function WarehousePage({ globalSearch = "" }) {
                   <textarea className="input-enterprise min-h-[80px] py-2 text-[12px]" value={form.description} onChange={e => setForm({ ...form, description: e.target.value })} placeholder="Internal notes or specific details about this site..." />
                 </div>
 
-                <div className="flex items-center gap-3 pt-2">
+                <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl flex items-center justify-between mt-1">
+                  <span className="text-[12px] font-bold text-slate-700">Active and available for stock</span>
                   <button type="button" onClick={() => setForm({ ...form, is_active: !form.is_active })}
-                    className={`w-10 h-5 rounded-full transition-colors relative ${form.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`}>
-                    <div className={`absolute top-1 w-3 h-3 bg-white rounded-full transition-all ${form.is_active ? 'left-6' : 'left-1'}`} />
+                    className={`w-11 h-6 rounded-full transition-colors relative flex-shrink-0 cursor-pointer ${form.is_active ? 'bg-emerald-500' : 'bg-slate-300'}`}>
+                    <div className={`absolute top-1 w-4 h-4 bg-white rounded-full transition-all shadow-xs ${form.is_active ? 'left-6' : 'left-1'}`} />
                   </button>
-                  <span className="text-[12px] font-medium text-slate-700">Active and available for stock</span>
                 </div>
 
                 <div className="flex gap-3 mt-8 border-t border-slate-100 pt-5">
