@@ -68,6 +68,7 @@ const NAV_SECTIONS = [
       { to: '/dashboard/warehouses',   icon: Building2,  label: 'Warehouses', permission: 'warehouse.manage', moduleKey: 'warehousingEnabled' },
       { to: '/dashboard/fixed-assets', icon: Briefcase,  label: 'Asset Management', permission: 'ledger.view', moduleKey: 'fixedAssetsEnabled' },
       { to: '/dashboard/payroll',      icon: Activity,   label: 'Payroll & HR', permission: 'ledger.view', moduleKey: 'payrollEnabled' },
+      { to: '/dashboard/payroll/tax-management', icon: Shield, label: 'Tax Engine & Slabs', permission: 'ledger.view' },
     ],
   },
 ];

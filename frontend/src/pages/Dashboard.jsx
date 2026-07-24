@@ -42,6 +42,7 @@ import VendorsPage from './vendors/VendorsPage.jsx';
 import SettingsPage from './settings/SettingsPage.jsx';
 import AdminPage from './admin/AdminPage.jsx';
 import PayrollPage from './payroll/PayrollPage.jsx';
+import TaxManagementPage from './payroll/TaxManagementPage.jsx';
 import NotificationCenterPage from './notifications/NotificationCenterPage.jsx';
 import EmployeeLeavePage from './notifications/EmployeeLeavePage.jsx';
 import EmployeeDocumentsPage from './notifications/EmployeeDocumentsPage.jsx';
@@ -585,6 +586,7 @@ export default function Dashboard() {
                   <PayrollPage />
                 </ModuleProtectedRoute>
               } />
+              <Route path="payroll/tax-management" element={<TaxManagementPage />} />
               <Route path="vouchers/*" element={<VouchersPage />} />
               <Route path="purchase-orders" element={<PurchaseOrdersPage />} />
               <Route path="purchase-requisitions" element={<PurchaseRequisitionsPage />} />
