@@ -819,7 +819,7 @@ export default function AdminPage() {
       )}
 
       {/* Tabs Header */}
-      <div className="flex flex-wrap items-center gap-1.5 border-b border-slate-200 mb-6 bg-white p-1 rounded-lg border">
+      <div className="flex items-center gap-1.5 border-b border-slate-200 mb-6 bg-white p-1 rounded-lg border overflow-x-auto hide-scrollbar">
         {[
           { id: 'users', label: 'Users & Teams', icon: Users },
           { id: 'permissions', label: 'Permissions Matrix', icon: ShieldCheck },
@@ -834,7 +834,7 @@ export default function AdminPage() {
             <button
               key={tab.id}
               onClick={() => handleTabChange(tab.id)}
-              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13px] font-bold transition-all ${isActive ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
+              className={`inline-flex items-center gap-2 px-4 py-2.5 rounded-lg text-[13px] font-bold transition-all whitespace-nowrap shrink-0 ${isActive ? 'bg-emerald-600 text-white shadow-sm' : 'text-slate-600 hover:bg-slate-50 hover:text-slate-900'}`}
             >
               <TabIcon size={15} />
               {tab.label}

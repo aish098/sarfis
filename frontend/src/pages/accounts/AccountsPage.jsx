@@ -404,7 +404,7 @@ export default function AccountsPage({ globalSearch = "" }) {
         {/* Category Filters & Group Actions */}
         <div className="col-span-full mb-3 flex flex-wrap items-center justify-between gap-3">
           <div className="flex items-center gap-3">
-            <div className="relative w-[260px]">
+            <div className="relative w-full sm:w-[260px]">
               <select
                 style={{ paddingLeft: '38px' }}
                 className="input-enterprise pr-10 text-[13px] cursor-pointer appearance-none bg-white"

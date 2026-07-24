@@ -502,10 +502,10 @@ export default function FixedAssetsDashboard() {
       badgeText="Fixed Assets"
       breadcrumbs={['ACCOUNTELLENCE', 'Fixed Assets', 'Dashboard']}
       primaryAction={
-        <div className="flex items-center gap-1.5 bg-slate-200/50 p-1 rounded-xl">
+        <div className="flex items-center gap-1.5 bg-slate-200/50 p-1 rounded-xl w-full sm:w-auto overflow-x-auto hide-scrollbar">
           <button 
             onClick={() => setActiveTab('operations')} 
-            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 border-none outline-none ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 border-none outline-none whitespace-nowrap cursor-pointer ${
               activeTab === 'operations' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
@@ -513,7 +513,7 @@ export default function FixedAssetsDashboard() {
           </button>
           <button 
             onClick={() => setActiveTab('analytics')} 
-            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 border-none outline-none ${
+            className={`px-3 py-1.5 rounded-lg text-xs font-black transition-all flex items-center gap-1 border-none outline-none whitespace-nowrap cursor-pointer ${
               activeTab === 'analytics' ? 'bg-white text-slate-800 shadow-sm' : 'text-slate-500 hover:text-slate-800'
             }`}
           >
