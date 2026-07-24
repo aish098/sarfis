@@ -20,7 +20,7 @@ export default function PayrollConfiguration({ userRole }) {
 
   // Formula sandbox variables
   const [testFormula, setTestFormula] = useState('if(gross > 100000, gross * 0.10, 0)');
-  const [testVars, setTestVars] = useState('{"gross": 120000, "basic": 72000}');
+  const [testInputs, setTestInputs] = useState({ gross: 120000, basic: 72000, overtime: 5000, allowance: 15000 });
   const [sandboxResult, setSandboxResult] = useState(null);
   const [sandboxError, setSandboxError] = useState(null);
   const [sandboxLoading, setSandboxLoading] = useState(false);
