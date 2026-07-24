@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
   ShieldAlert, Ticket, Users, Activity, Lock, Unlock, Plus, RefreshCw,
-  Search, Filter, CheckCircle2, XCircle, AlertTriangle, FileText, Key, Server, Cpu
+  Search, Filter, CheckCircle2, XCircle, AlertTriangle, FileText, Key, Server, Cpu, Eye, EyeOff
 } from 'lucide-react';
 import axios from 'axios';
 
@@ -16,6 +16,7 @@ export default function SaaSAdminDashboard() {
   const [newPassword, setNewPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
 
+  const [showPassword, setShowPassword] = useState(false);
   const [activeTab, setActiveTab] = useState('overview'); // overview, users, coupons, audit, health
   const [stats, setStats] = useState(null);
   const [users, setUsers] = useState([]);
@@ -218,20 +219,31 @@ export default function SaaSAdminDashboard() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">New Password</label>
-                <input
-                  type="password"
-                  required
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
-                  value={newPassword}
-                  onChange={(e) => setNewPassword(e.target.value)}
-                  placeholder="Min 8 characters"
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    autoComplete="new-password"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 pr-10 text-sm text-white focus:outline-none focus:border-indigo-500"
+                    value={newPassword}
+                    onChange={(e) => setNewPassword(e.target.value)}
+                    placeholder="Min 8 characters"
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Confirm New Password</label>
                 <input
-                  type="password"
+                  type={showPassword ? 'text' : 'password'}
                   required
+                  autoComplete="new-password"
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
                   value={confirmPassword}
                   onChange={(e) => setConfirmPassword(e.target.value)}
@@ -253,6 +265,7 @@ export default function SaaSAdminDashboard() {
                 <input
                   type="email"
                   required
+                  autoComplete="username"
                   className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
                   value={loginEmail}
                   onChange={(e) => setLoginEmail(e.target.value)}
@@ -260,13 +273,23 @@ export default function SaaSAdminDashboard() {
               </div>
               <div>
                 <label className="block text-xs font-medium text-slate-400 mb-1">Password</label>
-                <input
-                  type="password"
-                  required
-                  className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 text-sm text-white focus:outline-none focus:border-indigo-500"
-                  value={loginPassword}
-                  onChange={(e) => setLoginPassword(e.target.value)}
-                />
+                <div className="relative">
+                  <input
+                    type={showPassword ? 'text' : 'password'}
+                    required
+                    autoComplete="current-password"
+                    className="w-full bg-slate-900 border border-slate-700 rounded-xl px-3 py-2 pr-10 text-sm text-white focus:outline-none focus:border-indigo-500"
+                    value={loginPassword}
+                    onChange={(e) => setLoginPassword(e.target.value)}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setShowPassword(!showPassword)}
+                    className="absolute right-3 top-2.5 text-slate-400 hover:text-slate-200"
+                  >
+                    {showPassword ? <EyeOff size={16} /> : <Eye size={16} />}
+                  </button>
+                </div>
               </div>
               <button
                 type="submit"
