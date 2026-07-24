@@ -434,7 +434,7 @@ export default function ReportsPage() {
         ['Net Financing Cash Flow', 'Financing Summary', fmt(netFinancing)]
       ];
     } else if (tab === 'inventory_valuation') {
-      columns = ['Warehouse', 'Category', 'Product SKU', 'Product Name', 'Remaining Qty', 'Unit Cost (PKR)', 'Carrying Value (PKR)'];
+      columns = ['Warehouse', 'Category', 'Product SKU', 'Product Name', 'Received Date', 'Remaining Qty', 'Unit Cost (PKR)', 'Carrying Value (PKR)'];
       const layers = data?.data || [];
       const totalVal = data?.summary?.totalValue || layers.reduce((s, l) => s + (parseFloat(l.layer_value) || 0), 0);
       const costingMethod = data?.summary?.costingMethod || 'AVERAGE';
@@ -450,6 +450,7 @@ export default function ReportsPage() {
         l.category_name || 'Unspecified',
         l.product_sku || 'N/A',
         l.product_name || 'Product',
+        l.received_date ? new Date(l.received_date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' }) : 'N/A',
         (l.remaining_qty || 0).toLocaleString(),
         fmt(l.unit_cost || 0),
         fmt(l.layer_value || 0)
