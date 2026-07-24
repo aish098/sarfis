@@ -179,28 +179,10 @@ export default function PayrollConfiguration({ userRole }) {
       });
       if (res.data.valid) {
         try {
-          const vars = JSON.parse(testVars);
-          let resultValue = 0;
-          let traceSteps = [];
-          if (testFormula.toLowerCase().includes('if')) {
-            const hasGross = vars.gross > 100000;
-            resultValue = hasGross ? vars.gross * 0.10 : 0;
-            traceSteps = [
-              { expression: `gross > 100000 (${vars.gross} > 100000)`, result: String(hasGross).toUpperCase() },
-              { expression: `${vars.gross} * 0.10`, result: String(vars.gross * 0.10) }
-            ];
-          } else {
-            resultValue = vars.basic * 0.05;
-            traceSteps = [
-              { expression: `basic * 0.05 (${vars.basic} * 0.05)`, result: String(vars.basic * 0.05) }
-            ];
-          }
-          setSandboxResult({
-            value: resultValue,
-            trace: traceSteps
-          });
-        } catch {
-          setSandboxResult({ value: 'Syntax Valid (Preview needs valid JSON variables)', trace: [] });
+          const evalRes = evaluateCustomFormula(testFormula, testInputs);
+          setSandboxResult(evalRes);
+        } catch (evalErr) {
+          setSandboxError('Formula Evaluation Failed: ' + evalErr.message);
         }
       } else {
         setSandboxError(res.data.error || 'Invalid syntax check failed.');
@@ -398,17 +380,8 @@ export default function PayrollConfiguration({ userRole }) {
                   <span className="text-[10px] font-bold text-slate-500">Gross Salary (gross)</span>
                   <input
                     type="number"
-                    value={(() => { try { return JSON.parse(testVars).gross || 120000; } catch { return 120000; } })()}
-                    onChange={e => {
-                      const val = parseFloat(e.target.value) || 0;
-                      try {
-                        const parsed = JSON.parse(testVars);
-                        parsed.gross = val;
-                        setTestVars(JSON.stringify(parsed));
-                      } catch {
-                        setTestVars(JSON.stringify({ gross: val, basic: 72000 }));
-                      }
-                    }}
+                    value={testInputs.gross}
+                    onChange={e => setTestInputs({ ...testInputs, gross: parseFloat(e.target.value) || 0 })}
                     disabled={disableEdit}
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-mono text-slate-800 font-bold text-xs disabled:opacity-40"
                     placeholder="120000"
@@ -419,17 +392,8 @@ export default function PayrollConfiguration({ userRole }) {
                   <span className="text-[10px] font-bold text-slate-500">Basic Salary (basic)</span>
                   <input
                     type="number"
-                    value={(() => { try { return JSON.parse(testVars).basic || 72000; } catch { return 72000; } })()}
-                    onChange={e => {
-                      const val = parseFloat(e.target.value) || 0;
-                      try {
-                        const parsed = JSON.parse(testVars);
-                        parsed.basic = val;
-                        setTestVars(JSON.stringify(parsed));
-                      } catch {
-                        setTestVars(JSON.stringify({ gross: 120000, basic: val }));
-                      }
-                    }}
+                    value={testInputs.basic}
+                    onChange={e => setTestInputs({ ...testInputs, basic: parseFloat(e.target.value) || 0 })}
                     disabled={disableEdit}
                     className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-mono text-slate-800 font-bold text-xs disabled:opacity-40"
                     placeholder="72000"

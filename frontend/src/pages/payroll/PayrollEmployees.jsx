@@ -741,71 +741,115 @@ export default function PayrollEmployees({ userRole, onBackToDashboard }) {
 
             {activeSubTab === 'payroll' && (
               <div className="space-y-4">
-                <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Salary Components Breakdown</h5>
-                <div className="border border-slate-100 rounded-2xl overflow-hidden text-xs font-semibold text-slate-600">
-                  <div className="bg-slate-50 px-4 py-2 border-b border-slate-100 flex justify-between text-[10px] font-black uppercase text-slate-400 tracking-wider">
-                    <span>Component Name</span>
+                <h5 className="font-extrabold text-[10px] uppercase text-slate-400 tracking-wider">Salary Components & Real-Time Tax Breakdown</h5>
+                <div className="border border-slate-100 rounded-2xl overflow-hidden text-xs font-semibold text-slate-600 bg-white shadow-xs">
+                  <div className="bg-slate-50 px-4 py-2.5 border-b border-slate-100 flex justify-between text-[10px] font-black uppercase text-slate-400 tracking-wider">
+                    <span>Component / Deduction Name</span>
                     <span>Monthly Amount</span>
                   </div>
-                  <div className="p-4 space-y-3 font-semibold text-slate-600">
-                    {empDetails.components.length > 0 ? (
-                      empDetails.components.map(comp => (
-                        <div key={comp.id || comp.name} className="flex justify-between">
-                          <span>{comp.name || comp.code}:</span>
-                          <span className="font-mono text-slate-800">PKR {parseFloat(comp.amount || comp.value || 0).toLocaleString()}</span>
-                        </div>
-                      ))
-                    ) : (
-                      (() => {
-                        const monthlySalary = parseFloat(selectedEmp?.salary || 0);
-                        const annualIncome = monthlySalary * 12;
-                        const slabs = [
-                          { lower: 0, upper: 600000, base: 0, rate: 0.00, excessOver: 0 },
-                          { lower: 600000, upper: 1200000, base: 0, rate: 0.01, excessOver: 600000 },
-                          { lower: 1200000, upper: 2200000, base: 6000, rate: 0.11, excessOver: 1200000 },
-                          { lower: 2200000, upper: 3200000, base: 116000, rate: 0.20, excessOver: 2200000 },
-                          { lower: 3200000, upper: 4100000, base: 316000, rate: 0.25, excessOver: 3200000 },
-                          { lower: 4100000, upper: 5600000, base: 541000, rate: 0.29, excessOver: 4100000 },
-                          { lower: 5600000, upper: 7000000, base: 976000, rate: 0.32, excessOver: 5600000 },
-                          { lower: 7000000, upper: null, base: 1424000, rate: 0.35, excessOver: 7000000 }
-                        ];
-                        let matched = slabs[0];
-                        for (const s of slabs) {
-                          if (annualIncome > s.lower && (s.upper === null || annualIncome <= s.upper)) {
-                            matched = s;
-                            break;
-                          }
-                        }
-                        const excess = Math.max(0, annualIncome - matched.excessOver);
-                        const annualTax = matched.base + (excess * matched.rate);
-                        const monthlyTax = Math.round((annualTax / 12) * 100) / 100;
-                        const providentFund = monthlySalary * 0.05;
-                        const netPay = monthlySalary - monthlyTax - providentFund;
+                  
+                  {(() => {
+                    const monthlySalary = parseFloat(selectedEmp?.salary || 0);
+                    const annualIncome = monthlySalary * 12;
+                    const slabs = [
+                      { lower: 0, upper: 600000, base: 0, rate: 0.00, excessOver: 0, label: '0% (Tax Exempt)' },
+                      { lower: 600000, upper: 1200000, base: 0, rate: 0.01, excessOver: 600000, label: '1% on excess over 600k' },
+                      { lower: 1200000, upper: 2200000, base: 6000, rate: 0.11, excessOver: 1200000, label: '11% on excess over 1.2M' },
+                      { lower: 2200000, upper: 3200000, base: 116000, rate: 0.20, excessOver: 2200000, label: '20% on excess over 2.2M' },
+                      { lower: 3200000, upper: 4100000, base: 316000, rate: 0.25, excessOver: 3200000, label: '25% on excess over 3.2M' },
+                      { lower: 4100000, upper: 5600000, base: 541000, rate: 0.29, excessOver: 4100000, label: '29% on excess over 4.1M' },
+                      { lower: 5600000, upper: 7000000, base: 976000, rate: 0.32, excessOver: 5600000, label: '32% on excess over 5.6M' },
+                      { lower: 7000000, upper: null, base: 1424000, rate: 0.35, excessOver: 7000000, label: '35% on excess over 7.0M' }
+                    ];
+                    
+                    let matched = slabs[0];
+                    for (const s of slabs) {
+                      if (annualIncome > s.lower && (s.upper === null || annualIncome <= s.upper)) {
+                        matched = s;
+                        break;
+                      }
+                    }
+                    
+                    const excess = Math.max(0, annualIncome - matched.excessOver);
+                    const annualTax = matched.base + (excess * matched.rate);
+                    const monthlyTax = Math.round((annualTax / 12) * 100) / 100;
+                    const providentFund = Math.round((monthlySalary * 0.05) * 100) / 100;
+                    const netPay = empDetails.line?.net_salary 
+                      ? parseFloat(empDetails.line.net_salary) 
+                      : (monthlySalary - monthlyTax - providentFund);
+                    const effectiveTaxRate = annualIncome > 0 ? (annualTax / annualIncome) * 100 : 0;
 
-                        return (
-                          <>
-                            <div className="flex justify-between"><span>Basic Salary (60%):</span> <span className="font-mono text-slate-800">PKR {(monthlySalary * 0.6).toLocaleString()}</span></div>
-                            <div className="flex justify-between"><span>House Rent Allowance (25%):</span> <span className="font-mono text-slate-800">PKR {(monthlySalary * 0.25).toLocaleString()}</span></div>
-                            <div className="flex justify-between"><span>Medical Allowance (10%):</span> <span className="font-mono text-slate-800">PKR {(monthlySalary * 0.1).toLocaleString()}</span></div>
-                            <div className="flex justify-between"><span>Transport Allowance (5%):</span> <span className="font-mono text-slate-800">PKR {(monthlySalary * 0.05).toLocaleString()}</span></div>
-                            <div className="border-t border-slate-100 my-2 pt-2 flex justify-between text-rose-600 font-bold">
-                              <span>Income Tax Withheld (FBR Real-Time):</span>
-                              <span className="font-mono">- PKR {monthlyTax.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                    return (
+                      <div className="p-4 space-y-3 font-semibold text-slate-600">
+                        {empDetails.components.length > 0 ? (
+                          empDetails.components.map(comp => (
+                            <div key={comp.id || comp.name} className="flex justify-between items-center py-0.5">
+                              <span className="text-slate-700 font-medium">{comp.name || comp.code}:</span>
+                              <span className="font-mono text-slate-900 font-bold">PKR {parseFloat(comp.amount || comp.value || 0).toLocaleString()}</span>
                             </div>
-                            <div className="flex justify-between text-rose-600"><span>Provident Fund (5%):</span> <span className="font-mono">- PKR {providentFund.toLocaleString()}</span></div>
-                            <div className="border-t border-indigo-100 pt-2 flex justify-between font-black text-indigo-700 text-sm">
-                              <span>Net Pay:</span>
-                              <span className="font-mono">PKR {netPay.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                          ))
+                        ) : (
+                          <>
+                            <div className="flex justify-between items-center">
+                              <span className="text-slate-700">Basic Salary (60%):</span>
+                              <span className="font-mono text-slate-900 font-bold">PKR {(monthlySalary * 0.6).toLocaleString('en-PK', { maximumFractionDigits: 0 })}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-slate-700">House Rent Allowance (25%):</span>
+                              <span className="font-mono text-slate-900 font-bold">PKR {(monthlySalary * 0.25).toLocaleString('en-PK', { maximumFractionDigits: 0 })}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-slate-700">Medical Allowance (10%):</span>
+                              <span className="font-mono text-slate-900 font-bold">PKR {(monthlySalary * 0.1).toLocaleString('en-PK', { maximumFractionDigits: 0 })}</span>
+                            </div>
+                            <div className="flex justify-between items-center">
+                              <span className="text-slate-700">Transport Allowance (5%):</span>
+                              <span className="font-mono text-slate-900 font-bold">PKR {(monthlySalary * 0.05).toLocaleString('en-PK', { maximumFractionDigits: 0 })}</span>
                             </div>
                           </>
-                        );
-                      })()
-                    )}
-                    <div className="border-t border-indigo-100 pt-2 flex justify-between font-black text-indigo-700 text-sm">
-                      <span>Net Pay:</span>
-                      <span className="font-mono">PKR {parseFloat(empDetails.line?.net_salary || selectedEmp.salary * 0.87).toLocaleString()}</span>
-                    </div>
-                  </div>
+                        )}
+
+                        {/* Real-time FBR Tax Deduction Line */}
+                        <div className="border-t border-slate-100 pt-2.5 mt-2 flex justify-between items-center text-rose-600 font-bold">
+                          <span className="flex items-center gap-1.5">
+                            <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-ping" />
+                            Income Tax Withheld (Real-Time FBR):
+                          </span>
+                          <span className="font-mono font-black text-rose-600">
+                            - PKR {monthlyTax.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+
+                        {/* Provident Fund Line */}
+                        <div className="flex justify-between items-center text-amber-600 font-bold">
+                          <span>Provident Fund (5%):</span>
+                          <span className="font-mono font-bold">- PKR {providentFund.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}</span>
+                        </div>
+
+                        {/* Final Real-Time Net Pay */}
+                        <div className="border-t-2 border-emerald-500/20 pt-3 mt-3 flex justify-between items-center font-black text-slate-900 text-sm bg-emerald-50/50 -mx-4 -mb-4 p-4 rounded-b-2xl">
+                          <span className="text-emerald-950 uppercase tracking-wide">Net Take-Home Pay:</span>
+                          <span className="font-mono text-emerald-600 text-base">
+                            PKR {netPay.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}
+                          </span>
+                        </div>
+
+                        {/* Real-time Tax Audit Card */}
+                        <div className="mt-4 p-3.5 bg-slate-900 text-white rounded-xl space-y-2 border border-slate-800">
+                          <div className="flex justify-between items-center border-b border-slate-800 pb-1.5">
+                            <span className="font-black text-[10px] uppercase text-emerald-400 tracking-wider">Statutory Tax Engine Details (2026-27)</span>
+                            <span className="text-[9px] font-mono bg-emerald-500/15 text-emerald-400 px-2 py-0.5 rounded border border-emerald-500/30">Active Slabs</span>
+                          </div>
+                          <div className="grid grid-cols-2 gap-2 text-[10px] font-mono text-slate-300">
+                            <div>Annual Income: <span className="text-white font-bold">PKR {annualIncome.toLocaleString()}</span></div>
+                            <div>Tax Bracket: <span className="text-emerald-400 font-bold">{matched.label}</span></div>
+                            <div>Monthly Tax: <span className="text-rose-400 font-bold">PKR {monthlyTax.toLocaleString()}</span></div>
+                            <div>Effective Tax Rate: <span className="text-emerald-400 font-bold">{effectiveTaxRate.toFixed(2)}%</span></div>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })()}
                 </div>
               </div>
             )}
