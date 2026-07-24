@@ -320,7 +320,7 @@ export default function OrderTrackingPage() {
         kpis={kpiList}
       >
         
-        {/* Main Content Area (8 Cols for View + 4 Cols for Drawer) */}
+        {/* Main Content Area */}
         <div className="lg:col-span-8 space-y-4">
           
           {/* View Mode Toggle Switcher */}
@@ -434,50 +434,52 @@ export default function OrderTrackingPage() {
             </div>
           )}
 
-          {/* VIEW 2: KANBAN OPERATIONAL BOARD VIEW */}
+          {/* VIEW 2: REDESIGNED SPACIOUS KANBAN OPERATIONAL BOARD VIEW */}
           {viewMode === 'kanban' && (
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-3.5 items-start">
+            <div className="flex gap-4 overflow-x-auto pb-4 max-w-full font-sans">
               
               {/* 1. WAITING / DRAFT COLUMN */}
-              <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
-                <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                    <Clock size={13} className="text-sky-500" /> Waiting
+              <div className="min-w-[260px] flex-1 bg-slate-50/70 p-3.5 rounded-3xl border border-slate-200/90 border-t-4 border-t-sky-500 space-y-3 shadow-xs">
+                <div className="flex justify-between items-center px-1 pb-2 border-b border-slate-200/70">
+                  <span className="text-[11.5px] font-black uppercase tracking-wider text-slate-700 flex items-center gap-1.5">
+                    <Clock size={14} className="text-sky-500" /> Waiting
                   </span>
-                  <span className="px-2 py-0.5 bg-sky-100 text-sky-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('WAITING').length}</span>
+                  <span className="px-2.5 py-0.5 bg-sky-100 text-sky-800 text-[10.5px] font-black rounded-full">
+                    {getOrdersByColumn('WAITING').length}
+                  </span>
                 </div>
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {getOrdersByColumn('WAITING').map(o => (
                     <div 
                       key={o.id} 
                       onClick={() => handleSelectOrder(o)}
-                      className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
+                      className={`bg-white p-4 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
                         selectedOrder?.id === o.id 
                           ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
                           : 'border-slate-200/90 hover:border-emerald-300'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
+                        <span className="font-mono text-[13px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
                         <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-slate-100'}`}>
                           {STATUS_CONFIG[o.status]?.label || o.status}
                         </span>
                       </div>
 
-                      <div className="mt-2.5 flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] flex items-center justify-center shrink-0">
+                      <div className="mt-3 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 font-black text-[11px] flex items-center justify-center shrink-0">
                           {o.client_name?.charAt(0).toUpperCase() || 'C'}
                         </div>
-                        <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
+                        <span className="text-[13px] font-extrabold text-slate-800 truncate">{o.client_name}</span>
                       </div>
 
-                      <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
-                        <span className="flex items-center gap-1 text-slate-500 truncate">
-                          <MapPin size={11} className="text-slate-400 shrink-0" />
+                      <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500 font-semibold pt-2.5 border-t border-slate-100">
+                        <span className="flex items-center gap-1.5 text-slate-600 truncate">
+                          <MapPin size={12} className="text-slate-400 shrink-0" />
                           <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
                         </span>
                         {o.total_amount && (
-                          <span className="font-mono font-bold text-slate-700">
+                          <span className="font-mono font-black text-slate-900 text-[12px]">
                             PKR {parseFloat(o.total_amount).toLocaleString()}
                           </span>
                         )}
@@ -485,7 +487,7 @@ export default function OrderTrackingPage() {
                     </div>
                   ))}
                   {getOrdersByColumn('WAITING').length === 0 && (
-                    <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
+                    <div className="text-[11.5px] text-slate-400 italic text-center py-12 bg-white/60 rounded-2xl border border-dashed border-slate-200">
                       No orders waiting.
                     </div>
                   )}
@@ -493,45 +495,47 @@ export default function OrderTrackingPage() {
               </div>
 
               {/* 2. PICKING & PACKING COLUMN */}
-              <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
-                <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
-                    <Box size={13} className="text-amber-500" /> Picking & Packing
+              <div className="min-w-[260px] flex-1 bg-slate-50/70 p-3.5 rounded-3xl border border-slate-200/90 border-t-4 border-t-amber-500 space-y-3 shadow-xs">
+                <div className="flex justify-between items-center px-1 pb-2 border-b border-slate-200/70">
+                  <span className="text-[11.5px] font-black uppercase tracking-wider text-amber-800 flex items-center gap-1.5">
+                    <Box size={14} className="text-amber-500" /> Picking & Packing
                   </span>
-                  <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('PICKING').length}</span>
+                  <span className="px-2.5 py-0.5 bg-amber-100 text-amber-800 text-[10.5px] font-black rounded-full">
+                    {getOrdersByColumn('PICKING').length}
+                  </span>
                 </div>
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {getOrdersByColumn('PICKING').map(o => (
                     <div 
                       key={o.id} 
                       onClick={() => handleSelectOrder(o)}
-                      className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
+                      className={`bg-white p-4 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
                         selectedOrder?.id === o.id 
                           ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
                           : 'border-slate-200/90 hover:border-emerald-300'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
+                        <span className="font-mono text-[13px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
                         <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-amber-100'}`}>
                           {STATUS_CONFIG[o.status]?.label || o.status}
                         </span>
                       </div>
 
-                      <div className="mt-2.5 flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px] flex items-center justify-center shrink-0">
+                      <div className="mt-3 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-amber-100 text-amber-800 font-black text-[11px] flex items-center justify-center shrink-0">
                           {o.client_name?.charAt(0).toUpperCase() || 'C'}
                         </div>
-                        <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
+                        <span className="text-[13px] font-extrabold text-slate-800 truncate">{o.client_name}</span>
                       </div>
 
-                      <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
-                        <span className="flex items-center gap-1 text-slate-500 truncate">
-                          <MapPin size={11} className="text-slate-400 shrink-0" />
+                      <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500 font-semibold pt-2.5 border-t border-slate-100">
+                        <span className="flex items-center gap-1.5 text-slate-600 truncate">
+                          <MapPin size={12} className="text-slate-400 shrink-0" />
                           <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
                         </span>
                         {o.total_amount && (
-                          <span className="font-mono font-bold text-slate-700">
+                          <span className="font-mono font-black text-slate-900 text-[12px]">
                             PKR {parseFloat(o.total_amount).toLocaleString()}
                           </span>
                         )}
@@ -539,7 +543,7 @@ export default function OrderTrackingPage() {
                     </div>
                   ))}
                   {getOrdersByColumn('PICKING').length === 0 && (
-                    <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
+                    <div className="text-[11.5px] text-slate-400 italic text-center py-12 bg-white/60 rounded-2xl border border-dashed border-slate-200">
                       No picking orders.
                     </div>
                   )}
@@ -547,45 +551,47 @@ export default function OrderTrackingPage() {
               </div>
 
               {/* 3. READY FOR DISPATCH COLUMN */}
-              <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
-                <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
-                    <Layers size={13} className="text-indigo-500" /> Ready
+              <div className="min-w-[260px] flex-1 bg-slate-50/70 p-3.5 rounded-3xl border border-slate-200/90 border-t-4 border-t-indigo-500 space-y-3 shadow-xs">
+                <div className="flex justify-between items-center px-1 pb-2 border-b border-slate-200/70">
+                  <span className="text-[11.5px] font-black uppercase tracking-wider text-indigo-800 flex items-center gap-1.5">
+                    <Layers size={14} className="text-indigo-500" /> Ready
                   </span>
-                  <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('READY').length}</span>
+                  <span className="px-2.5 py-0.5 bg-indigo-100 text-indigo-800 text-[10.5px] font-black rounded-full">
+                    {getOrdersByColumn('READY').length}
+                  </span>
                 </div>
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {getOrdersByColumn('READY').map(o => (
                     <div 
                       key={o.id} 
                       onClick={() => handleSelectOrder(o)}
-                      className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
+                      className={`bg-white p-4 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
                         selectedOrder?.id === o.id 
                           ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
                           : 'border-slate-200/90 hover:border-emerald-300'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
+                        <span className="font-mono text-[13px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
                         <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-indigo-100'}`}>
                           {STATUS_CONFIG[o.status]?.label || o.status}
                         </span>
                       </div>
 
-                      <div className="mt-2.5 flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-800 font-bold text-[10px] flex items-center justify-center shrink-0">
+                      <div className="mt-3 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-indigo-100 text-indigo-800 font-black text-[11px] flex items-center justify-center shrink-0">
                           {o.client_name?.charAt(0).toUpperCase() || 'C'}
                         </div>
-                        <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
+                        <span className="text-[13px] font-extrabold text-slate-800 truncate">{o.client_name}</span>
                       </div>
 
-                      <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
-                        <span className="flex items-center gap-1 text-slate-500 truncate">
-                          <MapPin size={11} className="text-slate-400 shrink-0" />
+                      <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500 font-semibold pt-2.5 border-t border-slate-100">
+                        <span className="flex items-center gap-1.5 text-slate-600 truncate">
+                          <MapPin size={12} className="text-slate-400 shrink-0" />
                           <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
                         </span>
                         {o.total_amount && (
-                          <span className="font-mono font-bold text-slate-700">
+                          <span className="font-mono font-black text-slate-900 text-[12px]">
                             PKR {parseFloat(o.total_amount).toLocaleString()}
                           </span>
                         )}
@@ -593,7 +599,7 @@ export default function OrderTrackingPage() {
                     </div>
                   ))}
                   {getOrdersByColumn('READY').length === 0 && (
-                    <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
+                    <div className="text-[11.5px] text-slate-400 italic text-center py-12 bg-white/60 rounded-2xl border border-dashed border-slate-200">
                       No orders ready.
                     </div>
                   )}
@@ -601,45 +607,47 @@ export default function OrderTrackingPage() {
               </div>
 
               {/* 4. IN TRANSIT / DISPATCHED COLUMN */}
-              <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
-                <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-orange-700 flex items-center gap-1.5">
-                    <Truck size={13} className="text-orange-500" /> In Transit
+              <div className="min-w-[260px] flex-1 bg-slate-50/70 p-3.5 rounded-3xl border border-slate-200/90 border-t-4 border-t-orange-500 space-y-3 shadow-xs">
+                <div className="flex justify-between items-center px-1 pb-2 border-b border-slate-200/70">
+                  <span className="text-[11.5px] font-black uppercase tracking-wider text-orange-800 flex items-center gap-1.5">
+                    <Truck size={14} className="text-orange-500" /> In Transit
                   </span>
-                  <span className="px-2 py-0.5 bg-orange-100 text-orange-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('DISPATCHED').length}</span>
+                  <span className="px-2.5 py-0.5 bg-orange-100 text-orange-800 text-[10.5px] font-black rounded-full">
+                    {getOrdersByColumn('DISPATCHED').length}
+                  </span>
                 </div>
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {getOrdersByColumn('DISPATCHED').map(o => (
                     <div 
                       key={o.id} 
                       onClick={() => handleSelectOrder(o)}
-                      className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
+                      className={`bg-white p-4 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
                         selectedOrder?.id === o.id 
                           ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
                           : 'border-slate-200/90 hover:border-emerald-300'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
+                        <span className="font-mono text-[13px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
                         <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-orange-100'}`}>
                           {STATUS_CONFIG[o.status]?.label || o.status}
                         </span>
                       </div>
 
-                      <div className="mt-2.5 flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-800 font-bold text-[10px] flex items-center justify-center shrink-0">
+                      <div className="mt-3 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-orange-100 text-orange-800 font-black text-[11px] flex items-center justify-center shrink-0">
                           {o.client_name?.charAt(0).toUpperCase() || 'C'}
                         </div>
-                        <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
+                        <span className="text-[13px] font-extrabold text-slate-800 truncate">{o.client_name}</span>
                       </div>
 
-                      <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
-                        <span className="flex items-center gap-1 text-slate-500 truncate">
-                          <MapPin size={11} className="text-slate-400 shrink-0" />
+                      <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500 font-semibold pt-2.5 border-t border-slate-100">
+                        <span className="flex items-center gap-1.5 text-slate-600 truncate">
+                          <MapPin size={12} className="text-slate-400 shrink-0" />
                           <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
                         </span>
                         {o.total_amount && (
-                          <span className="font-mono font-bold text-slate-700">
+                          <span className="font-mono font-black text-slate-900 text-[12px]">
                             PKR {parseFloat(o.total_amount).toLocaleString()}
                           </span>
                         )}
@@ -647,7 +655,7 @@ export default function OrderTrackingPage() {
                     </div>
                   ))}
                   {getOrdersByColumn('DISPATCHED').length === 0 && (
-                    <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
+                    <div className="text-[11.5px] text-slate-400 italic text-center py-12 bg-white/60 rounded-2xl border border-dashed border-slate-200">
                       No transit shipments.
                     </div>
                   )}
@@ -655,45 +663,47 @@ export default function OrderTrackingPage() {
               </div>
 
               {/* 5. DELIVERED & CLOSED COLUMN */}
-              <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
-                <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
-                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
-                    <CheckCircle2 size={13} className="text-emerald-500" /> Delivered & Closed
+              <div className="min-w-[260px] flex-1 bg-slate-50/70 p-3.5 rounded-3xl border border-slate-200/90 border-t-4 border-t-emerald-500 space-y-3 shadow-xs">
+                <div className="flex justify-between items-center px-1 pb-2 border-b border-slate-200/70">
+                  <span className="text-[11.5px] font-black uppercase tracking-wider text-emerald-800 flex items-center gap-1.5">
+                    <CheckCircle2 size={14} className="text-emerald-500" /> Delivered & Closed
                   </span>
-                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('DELIVERED').length}</span>
+                  <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 text-[10.5px] font-black rounded-full">
+                    {getOrdersByColumn('DELIVERED').length}
+                  </span>
                 </div>
-                <div className="space-y-2.5">
+                <div className="space-y-3">
                   {getOrdersByColumn('DELIVERED').map(o => (
                     <div 
                       key={o.id} 
                       onClick={() => handleSelectOrder(o)}
-                      className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
+                      className={`bg-white p-4 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
                         selectedOrder?.id === o.id 
                           ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
                           : 'border-slate-200/90 hover:border-emerald-300'
                       }`}
                     >
                       <div className="flex items-center justify-between">
-                        <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
+                        <span className="font-mono text-[13px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
                         <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-emerald-100'}`}>
                           {STATUS_CONFIG[o.status]?.label || o.status}
                         </span>
                       </div>
 
-                      <div className="mt-2.5 flex items-center gap-2">
-                        <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] flex items-center justify-center shrink-0">
+                      <div className="mt-3 flex items-center gap-2">
+                        <div className="w-7 h-7 rounded-full bg-emerald-100 text-emerald-800 font-black text-[11px] flex items-center justify-center shrink-0">
                           {o.client_name?.charAt(0).toUpperCase() || 'C'}
                         </div>
-                        <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
+                        <span className="text-[13px] font-extrabold text-slate-800 truncate">{o.client_name}</span>
                       </div>
 
-                      <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
-                        <span className="flex items-center gap-1 text-slate-500 truncate">
-                          <MapPin size={11} className="text-slate-400 shrink-0" />
+                      <div className="mt-3 flex items-center justify-between text-[11px] text-slate-500 font-semibold pt-2.5 border-t border-slate-100">
+                        <span className="flex items-center gap-1.5 text-slate-600 truncate">
+                          <MapPin size={12} className="text-slate-400 shrink-0" />
                           <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
                         </span>
                         {o.total_amount && (
-                          <span className="font-mono font-bold text-slate-700">
+                          <span className="font-mono font-black text-slate-900 text-[12px]">
                             PKR {parseFloat(o.total_amount).toLocaleString()}
                           </span>
                         )}
@@ -701,7 +711,7 @@ export default function OrderTrackingPage() {
                     </div>
                   ))}
                   {getOrdersByColumn('DELIVERED').length === 0 && (
-                    <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
+                    <div className="text-[11.5px] text-slate-400 italic text-center py-12 bg-white/60 rounded-2xl border border-dashed border-slate-200">
                       No closed orders.
                     </div>
                   )}
