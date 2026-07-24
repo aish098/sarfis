@@ -169,6 +169,87 @@ export default function PayrollConfiguration({ userRole }) {
     }
   };
 
+  const evaluateCustomFormula = (expression, inputs) => {
+    let expr = expression;
+    const context = {
+      gross: parseFloat(inputs.gross || 0),
+      basic: parseFloat(inputs.basic || 0),
+      overtime: parseFloat(inputs.overtime || 0),
+      allowance: parseFloat(inputs.allowance || 0)
+    };
+
+    const steps = [];
+    steps.push({
+      expression: `Base Amounts Loaded`,
+      result: `gross: PKR ${context.gross.toLocaleString()}, basic: PKR ${context.basic.toLocaleString()}`
+    });
+
+    const keys = Object.keys(context).sort((a, b) => b.length - a.length);
+    for (const k of keys) {
+      const reg = new RegExp(`\\b${k}\\b`, 'g');
+      if (reg.test(expr)) {
+        expr = expr.replace(reg, context[k]);
+      }
+    }
+
+    // Pre-process IF and math functions
+    expr = expr.replace(/IF\s*\(/gi, 'if(');
+    expr = expr.replace(/MIN\s*\(/gi, 'Math.min(');
+    expr = expr.replace(/MAX\s*\(/gi, 'Math.max(');
+    expr = expr.replace(/ABS\s*\(/gi, 'Math.abs(');
+    expr = expr.replace(/CEIL\s*\(/gi, 'Math.ceil(');
+    expr = expr.replace(/FLOOR\s*\(/gi, 'Math.floor(');
+    expr = expr.replace(/ROUND\s*\(([^,]+),\s*([^)]+)\)/gi, '(Math.round(($1) * Math.pow(10, $2)) / Math.pow(10, $2))');
+
+    if (expr.startsWith('if(') || expr.startsWith('if (')) {
+      const startIdx = expr.indexOf('(');
+      const content = expr.substring(startIdx + 1, expr.lastIndexOf(')'));
+      const parts = [];
+      let bracketCount = 0;
+      let currentPart = '';
+      
+      for (let i = 0; i < content.length; i++) {
+        const char = content[i];
+        if (char === '(') bracketCount++;
+        else if (char === ')') bracketCount--;
+        
+        if (char === ',' && bracketCount === 0) {
+          parts.push(currentPart.trim());
+          currentPart = '';
+        } else {
+          currentPart += char;
+        }
+      }
+      parts.push(currentPart.trim());
+      
+      if (parts.length === 3) {
+        const condVal = new Function(`return (${parts[0]});`)();
+        steps.push({
+          expression: `Condition: ${parts[0]}`,
+          result: condVal ? 'TRUE (Clause Met)' : 'FALSE (Clause Not Met)'
+        });
+
+        const evaluatedClause = condVal ? parts[1] : parts[2];
+        steps.push({
+          expression: `Evaluated Branch`,
+          result: evaluatedClause
+        });
+
+        expr = `(${parts[0]}) ? (${parts[1]}) : (${parts[2]})`;
+      }
+    }
+
+    const finalValue = new Function(`return (${expr});`)();
+    const numResult = parseFloat(finalValue) || 0;
+    
+    steps.push({
+      expression: `Evaluated Result`,
+      result: `PKR ${numResult.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`
+    });
+
+    return { value: numResult.toLocaleString('en-PK', { minimumFractionDigits: 2, maximumFractionDigits: 2 }), trace: steps };
+  };
+
   const handleValidateFormula = async () => {
     setSandboxLoading(true);
     setSandboxResult(null);
