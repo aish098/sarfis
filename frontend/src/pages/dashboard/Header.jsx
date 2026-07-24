@@ -1046,100 +1046,108 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
             <Settings size={17} style={{ color: PBI.muted }} />
           </button>
           
-          <HeaderDropdown open={openMenu === 'gear'} onClose={closeAll} className="w-80">
+          <HeaderDropdown open={openMenu === 'gear'} onClose={closeAll} className="w-[380px]">
             <div className="px-4 py-3 border-b bg-slate-50/50" style={{ borderColor: PBI.border }}>
               <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Settings & Admin Utilities</p>
               <p className="text-[12px] font-black text-slate-800 mt-0.5">Quick Access Tools</p>
             </div>
             
-            <div className="p-2.5 grid grid-cols-2 gap-3 text-left">
+            <div className="p-3 space-y-3 text-left">
               {/* Category 1: Company & Access */}
-              <div className="col-span-2 px-1.5 pt-1 text-[10px] font-black uppercase tracking-wider text-[#064E3B] opacity-80">
-                Company & Access
-              </div>
-              <button
-                onClick={() => { navigate('/dashboard/settings'); closeAll(); }}
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-[12px] text-slate-700 font-semibold"
-              >
-                <div className="p-1.5 rounded bg-emerald-50 text-emerald-700">
-                  <Settings size={13} />
+              <div>
+                <div className="px-1.5 pb-1 text-[10px] font-black uppercase tracking-wider text-[#064E3B] opacity-80">
+                  Company & Access
                 </div>
-                System Settings
-              </button>
-              
-              <button
-                onClick={() => { navigate('/dashboard/admin?tab=users'); closeAll(); }}
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-[12px] text-slate-700 font-semibold"
-              >
-                <div className="p-1.5 rounded bg-emerald-50 text-emerald-700">
-                  <Users size={13} />
-                </div>
-                Company Profile
-              </button>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => { navigate('/dashboard/settings'); closeAll(); }}
+                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100/80 transition-colors text-[12px] text-slate-700 font-semibold border border-slate-100 hover:border-slate-200"
+                  >
+                    <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 flex-shrink-0">
+                      <Settings size={14} />
+                    </div>
+                    <span className="truncate">System Settings</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => { navigate('/dashboard/admin?tab=users'); closeAll(); }}
+                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100/80 transition-colors text-[12px] text-slate-700 font-semibold border border-slate-100 hover:border-slate-200"
+                  >
+                    <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 flex-shrink-0">
+                      <Users size={14} />
+                    </div>
+                    <span className="truncate">Company Profile</span>
+                  </button>
 
-              <button
-                onClick={() => { navigate('/dashboard/admin?tab=permissions'); closeAll(); }}
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-[12px] text-slate-700 font-semibold"
-              >
-                <div className="p-1.5 rounded bg-emerald-50 text-emerald-700">
-                  <KeyRound size={13} />
+                  <button
+                    onClick={() => { navigate('/dashboard/admin?tab=permissions'); closeAll(); }}
+                    className="col-span-2 flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100/80 transition-colors text-[12px] text-slate-700 font-semibold border border-slate-100 hover:border-slate-200"
+                  >
+                    <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 flex-shrink-0">
+                      <KeyRound size={14} />
+                    </div>
+                    <span className="truncate">User Roles & Permissions</span>
+                  </button>
                 </div>
-                User Permissions
-              </button>
+              </div>
               
               {/* Category 2: Data & Maintenance */}
-              <div className="col-span-2 px-1.5 pt-2 border-t text-[10px] font-black uppercase tracking-wider text-[#064E3B] opacity-80" style={{ borderColor: PBI.border }}>
-                Data & Maintenance
+              <div className="pt-2 border-t" style={{ borderColor: PBI.border }}>
+                <div className="px-1.5 pb-1 text-[10px] font-black uppercase tracking-wider text-[#064E3B] opacity-80">
+                  Data & Maintenance
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    onClick={() => { navigate('/dashboard/admin?tab=periods'); closeAll(); }}
+                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100/80 transition-colors text-[12px] text-slate-700 font-semibold border border-slate-100 hover:border-slate-200"
+                  >
+                    <div className="p-1.5 rounded-lg bg-cyan-50 text-cyan-700 flex-shrink-0">
+                      <Calendar size={14} />
+                    </div>
+                    <span className="truncate">Fiscal Periods</span>
+                  </button>
+
+                  <button
+                    onClick={() => { navigate('/dashboard/admin?tab=sessions'); closeAll(); }}
+                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100/80 transition-colors text-[12px] text-slate-700 font-semibold border border-slate-100 hover:border-slate-200"
+                  >
+                    <div className="p-1.5 rounded-lg bg-cyan-50 text-cyan-700 flex-shrink-0">
+                      <History size={14} />
+                    </div>
+                    <span className="truncate">Audit Logs</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => { navigate('/dashboard/admin?tab=data'); closeAll(); }}
+                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100/80 transition-colors text-[12px] text-slate-700 font-semibold border border-slate-100 hover:border-slate-200"
+                  >
+                    <div className="p-1.5 rounded-lg bg-cyan-50 text-cyan-700 flex-shrink-0">
+                      <Database size={14} />
+                    </div>
+                    <span className="truncate">Backup & Restore</span>
+                  </button>
+
+                  <button
+                    onClick={() => { navigate('/dashboard/settings?tab=import'); closeAll(); }}
+                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100/80 transition-colors text-[12px] text-slate-700 font-semibold border border-slate-100 hover:border-slate-200"
+                  >
+                    <div className="p-1.5 rounded-lg bg-cyan-50 text-cyan-700 flex-shrink-0">
+                      <Plus size={14} />
+                    </div>
+                    <span className="truncate">Import Data</span>
+                  </button>
+
+                  <button
+                    onClick={() => { navigate('/dashboard/settings?tab=import'); closeAll(); }}
+                    className="col-span-2 flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100/80 transition-colors text-[12px] text-slate-700 font-semibold border border-slate-100 hover:border-slate-200"
+                  >
+                    <div className="p-1.5 rounded-lg bg-cyan-50 text-cyan-700 flex-shrink-0">
+                      <FileText size={14} />
+                    </div>
+                    <span className="truncate">Export System Data</span>
+                  </button>
+                </div>
               </div>
-              <button
-                onClick={() => { navigate('/dashboard/admin?tab=periods'); closeAll(); }}
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-[12px] text-slate-700 font-semibold"
-              >
-                <div className="p-1.5 rounded bg-cyan-50 text-cyan-700">
-                  <Calendar size={13} />
-                </div>
-                Fiscal Periods
-              </button>
-
-              <button
-                onClick={() => { navigate('/dashboard/admin?tab=sessions'); closeAll(); }}
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-[12px] text-slate-700 font-semibold"
-              >
-                <div className="p-1.5 rounded bg-cyan-50 text-cyan-700">
-                  <History size={13} />
-                </div>
-                Audit Logs
-              </button>
-              
-              <button
-                onClick={() => { navigate('/dashboard/admin?tab=data'); closeAll(); }}
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-[12px] text-slate-700 font-semibold"
-              >
-                <div className="p-1.5 rounded bg-cyan-50 text-cyan-700">
-                  <Database size={13} />
-                </div>
-                Backup & Restore
-              </button>
-
-              <button
-                onClick={() => { navigate('/dashboard/admin?tab=data'); closeAll(); }}
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-[12px] text-slate-700 font-semibold"
-              >
-                <div className="p-1.5 rounded bg-cyan-50 text-cyan-700">
-                  <Plus size={13} />
-                </div>
-                Import Data
-              </button>
-
-              <button
-                onClick={() => { navigate('/dashboard/admin?tab=data'); closeAll(); }}
-                className="flex items-center gap-2 p-2 rounded-lg hover:bg-slate-50 text-[12px] text-slate-700 font-semibold"
-              >
-                <div className="p-1.5 rounded bg-cyan-50 text-cyan-700">
-                  <FileText size={13} />
-                </div>
-                Export Data
-              </button>
             </div>
           </HeaderDropdown>
         </div>

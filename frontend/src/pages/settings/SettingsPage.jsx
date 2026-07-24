@@ -1367,36 +1367,34 @@ export default function SettingsPage() {
         </button>
       }
     >
-      <div className="col-span-full flex flex-col lg:flex-row gap-6">
-        {/* Left Sidebar Nav */}
-        <div className="w-full lg:w-64 shrink-0">
-          <div className="bg-white rounded-xl shadow-sm border border-slate-200 overflow-x-auto hide-scrollbar flex lg:flex-col lg:divide-y divide-slate-100">
-            {TABS.map(tab => {
-              const Icon = tab.icon;
-              const isActive = activeTab === tab.id;
-              return (
-                <button
-                  key={tab.id}
-                  onClick={() => {
-                    setActiveTab(tab.id);
-                    setMessage(null);
-                  }}
-                  className={`flex items-center gap-2.5 px-4 py-3.5 text-[12.5px] font-bold transition-all whitespace-nowrap shrink-0 lg:shrink border-b-2 lg:border-b-0 lg:border-l-4 ${
-                    isActive
-                      ? 'border-emerald-500 bg-emerald-50/50 text-emerald-800'
-                      : 'border-transparent text-slate-600 hover:bg-slate-50/50 hover:text-slate-900'
-                  }`}
-                >
-                  <Icon size={16} className={isActive ? 'text-emerald-600' : 'text-slate-400'} />
-                  {tab.label}
-                </button>
-              );
-            })}
-          </div>
+      <div className="col-span-full space-y-6">
+        {/* Top Horizontal Tabs Navigation Ribbon */}
+        <div className="w-full bg-slate-100/70 p-2 rounded-2xl border border-slate-200/80 overflow-x-auto hide-scrollbar flex items-center gap-2">
+          {TABS.map(tab => {
+            const Icon = tab.icon;
+            const isActive = activeTab === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => {
+                  setActiveTab(tab.id);
+                  setMessage(null);
+                }}
+                className={`flex items-center gap-2 px-4 py-2.5 rounded-xl text-[12.5px] font-bold transition-all whitespace-nowrap shrink-0 cursor-pointer ${
+                  isActive
+                    ? 'bg-white text-emerald-800 shadow-sm border border-emerald-500/30'
+                    : 'text-slate-600 hover:bg-white/60 hover:text-slate-900 border border-transparent'
+                }`}
+              >
+                <Icon size={16} className={isActive ? 'text-emerald-600' : 'text-slate-400'} />
+                {tab.label}
+              </button>
+            );
+          })}
         </div>
 
-        {/* Right Content Area */}
-        <div className="flex-1">
+        {/* Main Settings Content Area */}
+        <div className="w-full">
           <AnimatePresence mode="wait">
             {message && (
               <Motion.div
