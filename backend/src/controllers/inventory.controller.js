@@ -359,7 +359,11 @@ exports.getValuationReport = async (req, res) => {
     const { asOfDate, warehouseId, categoryId } = req.query;
     const db = require('../config/db');
 
-    const parsedAsOf = asOfDate ? new Date(asOfDate) : new Date();
+    let parsedAsOf = new Date();
+    if (asOfDate) {
+      parsedAsOf = new Date(asOfDate);
+      parsedAsOf.setHours(23, 59, 59, 999);
+    }
 
     const SettingsModel = require('../models/settings.model');
     const generalSettings = await SettingsModel.getSettings(companyId);
