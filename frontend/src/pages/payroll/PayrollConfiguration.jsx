@@ -376,12 +376,12 @@ export default function PayrollConfiguration({ userRole }) {
       {/* Formula Builder Pane */}
       {activeConfigTab === 'formula' && (
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs font-semibold">
-          {/* Editor */}
+          {/* Sandbox Controls */}
           <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4">
             <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Excel-Style Formula Builder</h3>
             
             <div className="space-y-1">
-              <label className="text-slate-400">Formula Expression</label>
+              <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Formula Expression</label>
               <textarea
                 value={testFormula}
                 onChange={e => setTestFormula(e.target.value)}
@@ -391,15 +391,51 @@ export default function PayrollConfiguration({ userRole }) {
               />
             </div>
 
-            <div className="space-y-1">
-              <label className="text-slate-400">Mock Evaluation Variables (JSON format)</label>
-              <textarea
-                value={testVars}
-                onChange={e => setTestVars(e.target.value)}
-                disabled={disableEdit}
-                className="w-full h-20 p-3 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-mono text-slate-800 disabled:opacity-40"
-                placeholder='e.g. {"gross": 120000}'
-              />
+            <div className="space-y-2">
+              <label className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Calculation Inputs & Base Amounts</label>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-slate-500">Gross Salary (gross)</span>
+                  <input
+                    type="number"
+                    value={(() => { try { return JSON.parse(testVars).gross || 120000; } catch { return 120000; } })()}
+                    onChange={e => {
+                      const val = parseFloat(e.target.value) || 0;
+                      try {
+                        const parsed = JSON.parse(testVars);
+                        parsed.gross = val;
+                        setTestVars(JSON.stringify(parsed));
+                      } catch {
+                        setTestVars(JSON.stringify({ gross: val, basic: 72000 }));
+                      }
+                    }}
+                    disabled={disableEdit}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-mono text-slate-800 font-bold text-xs disabled:opacity-40"
+                    placeholder="120000"
+                  />
+                </div>
+
+                <div className="space-y-1">
+                  <span className="text-[10px] font-bold text-slate-500">Basic Salary (basic)</span>
+                  <input
+                    type="number"
+                    value={(() => { try { return JSON.parse(testVars).basic || 72000; } catch { return 72000; } })()}
+                    onChange={e => {
+                      const val = parseFloat(e.target.value) || 0;
+                      try {
+                        const parsed = JSON.parse(testVars);
+                        parsed.basic = val;
+                        setTestVars(JSON.stringify(parsed));
+                      } catch {
+                        setTestVars(JSON.stringify({ gross: 120000, basic: val }));
+                      }
+                    }}
+                    disabled={disableEdit}
+                    className="w-full p-2.5 bg-slate-50 border border-slate-200 rounded-xl outline-none focus:border-indigo-500 font-mono text-slate-800 font-bold text-xs disabled:opacity-40"
+                    placeholder="72000"
+                  />
+                </div>
+              </div>
             </div>
 
             <button
@@ -414,7 +450,7 @@ export default function PayrollConfiguration({ userRole }) {
 
           {/* Execution Trace Result */}
           <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4">
-            <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Validation & Trace Summary</h3>
+            <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">Validation & Calculation Trace</h3>
 
             {sandboxError && (
               <div className="p-4 bg-rose-50 border border-rose-100 rounded-2xl text-rose-800 flex items-center gap-2">
@@ -437,7 +473,7 @@ export default function PayrollConfiguration({ userRole }) {
                 </div>
 
                 <div className="space-y-2">
-                  <span className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider block">Auditor Execution Trace</span>
+                  <span className="text-[10px] text-slate-400 uppercase font-extrabold tracking-wider block">Calculation Trace Breakdown</span>
                   <div className="border border-slate-150 rounded-xl divide-y divide-slate-100 overflow-hidden bg-slate-50/50">
                     {sandboxResult.trace.map((step, index) => (
                       <div key={index} className="p-3 flex justify-between items-center font-mono text-[10.5px]">
@@ -455,7 +491,7 @@ export default function PayrollConfiguration({ userRole }) {
 
             {!sandboxError && !sandboxResult && (
               <div className="p-16 text-center text-slate-400 italic font-bold">
-                Run sandbox compiler to inspect steps breakdown trace.
+                Run formula validator to inspect calculation breakdown trace.
               </div>
             )}
           </div>
@@ -467,7 +503,7 @@ export default function PayrollConfiguration({ userRole }) {
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 text-xs font-semibold text-slate-600">
           {/* FBR Slabs */}
           <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-xs space-y-4">
-            <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">FBR Income Tax Slabs (Tax Year 2026)</h3>
+            <h3 className="text-xs font-black uppercase text-slate-800 tracking-wider">FBR Income Tax Slabs (Tax Year 2026–2027)</h3>
             <div className="overflow-x-auto rounded-2xl border border-slate-100">
               <table className="w-full text-left border-collapse">
                 <thead>
@@ -478,12 +514,14 @@ export default function PayrollConfiguration({ userRole }) {
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-50 font-semibold text-slate-600">
-                  <tr><td className="px-4 py-2.5">Up to 600,000 / year (50,000 / mo)</td><td className="px-4 py-2.5 text-right">PKR 0</td><td className="px-4 py-2.5 text-right">0%</td></tr>
-                  <tr><td className="px-4 py-2.5">600,001 to 1,200,000 / year</td><td className="px-4 py-2.5 text-right">PKR 0</td><td className="px-4 py-2.5 text-right">5%</td></tr>
-                  <tr><td className="px-4 py-2.5">1,200,001 to 2,200,000 / year</td><td className="px-4 py-2.5 text-right">PKR 30,000</td><td className="px-4 py-2.5 text-right">15%</td></tr>
-                  <tr><td className="px-4 py-2.5">2,200,001 to 3,200,000 / year</td><td className="px-4 py-2.5 text-right">PKR 180,000</td><td className="px-4 py-2.5 text-right">25%</td></tr>
-                  <tr><td className="px-4 py-2.5">3,200,001 to 4,100,000 / year</td><td className="px-4 py-2.5 text-right">PKR 430,000</td><td className="px-4 py-2.5 text-right">30%</td></tr>
-                  <tr><td className="px-4 py-2.5">Above 4,100,000 / year</td><td className="px-4 py-2.5 text-right">PKR 700,000</td><td className="px-4 py-2.5 text-right">35%</td></tr>
+                  <tr><td className="px-4 py-2.5">Up to 600,000 / year (50,000 / mo)</td><td className="px-4 py-2.5 text-right font-mono font-bold">PKR 0</td><td className="px-4 py-2.5 text-right font-mono font-bold text-emerald-600">0%</td></tr>
+                  <tr><td className="px-4 py-2.5">600,001 to 1,200,000 / year</td><td className="px-4 py-2.5 text-right font-mono font-bold">PKR 0</td><td className="px-4 py-2.5 text-right font-mono font-bold text-indigo-600">1%</td></tr>
+                  <tr><td className="px-4 py-2.5">1,200,001 to 2,200,000 / year</td><td className="px-4 py-2.5 text-right font-mono font-bold">PKR 6,000</td><td className="px-4 py-2.5 text-right font-mono font-bold text-indigo-600">11%</td></tr>
+                  <tr><td className="px-4 py-2.5">2,200,001 to 3,200,000 / year</td><td className="px-4 py-2.5 text-right font-mono font-bold">PKR 116,000</td><td className="px-4 py-2.5 text-right font-mono font-bold text-indigo-600">20%</td></tr>
+                  <tr><td className="px-4 py-2.5">3,200,001 to 4,100,000 / year</td><td className="px-4 py-2.5 text-right font-mono font-bold">PKR 316,000</td><td className="px-4 py-2.5 text-right font-mono font-bold text-indigo-600">25%</td></tr>
+                  <tr><td className="px-4 py-2.5">4,100,001 to 5,600,000 / year</td><td className="px-4 py-2.5 text-right font-mono font-bold">PKR 541,000</td><td className="px-4 py-2.5 text-right font-mono font-bold text-indigo-600">29%</td></tr>
+                  <tr><td className="px-4 py-2.5">5,600,001 to 7,000,000 / year</td><td className="px-4 py-2.5 text-right font-mono font-bold">PKR 976,000</td><td className="px-4 py-2.5 text-right font-mono font-bold text-indigo-600">32%</td></tr>
+                  <tr><td className="px-4 py-2.5">Above 7,000,000 / year</td><td className="px-4 py-2.5 text-right font-mono font-bold">PKR 1,424,000</td><td className="px-4 py-2.5 text-right font-mono font-bold text-rose-600">35%</td></tr>
                 </tbody>
               </table>
             </div>
