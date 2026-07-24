@@ -1182,19 +1182,30 @@ exports.updateCompanyAuthSettings = async (req, res) => {
     const companyId = parseInt(req.params.companyId, 10);
     await assertCompanyAdmin(req, companyId);
 
-    const { google_login_enabled, allow_google_account_linking, allowed_google_domains } = req.body;
+    const google_login_enabled = req.body.google_login_enabled !== undefined ? req.body.google_login_enabled : req.body.googleLoginEnabled;
+    const allow_google_account_linking = req.body.allow_google_account_linking !== undefined ? req.body.allow_google_account_linking : req.body.allowGoogleAccountLinking;
+    const allow_google_auto_provisioning = req.body.allow_google_auto_provisioning !== undefined ? req.body.allow_google_auto_provisioning : req.body.allowGoogleAutoProvisioning;
+    const allowed_google_domains = req.body.allowed_google_domains !== undefined ? req.body.allowed_google_domains : req.body.allowedGoogleDomains;
+
+    let parsedDomains = allowed_google_domains;
+    if (typeof allowed_google_domains === 'string') {
+      parsedDomains = allowed_google_domains.split(',').map(d => d.trim()).filter(Boolean);
+    }
 
     const payload = {
       google_login_enabled: !!google_login_enabled,
       allow_google_account_linking: !!allow_google_account_linking,
-      allowed_google_domains: Array.isArray(allowed_google_domains) ? JSON.stringify(allowed_google_domains) : null,
+      allow_google_auto_provisioning: !!allow_google_auto_provisioning,
+      allowed_google_domains: Array.isArray(parsedDomains) ? JSON.stringify(parsedDomains) : null,
       updated_at: db.fn.now()
     };
 
-    await db('company_auth_settings')
-      .insert({ company_id: companyId, ...payload })
-      .onConflict('company_id')
-      .merge(payload);
+    const existing = await db('company_auth_settings').where({ company_id: companyId }).first();
+    if (existing) {
+      await db('company_auth_settings').where({ company_id: companyId }).update(payload);
+    } else {
+      await db('company_auth_settings').insert({ company_id: companyId, ...payload });
+    }
 
     res.json({ success: true, message: 'Authentication policies updated successfully' });
   } catch (err) {
