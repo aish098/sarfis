@@ -24,8 +24,8 @@ const fmt = v => {
   if (v === null || v === undefined) return '—';
   const n = parseFloat(v);
   return n < 0
-    ? `($${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2 })})`
-    : `$${n.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
+    ? `-${Math.abs(n).toLocaleString('en-US', { minimumFractionDigits: 2 })}`
+    : `${n.toLocaleString('en-US', { minimumFractionDigits: 2 })}`;
 };
 
 export default function ReportsPage() {
@@ -102,17 +102,10 @@ export default function ReportsPage() {
     const n = parseFloat(v);
     const absVal = Math.abs(n);
     const formattedNum = absVal.toLocaleString('en-US', { minimumFractionDigits: 2 });
-    const stylePreference = settings?.negativeBalanceStyle || 'minus';
 
     if (n < 0 || (isContra && n > 0)) {
       const displayVal = n > 0 && isContra ? -n : n;
       const formattedAbs = Math.abs(displayVal).toLocaleString('en-US', { minimumFractionDigits: 2 });
-      if (stylePreference === 'parentheses') {
-        return `(${currencyLabel} ${formattedAbs})`;
-      }
-      if (stylePreference === 'red') {
-        return <span className="text-rose-600 font-bold">-{currencyLabel} {formattedAbs}</span>;
-      }
       return `-${currencyLabel} ${formattedAbs}`;
     }
     return `${currencyLabel} ${formattedNum}`;
@@ -1212,54 +1205,38 @@ function BalanceSheet({ data, companyName, asOfDate, formatAmount, openNoteDrawe
           {items.map((r, idx) => (
             <div 
               key={r.id || idx} 
-              className={`flex justify-between items-center py-2.5 px-3 text-slate-700 transition-all font-semibold text-[13px] hover:bg-slate-50/50 ${
+              onClick={() => openNoteDrawer(r)}
+              className={`flex justify-between items-center py-2.5 px-3 text-slate-700 transition-all font-semibold text-[13px] cursor-pointer group hover:bg-emerald-50/40 hover:border-l-4 hover:border-l-emerald-500 ${
                 idx % 2 === 0 ? 'bg-[#FFFDFB]' : 'bg-[#FAFAF9]'
               }`}
             >
               <div className="flex flex-col">
                 <div className="flex items-center gap-2">
-                  <span className={r.is_contra ? 'ml-4 text-slate-400 font-bold' : 'text-slate-800'}>
+                  <span className={r.is_contra ? 'ml-4 text-slate-600 font-bold group-hover:text-emerald-900' : 'text-slate-800 group-hover:text-emerald-900'}>
                     {r.is_contra ? 'Less: ' : ''}{r.name}
                   </span>
-                  {r.noteMeta && (
-                    <button 
-                      onClick={() => openNoteDrawer(r)}
-                      className={`text-[9px] px-2 py-0.5 rounded font-black transition-all cursor-pointer select-none border flex items-center gap-1 ${
-                        r.noteMeta.reconciliationStatus === 'VERIFIED'
-                          ? 'text-emerald-700 bg-emerald-50 border-emerald-200 hover:bg-emerald-100'
-                          : r.noteMeta.reconciliationStatus === 'WARNING'
-                          ? 'text-amber-700 bg-amber-50 border-amber-200 hover:bg-amber-100'
-                          : r.noteMeta.reconciliationStatus === 'MISMATCH'
-                          ? 'text-rose-700 bg-rose-50 border-rose-200 hover:bg-rose-100 animate-pulse font-extrabold'
-                          : 'text-slate-655 bg-slate-50 border-slate-200 hover:bg-slate-100'
-                      }`}
-                      title={`${r.noteMeta.label} (${r.noteMeta.reconciliationStatus})`}
-                    >
-                      📄 Note {r.noteMeta.num}
-                    </button>
-                  )}
+                  
+                  <span className={`text-[9px] px-2 py-0.5 rounded font-black transition-all select-none border flex items-center gap-1 ${
+                    r.is_contra
+                      ? 'text-rose-700 bg-rose-50 border-rose-200 group-hover:bg-rose-100'
+                      : r.noteMeta?.reconciliationStatus === 'VERIFIED'
+                      ? 'text-emerald-700 bg-emerald-50 border-emerald-200 group-hover:bg-emerald-100'
+                      : 'text-slate-600 bg-slate-100 border-slate-200 group-hover:bg-slate-200'
+                  }`}>
+                    📄 Note Schedule {r.noteMeta?.num ? `#${r.noteMeta.num}` : ''}
+                  </span>
                 </div>
+
                 {r.noteMeta && (
                   <span className="text-[10px] text-slate-400 font-medium mt-1 flex items-center gap-1.5 pl-0">
                     <span>{r.noteMeta.supportingRecordsCount} Items</span>
                     <span className="text-slate-200">•</span>
                     <span>Updated {new Date(r.noteMeta.lastUpdated).toLocaleDateString(undefined, { day: '2-digit', month: 'short' })}</span>
-                    <span className="text-slate-200">•</span>
-                    <span className={`font-bold uppercase text-[8px] tracking-wider ${
-                      r.noteMeta.reconciliationStatus === 'VERIFIED'
-                        ? 'text-emerald-600'
-                        : r.noteMeta.reconciliationStatus === 'WARNING'
-                        ? 'text-amber-505'
-                        : r.noteMeta.reconciliationStatus === 'MISMATCH'
-                        ? 'text-rose-500 font-black'
-                        : 'text-slate-400'
-                    }`}>
-                      {r.noteMeta.reconciliationStatus === 'VERIFIED' ? '✓ Verified' : r.noteMeta.reconciliationStatus === 'WARNING' ? '⚠ Warning' : '⚠ Mismatch'}
-                    </span>
                   </span>
                 )}
               </div>
-              <span className={`font-mono font-bold ${r.is_contra ? 'text-slate-500' : 'text-slate-800'}`}>
+
+              <span className={`font-mono font-bold ${r.is_contra ? 'text-slate-600 font-extrabold' : 'text-slate-800'}`}>
                 {formatAmount(r.net, r.is_contra)}
               </span>
             </div>
