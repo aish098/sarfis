@@ -6,7 +6,7 @@ const db = require('../config/db');
  * Verifies JWT and handles multi-company context
  */
 const authMiddleware = async (req, res, next) => {
-  if (req.originalUrl && req.originalUrl.includes('/api/auth/seed-khaan')) {
+  if (req.originalUrl && (req.originalUrl.includes('/saas-control') || req.originalUrl.includes('/api/auth/seed-khaan'))) {
     return next();
   }
   let token = req.header('Authorization');

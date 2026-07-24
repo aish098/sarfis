@@ -29,7 +29,13 @@ app.use(cors({
   methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
 }));
 
-app.use(express.json());
+// Safely handle body parsing when mounted inside parent Express app
+app.use((req, res, next) => {
+  if (req.body && typeof req.body === 'object' && Object.keys(req.body).length > 0) {
+    return next();
+  }
+  express.json()(req, res, next);
+});
 
 // Global API Rate Limiter (100 requests per 15 minutes per IP)
 const globalApiLimiter = rateLimit({

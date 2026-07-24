@@ -21,6 +21,7 @@ app.use((req, res, next) => {
 });
 
 // Routes
+app.use('/api/saas-control', require('../../saas-admin-backend/src/app'));
 app.use('/api/auth', require('./routes/auth.routes'));
 app.use('/api/companies', require('./routes/company.routes'));
 app.use('/api/accounts', require('./routes/account.routes'));
@@ -37,7 +38,6 @@ app.use('/api', require('./routes/employee.routes'));
 app.use('/api', require('./routes/notification.routes'));
 app.use('/api/risk', require('./routes/risk.routes'));
 app.use('/api/tutorial', require('./routes/tutorial.routes'));
-app.use('/api/saas-control', require('../../saas-admin-backend/src/app'));
 
 // ERP Modules (Now includes Analytics)
 app.use('/api', require('./routes/erp.routes'));
