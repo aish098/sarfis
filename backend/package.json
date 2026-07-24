@@ -13,11 +13,14 @@
   "type": "commonjs",
   "dependencies": {
     "bcrypt": "^6.0.0",
+    "bcryptjs": "^2.4.3",
     "cors": "^2.8.6",
     "dotenv": "^17.3.1",
     "exceljs": "^4.4.0",
     "express": "^5.2.1",
+    "express-rate-limit": "^7.2.0",
     "google-auth-library": "^10.9.1",
+    "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.3",
     "knex": "^3.2.9",
     "multer": "^2.1.1",
@@ -25,6 +28,7 @@
     "pdfkit": "^0.18.0",
     "pdfkit-table": "^0.1.99",
     "pg": "^8.20.0",
+    "sqlite3": "^5.1.7",
     "zod": "^4.4.3"
   },
   "devDependencies": {

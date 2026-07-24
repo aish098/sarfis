@@ -133,13 +133,13 @@ app.get('/', (req, res) => {
   });
 });
 
-// Registered API Module Routes
-app.use('/api/auth', authRoutes);
-app.use('/api/dashboard', dashboardRoutes);
-app.use('/api/users', userRoutes);
-app.use('/api/coupons', couponRoutes);
-app.use('/api/companies', companyRoutes);
-app.use('/api/audit-logs', auditLogRoutes);
+// Registered API Module Routes (Supports standalone /api/xxx and mounted /xxx routes)
+['/api/auth', '/auth'].forEach(path => app.use(path, authRoutes));
+['/api/dashboard', '/dashboard'].forEach(path => app.use(path, dashboardRoutes));
+['/api/users', '/users'].forEach(path => app.use(path, userRoutes));
+['/api/coupons', '/coupons'].forEach(path => app.use(path, couponRoutes));
+['/api/companies', '/companies'].forEach(path => app.use(path, companyRoutes));
+['/api/audit-logs', '/audit-logs'].forEach(path => app.use(path, auditLogRoutes));
 
 // Global 404 Route Handler
 app.use((req, res, next) => {
