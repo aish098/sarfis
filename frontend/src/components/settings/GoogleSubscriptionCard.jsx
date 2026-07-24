@@ -102,7 +102,7 @@ export default function GoogleSubscriptionCard() {
               </span>
             </div>
             <p className="text-xs text-slate-500 mt-0.5">
-              Link your Google Account (`ayeshakashif098789@gmail.com`) to activate subscription plans and unlock module access.
+              Link your Google Account (`admin@yourcompany.com`) to activate subscription plans and unlock module access.
             </p>
           </div>
         </div>
@@ -127,7 +127,7 @@ export default function GoogleSubscriptionCard() {
                 type="email"
                 value={googleEmail}
                 onChange={e => setGoogleEmail(e.target.value)}
-                placeholder="ayeshakashif098789@gmail.com"
+                placeholder="admin@yourcompany.com"
                 className="w-full p-3 pl-10 border border-slate-350 rounded-xl text-[13px] bg-slate-50 focus:bg-white outline-none focus:border-emerald-500 font-semibold"
               />
               <KeyRound size={16} className="absolute left-3 top-3.5 text-slate-400" />

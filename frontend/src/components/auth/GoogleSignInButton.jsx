@@ -140,7 +140,7 @@ export default function GoogleSignInButton({ onCredentialReceived, disabled }) {
                   autoFocus
                   value={googleEmailInput}
                   onChange={e => setGoogleEmailInput(e.target.value)}
-                  placeholder="ayeshakashif098789@gmail.com"
+                  placeholder="user@gmail.com"
                   className="w-full p-3 border border-slate-350 rounded-xl text-[13.5px] font-semibold bg-slate-50 focus:bg-white outline-none focus:border-emerald-500"
                 />
               </div>

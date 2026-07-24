@@ -35,7 +35,7 @@ export default function LoginPage() {
       });
     } else if (res?.code === 'ACCOUNT_NOT_AUTHORIZED' || res?.error?.includes('not authorized')) {
       setUnauthorizedModal({
-        email: res.email || 'ayeshakashif098789@gmail.com',
+        email: res.email || 'user@gmail.com',
         credential,
         message: res.error || 'This Google account is not authorized for any active workspace. Please ask your administrator for an invitation.'
       });
