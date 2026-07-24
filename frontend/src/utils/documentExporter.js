@@ -1,5 +1,6 @@
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import * as XLSX from 'xlsx';
 
 /**
  * Standardized Unified PDF Exporter for ACCOUNTELLENCE ERP
@@ -120,7 +121,6 @@ export function exportUnifiedPDF({
     },
     columnStyles: rightAlignIndexes,
     didDrawPage: (data) => {
-      // Footer line on every page
       const pageCount = doc.internal.getNumberOfPages();
       doc.setFont('Helvetica', 'normal');
       doc.setFontSize(7);
@@ -138,7 +138,24 @@ export function exportUnifiedPDF({
 }
 
 /**
+ * Helper to sanitize cell values so Excel never displays garbled characters or `#####`
+ */
+function sanitizeCellValue(val) {
+  if (val === null || val === undefined) return '';
+  let str = String(val).trim();
+
+  // Replace garbled em-dashes (— or –) with standard hyphen (-) or empty text
+  if (str === '—' || str === '–' || str === 'â€“' || str === 'â€”') {
+    return '-';
+  }
+
+  return str;
+}
+
+/**
  * Standardized Unified CSV / Excel Exporter for ACCOUNTELLENCE ERP
+ * Uses SheetJS native XLSX workbook format to auto-adjust column widths
+ * and prevent `#####` cell overflows or garbled UTF-8 characters.
  */
 export function exportUnifiedCSV({
   title = 'FINANCIAL REPORT',
@@ -147,48 +164,78 @@ export function exportUnifiedCSV({
   kpis = [],
   columns = [],
   rows = [],
-  filename = 'financial_report.csv'
+  filename = 'financial_report.xlsx'
 }) {
-  const csvLines = [];
+  const headers = columns.map(c => typeof c === 'string' ? c : c.header);
+  
+  // Construct array of arrays for SheetJS
+  const aoa = [];
 
   // Header Block
-  csvLines.push(`ACCOUNTELLENCE ERP - ${title.toUpperCase()} REPORT`);
-  csvLines.push(`Company,${companyName}`);
-  csvLines.push(`Period,${period}`);
-  csvLines.push(`Generated At,${new Date().toISOString()}`);
-  csvLines.push('');
+  aoa.push([`ACCOUNTELLENCE ERP - ${title.toUpperCase()} REPORT`]);
+  aoa.push(['Company', companyName]);
+  aoa.push(['Period', period]);
+  aoa.push(['Generated At', new Date().toLocaleString()]);
+  aoa.push([]);
 
   // KPI Block
   if (kpis && kpis.length > 0) {
     kpis.forEach(k => {
-      csvLines.push(`${k.label},${k.value}`);
+      aoa.push([k.label, k.value]);
     });
-    csvLines.push('');
+    aoa.push([]);
   }
 
   // Column Headers
-  const headers = columns.map(c => typeof c === 'string' ? c : c.header);
-  csvLines.push(headers.map(h => `"${String(h).replace(/"/g, '""')}"`).join(','));
+  aoa.push(headers);
 
   // Data Rows
   rows.forEach(r => {
     const rowVals = Array.isArray(r) ? r : Object.values(r);
-    const line = rowVals.map(v => {
-      if (v === null || v === undefined) return '""';
-      const valStr = String(v);
-      return `"${valStr.replace(/"/g, '""')}"`;
-    }).join(',');
-    csvLines.push(line);
+    const cleanRow = rowVals.map(v => sanitizeCellValue(v));
+    aoa.push(cleanRow);
   });
 
-  const csvContent = csvLines.join('\n');
-  const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-  const link = document.createElement('a');
-  const url = URL.createObjectURL(blob);
-  link.setAttribute('href', url);
-  link.setAttribute('download', filename.endsWith('.csv') ? filename : `${filename}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-  URL.revokeObjectURL(url);
+  // Check if we should export as native XLSX or CSV
+  const isXLSX = filename.toLowerCase().endsWith('.xlsx') || !filename.toLowerCase().endsWith('.csv');
+  const targetFilename = isXLSX
+    ? (filename.toLowerCase().endsWith('.xlsx') ? filename : filename.replace(/\.csv$/i, '.xlsx'))
+    : filename;
+
+  if (isXLSX) {
+    // Generate native Excel XLSX file with auto-calculated column widths
+    const ws = XLSX.utils.aoa_to_sheet(aoa);
+
+    // Calculate maximum length for each column to auto-fit cell widths
+    const colWidths = [];
+    aoa.forEach(row => {
+      row.forEach((val, i) => {
+        const len = String(val || '').length;
+        colWidths[i] = Math.max(colWidths[i] || 12, len + 4);
+      });
+    });
+
+    ws['!cols'] = colWidths.map(w => ({ wch: Math.min(Math.max(w, 14), 50) }));
+
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, title.substring(0, 31).replace(/[\*\?:\/\\\[\]]/g, ''));
+    XLSX.writeFile(wb, targetFilename);
+  } else {
+    // Generate CSV file with UTF-8 BOM (\uFEFF) to force Excel to open in UTF-8
+    const csvLines = aoa.map(row => {
+      return row.map(v => `"${String(v).replace(/"/g, '""')}"`).join(',');
+    });
+
+    // \uFEFF is UTF-8 Byte Order Mark (BOM)
+    const csvContent = '\uFEFF' + csvLines.join('\n');
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const link = document.createElement('a');
+    const url = URL.createObjectURL(blob);
+    link.setAttribute('href', url);
+    link.setAttribute('download', targetFilename);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  }
 }
