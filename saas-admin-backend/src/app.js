@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const db = require('./db/knex');
 const authRoutes = require('./routes/authRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -47,6 +48,60 @@ app.use('/api', globalApiLimiter);
 app.use((req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.url}`);
   next();
+});
+
+// --- OPERATIONAL OBSERVABILITY & HEALTH PROBES ---
+
+// 1. Liveness Probe (Is server process responsive?)
+app.get('/live', (req, res) => {
+  res.status(200).json({
+    status: 'ALIVE',
+    uptime: process.uptime(),
+    timestamp: new Date()
+  });
+});
+
+// 2. Readiness Probe (Is database query engine functional?)
+app.get('/ready', async (req, res) => {
+  try {
+    await db.raw('SELECT 1');
+    res.status(200).json({
+      status: 'READY',
+      database: 'CONNECTED',
+      timestamp: new Date()
+    });
+  } catch (dbErr) {
+    res.status(503).json({
+      status: 'UNAVAILABLE',
+      database: 'DISCONNECTED',
+      error: dbErr.message,
+      timestamp: new Date()
+    });
+  }
+});
+
+// 3. Comprehensive System Health Probe
+app.get('/health', async (req, res) => {
+  let dbStatus = 'DISCONNECTED';
+  try {
+    await db.raw('SELECT 1');
+    dbStatus = 'CONNECTED';
+  } catch (e) {}
+
+  const memoryUsage = process.memoryUsage();
+  res.status(200).json({
+    name: 'SaaS Admin Dashboard API',
+    version: '1.0.0',
+    status: 'HEALTHY',
+    database: dbStatus,
+    uptime_seconds: Math.floor(process.uptime()),
+    memory: {
+      rss_mb: Math.round(memoryUsage.rss / 1024 / 1024),
+      heap_used_mb: Math.round(memoryUsage.heapUsed / 1024 / 1024)
+    },
+    node_version: process.version,
+    timestamp: new Date()
+  });
 });
 
 // Root Health Check & API Meta Endpoint
