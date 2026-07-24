@@ -3,7 +3,8 @@ import { useNavigate } from 'react-router-dom';
 import { 
   Search, RefreshCw, X, Truck, Calendar, ArrowRight, User, Package, 
   Box, Layers, Clipboard, ShieldAlert, CheckCircle2, ChevronRight, 
-  Inbox, Printer, MapPin, DollarSign, Clock, FileText, Sparkles
+  Inbox, Printer, MapPin, DollarSign, Clock, FileText, Sparkles,
+  LayoutList, Kanban, Eye
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
@@ -33,6 +34,7 @@ export default function OrderTrackingPage() {
   const [isLoading, setIsLoading] = useState(true);
   const [updating, setUpdating] = useState(false);
   const [searchQuery, setSearchQuery] = useState('');
+  const [viewMode, setViewMode] = useState('table'); // 'table' | 'kanban'
   const [selectedOrder, setSelectedOrder] = useState(null);
   const [selectedSubledgerPartner, setSelectedSubledgerPartner] = useState(null);
 
@@ -318,278 +320,396 @@ export default function OrderTrackingPage() {
         kpis={kpiList}
       >
         
-        {/* Kanban Board Columns Container */}
-        <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-5 gap-3.5 items-start">
+        {/* Main Content Area (8 Cols for View + 4 Cols for Drawer) */}
+        <div className="lg:col-span-8 space-y-4">
           
-          {/* 1. WAITING / DRAFT COLUMN */}
-          <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
-            <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
-                <Clock size={13} className="text-sky-500" /> Waiting
-              </span>
-              <span className="px-2 py-0.5 bg-sky-100 text-sky-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('WAITING').length}</span>
+          {/* View Mode Toggle Switcher */}
+          <div className="flex items-center justify-between bg-white p-2.5 rounded-2xl border border-slate-200/80 shadow-xs">
+            <div className="flex items-center gap-1.5">
+              <button
+                type="button"
+                onClick={() => setViewMode('table')}
+                className={`px-4 py-1.5 rounded-xl text-[12px] font-extrabold flex items-center gap-2 transition border-none cursor-pointer ${
+                  viewMode === 'table'
+                    ? 'bg-emerald-700 text-white shadow-sm'
+                    : 'bg-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <LayoutList size={14} /> Register Table View
+              </button>
+              <button
+                type="button"
+                onClick={() => setViewMode('kanban')}
+                className={`px-4 py-1.5 rounded-xl text-[12px] font-extrabold flex items-center gap-2 transition border-none cursor-pointer ${
+                  viewMode === 'kanban'
+                    ? 'bg-emerald-700 text-white shadow-sm'
+                    : 'bg-transparent text-slate-500 hover:text-slate-700'
+                }`}
+              >
+                <Kanban size={14} /> Kanban Operational Board
+              </button>
             </div>
-            <div className="space-y-2.5">
-              {getOrdersByColumn('WAITING').map(o => (
-                <div 
-                  key={o.id} 
-                  onClick={() => handleSelectOrder(o)}
-                  className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
-                    selectedOrder?.id === o.id 
-                      ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
-                      : 'border-slate-200/90 hover:border-emerald-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
-                    <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-slate-100'}`}>
-                      {STATUS_CONFIG[o.status]?.label || o.status}
-                    </span>
-                  </div>
-
-                  <div className="mt-2.5 flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] flex items-center justify-center shrink-0">
-                      {o.client_name?.charAt(0).toUpperCase() || 'C'}
-                    </div>
-                    <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
-                  </div>
-
-                  <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
-                    <span className="flex items-center gap-1 text-slate-500 truncate">
-                      <MapPin size={11} className="text-slate-400 shrink-0" />
-                      <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
-                    </span>
-                    {o.total_amount && (
-                      <span className="font-mono font-bold text-slate-700">
-                        PKR {parseFloat(o.total_amount).toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {getOrdersByColumn('WAITING').length === 0 && (
-                <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
-                  No orders waiting.
-                </div>
-              )}
-            </div>
+            <span className="text-[11.5px] font-extrabold text-slate-500 pr-2">
+              Total: {filteredOrders.length} Orders
+            </span>
           </div>
 
-          {/* 2. PICKING & PACKING COLUMN */}
-          <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
-            <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
-                <Box size={13} className="text-amber-500" /> Picking & Packing
-              </span>
-              <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('PICKING').length}</span>
-            </div>
-            <div className="space-y-2.5">
-              {getOrdersByColumn('PICKING').map(o => (
-                <div 
-                  key={o.id} 
-                  onClick={() => handleSelectOrder(o)}
-                  className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
-                    selectedOrder?.id === o.id 
-                      ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
-                      : 'border-slate-200/90 hover:border-emerald-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
-                    <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-amber-100'}`}>
-                      {STATUS_CONFIG[o.status]?.label || o.status}
-                    </span>
-                  </div>
-
-                  <div className="mt-2.5 flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px] flex items-center justify-center shrink-0">
-                      {o.client_name?.charAt(0).toUpperCase() || 'C'}
-                    </div>
-                    <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
-                  </div>
-
-                  <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
-                    <span className="flex items-center gap-1 text-slate-500 truncate">
-                      <MapPin size={11} className="text-slate-400 shrink-0" />
-                      <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
-                    </span>
-                    {o.total_amount && (
-                      <span className="font-mono font-bold text-slate-700">
-                        PKR {parseFloat(o.total_amount).toLocaleString()}
-                      </span>
+          {/* VIEW 1: ENTERPRISE TABLE REGISTER VIEW */}
+          {viewMode === 'table' && (
+            <div className="bg-white rounded-3xl border border-slate-200/80 shadow-sm overflow-hidden">
+              <div className="overflow-x-auto">
+                <table className="w-full text-left border-collapse">
+                  <thead>
+                    <tr className="bg-slate-50/80 border-b border-slate-200/80 text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">
+                      <th className="py-3.5 px-4">SO Number</th>
+                      <th className="py-3.5 px-4">Customer</th>
+                      <th className="py-3.5 px-4">Warehouse</th>
+                      <th className="py-3.5 px-4 text-right">Target Date</th>
+                      <th className="py-3.5 px-4 text-right">Order Value</th>
+                      <th className="py-3.5 px-4 text-center">Status</th>
+                      <th className="py-3.5 px-4 text-center">Action</th>
+                    </tr>
+                  </thead>
+                  <tbody className="divide-y divide-slate-100 text-[12.5px] font-medium text-slate-700">
+                    {filteredOrders.map(o => (
+                      <tr 
+                        key={o.id}
+                        onClick={() => handleSelectOrder(o)}
+                        className={`hover:bg-slate-50/80 transition-all cursor-pointer ${
+                          selectedOrder?.id === o.id ? 'bg-emerald-50/40 font-semibold' : ''
+                        }`}
+                      >
+                        <td className="py-3.5 px-4 font-mono font-black text-indigo-600 text-[13px]">
+                          {o.so_number}
+                        </td>
+                        <td className="py-3.5 px-4">
+                          <div className="flex items-center gap-2">
+                            <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-extrabold text-[10px] flex items-center justify-center shrink-0">
+                              {o.client_name?.charAt(0).toUpperCase() || 'C'}
+                            </div>
+                            <span className="font-extrabold text-slate-800">{o.client_name}</span>
+                          </div>
+                        </td>
+                        <td className="py-3.5 px-4 text-slate-650">
+                          <span className="inline-flex items-center gap-1.5 text-slate-700 font-semibold">
+                            <MapPin size={12} className="text-slate-400 shrink-0" />
+                            {o.warehouse_name || 'Main Warehouse'}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-mono text-slate-600 text-[11.5px]">
+                          {new Date(o.delivery_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
+                        </td>
+                        <td className="py-3.5 px-4 text-right font-mono font-black text-slate-900 text-[13px]">
+                          PKR {parseFloat(o.total_amount || 0).toLocaleString()}
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <span className={`inline-block px-2.5 py-0.5 rounded-md text-[10px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-slate-100'}`}>
+                            {STATUS_CONFIG[o.status]?.label || o.status}
+                          </span>
+                        </td>
+                        <td className="py-3.5 px-4 text-center">
+                          <button 
+                            type="button"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleSelectOrder(o);
+                            }}
+                            className="px-3 py-1.5 bg-slate-100 hover:bg-emerald-600 hover:text-white text-slate-700 rounded-xl text-[11px] font-extrabold transition inline-flex items-center gap-1 border-none cursor-pointer"
+                          >
+                            <Eye size={12} /> View Details
+                          </button>
+                        </td>
+                      </tr>
+                    ))}
+                    {filteredOrders.length === 0 && (
+                      <tr>
+                        <td colSpan="7" className="py-12 text-center text-slate-400 italic text-[13px]">
+                          No sales orders found matching your search query.
+                        </td>
+                      </tr>
                     )}
-                  </div>
-                </div>
-              ))}
-              {getOrdersByColumn('PICKING').length === 0 && (
-                <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
-                  No picking orders.
-                </div>
-              )}
+                  </tbody>
+                </table>
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* 3. READY FOR DISPATCH COLUMN */}
-          <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
-            <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
-                <Layers size={13} className="text-indigo-500" /> Ready
-              </span>
-              <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('READY').length}</span>
-            </div>
-            <div className="space-y-2.5">
-              {getOrdersByColumn('READY').map(o => (
-                <div 
-                  key={o.id} 
-                  onClick={() => handleSelectOrder(o)}
-                  className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
-                    selectedOrder?.id === o.id 
-                      ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
-                      : 'border-slate-200/90 hover:border-emerald-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
-                    <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-indigo-100'}`}>
-                      {STATUS_CONFIG[o.status]?.label || o.status}
-                    </span>
-                  </div>
+          {/* VIEW 2: KANBAN OPERATIONAL BOARD VIEW */}
+          {viewMode === 'kanban' && (
+            <div className="grid grid-cols-1 md:grid-cols-5 gap-3.5 items-start">
+              
+              {/* 1. WAITING / DRAFT COLUMN */}
+              <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
+                <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                    <Clock size={13} className="text-sky-500" /> Waiting
+                  </span>
+                  <span className="px-2 py-0.5 bg-sky-100 text-sky-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('WAITING').length}</span>
+                </div>
+                <div className="space-y-2.5">
+                  {getOrdersByColumn('WAITING').map(o => (
+                    <div 
+                      key={o.id} 
+                      onClick={() => handleSelectOrder(o)}
+                      className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
+                        selectedOrder?.id === o.id 
+                          ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
+                          : 'border-slate-200/90 hover:border-emerald-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
+                        <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-slate-100'}`}>
+                          {STATUS_CONFIG[o.status]?.label || o.status}
+                        </span>
+                      </div>
 
-                  <div className="mt-2.5 flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-800 font-bold text-[10px] flex items-center justify-center shrink-0">
-                      {o.client_name?.charAt(0).toUpperCase() || 'C'}
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] flex items-center justify-center shrink-0">
+                          {o.client_name?.charAt(0).toUpperCase() || 'C'}
+                        </div>
+                        <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
+                      </div>
+
+                      <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
+                        <span className="flex items-center gap-1 text-slate-500 truncate">
+                          <MapPin size={11} className="text-slate-400 shrink-0" />
+                          <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
+                        </span>
+                        {o.total_amount && (
+                          <span className="font-mono font-bold text-slate-700">
+                            PKR {parseFloat(o.total_amount).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
-                  </div>
-
-                  <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
-                    <span className="flex items-center gap-1 text-slate-500 truncate">
-                      <MapPin size={11} className="text-slate-400 shrink-0" />
-                      <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
-                    </span>
-                    {o.total_amount && (
-                      <span className="font-mono font-bold text-slate-700">
-                        PKR {parseFloat(o.total_amount).toLocaleString()}
-                      </span>
-                    )}
-                  </div>
-                </div>
-              ))}
-              {getOrdersByColumn('READY').length === 0 && (
-                <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
-                  No orders ready.
-                </div>
-              )}
-            </div>
-          </div>
-
-          {/* 4. IN TRANSIT / DISPATCHED COLUMN */}
-          <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
-            <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-orange-700 flex items-center gap-1.5">
-                <Truck size={13} className="text-orange-500" /> In Transit
-              </span>
-              <span className="px-2 py-0.5 bg-orange-100 text-orange-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('DISPATCHED').length}</span>
-            </div>
-            <div className="space-y-2.5">
-              {getOrdersByColumn('DISPATCHED').map(o => (
-                <div 
-                  key={o.id} 
-                  onClick={() => handleSelectOrder(o)}
-                  className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
-                    selectedOrder?.id === o.id 
-                      ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
-                      : 'border-slate-200/90 hover:border-emerald-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
-                    <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-orange-100'}`}>
-                      {STATUS_CONFIG[o.status]?.label || o.status}
-                    </span>
-                  </div>
-
-                  <div className="mt-2.5 flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-800 font-bold text-[10px] flex items-center justify-center shrink-0">
-                      {o.client_name?.charAt(0).toUpperCase() || 'C'}
+                  ))}
+                  {getOrdersByColumn('WAITING').length === 0 && (
+                    <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
+                      No orders waiting.
                     </div>
-                    <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
-                  </div>
-
-                  <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
-                    <span className="flex items-center gap-1 text-slate-500 truncate">
-                      <MapPin size={11} className="text-slate-400 shrink-0" />
-                      <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
-                    </span>
-                    {o.total_amount && (
-                      <span className="font-mono font-bold text-slate-700">
-                        PKR {parseFloat(o.total_amount).toLocaleString()}
-                      </span>
-                    )}
-                  </div>
+                  )}
                 </div>
-              ))}
-              {getOrdersByColumn('DISPATCHED').length === 0 && (
-                <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
-                  No transit shipments.
+              </div>
+
+              {/* 2. PICKING & PACKING COLUMN */}
+              <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
+                <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
+                    <Box size={13} className="text-amber-500" /> Picking & Packing
+                  </span>
+                  <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('PICKING').length}</span>
                 </div>
-              )}
-            </div>
-          </div>
+                <div className="space-y-2.5">
+                  {getOrdersByColumn('PICKING').map(o => (
+                    <div 
+                      key={o.id} 
+                      onClick={() => handleSelectOrder(o)}
+                      className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
+                        selectedOrder?.id === o.id 
+                          ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
+                          : 'border-slate-200/90 hover:border-emerald-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
+                        <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-amber-100'}`}>
+                          {STATUS_CONFIG[o.status]?.label || o.status}
+                        </span>
+                      </div>
 
-          {/* 5. DELIVERED & CLOSED COLUMN */}
-          <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
-            <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
-              <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
-                <CheckCircle2 size={13} className="text-emerald-500" /> Delivered & Closed
-              </span>
-              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('DELIVERED').length}</span>
-            </div>
-            <div className="space-y-2.5">
-              {getOrdersByColumn('DELIVERED').map(o => (
-                <div 
-                  key={o.id} 
-                  onClick={() => handleSelectOrder(o)}
-                  className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
-                    selectedOrder?.id === o.id 
-                      ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
-                      : 'border-slate-200/90 hover:border-emerald-300'
-                  }`}
-                >
-                  <div className="flex items-center justify-between">
-                    <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
-                    <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-emerald-100'}`}>
-                      {STATUS_CONFIG[o.status]?.label || o.status}
-                    </span>
-                  </div>
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px] flex items-center justify-center shrink-0">
+                          {o.client_name?.charAt(0).toUpperCase() || 'C'}
+                        </div>
+                        <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
+                      </div>
 
-                  <div className="mt-2.5 flex items-center gap-2">
-                    <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] flex items-center justify-center shrink-0">
-                      {o.client_name?.charAt(0).toUpperCase() || 'C'}
+                      <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
+                        <span className="flex items-center gap-1 text-slate-500 truncate">
+                          <MapPin size={11} className="text-slate-400 shrink-0" />
+                          <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
+                        </span>
+                        {o.total_amount && (
+                          <span className="font-mono font-bold text-slate-700">
+                            PKR {parseFloat(o.total_amount).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
                     </div>
-                    <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
-                  </div>
+                  ))}
+                  {getOrdersByColumn('PICKING').length === 0 && (
+                    <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
+                      No picking orders.
+                    </div>
+                  )}
+                </div>
+              </div>
 
-                  <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
-                    <span className="flex items-center gap-1 text-slate-500 truncate">
-                      <MapPin size={11} className="text-slate-400 shrink-0" />
-                      <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
-                    </span>
-                    {o.total_amount && (
-                      <span className="font-mono font-bold text-slate-700">
-                        PKR {parseFloat(o.total_amount).toLocaleString()}
-                      </span>
-                    )}
-                  </div>
+              {/* 3. READY FOR DISPATCH COLUMN */}
+              <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
+                <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
+                    <Layers size={13} className="text-indigo-500" /> Ready
+                  </span>
+                  <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('READY').length}</span>
                 </div>
-              ))}
-              {getOrdersByColumn('DELIVERED').length === 0 && (
-                <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
-                  No closed orders.
+                <div className="space-y-2.5">
+                  {getOrdersByColumn('READY').map(o => (
+                    <div 
+                      key={o.id} 
+                      onClick={() => handleSelectOrder(o)}
+                      className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
+                        selectedOrder?.id === o.id 
+                          ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
+                          : 'border-slate-200/90 hover:border-emerald-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
+                        <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-indigo-100'}`}>
+                          {STATUS_CONFIG[o.status]?.label || o.status}
+                        </span>
+                      </div>
+
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-800 font-bold text-[10px] flex items-center justify-center shrink-0">
+                          {o.client_name?.charAt(0).toUpperCase() || 'C'}
+                        </div>
+                        <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
+                      </div>
+
+                      <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
+                        <span className="flex items-center gap-1 text-slate-500 truncate">
+                          <MapPin size={11} className="text-slate-400 shrink-0" />
+                          <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
+                        </span>
+                        {o.total_amount && (
+                          <span className="font-mono font-bold text-slate-700">
+                            PKR {parseFloat(o.total_amount).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {getOrdersByColumn('READY').length === 0 && (
+                    <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
+                      No orders ready.
+                    </div>
+                  )}
                 </div>
-              )}
+              </div>
+
+              {/* 4. IN TRANSIT / DISPATCHED COLUMN */}
+              <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
+                <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-orange-700 flex items-center gap-1.5">
+                    <Truck size={13} className="text-orange-500" /> In Transit
+                  </span>
+                  <span className="px-2 py-0.5 bg-orange-100 text-orange-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('DISPATCHED').length}</span>
+                </div>
+                <div className="space-y-2.5">
+                  {getOrdersByColumn('DISPATCHED').map(o => (
+                    <div 
+                      key={o.id} 
+                      onClick={() => handleSelectOrder(o)}
+                      className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
+                        selectedOrder?.id === o.id 
+                          ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
+                          : 'border-slate-200/90 hover:border-emerald-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
+                        <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-orange-100'}`}>
+                          {STATUS_CONFIG[o.status]?.label || o.status}
+                        </span>
+                      </div>
+
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-800 font-bold text-[10px] flex items-center justify-center shrink-0">
+                          {o.client_name?.charAt(0).toUpperCase() || 'C'}
+                        </div>
+                        <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
+                      </div>
+
+                      <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
+                        <span className="flex items-center gap-1 text-slate-500 truncate">
+                          <MapPin size={11} className="text-slate-400 shrink-0" />
+                          <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
+                        </span>
+                        {o.total_amount && (
+                          <span className="font-mono font-bold text-slate-700">
+                            PKR {parseFloat(o.total_amount).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {getOrdersByColumn('DISPATCHED').length === 0 && (
+                    <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
+                      No transit shipments.
+                    </div>
+                  )}
+                </div>
+              </div>
+
+              {/* 5. DELIVERED & CLOSED COLUMN */}
+              <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
+                <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
+                  <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+                    <CheckCircle2 size={13} className="text-emerald-500" /> Delivered & Closed
+                  </span>
+                  <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('DELIVERED').length}</span>
+                </div>
+                <div className="space-y-2.5">
+                  {getOrdersByColumn('DELIVERED').map(o => (
+                    <div 
+                      key={o.id} 
+                      onClick={() => handleSelectOrder(o)}
+                      className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
+                        selectedOrder?.id === o.id 
+                          ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
+                          : 'border-slate-200/90 hover:border-emerald-300'
+                      }`}
+                    >
+                      <div className="flex items-center justify-between">
+                        <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
+                        <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-emerald-100'}`}>
+                          {STATUS_CONFIG[o.status]?.label || o.status}
+                        </span>
+                      </div>
+
+                      <div className="mt-2.5 flex items-center gap-2">
+                        <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] flex items-center justify-center shrink-0">
+                          {o.client_name?.charAt(0).toUpperCase() || 'C'}
+                        </div>
+                        <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
+                      </div>
+
+                      <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
+                        <span className="flex items-center gap-1 text-slate-500 truncate">
+                          <MapPin size={11} className="text-slate-400 shrink-0" />
+                          <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
+                        </span>
+                        {o.total_amount && (
+                          <span className="font-mono font-bold text-slate-700">
+                            PKR {parseFloat(o.total_amount).toLocaleString()}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                  {getOrdersByColumn('DELIVERED').length === 0 && (
+                    <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
+                      No closed orders.
+                    </div>
+                  )}
+                </div>
+              </div>
+
             </div>
-          </div>
+          )}
 
         </div>
 
@@ -829,7 +949,7 @@ export default function OrderTrackingPage() {
           ) : (
             <div className="bg-slate-50/70 border border-slate-200/80 rounded-3xl p-10 text-center text-slate-400 italic text-[12.5px] shadow-inner select-none">
               <Box size={32} className="mx-auto mb-2.5 text-slate-350 opacity-60" />
-              Select an order card from the board to perform picking, packing, and dispatch operations.
+              Select an order row or card to perform picking, packing, and dispatch operations.
             </div>
           )}
         </div>
