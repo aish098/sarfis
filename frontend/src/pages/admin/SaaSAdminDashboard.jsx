@@ -58,7 +58,7 @@ export default function SaaSAdminDashboard() {
     setErrorMsg('');
     try {
       const res = await axios.post(`${SAAS_API_BASE}/auth/login`, {
-        email: loginEmail,
+        email: loginEmail.trim().toLowerCase(),
         password: loginPassword
       });
       const { accessToken, mustChangePassword } = res.data.data;
