@@ -1162,27 +1162,45 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
             <ChevronDown size={12} className="hidden xl:block" style={{ color: PBI.dim }} />
           </button>
           
-          <HeaderDropdown open={openMenu === 'user'} onClose={closeAll} className="w-52">
-            <div className="px-3 py-3 border-b" style={{ borderColor: PBI.border }}>
-              <p className="text-[13px] font-semibold truncate" style={{ color: PBI.text }}>{user?.name || 'User'}</p>
-              <p className="text-[11px] truncate mt-0.5" style={{ color: PBI.dim }}>{user?.email || ''}</p>
-              {user?.role && (
-                <span className="inline-block mt-2 px-2 py-0.5 rounded text-[10px] font-semibold uppercase tracking-wide" style={{ background: PBI.soft, color: PBI.blue }}>
-                  {user.role}
+          <HeaderDropdown open={openMenu === 'user'} onClose={closeAll} className="w-64">
+            <div className="px-3.5 py-3 border-b bg-slate-50/50" style={{ borderColor: PBI.border }}>
+              <p className="text-[13px] font-black truncate" style={{ color: PBI.text }}>{user?.name || 'User'}</p>
+              <p className="text-[11px] truncate mt-0.5 text-slate-500 font-semibold">{user?.email || ''}</p>
+              <div className="flex items-center gap-1.5 mt-2 flex-wrap">
+                {user?.role && (
+                  <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide bg-emerald-50 text-emerald-800 border border-emerald-100">
+                    {user.role}
+                  </span>
+                )}
+                <span className="px-2 py-0.5 rounded text-[10px] font-extrabold uppercase tracking-wide bg-blue-50 text-blue-800 border border-blue-100 truncate max-w-[140px]">
+                  {activeCompany?.name || 'Workspace'}
                 </span>
-              )}
+              </div>
             </div>
+
+            {/* Mobile Quick Controls */}
+            <div className="sm:hidden p-2.5 border-b space-y-2 bg-slate-50/30" style={{ borderColor: PBI.border }}>
+              <div className="flex items-center justify-between text-[11px] font-bold text-slate-700 px-1">
+                <span>Fiscal Period:</span>
+                <span className="text-emerald-700 font-extrabold">{periodLabel} ({periodStatusText})</span>
+              </div>
+              <button
+                onClick={() => { toggle('create'); }}
+                className="w-full py-1.5 px-3 bg-gradient-to-r from-emerald-600 to-cyan-600 text-white rounded-lg text-[11.5px] font-bold shadow-xs flex items-center justify-center gap-1 cursor-pointer border-none"
+              >
+                <Plus size={13} /> Quick Create
+              </button>
+            </div>
+
             <button
               onClick={() => { navigate('/dashboard/settings'); closeAll(); }}
-              className="w-full flex items-center gap-2 px-3 py-2.5 text-[12px] hover:bg-emerald-50/50"
-              style={{ color: PBI.text }}
+              className="w-full flex items-center gap-2 px-3.5 py-2.5 text-[12px] font-semibold hover:bg-slate-50 text-slate-700"
             >
-              <Settings size={14} style={{ color: PBI.muted }} /> Settings
+              <Settings size={14} className="text-slate-400" /> Settings & Preferences
             </button>
             <button
               onClick={handleLogout}
-              className="w-full flex items-center gap-2 px-3 py-2.5 text-[12px] hover:bg-[#fde7e9] border-t"
-              style={{ color: '#E81123', borderColor: PBI.border }}
+              className="w-full flex items-center gap-2 px-3.5 py-2.5 text-[12px] font-bold hover:bg-rose-50 text-rose-600 border-t border-slate-100"
             >
               <LogOut size={14} /> Sign out
             </button>
