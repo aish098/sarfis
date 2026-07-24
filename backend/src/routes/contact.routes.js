@@ -30,8 +30,8 @@ router.post('/', async (req, res) => {
       message: message.trim(),
       status: 'PENDING',
       ip_address: typeof ipAddress === 'string' ? ipAddress.slice(0, 45) : '',
-      created_at: new Date(),
-      updated_at: new Date()
+      created_at: db.fn.now(),
+      updated_at: db.fn.now()
     };
 
     let insertedId = null;
