@@ -171,19 +171,11 @@ export default function InventoryValuationReport({ data, asOfDate, companyName }
   return (
     <div className="space-y-6">
       
-      {/* Export & Title Action row */}
+      {/* Subsystem Header */}
       <div className="flex justify-between items-center bg-slate-50 p-4 rounded-2xl border border-slate-100 shadow-xs">
         <div>
           <span className="text-[9.5px] uppercase tracking-wider text-slate-400 block font-black">Subsystem Report</span>
           <h3 className="text-xs font-black text-slate-800 uppercase tracking-wider mt-0.5">Hierarchy & Aging Valuation</h3>
-        </div>
-        <div className="flex gap-2">
-          <button onClick={handleExportExcel} className="p-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer">
-            <FileSpreadsheet size={14} className="text-emerald-600" /> Export Excel
-          </button>
-          <button onClick={handleExportPDF} className="p-2 border border-slate-200 hover:bg-slate-50 text-slate-600 rounded-lg text-xs font-bold transition-all flex items-center gap-1.5 cursor-pointer">
-            <Download size={14} className="text-rose-600" /> Export PDF
-          </button>
         </div>
       </div>
 
