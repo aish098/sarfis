@@ -251,4 +251,104 @@ router.get('/:companyId/mail-logs', companyGuard, async (req, res) => {
   }
 });
 
+// GET GOOGLE ACCOUNT SUBSCRIPTION & MODULE ENTITLEMENTS
+router.get('/:companyId/subscription-modules', companyGuard, async (req, res) => {
+  try {
+    const db = require('../config/db');
+    const { companyId } = req.params;
+
+    let subscription = await db('company_subscriptions').where({ company_id: companyId }).first();
+    if (!subscription) {
+      await db('company_subscriptions').insert({
+        company_id: companyId,
+        provider: 'GOOGLE_PAY',
+        plan_code: 'ENTERPRISE',
+        status: 'ACTIVE',
+        max_user_licenses: 50
+      });
+      subscription = await db('company_subscriptions').where({ company_id: companyId }).first();
+    }
+
+    let authSettings = await db('company_auth_settings').where({ company_id: companyId }).first();
+    if (!authSettings) {
+      await db('company_auth_settings').insert({
+        company_id: companyId,
+        google_login_enabled: true,
+        allow_google_account_linking: true,
+        allow_google_auto_provisioning: true,
+        billing_owner_google_email: req.user?.email || null
+      });
+      authSettings = await db('company_auth_settings').where({ company_id: companyId }).first();
+    }
+
+    let entitlements = await db('company_module_entitlements').where({ company_id: companyId });
+    if (!entitlements || entitlements.length === 0) {
+      const defaultModules = [
+        { company_id: companyId, module_code: 'financials', enabled: true },
+        { company_id: companyId, module_code: 'inventory', enabled: true },
+        { company_id: companyId, module_code: 'payroll', enabled: true },
+        { company_id: companyId, module_code: 'purchasing', enabled: true },
+        { company_id: companyId, module_code: 'risk_analytics', enabled: true },
+        { company_id: companyId, module_code: 'executive_reports', enabled: true }
+      ];
+      await db('company_module_entitlements').insert(defaultModules);
+      entitlements = await db('company_module_entitlements').where({ company_id: companyId });
+    }
+
+    res.json({
+      subscription,
+      authSettings,
+      entitlements,
+      googleEmail: authSettings?.billing_owner_google_email || req.user?.email || 'Unlinked'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
+// UPDATE GOOGLE ACCOUNT SUBSCRIPTION & MODULE ENTITLEMENTS
+router.put('/:companyId/subscription-modules', companyGuard, requirePermission('settings.manage'), async (req, res) => {
+  try {
+    const db = require('../config/db');
+    const { companyId } = req.params;
+    const { planCode, googleEmail, modules } = req.body;
+
+    if (planCode) {
+      await db('company_subscriptions')
+        .where({ company_id: companyId })
+        .update({ plan_code: planCode, status: 'ACTIVE', updated_at: db.fn.now() });
+    }
+
+    if (googleEmail !== undefined) {
+      await db('company_auth_settings')
+        .where({ company_id: companyId })
+        .update({ billing_owner_google_email: googleEmail, google_login_enabled: true, allow_google_account_linking: true });
+    }
+
+    if (modules && typeof modules === 'object') {
+      for (const [modCode, isEnabled] of Object.entries(modules)) {
+        const exist = await db('company_module_entitlements')
+          .where({ company_id: companyId, module_code: modCode })
+          .first();
+
+        if (exist) {
+          await db('company_module_entitlements')
+            .where({ company_id: companyId, module_code: modCode })
+            .update({ enabled: !!isEnabled });
+        } else {
+          await db('company_module_entitlements').insert({
+            company_id: companyId,
+            module_code: modCode,
+            enabled: !!isEnabled
+          });
+        }
+      }
+    }
+
+    res.json({ success: true, message: 'Google Account Subscription & Module Entitlements Updated Successfully!' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
+  }
+});
+
 module.exports = router;

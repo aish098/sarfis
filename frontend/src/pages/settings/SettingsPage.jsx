@@ -12,6 +12,7 @@ import useAuthStore from '../../store/authStore';
 import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 import NotificationPreferencesTab from './NotificationPreferencesTab';
 import ActiveSessionsCard from '../../components/settings/ActiveSessionsCard';
+import GoogleSubscriptionCard from '../../components/settings/GoogleSubscriptionCard';
 import { exportUnifiedCSV } from '../../utils/documentExporter';
 
 // Tabs configuration
@@ -1279,6 +1280,9 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
+
+            {/* Google Account Subscription & Licensing */}
+            <GoogleSubscriptionCard />
 
             {/* Active Sessions & Devices Management */}
             <ActiveSessionsCard />
