@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
 import { Mail, Phone, MapPin, ArrowRight, CheckCircle2, ExternalLink, Hash, Briefcase, Users, AlertCircle } from 'lucide-react';
 import api from '../services/api';
@@ -299,10 +300,10 @@ export default function ContactPage() {
             <div className="flex-1">
               <h3 className="text-xl font-bold text-white mb-2" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Need Help?</h3>
               <p className="text-slate-400 text-sm mb-3 max-w-lg">Can't find what you're looking for? Visit our System Tutorial & Documentation for setup guides, FAQs, and extensive walkthroughs.</p>
-              <a href="/tutorial" className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-400 hover:text-emerald-300 transition-colors duration-200 group">
+              <Link to="/tutorial" className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-400 hover:text-emerald-300 transition-colors duration-200 group">
                 Visit System Tutorial
                 <ExternalLink size={14} className="group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform duration-200" />
-              </a>
+              </Link>
             </div>
           </motion.div>
         </div>
