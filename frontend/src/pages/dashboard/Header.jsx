@@ -63,7 +63,7 @@ function HeaderDropdown({ open, onClose, align = 'right', children, className = 
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 20 }}
             transition={{ duration: 0.2, ease: [0.4, 0, 0.2, 1] }}
-            className={`relative z-10 w-full md:w-auto bg-white rounded-t-3xl md:rounded-xl border border-slate-200 overflow-hidden shadow-2xl max-h-[85vh] md:max-h-none overflow-y-auto md:absolute md:top-full md:mt-1.5 ${align === 'right' ? 'md:right-0' : 'md:left-0'} ${className}`}
+            className={`relative z-10 w-full bg-white rounded-t-3xl md:rounded-xl border border-slate-200 overflow-hidden shadow-2xl max-h-[85vh] md:max-h-none overflow-y-auto md:absolute md:top-full md:mt-1.5 ${align === 'right' ? 'md:right-0' : 'md:left-0'} ${className || 'md:w-auto'}`}
             style={{ boxShadow: '0 20px 40px rgba(15,23,42,0.2)' }}
           >
             {/* Mobile Sheet Handle */}
@@ -1046,105 +1046,110 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
             <Settings size={17} style={{ color: PBI.muted }} />
           </button>
           
-          <HeaderDropdown open={openMenu === 'gear'} onClose={closeAll} className="w-[380px]">
-            <div className="px-4 py-3 border-b bg-slate-50/50" style={{ borderColor: PBI.border }}>
-              <p className="text-[10px] font-extrabold uppercase tracking-wider text-slate-400">Settings & Admin Utilities</p>
-              <p className="text-[12px] font-black text-slate-800 mt-0.5">Quick Access Tools</p>
+          <HeaderDropdown open={openMenu === 'gear'} onClose={closeAll} className="md:w-[400px]">
+            <div className="px-4 py-3.5 border-b bg-slate-50/70" style={{ borderColor: PBI.border }}>
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Settings & Utilities</p>
+                  <p className="text-[13px] font-black text-slate-900 mt-0.5">Quick Access Tools</p>
+                </div>
+                <div className="px-2 py-1 rounded bg-emerald-100/60 text-emerald-800 text-[10px] font-bold">
+                  ADMIN HUB
+                </div>
+              </div>
             </div>
             
-            <div className="p-3 space-y-3 text-left">
+            <div className="p-3 space-y-3.5 text-left max-h-[75vh] overflow-y-auto">
               {/* Category 1: Company & Access */}
               <div>
-                <div className="px-1.5 pb-1 text-[10px] font-black uppercase tracking-wider text-[#064E3B] opacity-80">
-                  Company & Access
+                <div className="px-2 pb-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
+                  Company & Security Access
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
                   <button
                     onClick={() => { navigate('/dashboard/settings'); closeAll(); }}
-                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100/80 transition-colors text-[12px] text-slate-700 font-semibold border border-slate-100 hover:border-slate-200"
+                    className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-50/60 transition-all text-left group border border-slate-100 hover:border-emerald-200"
                   >
-                    <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 flex-shrink-0">
-                      <Settings size={14} />
+                    <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition-colors flex-shrink-0">
+                      <Settings size={15} />
                     </div>
-                    <span className="truncate">System Settings</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[12.5px] font-bold text-slate-800 group-hover:text-emerald-900">System Settings</div>
+                      <div className="text-[10.5px] text-slate-400 font-medium truncate">General ledger, company info, branding & preferences</div>
+                    </div>
                   </button>
-                  
+
                   <button
                     onClick={() => { navigate('/dashboard/admin?tab=users'); closeAll(); }}
-                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100/80 transition-colors text-[12px] text-slate-700 font-semibold border border-slate-100 hover:border-slate-200"
+                    className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-50/60 transition-all text-left group border border-slate-100 hover:border-emerald-200"
                   >
-                    <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 flex-shrink-0">
-                      <Users size={14} />
+                    <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition-colors flex-shrink-0">
+                      <Users size={15} />
                     </div>
-                    <span className="truncate">Company Profile</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[12.5px] font-bold text-slate-800 group-hover:text-emerald-900">Company Profile</div>
+                      <div className="text-[10.5px] text-slate-400 font-medium truncate">Tax IDs, registered address & contact details</div>
+                    </div>
                   </button>
 
                   <button
                     onClick={() => { navigate('/dashboard/admin?tab=permissions'); closeAll(); }}
-                    className="col-span-2 flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100/80 transition-colors text-[12px] text-slate-700 font-semibold border border-slate-100 hover:border-slate-200"
+                    className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-emerald-50/60 transition-all text-left group border border-slate-100 hover:border-emerald-200"
                   >
-                    <div className="p-1.5 rounded-lg bg-emerald-50 text-emerald-700 flex-shrink-0">
-                      <KeyRound size={14} />
+                    <div className="p-2 rounded-lg bg-emerald-50 text-emerald-700 group-hover:bg-emerald-600 group-hover:text-white transition-colors flex-shrink-0">
+                      <KeyRound size={15} />
                     </div>
-                    <span className="truncate">User Roles & Permissions</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[12.5px] font-bold text-slate-800 group-hover:text-emerald-900">User Roles & Permissions</div>
+                      <div className="text-[10.5px] text-slate-400 font-medium truncate">RBAC permission matrix & access enforcement</div>
+                    </div>
                   </button>
                 </div>
               </div>
               
               {/* Category 2: Data & Maintenance */}
               <div className="pt-2 border-t" style={{ borderColor: PBI.border }}>
-                <div className="px-1.5 pb-1 text-[10px] font-black uppercase tracking-wider text-[#064E3B] opacity-80">
+                <div className="px-2 pb-1.5 text-[10px] font-extrabold uppercase tracking-wider text-slate-400">
                   Data & Maintenance
                 </div>
-                <div className="grid grid-cols-2 gap-2">
+                <div className="space-y-1.5">
                   <button
                     onClick={() => { navigate('/dashboard/admin?tab=periods'); closeAll(); }}
-                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100/80 transition-colors text-[12px] text-slate-700 font-semibold border border-slate-100 hover:border-slate-200"
+                    className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-cyan-50/60 transition-all text-left group border border-slate-100 hover:border-cyan-200"
                   >
-                    <div className="p-1.5 rounded-lg bg-cyan-50 text-cyan-700 flex-shrink-0">
-                      <Calendar size={14} />
+                    <div className="p-2 rounded-lg bg-cyan-50 text-cyan-700 group-hover:bg-cyan-600 group-hover:text-white transition-colors flex-shrink-0">
+                      <Calendar size={15} />
                     </div>
-                    <span className="truncate">Fiscal Periods</span>
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[12.5px] font-bold text-slate-800 group-hover:text-cyan-900">Fiscal Periods</div>
+                      <div className="text-[10.5px] text-slate-400 font-medium truncate">Accounting period locking & year-end wizard</div>
+                    </div>
                   </button>
 
                   <button
                     onClick={() => { navigate('/dashboard/admin?tab=sessions'); closeAll(); }}
-                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100/80 transition-colors text-[12px] text-slate-700 font-semibold border border-slate-100 hover:border-slate-200"
+                    className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-cyan-50/60 transition-all text-left group border border-slate-100 hover:border-cyan-200"
                   >
-                    <div className="p-1.5 rounded-lg bg-cyan-50 text-cyan-700 flex-shrink-0">
-                      <History size={14} />
+                    <div className="p-2 rounded-lg bg-cyan-50 text-cyan-700 group-hover:bg-cyan-600 group-hover:text-white transition-colors flex-shrink-0">
+                      <History size={15} />
                     </div>
-                    <span className="truncate">Audit Logs</span>
-                  </button>
-                  
-                  <button
-                    onClick={() => { navigate('/dashboard/admin?tab=data'); closeAll(); }}
-                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100/80 transition-colors text-[12px] text-slate-700 font-semibold border border-slate-100 hover:border-slate-200"
-                  >
-                    <div className="p-1.5 rounded-lg bg-cyan-50 text-cyan-700 flex-shrink-0">
-                      <Database size={14} />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[12.5px] font-bold text-slate-800 group-hover:text-cyan-900">Audit Logs</div>
+                      <div className="text-[10.5px] text-slate-400 font-medium truncate">Immutable audit history & state diffs</div>
                     </div>
-                    <span className="truncate">Backup & Restore</span>
                   </button>
 
                   <button
                     onClick={() => { navigate('/dashboard/settings?tab=import'); closeAll(); }}
-                    className="flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100/80 transition-colors text-[12px] text-slate-700 font-semibold border border-slate-100 hover:border-slate-200"
+                    className="w-full flex items-center gap-3 p-2.5 rounded-xl hover:bg-cyan-50/60 transition-all text-left group border border-slate-100 hover:border-cyan-200"
                   >
-                    <div className="p-1.5 rounded-lg bg-cyan-50 text-cyan-700 flex-shrink-0">
-                      <Plus size={14} />
+                    <div className="p-2 rounded-lg bg-cyan-50 text-cyan-700 group-hover:bg-cyan-600 group-hover:text-white transition-colors flex-shrink-0">
+                      <FileText size={15} />
                     </div>
-                    <span className="truncate">Import Data</span>
-                  </button>
-
-                  <button
-                    onClick={() => { navigate('/dashboard/settings?tab=import'); closeAll(); }}
-                    className="col-span-2 flex items-center gap-2.5 p-2 rounded-xl hover:bg-slate-100/80 transition-colors text-[12px] text-slate-700 font-semibold border border-slate-100 hover:border-slate-200"
-                  >
-                    <div className="p-1.5 rounded-lg bg-cyan-50 text-cyan-700 flex-shrink-0">
-                      <FileText size={14} />
+                    <div className="min-w-0 flex-1">
+                      <div className="text-[12.5px] font-bold text-slate-800 group-hover:text-cyan-900">Import & Export Data</div>
+                      <div className="text-[10.5px] text-slate-400 font-medium truncate">CSV/Excel template import & statement export</div>
                     </div>
-                    <span className="truncate">Export System Data</span>
                   </button>
                 </div>
               </div>
