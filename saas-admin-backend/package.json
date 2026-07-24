@@ -1,7 +1,7 @@
 {
   "name": "saas-admin-backend",
   "version": "1.0.0",
-  "description": "Production-Hardened SaaS Admin Dashboard Backend API with Knex, SQLite, JWT, Refresh Tokens, RBAC, Rate Limiting, Zod Validation, Atomic Redemptions & Audit Logging",
+  "description": "Production-Hardened SaaS Admin Dashboard Backend API with Knex, SQLite, PostgreSQL, JWT, Refresh Tokens, RBAC, Rate Limiting, Zod Validation, Atomic Redemptions & Audit Logging",
   "main": "src/server.js",
   "scripts": {
     "start": "node src/server.js",
@@ -19,6 +19,7 @@
     "helmet": "^7.1.0",
     "jsonwebtoken": "^9.0.2",
     "knex": "^3.1.0",
+    "pg": "^8.11.5",
     "sqlite3": "^5.1.7",
     "zod": "^3.23.8"
   },
