@@ -641,10 +641,10 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
             <ChevronDown size={11} style={{ color: PBI.dim }} />
           </button>
           
-          <HeaderDropdown open={openMenu === 'period'} onClose={closeAll} className="w-60">
-            <div className="px-3 py-2 border-b bg-slate-50/50" style={{ borderColor: PBI.border }}>
-              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: PBI.blue }}>Fiscal Period Details</p>
-              <p className="text-[12px] font-black text-slate-800 mt-0.5">{periodLabel} Status</p>
+          <HeaderDropdown open={openMenu === 'period'} onClose={closeAll} className="md:w-[380px]">
+            <div className="px-4 py-3 border-b bg-slate-50/50" style={{ borderColor: PBI.border }}>
+              <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Fiscal Period Details</p>
+              <p className="text-[13px] font-black text-slate-800 mt-0.5">{periodLabel} Status</p>
             </div>
             
             <div className="p-3.5 space-y-3">
@@ -780,25 +780,28 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
             <span className="hidden sm:inline">Create</span>
             <ChevronDown size={12} className="hidden sm:block opacity-80" />
           </button>
-          <HeaderDropdown open={openMenu === 'create'} onClose={closeAll} className="w-64">
-            <div className="px-3 py-2 border-b" style={{ borderColor: PBI.border }}>
-              <p className="text-[10px] font-semibold uppercase tracking-wider" style={{ color: PBI.blue }}>Quick create</p>
+          <HeaderDropdown open={openMenu === 'create'} onClose={closeAll} className="md:w-[360px]">
+            <div className="px-4 py-3 border-b bg-slate-50/70" style={{ borderColor: PBI.border }}>
+              <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-700">Quick Create Actions</p>
+              <p className="text-[13px] font-black text-slate-900 mt-0.5">Post Vouchers & Orders</p>
             </div>
-            {CREATE_ACTIONS.map((action) => (
-              <button
-                key={action.label}
-                onClick={() => { navigate(action.to); closeAll(); }}
-                className="w-full flex items-start gap-3 px-3 py-2.5 text-left transition-colors hover:bg-emerald-50/50"
-              >
-                <div className="w-8 h-8 rounded-md flex items-center justify-center flex-shrink-0" style={{ background: `${action.color}18` }}>
-                  <action.icon size={14} style={{ color: action.color }} />
-                </div>
-                <div className="min-w-0">
-                  <p className="text-[12px] font-semibold" style={{ color: PBI.text }}>{action.label}</p>
-                  <p className="text-[10px]" style={{ color: PBI.dim }}>{action.desc}</p>
-                </div>
-              </button>
-            ))}
+            <div className="p-2 space-y-1">
+              {CREATE_ACTIONS.map((action) => (
+                <button
+                  key={action.label}
+                  onClick={() => { navigate(action.to); closeAll(); }}
+                  className="w-full flex items-center gap-3.5 p-2.5 rounded-xl text-left transition-all hover:bg-emerald-50/70 border border-transparent hover:border-emerald-200 group"
+                >
+                  <div className="w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-3xs" style={{ background: `${action.color}18` }}>
+                    <action.icon size={16} style={{ color: action.color }} />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-[12.5px] font-bold text-slate-800 group-hover:text-emerald-900">{action.label}</p>
+                    <p className="text-[11px] text-slate-400 font-medium truncate">{action.desc}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
           </HeaderDropdown>
         </div>
 
@@ -850,7 +853,7 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
               )}
             </button>
 
-            <HeaderDropdown open={openMenu === 'approvals'} onClose={closeAll} className="w-80">
+            <HeaderDropdown open={openMenu === 'approvals'} onClose={closeAll} className="md:w-[420px]">
               <div className="px-4 py-3 border-b bg-slate-50/50" style={{ borderColor: PBI.border }}>
                 <p className="text-[10px] font-extrabold uppercase tracking-wider text-amber-600">Pending Approvals</p>
                 <div className="grid grid-cols-2 gap-2 mt-2 text-center text-[11px] font-bold text-slate-500">
@@ -931,7 +934,7 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
             )}
           </button>
 
-          <HeaderDropdown open={openMenu === 'notifications'} onClose={closeAll} className="w-80">
+          <HeaderDropdown open={openMenu === 'notifications'} onClose={closeAll} className="md:w-[420px]">
             <div className="px-4 py-3 border-b bg-slate-50/50 flex justify-between items-center" style={{ borderColor: PBI.border }}>
               <div>
                 <p className="text-[10px] font-extrabold uppercase tracking-wider text-emerald-600">Notifications</p>
@@ -1175,7 +1178,7 @@ export default function Header({ sidebarCollapsed, isMobile, onMenuToggle, searc
             <ChevronDown size={12} className="hidden xl:block" style={{ color: PBI.dim }} />
           </button>
           
-          <HeaderDropdown open={openMenu === 'user'} onClose={closeAll} className="w-64">
+          <HeaderDropdown open={openMenu === 'user'} onClose={closeAll} className="md:w-[320px]">
             <div className="px-3.5 py-3 border-b bg-slate-50/50" style={{ borderColor: PBI.border }}>
               <p className="text-[13px] font-black truncate" style={{ color: PBI.text }}>{user?.name || 'User'}</p>
               <p className="text-[11px] truncate mt-0.5 text-slate-500 font-semibold">{user?.email || ''}</p>
