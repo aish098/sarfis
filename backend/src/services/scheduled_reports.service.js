@@ -203,64 +203,145 @@ class ScheduledReportsService {
   }
 
   static generateCSV(type, data) {
+    const csvLines = [];
+    csvLines.push(`ACCOUNTELLENCE ERP - ${type.replace(/_/g, ' ')} REPORT`);
+    csvLines.push(`Generated At,${new Date().toISOString()}`);
+    csvLines.push('');
+
     if (type === 'BALANCE_SHEET') {
-      const headers = ['Code', 'Account Name', 'Category', 'Balance'];
-      const rows = (data.items || []).map(i => [i.code, `"${i.name}"`, i.category, i.balance].join(','));
-      return [headers.join(','), ...rows].join('\n');
+      csvLines.push(`Total Assets,PKR ${(data.totalAssets || 0).toFixed(2)}`);
+      csvLines.push(`Total Liabilities,PKR ${(data.totalLiabilities || 0).toFixed(2)}`);
+      csvLines.push(`Total Equity,PKR ${(data.totalEquity || 0).toFixed(2)}`);
+      csvLines.push('');
+      csvLines.push('Account Code,Account Name,Category,Balance (PKR)');
+      (data.items || []).forEach(i => {
+        csvLines.push([i.code, `"${(i.name || '').replace(/"/g, '""')}"`, i.category, (i.balance || 0).toFixed(2)].join(','));
+      });
+    } else if (type === 'INCOME_STATEMENT') {
+      csvLines.push(`Total Revenue,PKR ${(data.revenue || 0).toFixed(2)}`);
+      csvLines.push(`Total Expenses,PKR ${(data.expenses || 0).toFixed(2)}`);
+      csvLines.push(`Net Profit,PKR ${(data.netProfit || 0).toFixed(2)}`);
+      csvLines.push('');
+      csvLines.push('Account Code,Account Name,Category,Balance (PKR)');
+      (data.items || []).forEach(i => {
+        csvLines.push([i.code, `"${(i.name || '').replace(/"/g, '""')}"`, i.category, (i.balance || 0).toFixed(2)].join(','));
+      });
+    } else if (type === 'TRIAL_BALANCE') {
+      csvLines.push('Account Code,Account Name,Category,Debit (PKR),Credit (PKR)');
+      (Array.isArray(data) ? data : []).forEach(i => {
+        csvLines.push([i.code, `"${(i.name || '').replace(/"/g, '""')}"`, i.category, (i.debit || 0).toFixed(2), (i.credit || 0).toFixed(2)].join(','));
+      });
+    } else {
+      csvLines.push('Category,Amount (PKR)');
+      (Array.isArray(data) ? data : []).forEach(i => {
+        csvLines.push([i.category || i.type, (i.amount || i.magnitude || 0).toFixed(2)].join(','));
+      });
     }
-    if (type === 'INCOME_STATEMENT') {
-      const headers = ['Code', 'Account Name', 'Category', 'Balance'];
-      const rows = (data.items || []).map(i => [i.code, `"${i.name}"`, i.category, i.balance].join(','));
-      return [headers.join(','), ...rows].join('\n');
-    }
-    if (type === 'CASH_FLOW') {
-      const headers = ['Category', 'Amount'];
-      const rows = data.map(i => [i.category || i.type, i.amount || i.magnitude].join(','));
-      return [headers.join(','), ...rows].join('\n');
-    }
-    if (type === 'TRIAL_BALANCE') {
-      const headers = ['Code', 'Account Name', 'Category', 'Debit', 'Credit'];
-      const rows = data.map(i => [i.code, `"${i.name}"`, i.category, i.debit || 0, i.credit || 0].join(','));
-      return [headers.join(','), ...rows].join('\n');
-    }
-    return 'No report data';
+
+    return csvLines.join('\n');
   }
 
   static generatePDF(type, companyName, periodName, data) {
     return new Promise((resolve) => {
-      const doc = new PDFDocument({ margin: 50 });
+      const doc = new PDFDocument({ margin: 40, size: 'A4' });
       const buffers = [];
       doc.on('data', buffers.push.bind(buffers));
-      doc.on('end', () => {
-        resolve(Buffer.concat(buffers));
+      doc.on('end', () => resolve(Buffer.concat(buffers)));
+
+      // 1. Header Banner
+      doc.rect(40, 40, 515, 60).fill('#065f46'); // Emerald 800
+      doc.fillColor('#ffffff').fontSize(16).font('Helvetica-Bold').text('ACCOUNTELLENCE ERP', 55, 52);
+      doc.fontSize(11).font('Helvetica').text(`${type.replace(/_/g, ' ')} REPORT`, 55, 72);
+      
+      doc.fillColor('#ffffff').fontSize(9).font('Helvetica-Bold').text(companyName || 'Corporate Workspace', 350, 52, { align: 'right', width: 190 });
+      doc.fontSize(9).font('Helvetica').text(`Period: ${periodName || 'Current'}`, 350, 68, { align: 'right', width: 190 });
+      doc.fontSize(8).text(`Date: ${new Date().toLocaleDateString()}`, 350, 82, { align: 'right', width: 190 });
+
+      let startY = 115;
+
+      // 2. KPI Summary Cards
+      if (type === 'BALANCE_SHEET') {
+        const assets = (data.totalAssets || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const liabilities = (data.totalLiabilities || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const equity = (data.totalEquity || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        doc.rect(40, startY, 160, 45).fillAndStroke('#ecfdf5', '#a7f3d0');
+        doc.fillColor('#065f46').fontSize(8).font('Helvetica-Bold').text('TOTAL ASSETS', 50, startY + 8);
+        doc.fillColor('#047857').fontSize(11).font('Helvetica-Bold').text(`PKR ${assets}`, 50, startY + 22);
+
+        doc.rect(215, startY, 160, 45).fillAndStroke('#fef2f2', '#fecaca');
+        doc.fillColor('#991b1b').fontSize(8).font('Helvetica-Bold').text('TOTAL LIABILITIES', 225, startY + 8);
+        doc.fillColor('#b91c1c').fontSize(11).font('Helvetica-Bold').text(`PKR ${liabilities}`, 225, startY + 22);
+
+        doc.rect(390, startY, 165, 45).fillAndStroke('#eff6ff', '#bfdbfe');
+        doc.fillColor('#1e40af').fontSize(8).font('Helvetica-Bold').text('TOTAL EQUITY', 400, startY + 8);
+        doc.fillColor('#1d4ed8').fontSize(11).font('Helvetica-Bold').text(`PKR ${equity}`, 400, startY + 22);
+
+        startY += 60;
+      } else if (type === 'INCOME_STATEMENT') {
+        const revenue = (data.revenue || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const expenses = (data.expenses || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        const netProfit = (data.netProfit || 0).toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+
+        doc.rect(40, startY, 160, 45).fillAndStroke('#ecfdf5', '#a7f3d0');
+        doc.fillColor('#065f46').fontSize(8).font('Helvetica-Bold').text('TOTAL REVENUE', 50, startY + 8);
+        doc.fillColor('#047857').fontSize(11).font('Helvetica-Bold').text(`PKR ${revenue}`, 50, startY + 22);
+
+        doc.rect(215, startY, 160, 45).fillAndStroke('#fef2f2', '#fecaca');
+        doc.fillColor('#991b1b').fontSize(8).font('Helvetica-Bold').text('TOTAL EXPENSES', 225, startY + 8);
+        doc.fillColor('#b91c1c').fontSize(11).font('Helvetica-Bold').text(`PKR ${expenses}`, 225, startY + 22);
+
+        doc.rect(390, startY, 165, 45).fillAndStroke('#f0fdf4', '#bbf7d0');
+        doc.fillColor('#166534').fontSize(8).font('Helvetica-Bold').text('NET PROFIT', 400, startY + 8);
+        doc.fillColor('#15803d').fontSize(11).font('Helvetica-Bold').text(`PKR ${netProfit}`, 400, startY + 22);
+
+        startY += 60;
+      }
+
+      // 3. Table Header
+      doc.rect(40, startY, 515, 22).fill('#1e293b');
+      doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold');
+      doc.text('CODE', 50, startY + 7, { width: 70 });
+      doc.text('ACCOUNT NAME', 125, startY + 7, { width: 190 });
+      doc.text('CATEGORY', 320, startY + 7, { width: 100 });
+      doc.text('BALANCE (PKR)', 430, startY + 7, { width: 115, align: 'right' });
+
+      startY += 22;
+
+      // 4. Table Rows
+      const items = data.items || (Array.isArray(data) ? data : []);
+      items.forEach((item, index) => {
+        if (startY > 740) {
+          doc.addPage();
+          startY = 40;
+
+          doc.rect(40, startY, 515, 22).fill('#1e293b');
+          doc.fillColor('#ffffff').fontSize(8).font('Helvetica-Bold');
+          doc.text('CODE', 50, startY + 7, { width: 70 });
+          doc.text('ACCOUNT NAME', 125, startY + 7, { width: 190 });
+          doc.text('CATEGORY', 320, startY + 7, { width: 100 });
+          doc.text('BALANCE (PKR)', 430, startY + 7, { width: 115, align: 'right' });
+          startY += 22;
+        }
+
+        const bg = index % 2 === 0 ? '#ffffff' : '#f8fafc';
+        doc.rect(40, startY, 515, 20).fillAndStroke(bg, '#f1f5f9');
+
+        doc.fillColor('#334155').fontSize(8).font('Helvetica-Bold');
+        doc.text(String(item.code || item.account_code || '—'), 50, startY + 6, { width: 70 });
+        doc.font('Helvetica').text(String(item.name || item.account_name || item.category || '—'), 125, startY + 6, { width: 190 });
+        doc.text(String(item.category || item.type || '—'), 320, startY + 6, { width: 100 });
+
+        const balVal = typeof item.balance === 'number' ? item.balance : (item.amount || item.debit || 0);
+        const formattedBal = balVal.toLocaleString('en-US', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+        doc.font('Helvetica-Bold').fillColor(balVal < 0 ? '#b91c1c' : '#0f172a');
+        doc.text(`PKR ${formattedBal}`, 430, startY + 6, { width: 115, align: 'right' });
+
+        startY += 20;
       });
 
-      doc.fontSize(20).text(`ACCOUNTELLENCE ERP - ${type.replace(/_/g, ' ')}`, { align: 'center' });
-      doc.fontSize(10).text(`Company: ${companyName}`, { align: 'center' });
-      doc.fontSize(10).text(`Period: ${periodName}`, { align: 'center' });
-      doc.moveDown(2);
-
-      if (type === 'BALANCE_SHEET') {
-        doc.fontSize(12).text(`Total Assets: PKR ${(data.totalAssets || 0).toFixed(2)}`);
-        doc.text(`Total Liabilities: PKR ${(data.totalLiabilities || 0).toFixed(2)}`);
-        doc.text(`Total Equity: PKR ${(data.totalEquity || 0).toFixed(2)}`);
-        doc.moveDown();
-        (data.items || []).forEach(i => {
-          doc.fontSize(9).text(`${i.code} - ${i.name} (${i.category}): PKR ${i.balance.toFixed(2)}`);
-        });
-      } else if (type === 'INCOME_STATEMENT') {
-        doc.fontSize(12).text(`Total Revenue: PKR ${(data.revenue || 0).toFixed(2)}`);
-        doc.text(`Total Expenses: PKR ${(data.expenses || 0).toFixed(2)}`);
-        doc.fontSize(14).text(`Net Profit: PKR ${(data.netProfit || 0).toFixed(2)}`);
-        doc.moveDown();
-        (data.items || []).forEach(i => {
-          doc.fontSize(9).text(`${i.code} - ${i.name} (${i.category}): PKR ${i.balance.toFixed(2)}`);
-        });
-      } else {
-        doc.fontSize(12).text('Report statement details:');
-        doc.moveDown();
-        doc.fontSize(8).text(JSON.stringify(data, null, 2));
-      }
+      // Footer
+      doc.fillColor('#94a3b8').fontSize(7).font('Helvetica').text('ACCOUNTELLENCE ERP Financial Governance Module | Confidential Executive Document', 40, 770, { align: 'center', width: 515 });
 
       doc.end();
     });
