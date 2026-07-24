@@ -267,90 +267,123 @@ export default function PayrollPage() {
       {/* Breadcrumbs Navigation */}
       {getBreadcrumb()}
 
-      {/* Top Banner Orchestrator */}
-      <div className="w-full bg-[#EBFDF5] border border-[#C2F3DC] rounded-2xl p-4 flex flex-col lg:flex-row lg:items-center justify-between gap-4 shadow-sm">
-        <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-[#10b981] to-[#06b6d4] flex items-center justify-center text-white shadow-md shadow-emerald-500/10">
-            <Users size={18} className="text-white fill-white/20" />
-          </div>
-          <div>
-            <div className="flex items-center gap-2">
-              <h1 className="font-display font-extrabold text-[16px] md:text-[18px] text-[#064E3B] tracking-tight uppercase">Payroll Workspace</h1>
-              <span className="text-[10px] font-black uppercase bg-emerald-500/15 text-emerald-800 px-2 py-0.5 rounded-full border border-emerald-500/20">Operational Lifecycle</span>
+      {/* Premium Redesigned Header Container */}
+      <div className="w-full bg-slate-900 text-white rounded-3xl p-6 shadow-2xl shadow-slate-900/10 border border-slate-800/80 relative overflow-hidden space-y-6">
+        {/* Background Ambient Glow Accents */}
+        <div className="absolute -top-24 -right-24 w-96 h-96 bg-emerald-500/10 rounded-full blur-3xl pointer-events-none" />
+        <div className="absolute -bottom-24 -left-24 w-96 h-96 bg-cyan-500/10 rounded-full blur-3xl pointer-events-none" />
+
+        {/* Top Header Row: Branding, Status, Search, Controls & Primary Action */}
+        <div className="relative z-10 flex flex-col lg:flex-row lg:items-center justify-between gap-6">
+          
+          {/* Left: Branding & Subtitle */}
+          <div className="flex items-start md:items-center gap-4">
+            <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-emerald-400 to-cyan-500 p-0.5 shadow-xl shadow-emerald-500/20 shrink-0">
+              <div className="w-full h-full bg-slate-900 rounded-[14px] flex items-center justify-center text-emerald-400">
+                <Users size={22} className="stroke-[2.5]" />
+              </div>
             </div>
-            <p className="text-[11px] font-semibold text-slate-500 mt-0.5">
-              Manage salary components, structural formula rules, payments release, and audit-compliant reporting.
-            </p>
+            <div>
+              <div className="flex items-center gap-3 flex-wrap">
+                <h1 className="font-display font-black text-xl md:text-2xl tracking-tight text-white uppercase">
+                  Payroll Workspace
+                </h1>
+                <div className="flex items-center gap-1.5 bg-emerald-500/15 border border-emerald-500/30 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-wider text-emerald-400">
+                  <span className="w-2 h-2 rounded-full bg-emerald-400 animate-pulse" />
+                  Operational Lifecycle
+                </div>
+              </div>
+              <p className="text-slate-400 text-xs md:text-sm font-medium mt-1 max-w-xl">
+                Manage salary components, structural formula rules, payments release, and audit-compliant reporting.
+              </p>
+            </div>
+          </div>
+
+          {/* Right: Controls (Search, Bell, Persona Switcher, Primary Action) */}
+          <div className="flex flex-wrap items-center gap-3 relative z-20">
+            {/* Search Trigger */}
+            <button 
+              onClick={() => setShowSearchModal(true)}
+              className="flex items-center gap-2 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 px-3.5 py-2 rounded-xl text-slate-300 hover:text-white transition-all text-xs font-semibold shadow-inner cursor-pointer"
+            >
+              <Search size={14} className="text-emerald-400" />
+              <span>Search</span>
+              <kbd className="hidden sm:inline-block bg-slate-900 text-slate-400 border border-slate-700 px-1.5 py-0.5 rounded text-[9px] font-mono font-bold">Ctrl+F</kbd>
+            </button>
+
+            {/* Notification Bell */}
+            <div className="relative">
+              <button 
+                onClick={() => setShowNotifications(!showNotifications)}
+                className="p-2.5 bg-slate-800/80 hover:bg-slate-800 border border-slate-700/80 rounded-xl text-slate-300 hover:text-white transition-all cursor-pointer relative"
+              >
+                <Bell size={16} className="text-emerald-400" />
+                {notifications.filter(n => !n.read).length > 0 && (
+                  <span className="absolute -top-1 -right-1 bg-rose-500 text-white font-mono text-[9px] font-black w-4 h-4 rounded-full flex items-center justify-center ring-2 ring-slate-900">
+                    {notifications.filter(n => !n.read).length}
+                  </span>
+                )}
+              </button>
+              
+              {showNotifications && (
+                <div className="absolute right-0 mt-3 w-80 bg-slate-900 border border-slate-700/90 rounded-2xl shadow-2xl p-4 z-50 space-y-3 text-xs font-semibold animate-in fade-in zoom-in-95 duration-150">
+                  <div className="flex justify-between items-center border-b border-slate-800 pb-2.5">
+                    <span className="font-black text-white text-xs uppercase tracking-wider flex items-center gap-2">
+                      <Bell size={13} className="text-emerald-400" /> Notification Center
+                    </span>
+                    <button onClick={() => setShowNotifications(false)} className="text-slate-400 hover:text-white"><X size={14} /></button>
+                  </div>
+                  <div className="space-y-2.5 max-h-64 overflow-y-auto custom-scrollbar pr-1">
+                    {notifications.map(n => (
+                      <div key={n.id} className="flex gap-2.5 items-start leading-snug p-2 rounded-lg hover:bg-slate-800/50 transition-colors">
+                        <span className={`w-2 h-2 rounded-full mt-1.5 shrink-0 ${n.read ? 'bg-slate-600' : 'bg-emerald-400'}`} />
+                        <div>
+                          <p className={`${n.read ? 'text-slate-400 font-normal' : 'text-slate-200 font-bold'}`}>{n.text}</p>
+                          <span className="text-[10px] text-slate-400 font-mono block mt-1">{n.time}</span>
+                        </div>
+                      </div>
+                    ))}
+                    {notifications.length === 0 && (
+                      <p className="text-slate-400 text-center py-6">No active payroll alerts.</p>
+                    )}
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Persona / Role Selector */}
+            <div className="flex items-center gap-2 bg-slate-800/80 border border-slate-700/80 px-3 py-2 rounded-xl text-xs">
+              <UserCheck size={14} className="text-emerald-400 shrink-0" />
+              <select
+                value={userRole}
+                onChange={e => setUserRole(e.target.value)}
+                className="text-[11px] font-bold uppercase text-slate-200 bg-transparent border-none outline-none cursor-pointer focus:ring-0"
+              >
+                <option value="HR Officer" className="bg-slate-900 text-white">HR Officer</option>
+                <option value="HR Manager" className="bg-slate-900 text-white">HR Manager (Admin)</option>
+                <option value="Finance" className="bg-slate-900 text-white">Finance Director</option>
+                <option value="Treasury" className="bg-slate-900 text-white">Treasury Officer</option>
+                <option value="Auditor" className="bg-slate-900 text-white">Auditor (Read Only)</option>
+              </select>
+            </div>
+
+            {/* Primary Action Button (1-Click Rule) */}
+            <button
+              onClick={() => handleNavigateToTab('processing')}
+              className="flex items-center gap-2 bg-gradient-to-r from-emerald-500 to-teal-500 hover:from-emerald-400 hover:to-teal-400 text-slate-950 font-black px-4 py-2 rounded-xl text-xs uppercase tracking-wider shadow-lg shadow-emerald-500/20 hover:shadow-emerald-500/35 transition-all cursor-pointer transform active:scale-95"
+            >
+              <Sparkles size={14} className="fill-slate-950" />
+              <span>Process Payroll</span>
+            </button>
           </div>
         </div>
 
-        {/* Dynamic Search, Notifications, and Tabs */}
-        <div className="flex flex-wrap items-center gap-4 relative">
-          {/* Global Search trigger bar */}
-          <button 
-            onClick={() => setShowSearchModal(true)}
-            className="flex items-center gap-2 bg-white px-3.5 py-2 border border-slate-200 hover:border-slate-300 rounded-xl text-slate-400 hover:text-slate-600 transition-all shadow-3xs text-[11px] cursor-pointer"
-          >
-            <Search size={13} />
-            <span>Search (Ctrl+F)</span>
-          </button>
-
-          {/* Notifications Center Bell */}
-          <div className="relative">
-            <button 
-              onClick={() => setShowNotifications(!showNotifications)}
-              className="p-2 bg-white border border-slate-200 hover:bg-slate-50 rounded-xl text-slate-500 hover:text-slate-700 transition-all shadow-3xs cursor-pointer"
-            >
-              <Bell size={14} />
-              {notifications.filter(n => !n.read).length > 0 && (
-                <span className="absolute -top-1 -right-1 bg-rose-500 text-white font-mono text-[8px] font-black w-4 h-4 rounded-full flex items-center justify-center">
-                  {notifications.filter(n => !n.read).length}
-                </span>
-              )}
-            </button>
-            
-            {showNotifications && (
-              <div className="absolute right-0 mt-2 w-72 bg-white border border-slate-200 rounded-2xl shadow-xl p-4 z-50 space-y-3 text-xs font-semibold animate-in fade-in-5 duration-100">
-                <div className="flex justify-between items-center border-b border-slate-100 pb-2">
-                  <span className="font-black text-slate-800 text-[11px] uppercase tracking-wider">Notification Center</span>
-                  <button onClick={() => setShowNotifications(false)} className="text-slate-400 hover:text-slate-600"><X size={13} /></button>
-                </div>
-                <div className="space-y-2.5 max-h-60 overflow-y-auto pr-1">
-                  {notifications.map(n => (
-                    <div key={n.id} className="flex gap-2 items-start leading-snug">
-                      <span className={`w-1.5 h-1.5 rounded-full mt-1.5 ${n.read ? 'bg-slate-300' : 'bg-indigo-600'}`} />
-                      <div>
-                        <p className={`${n.read ? 'text-slate-400 font-normal' : 'text-slate-700 font-bold'}`}>{n.text}</p>
-                        <span className="text-[9px] text-slate-400 block mt-0.5">{n.time}</span>
-                      </div>
-                    </div>
-                  ))}
-                  {notifications.length === 0 && (
-                    <p className="text-slate-400 text-center py-4">No active payroll alerts.</p>
-                  )}
-                </div>
-              </div>
-            )}
-          </div>
-
-          <div className="flex items-center gap-2 bg-white px-3 py-1.5 rounded-xl border border-slate-200 shadow-3xs">
-            <UserCheck size={14} className="text-slate-400" />
-            <select
-              value={userRole}
-              onChange={e => setUserRole(e.target.value)}
-              className="text-[10.5px] font-black uppercase text-slate-700 bg-transparent border-none outline-none cursor-pointer"
-            >
-              <option value="HR Officer">HR Officer</option>
-              <option value="HR Manager">HR Manager (Admin)</option>
-              <option value="Finance">Finance Director</option>
-              <option value="Treasury">Treasury Officer</option>
-              <option value="Auditor">Auditor (Read Only)</option>
-            </select>
-          </div>
-
-          <div className="flex items-center gap-1.5 bg-slate-200/40 p-1 rounded-2xl w-full sm:w-auto overflow-x-auto hide-scrollbar whitespace-nowrap">
+        {/* Bottom Navigation Segmented Tabs & Shortcuts Row */}
+        <div className="relative z-10 pt-4 border-t border-slate-800/80 flex flex-col md:flex-row md:items-center justify-between gap-4">
+          <div className="flex items-center gap-1.5 bg-slate-950/80 p-1.5 rounded-2xl border border-slate-800 overflow-x-auto custom-scrollbar whitespace-nowrap">
             {tabs.map(tab => {
               const Icon = tab.icon;
+              const isActive = activeTab === tab.id;
               return (
                 <button
                   key={tab.id}
@@ -359,26 +392,27 @@ export default function PayrollPage() {
                     setPaymentsInitialTab('individual');
                     setActiveTab(tab.id);
                   }}
-                  className={`px-3 py-1.5 rounded-xl transition-all uppercase tracking-wider text-[10px] font-black flex items-center gap-1.5 cursor-pointer ${
-                    activeTab === tab.id 
-                      ? 'bg-white text-slate-800 shadow-sm' 
-                      : 'text-slate-500 hover:text-slate-800'
+                  className={`px-4 py-2 rounded-xl transition-all uppercase tracking-wider text-[11px] font-black flex items-center gap-2 cursor-pointer ${
+                    isActive 
+                      ? 'bg-gradient-to-r from-emerald-500 to-teal-500 text-slate-950 shadow-md shadow-emerald-500/20' 
+                      : 'text-slate-400 hover:text-white hover:bg-slate-800/60'
                   }`}
                 >
-                  <Icon size={12} /> {tab.label}
+                  <Icon size={14} className={isActive ? 'text-slate-950' : 'text-slate-400'} />
+                  <span>{tab.label}</span>
                 </button>
               );
             })}
           </div>
-        </div>
-      </div>
 
-      {/* Shortcuts Help Bar */}
-      <div className="bg-slate-100/50 p-2 rounded-xl border border-slate-200 text-[10px] font-mono text-slate-400 flex gap-4 justify-center items-center flex-wrap uppercase">
-        <span>Shortcuts:</span>
-        <span><kbd className="bg-white px-1.5 py-0.5 rounded border shadow-3xs font-bold text-slate-600">Ctrl+F</kbd> Search</span>
-        <span><kbd className="bg-white px-1.5 py-0.5 rounded border shadow-3xs font-bold text-slate-600">Ctrl+G</kbd> Processing Wizard</span>
-        <span><kbd className="bg-white px-1.5 py-0.5 rounded border shadow-3xs font-bold text-slate-600">Ctrl+R</kbd> Reports</span>
+          {/* Keyboard Shortcuts Hints */}
+          <div className="hidden xl:flex items-center gap-4 text-[10px] font-mono text-slate-400 uppercase tracking-wider bg-slate-950/50 px-3 py-1.5 rounded-xl border border-slate-800/60">
+            <span className="text-slate-500 font-bold">Shortcuts:</span>
+            <span className="flex items-center gap-1"><kbd className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-slate-300 font-bold">Ctrl+F</kbd> Search</span>
+            <span className="flex items-center gap-1"><kbd className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-slate-300 font-bold">Ctrl+G</kbd> Engine Wizard</span>
+            <span className="flex items-center gap-1"><kbd className="bg-slate-800 px-1.5 py-0.5 rounded border border-slate-700 text-slate-300 font-bold">Ctrl+R</kbd> Reports</span>
+          </div>
+        </div>
       </div>
 
       {/* Lazily Mounted Sub-Workspace Panel */}
