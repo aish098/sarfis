@@ -5,7 +5,7 @@ import {
   LayoutDashboard, BookOpen, FilePlus, BookMarked,
   BarChart2, TrendingUp, Target, Settings, LogOut,
   Home, ChevronLeft, ChevronRight, Zap, Building2, Activity,
-  Package, Truck, ShieldCheck, Briefcase, Mail, CheckSquare, Sliders,
+  Package, Truck, ShieldCheck, Shield, Briefcase, Mail, CheckSquare, Sliders,
   Calendar, FileText
 } from 'lucide-react';
 import useAuthStore from '../../store/authStore';
