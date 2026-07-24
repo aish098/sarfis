@@ -1,14 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { motion } from 'framer-motion';
+import { motion as Motion } from 'framer-motion';
 import {
   Calculator, Shield, FileText, CheckCircle2, AlertCircle,
-  Plus, Edit, Trash2, HelpCircle, ChevronRight, RefreshCw, Globe, Layers, ArrowUpRight
+  Plus, Edit, Trash2, RefreshCw, Globe, Layers, ArrowUpRight,
+  ChevronRight, Percent, DollarSign, Info
 } from 'lucide-react';
 import api from '../../services/api';
-import Navbar from '../../components/Navbar';
-import Footer from '../../components/Footer';
+import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 
-// Default static FBR 2026-27 Slabs for fallback UI display
+// Default statutory FBR 2026-27 Slabs for fallback UI display
 const DEFAULT_SLABS = [
   { sequence_no: 1, lower_bound: 0, upper_bound: 600000, base_tax: 0, marginal_rate: 0.00, excess_over: 0, description: 'Up to Rs. 600,000 (0% Tax)' },
   { sequence_no: 2, lower_bound: 600000, upper_bound: 1200000, base_tax: 0, marginal_rate: 0.01, excess_over: 600000, description: 'Rs. 600,001 – 1,200,000 (1% of amount exceeding Rs. 600,000)' },
@@ -22,17 +22,17 @@ const DEFAULT_SLABS = [
 
 export default function TaxManagementPage() {
   const [taxYears, setTaxYears] = useState([]);
-  const [activeTaxYear, setActiveTaxYear] = useState('PK-2026-27-SALARY');
   const [slabs, setSlabs] = useState(DEFAULT_SLABS);
   const [loading, setLoading] = useState(false);
 
-  // Calculator State
+  // Interactive Tax Calculator State
   const [calcSalary, setCalcSalary] = useState(1850000);
   const [calcPeriod, setCalcPeriod] = useState('annual'); // 'annual' | 'monthly'
   const [calcResult, setCalcResult] = useState(null);
 
-  // Modal State
+  // Modal State for Adding/Editing Slabs
   const [showSlabModal, setShowSlabModal] = useState(false);
+  const [editingSlab, setEditingSlab] = useState(null);
   const [slabForm, setSlabForm] = useState({
     sequence_no: 9,
     lower_bound: 7000000,
@@ -119,110 +119,121 @@ export default function TaxManagementPage() {
     return `PKR ${Number(num).toLocaleString('en-PK')}`;
   };
 
+  const openAddSlabModal = () => {
+    setEditingSlab(null);
+    setSlabForm({
+      sequence_no: slabs.length + 1,
+      lower_bound: slabs.length > 0 ? (slabs[slabs.length - 1].upper_bound || 7000000) : 0,
+      upper_bound: '',
+      base_tax: 0,
+      marginal_rate: 0.10,
+      excess_over: 0,
+      description: ''
+    });
+    setShowSlabModal(true);
+  };
+
+  const openEditSlabModal = (slab) => {
+    setEditingSlab(slab);
+    setSlabForm({
+      sequence_no: slab.sequence_no,
+      lower_bound: slab.lower_bound,
+      upper_bound: slab.upper_bound !== null ? slab.upper_bound : '',
+      base_tax: slab.base_tax,
+      marginal_rate: slab.marginal_rate,
+      excess_over: slab.excess_over,
+      description: slab.description || ''
+    });
+    setShowSlabModal(true);
+  };
+
+  const kpis = [
+    {
+      label: 'Active Tax Year',
+      value: 'TY 2026–27',
+      subtext: 'Effective Jul 1, 2026 – Jun 30, 2027',
+      icon: Globe,
+      iconBgClass: 'bg-emerald-500/10',
+      iconColorClass: 'text-emerald-600'
+    },
+    {
+      label: 'Statutory Authority',
+      value: 'Finance Act 2026',
+      subtext: 'First Schedule Part I (Salary)',
+      icon: FileText,
+      iconBgClass: 'bg-blue-500/10',
+      iconColorClass: 'text-blue-600'
+    },
+    {
+      label: 'Tax Brackets',
+      value: `${slabs.length} Progressive Slabs`,
+      subtext: '0% up to PKR 600,000 threshold',
+      icon: Layers,
+      iconBgClass: 'bg-amber-500/10',
+      iconColorClass: 'text-amber-600'
+    },
+    {
+      label: 'Max Marginal Rate',
+      value: '35.00%',
+      subtext: 'Applicable above PKR 7,000,000',
+      icon: ArrowUpRight,
+      iconBgClass: 'bg-rose-500/10',
+      iconColorClass: 'text-rose-600'
+    }
+  ];
+
   return (
-    <div className="min-h-screen text-slate-100 flex flex-col" style={{ background: '#030b1a' }}>
-      <Navbar />
-
-      <main className="flex-1 pt-28 pb-16 px-4 sm:px-8 max-w-7xl mx-auto w-full space-y-8">
-        
-        {/* Header & Breadcrumb */}
-        <div className="flex flex-col md:flex-row items-start md:items-center justify-between gap-4 border-b border-slate-800 pb-6">
-          <div>
-            <div className="flex items-center gap-2 text-xs font-semibold text-emerald-400 uppercase tracking-wider mb-2">
-              <span>HR & Payroll</span>
-              <ChevronRight size={14} className="text-slate-600" />
-              <span>Tax Engine</span>
-              <ChevronRight size={14} className="text-slate-600" />
-              <span className="text-slate-300">Pakistan TY 2026–27</span>
-            </div>
-            <h1 className="text-3xl font-black text-white tracking-tight" style={{ fontFamily: "'Sora', sans-serif" }}>
-              Income Tax Engine & Slabs Configuration
-            </h1>
-            <p className="text-sm text-slate-400 mt-1">
-              Data-driven, configurable tax engine aligned with Pakistan Finance Act statutory salary tax slabs.
-            </p>
-          </div>
-
-          <div className="flex items-center gap-3">
-            <button
-              onClick={fetchTaxYearsAndSlabs}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-slate-900 border border-slate-800 hover:border-slate-700 rounded-xl text-xs font-bold text-slate-300 hover:text-white transition cursor-pointer"
-            >
-              <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
-              Sync Tax Engine
-            </button>
-            <button
-              onClick={() => setShowSlabModal(true)}
-              className="inline-flex items-center gap-2 px-4 py-2.5 bg-emerald-600 hover:bg-emerald-500 rounded-xl text-xs font-bold text-white transition cursor-pointer shadow-lg shadow-emerald-950/40"
-            >
-              <Plus size={16} />
-              Add Tax Slab
-            </button>
-          </div>
+    <WorkspaceLayout
+      title="INCOME TAX ENGINE & SLABS CONFIGURATION"
+      subtitle="Data-driven, statutory tax engine aligned with Pakistan Finance Act salary tax slabs"
+      icon={Shield}
+      badgeText="TY 2026-27 ACTIVE"
+      breadcrumbs={['HR & Payroll', 'Tax Engine', 'Pakistan TY 2026-27']}
+      kpis={kpis}
+      primaryAction={
+        <div className="flex items-center gap-2">
+          <button
+            onClick={fetchTaxYearsAndSlabs}
+            className="inline-flex items-center gap-1.5 px-3 py-2 bg-white border border-slate-200 hover:bg-slate-50 text-slate-700 text-xs font-bold rounded-xl transition shadow-xs cursor-pointer"
+          >
+            <RefreshCw size={14} className={loading ? 'animate-spin' : ''} />
+            Sync Slabs
+          </button>
+          <button
+            onClick={openAddSlabModal}
+            className="inline-flex items-center gap-1.5 px-3.5 py-2 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition shadow-md cursor-pointer"
+          >
+            <Plus size={14} />
+            Add Tax Slab
+          </button>
         </div>
+      }
+    >
+      <div className="space-y-6">
 
-        {/* Stats Row */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-          <div className="p-5 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-2">
-            <div className="flex items-center justify-between text-xs text-slate-400 font-semibold uppercase">
-              <span>Active Tax Year</span>
-              <Globe size={16} className="text-emerald-400" />
-            </div>
-            <div className="text-xl font-bold text-white">TY 2026–27</div>
-            <div className="text-xs text-emerald-400 font-medium">Effective: Jul 1, 2026 – Jun 30, 2027</div>
-          </div>
-
-          <div className="p-5 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-2">
-            <div className="flex items-center justify-between text-xs text-slate-400 font-semibold uppercase">
-              <span>Statutory Basis</span>
-              <FileText size={16} className="text-cyan-400" />
-            </div>
-            <div className="text-xl font-bold text-white">Finance Act 2026</div>
-            <div className="text-xs text-slate-400">First Schedule Part I (Salary)</div>
-          </div>
-
-          <div className="p-5 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-2">
-            <div className="flex items-center justify-between text-xs text-slate-400 font-semibold uppercase">
-              <span>Tax Brackets</span>
-              <Layers size={16} className="text-amber-400" />
-            </div>
-            <div className="text-xl font-bold text-white">{slabs.length} Progressive Slabs</div>
-            <div className="text-xs text-slate-400">0% up to PKR 600,000 threshold</div>
-          </div>
-
-          <div className="p-5 bg-slate-900/60 border border-slate-800 rounded-2xl space-y-2">
-            <div className="flex items-center justify-between text-xs text-slate-400 font-semibold uppercase">
-              <span>Max Marginal Rate</span>
-              <ArrowUpRight size={16} className="text-rose-400" />
-            </div>
-            <div className="text-xl font-bold text-white">35.00%</div>
-            <div className="text-xs text-slate-400">Applicable above PKR 7,000,000</div>
-          </div>
-        </div>
-
-        {/* Interactive Tax Calculator Section */}
-        <div className="p-6 bg-slate-900/80 border border-slate-800 rounded-2xl space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+        {/* Interactive Tax Calculator Card */}
+        <div className="bg-white border border-slate-200/80 rounded-2xl p-5 shadow-xs space-y-5">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 border-b border-slate-150 pb-4">
             <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-emerald-500/10 border border-emerald-500/20 flex items-center justify-center text-emerald-400">
-                <Calculator size={20} />
+              <div className="w-9 h-9 rounded-xl bg-emerald-50 text-emerald-600 border border-emerald-100 flex items-center justify-center font-bold">
+                <Calculator size={18} />
               </div>
               <div>
-                <h2 className="text-lg font-bold text-white">Interactive Income Tax Calculator</h2>
-                <p className="text-xs text-slate-400">Simulate monthly payroll tax withholding & statutory annual tax</p>
+                <h3 className="text-sm font-bold text-slate-800 uppercase tracking-tight">Interactive Tax Calculator</h3>
+                <p className="text-[12px] text-slate-500">Simulate monthly withholding & annual income tax</p>
               </div>
             </div>
 
-            <div className="flex items-center gap-1 bg-slate-950 p-1 rounded-xl border border-slate-800">
+            <div className="flex items-center bg-slate-100 p-1 rounded-xl border border-slate-200">
               <button
                 onClick={() => setCalcPeriod('annual')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${calcPeriod === 'annual' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition ${calcPeriod === 'annual' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
               >
                 Annual Salary
               </button>
               <button
                 onClick={() => setCalcPeriod('monthly')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition ${calcPeriod === 'monthly' ? 'bg-emerald-600 text-white' : 'text-slate-400 hover:text-white'}`}
+                className={`px-3 py-1 rounded-lg text-xs font-bold transition ${calcPeriod === 'monthly' ? 'bg-white text-emerald-700 shadow-xs' : 'text-slate-500 hover:text-slate-800'}`}
               >
                 Monthly Gross
               </button>
@@ -230,33 +241,31 @@ export default function TaxManagementPage() {
           </div>
 
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-            {/* Input Form */}
-            <div className="space-y-4 lg:col-span-1">
-              <div>
-                <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                  {calcPeriod === 'annual' ? 'Annual Taxable Gross Salary (PKR)' : 'Monthly Gross Salary (PKR)'}
-                </label>
-                <div className="relative">
-                  <span className="absolute left-4 top-1/2 -translate-y-1/2 text-slate-500 text-sm font-bold">PKR</span>
-                  <input
-                    type="number"
-                    value={calcSalary}
-                    onChange={(e) => setCalcSalary(e.target.value)}
-                    className="w-full pl-14 pr-4 py-3 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold text-base focus:border-emerald-500 focus:outline-none transition"
-                    placeholder="e.g. 1850000"
-                  />
-                </div>
+            {/* Input Column */}
+            <div className="space-y-3 lg:col-span-1">
+              <label className="block text-xs font-bold text-slate-600 uppercase tracking-wider">
+                {calcPeriod === 'annual' ? 'Annual Taxable Gross Salary (PKR)' : 'Monthly Gross Salary (PKR)'}
+              </label>
+              <div className="relative">
+                <span className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 text-xs font-bold">PKR</span>
+                <input
+                  type="number"
+                  value={calcSalary}
+                  onChange={(e) => setCalcSalary(e.target.value)}
+                  className="w-full pl-12 pr-4 py-2.5 bg-slate-50 border border-slate-250 rounded-xl text-slate-900 font-extrabold text-sm focus:bg-white focus:border-emerald-500 focus:outline-none transition"
+                  placeholder="e.g. 1850000"
+                />
               </div>
 
-              {/* Quick Presets */}
+              {/* Presets */}
               <div>
-                <span className="text-[11px] font-semibold text-slate-500 uppercase tracking-wider block mb-2">Sample Quick Presets:</span>
-                <div className="flex flex-wrap gap-2">
+                <span className="text-[11px] font-semibold text-slate-400 uppercase tracking-wider block mb-1.5">Quick Presets:</span>
+                <div className="flex flex-wrap gap-1.5">
                   {[500000, 1000000, 1850000, 3000000, 5000000, 8000000].map(val => (
                     <button
                       key={val}
                       onClick={() => { setCalcPeriod('annual'); setCalcSalary(val); }}
-                      className="px-2.5 py-1 bg-slate-950 hover:bg-slate-800 border border-slate-800 rounded-lg text-xs font-semibold text-slate-300 transition cursor-pointer"
+                      className="px-2.5 py-1 bg-slate-100 hover:bg-emerald-50 hover:text-emerald-700 border border-slate-200 rounded-lg text-xs font-bold text-slate-600 transition cursor-pointer"
                     >
                       {val >= 1000000 ? `${val / 1000000}M` : `${val / 1000}k`}
                     </button>
@@ -265,49 +274,49 @@ export default function TaxManagementPage() {
               </div>
             </div>
 
-            {/* Calculation Output Cards */}
+            {/* Results Cards */}
             {calcResult && (
-              <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-4">
-                <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex flex-col justify-between">
-                  <span className="text-xs text-slate-400 font-semibold uppercase">Annual Tax Payable</span>
-                  <div className="text-2xl font-black text-emerald-400 mt-2">{formatPKR(calcResult.annualTax)}</div>
-                  <span className="text-[11px] text-slate-500 mt-1">Full Fiscal Year 2026–27</span>
+              <div className="lg:col-span-2 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                <div className="p-4 bg-emerald-50/60 border border-emerald-100 rounded-xl flex flex-col justify-between">
+                  <span className="text-[11px] text-emerald-800 font-bold uppercase tracking-wider">Annual Tax Payable</span>
+                  <div className="text-xl font-extrabold text-emerald-700 mt-1">{formatPKR(calcResult.annualTax)}</div>
+                  <span className="text-[10.5px] text-emerald-600/80 font-medium mt-1">Full Fiscal Year 2026–27</span>
                 </div>
 
-                <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex flex-col justify-between">
-                  <span className="text-xs text-slate-400 font-semibold uppercase">Monthly Deduction</span>
-                  <div className="text-2xl font-black text-cyan-400 mt-2">{formatPKR(calcResult.monthlyTax)}</div>
-                  <span className="text-[11px] text-slate-500 mt-1">Deducted from monthly payslip</span>
+                <div className="p-4 bg-blue-50/60 border border-blue-100 rounded-xl flex flex-col justify-between">
+                  <span className="text-[11px] text-blue-800 font-bold uppercase tracking-wider">Monthly Deduction</span>
+                  <div className="text-xl font-extrabold text-blue-700 mt-1">{formatPKR(calcResult.monthlyTax)}</div>
+                  <span className="text-[10.5px] text-blue-600/80 font-medium mt-1">Deducted from monthly payslip</span>
                 </div>
 
-                <div className="p-4 bg-slate-950 border border-slate-800 rounded-xl flex flex-col justify-between">
-                  <span className="text-xs text-slate-400 font-semibold uppercase">Effective Tax Rate</span>
-                  <div className="text-2xl font-black text-amber-400 mt-2">{calcResult.effectiveRate.toFixed(2)}%</div>
-                  <span className="text-[11px] text-slate-500 mt-1">Slab #{calcResult.slab.sequence_no} Bracket</span>
+                <div className="p-4 bg-amber-50/60 border border-amber-100 rounded-xl flex flex-col justify-between">
+                  <span className="text-[11px] text-amber-800 font-bold uppercase tracking-wider">Effective Tax Rate</span>
+                  <div className="text-xl font-extrabold text-amber-700 mt-1">{calcResult.effectiveRate.toFixed(2)}%</div>
+                  <span className="text-[10.5px] text-amber-700/80 font-medium mt-1">Slab #{calcResult.slab.sequence_no} Bracket</span>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* Tax Slabs Configuration Table */}
-        <div className="p-6 bg-slate-900/80 border border-slate-800 rounded-2xl space-y-6">
-          <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 border-b border-slate-800/80 pb-4">
+        {/* Configurable Slabs Table Card */}
+        <div className="bg-white border border-slate-200/80 rounded-2xl overflow-hidden shadow-xs">
+          <div className="p-4 border-b border-slate-150 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-2 bg-slate-50/50">
             <div>
-              <h2 className="text-lg font-bold text-white">Configurable Income Tax Brackets (Slabs)</h2>
-              <p className="text-xs text-slate-400">All calculations load dynamically from these statutory database slabs</p>
+              <h3 className="text-sm font-bold text-slate-800 uppercase tracking-tight">Statutory Tax Brackets (Slabs Table)</h3>
+              <p className="text-[12px] text-slate-500">Continuous non-hardcoded brackets loaded from PostgreSQL / SQLite database</p>
             </div>
-            <span className="px-3 py-1 bg-emerald-500/10 border border-emerald-500/30 text-emerald-400 text-xs font-bold rounded-full">
-              STATUS: ACTIVE
+            <span className="px-2.5 py-0.5 bg-emerald-100 text-emerald-800 border border-emerald-200 text-[11px] font-bold rounded-full">
+              STATUS: ACTIVE (8 SLABS)
             </span>
           </div>
 
           <div className="overflow-x-auto">
             <table className="w-full text-left text-xs border-collapse">
               <thead>
-                <tr className="border-b border-slate-800 text-slate-400 uppercase tracking-wider text-[11px]">
-                  <th className="py-3 px-4">#</th>
-                  <th className="py-3 px-4">Annual Income Range (PKR)</th>
+                <tr className="bg-slate-100/70 border-b border-slate-200 text-slate-500 uppercase tracking-wider text-[10.5px] font-bold">
+                  <th className="py-3 px-4">Slab #</th>
+                  <th className="py-3 px-4">Annual Income Bracket (PKR)</th>
                   <th className="py-3 px-4">Base Tax</th>
                   <th className="py-3 px-4">Marginal Rate</th>
                   <th className="py-3 px-4">Excess Over</th>
@@ -315,32 +324,33 @@ export default function TaxManagementPage() {
                   <th className="py-3 px-4 text-right">Actions</th>
                 </tr>
               </thead>
-              <tbody className="divide-y divide-slate-800/60">
+              <tbody className="divide-y divide-slate-150">
                 {slabs.map((slab) => {
                   const isCurrent = calcResult?.slab?.sequence_no === slab.sequence_no;
                   return (
                     <tr
                       key={slab.sequence_no}
-                      className={`transition ${isCurrent ? 'bg-emerald-950/30 border-l-4 border-emerald-500' : 'hover:bg-slate-850/50'}`}
+                      className={`transition ${isCurrent ? 'bg-emerald-50/70 font-semibold' : 'hover:bg-slate-50'}`}
                     >
-                      <td className="py-3.5 px-4 font-bold text-slate-300">Slab {slab.sequence_no}</td>
-                      <td className="py-3.5 px-4 font-semibold text-white">
+                      <td className="py-3.5 px-4 font-bold text-slate-700">
+                        <span className="inline-flex items-center justify-center w-6 h-6 rounded-full bg-slate-200 text-slate-700 font-bold text-xs">
+                          {slab.sequence_no}
+                        </span>
+                      </td>
+                      <td className="py-3.5 px-4 font-bold text-slate-900">
                         {formatPKR(slab.lower_bound)} &mdash; {slab.upper_bound ? formatPKR(slab.upper_bound) : 'Above'}
                       </td>
-                      <td className="py-3.5 px-4 text-slate-300 font-mono">{formatPKR(slab.base_tax)}</td>
-                      <td className="py-3.5 px-4 font-bold text-emerald-400">
+                      <td className="py-3.5 px-4 text-slate-700 font-mono font-medium">{formatPKR(slab.base_tax)}</td>
+                      <td className="py-3.5 px-4 font-extrabold text-emerald-600">
                         {(parseFloat(slab.marginal_rate) * 100).toFixed(1)}%
                       </td>
-                      <td className="py-3.5 px-4 text-slate-400 font-mono">{formatPKR(slab.excess_over)}</td>
-                      <td className="py-3.5 px-4 text-slate-400">{slab.description}</td>
+                      <td className="py-3.5 px-4 text-slate-600 font-mono">{formatPKR(slab.excess_over)}</td>
+                      <td className="py-3.5 px-4 text-slate-600">{slab.description}</td>
                       <td className="py-3.5 px-4 text-right">
                         <button
-                          onClick={() => {
-                            setSlabForm(slab);
-                            setShowSlabModal(true);
-                          }}
-                          className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg transition"
-                          title="Edit Slab"
+                          onClick={() => openEditSlabModal(slab)}
+                          className="p-1.5 text-slate-500 hover:text-emerald-700 hover:bg-slate-150 rounded-lg transition cursor-pointer"
+                          title="Edit Tax Slab"
                         >
                           <Edit size={14} />
                         </button>
@@ -353,98 +363,98 @@ export default function TaxManagementPage() {
           </div>
         </div>
 
-      </main>
+      </div>
 
-      {/* Add / Edit Slab Modal */}
+      {/* Add / Edit Tax Slab Modal */}
       {showSlabModal && (
-        <div className="fixed inset-0 bg-slate-950/80 backdrop-blur-sm z-50 flex items-center justify-center p-4">
-          <div className="bg-slate-900 border border-slate-800 rounded-2xl p-6 max-w-lg w-full space-y-5 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-3">
-              <h3 className="text-lg font-bold text-white">Configure Tax Slab</h3>
-              <button onClick={() => setShowSlabModal(false)} className="text-slate-400 hover:text-white text-lg cursor-pointer">&times;</button>
+        <div className="fixed inset-0 bg-slate-900/60 backdrop-blur-xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white border border-slate-200 rounded-2xl p-6 max-w-lg w-full space-y-5 shadow-xl">
+            <div className="flex items-center justify-between border-b border-slate-150 pb-3">
+              <h3 className="text-base font-bold text-slate-800 uppercase tracking-tight">
+                {editingSlab ? `Edit Tax Slab #${editingSlab.sequence_no}` : 'Add New Tax Slab'}
+              </h3>
+              <button onClick={() => setShowSlabModal(false)} className="text-slate-400 hover:text-slate-600 text-xl font-bold cursor-pointer">&times;</button>
             </div>
 
-            <div className="space-y-4 text-xs">
-              <div className="grid grid-cols-2 gap-4">
+            <div className="space-y-3.5 text-xs">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1 font-semibold">Lower Bound (PKR)</label>
+                  <label className="block text-slate-600 mb-1 font-bold">Lower Bound (PKR)</label>
                   <input
                     type="number"
                     value={slabForm.lower_bound}
                     onChange={e => setSlabForm({ ...slabForm, lower_bound: e.target.value })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-250 rounded-xl text-slate-900 font-bold focus:bg-white focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1 font-semibold">Upper Bound (PKR / Leave Blank)</label>
+                  <label className="block text-slate-600 mb-1 font-bold">Upper Bound (Leave blank if above)</label>
                   <input
                     type="number"
-                    value={slabForm.upper_bound || ''}
+                    value={slabForm.upper_bound}
                     onChange={e => setSlabForm({ ...slabForm, upper_bound: e.target.value })}
                     placeholder="Unbounded"
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-250 rounded-xl text-slate-900 font-bold focus:bg-white focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
               </div>
 
-              <div className="grid grid-cols-2 gap-4">
+              <div className="grid grid-cols-2 gap-3">
                 <div>
-                  <label className="block text-slate-400 mb-1 font-semibold">Base Tax (PKR)</label>
+                  <label className="block text-slate-600 mb-1 font-bold">Base Tax (PKR)</label>
                   <input
                     type="number"
                     value={slabForm.base_tax}
                     onChange={e => setSlabForm({ ...slabForm, base_tax: e.target.value })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-250 rounded-xl text-slate-900 font-bold focus:bg-white focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
                 <div>
-                  <label className="block text-slate-400 mb-1 font-semibold">Marginal Rate (Decimal, e.g. 0.11)</label>
+                  <label className="block text-slate-600 mb-1 font-bold">Marginal Rate (e.g. 0.11 for 11%)</label>
                   <input
                     type="number"
                     step="0.01"
                     value={slabForm.marginal_rate}
                     onChange={e => setSlabForm({ ...slabForm, marginal_rate: e.target.value })}
-                    className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold"
+                    className="w-full p-2.5 bg-slate-50 border border-slate-250 rounded-xl text-slate-900 font-bold focus:bg-white focus:border-emerald-500 focus:outline-none"
                   />
                 </div>
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1 font-semibold">Excess Over Threshold (PKR)</label>
+                <label className="block text-slate-600 mb-1 font-bold">Excess Over Threshold (PKR)</label>
                 <input
                   type="number"
                   value={slabForm.excess_over}
                   onChange={e => setSlabForm({ ...slabForm, excess_over: e.target.value })}
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-bold"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-250 rounded-xl text-slate-900 font-bold focus:bg-white focus:border-emerald-500 focus:outline-none"
                 />
               </div>
 
               <div>
-                <label className="block text-slate-400 mb-1 font-semibold">Description / Statutory Note</label>
+                <label className="block text-slate-600 mb-1 font-bold">Description / Formula Note</label>
                 <input
                   type="text"
                   value={slabForm.description}
                   onChange={e => setSlabForm({ ...slabForm, description: e.target.value })}
                   placeholder="e.g. Rs. 6,000 + 11% of amount exceeding Rs. 1,200,000"
-                  className="w-full p-2.5 bg-slate-950 border border-slate-800 rounded-xl text-white font-medium"
+                  className="w-full p-2.5 bg-slate-50 border border-slate-250 rounded-xl text-slate-900 font-medium focus:bg-white focus:border-emerald-500 focus:outline-none"
                 />
               </div>
             </div>
 
-            <div className="flex items-center justify-end gap-3 pt-3 border-t border-slate-800">
+            <div className="flex items-center justify-end gap-2.5 pt-3 border-t border-slate-150">
               <button
                 type="button"
                 onClick={() => setShowSlabModal(false)}
-                className="px-4 py-2 bg-slate-800 hover:bg-slate-700 text-slate-300 font-bold rounded-xl text-xs cursor-pointer"
+                className="px-4 py-2 bg-slate-150 hover:bg-slate-200 text-slate-700 font-bold rounded-xl text-xs transition cursor-pointer"
               >
                 Cancel
               </button>
               <button
                 type="button"
-                onClick={() => {
-                  setShowSlabModal(false);
-                }}
-                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-500 text-white font-bold rounded-xl text-xs cursor-pointer"
+                onClick={() => setShowSlabModal(false)}
+                className="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs transition shadow-sm cursor-pointer"
               >
                 Save Tax Slab
               </button>
@@ -452,8 +462,6 @@ export default function TaxManagementPage() {
           </div>
         </div>
       )}
-
-      <Footer />
-    </div>
+    </WorkspaceLayout>
   );
 }
