@@ -14,7 +14,7 @@ exports.seed = async function (knex) {
   await knex('admin_permissions').del();
   await knex('admin_roles').del();
 
-  // 1. Insert Admin Roles
+  // 1. Insert Master Admin Roles
   const [superAdminRoleId] = await knex('admin_roles').insert({
     name: 'SUPER_ADMIN',
     description: 'Full unconstrained system administration access'
@@ -48,7 +48,7 @@ exports.seed = async function (knex) {
     }
   }
 
-  // 3. Strict Check: Read Administrator Credentials from Environment Variables
+  // 3. Strict Check: Read Master Administrator Credentials from Environment
   const initialEmail = process.env.INITIAL_ADMIN_EMAIL;
   const initialPassword = process.env.INITIAL_ADMIN_PASSWORD;
 
@@ -57,121 +57,39 @@ exports.seed = async function (knex) {
   }
 
   const passwordHash = await bcrypt.hash(initialPassword, 10);
-  const [adminId] = await knex('admins').insert({
+  await knex('admins').insert({
     name: 'Master Admin',
     email: initialEmail,
     password_hash: passwordHash,
     role_id: superAdminRoleId,
     status: 'ACTIVE',
-    must_change_password: true // ALWAYS require initial password rotation upon first login
+    must_change_password: true // Require initial password rotation upon first login
   });
 
-  // 4. Sample Companies
-  const [c1] = await knex('companies').insert({
-    name: 'Acme Corp',
-    slug: 'acme-corp',
-    status: 'ACTIVE'
-  });
-
-  const [c2] = await knex('companies').insert({
-    name: 'Global Tech Ltd',
-    slug: 'global-tech',
-    status: 'TRIAL'
-  });
-
-  // 5. Sample Users
-  await knex('users').insert([
+  // 4. Master Subscription Plans Only (No dummy users, companies, or coupons)
+  await knex('plans').insert([
     {
-      id: 'd3b07384-d113-4ec6-a558-71ebb398d8b2',
-      name: 'Alice Johnson',
-      email: 'alice@example.com',
-      status: 'ACTIVE',
-      role: 'pro_user',
-      company_id: c1,
-      login_count: 14
+      name: 'Free Starter',
+      code: 'FREE',
+      price: 0.00,
+      billing_cycle: 'monthly',
+      features_json: JSON.stringify(['Up to 5 Users', 'Basic Reports'])
     },
     {
-      id: 'a98dfb84-1234-4567-b558-71ebb398fa21',
-      name: 'Bob Smith',
-      email: 'bob@example.com',
-      status: 'BLOCKED',
-      role: 'free_user',
-      company_id: c2,
-      blocked_by_admin_id: adminId,
-      blocked_reason: 'Violation of terms of service',
-      blocked_at: new Date()
+      name: 'Pro Business',
+      code: 'PRO_MONTHLY',
+      price: 49.00,
+      billing_cycle: 'monthly',
+      features_json: JSON.stringify(['Unlimited Users', 'Advanced Analytics', 'Priority Support'])
     },
     {
-      id: 'c89ef123-9876-5432-1234-71ebb398ff99',
-      name: 'Charlie Davis',
-      email: 'charlie@dev.com',
-      status: 'ACTIVE',
-      role: 'enterprise_admin',
-      company_id: c1,
-      login_count: 42
+      name: 'Enterprise Annual',
+      code: 'ENTERPRISE_ANNUAL',
+      price: 499.00,
+      billing_cycle: 'annual',
+      features_json: JSON.stringify(['Dedicated Account Manager', 'Custom Workflows', 'SLA Guarantee'])
     }
   ]);
 
-  // 6. Sample Plans
-  const [freePlanId] = await knex('plans').insert({
-    name: 'Free Starter',
-    code: 'FREE',
-    price: 0.00,
-    billing_cycle: 'monthly',
-    features_json: JSON.stringify(['Up to 5 Users', 'Basic Reports'])
-  });
-
-  const [proPlanId] = await knex('plans').insert({
-    name: 'Pro Business',
-    code: 'PRO_MONTHLY',
-    price: 49.00,
-    billing_cycle: 'monthly',
-    features_json: JSON.stringify(['Unlimited Users', 'Advanced Analytics', 'Priority Support'])
-  });
-
-  // 7. Sample Subscriptions
-  await knex('company_subscriptions').insert([
-    {
-      company_id: c1,
-      plan_id: proPlanId,
-      status: 'ACTIVE',
-      current_period_start: new Date(),
-      current_period_end: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000)
-    },
-    {
-      company_id: c2,
-      plan_id: freePlanId,
-      status: 'ACTIVE',
-      current_period_start: new Date(),
-      current_period_end: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000)
-    }
-  ]);
-
-  // 8. Sample Coupons
-  await knex('coupons').insert([
-    {
-      id: 'cop-9012-3211',
-      code: 'WELCOME10',
-      discount_type: 'percentage',
-      discount_value: 10.00,
-      status: 'active',
-      expiry_date: new Date('2026-12-31T23:59:59Z'),
-      usage_limit: 500,
-      used_count: 42,
-      created_by_admin_id: adminId
-    },
-    {
-      id: 'cop-5432-8890',
-      code: 'BLACKFRIDAY',
-      discount_type: 'fixed',
-      discount_value: 50.00,
-      status: 'expired',
-      expiry_date: new Date('2025-11-30T23:59:59Z'),
-      usage_limit: 100,
-      used_count: 100,
-      created_by_admin_id: adminId
-    }
-  ]);
-
-  console.log(`✅ Seed completed: Super Admin (${initialEmail}) created with must_change_password=true.`);
+  console.log(`✅ Production Seed completed: Master Admin (${initialEmail}) initialized. All dummy sample data removed.`);
 };
