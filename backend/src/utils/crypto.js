@@ -3,7 +3,7 @@ const crypto = require('crypto');
 const ALGORITHM = 'aes-256-cbc';
 const SECRET_KEY = process.env.ENCRYPTION_KEY 
   ? crypto.createHash('sha256').update(process.env.ENCRYPTION_KEY).digest() 
-  : crypto.createHash('sha256').update('sarfis-default-secret-encryption-key-for-credentials').digest();
+  : crypto.createHash('sha256').update('accountellence-default-secret-encryption-key-for-credentials').digest();
 
 function encrypt(text) {
   if (!text) return '';

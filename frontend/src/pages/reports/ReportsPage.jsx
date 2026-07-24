@@ -495,28 +495,28 @@ export default function ReportsPage() {
     <div className="p-4 lg:p-7 pb-20 max-w-6xl mx-auto font-sans relative overflow-hidden bg-gradient-to-br from-[#F4FBF7] via-[#FAF9F8] to-[#F3FAF6]">
       <style>{`
         /* Hide scrollbar completely by default, only show when hovering and overflow exists */
-        body .sarfis-scrollbar::-webkit-scrollbar {
+        body .accountellence-scrollbar::-webkit-scrollbar {
           width: 0px !important;
           background: transparent !important;
         }
-        body .sarfis-scrollbar:hover::-webkit-scrollbar {
+        body .accountellence-scrollbar:hover::-webkit-scrollbar {
           width: 5px !important;
         }
-        body .sarfis-scrollbar::-webkit-scrollbar-track {
+        body .accountellence-scrollbar::-webkit-scrollbar-track {
           background: transparent !important;
         }
-        body .sarfis-scrollbar::-webkit-scrollbar-thumb {
+        body .accountellence-scrollbar::-webkit-scrollbar-thumb {
           background: transparent !important;
           border-radius: 99px !important;
           transition: background 0.2s ease;
         }
-        body .sarfis-scrollbar:hover::-webkit-scrollbar-thumb {
+        body .accountellence-scrollbar:hover::-webkit-scrollbar-thumb {
           background: rgba(16, 185, 129, 0.3) !important;
         }
-        .sarfis-scrollbar {
+        .accountellence-scrollbar {
           scrollbar-width: none !important;
         }
-        .sarfis-scrollbar:hover {
+        .accountellence-scrollbar:hover {
           scrollbar-width: thin !important;
           scrollbar-color: rgba(16, 185, 129, 0.3) transparent !important;
         }
@@ -570,7 +570,7 @@ export default function ReportsPage() {
       {/* Tab bar + date filters */}
       <div className="card !rounded-2xl border border-slate-100 bg-white p-4 mb-5 shadow-sm">
         <div className="flex flex-col xl:flex-row gap-4 xl:items-center justify-between">
-          <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1 xl:pb-0 sarfis-scrollbar">
+          <div className="flex gap-2 overflow-x-auto hide-scrollbar pb-1 xl:pb-0 accountellence-scrollbar">
             {TABS.map(t => {
               const isActive = tab === t.id;
               return (
@@ -1051,7 +1051,7 @@ function TrialBalance({ data }) {
   const balanced = Math.abs(sumD - sumC) < 0.01;
   return (
     <div className="space-y-6">
-      <div className="overflow-x-auto lg:overflow-visible pb-6 sarfis-scrollbar">
+      <div className="overflow-x-auto lg:overflow-visible pb-6 accountellence-scrollbar">
         <table className="w-full text-left" style={{ minWidth: 600 }}>
           <thead>
             <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>

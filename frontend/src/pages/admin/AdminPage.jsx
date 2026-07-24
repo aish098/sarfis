@@ -395,7 +395,7 @@ export default function AdminPage() {
       const url = URL.createObjectURL(res.data);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `SARFIS_${backupType.toUpperCase()}_Backup_${activeCompanyName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      link.download = `ACCOUNTELLENCE_${backupType.toUpperCase()}_Backup_${activeCompanyName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);

@@ -4,7 +4,7 @@ import { Building2, Calculator, Hourglass, DollarSign, CheckCircle2, ChevronRigh
 
 const COMPANIES_DATA = {
   khaan: { name: "Khaan Tech Solutions", cash: 2500000, ar: 1200000, assets: 1500000, eliminations: 0 },
-  sarfis: { name: "Accountellence Global Ltd", cash: 5000000, ar: 2400000, assets: 3200000, eliminations: -500000 }, // Intercompany AR
+  accountellence: { name: "Accountellence Global Ltd", cash: 5000000, ar: 2400000, assets: 3200000, eliminations: -500000 }, // Intercompany AR
   ayesha: { name: "Ayesha Labs (Subsidiary)", cash: 1800000, ar: 800000, assets: 1200050, eliminations: -300000 }  // Intercompany AR
 };
 
@@ -12,7 +12,7 @@ export default function NextLevelFeatures() {
   // Consolidation States
   const [selectedCompanies, setSelectedCompanies] = useState({
     khaan: true,
-    sarfis: true,
+    accountellence: true,
     ayesha: false
   });
 

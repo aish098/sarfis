@@ -134,28 +134,28 @@ export default function LedgerPage({ globalSearch = "" }) {
     >
       <style>{`
         /* Hide scrollbar completely by default, only show when hovering and overflow exists */
-        body .sarfis-scrollbar::-webkit-scrollbar {
+        body .accountellence-scrollbar::-webkit-scrollbar {
           width: 0px !important;
           background: transparent !important;
         }
-        body .sarfis-scrollbar:hover::-webkit-scrollbar {
+        body .accountellence-scrollbar:hover::-webkit-scrollbar {
           width: 5px !important;
         }
-        body .sarfis-scrollbar::-webkit-scrollbar-track {
+        body .accountellence-scrollbar::-webkit-scrollbar-track {
           background: transparent !important;
         }
-        body .sarfis-scrollbar::-webkit-scrollbar-thumb {
+        body .accountellence-scrollbar::-webkit-scrollbar-thumb {
           background: transparent !important;
           border-radius: 99px !important;
           transition: background 0.2s ease;
         }
-        body .sarfis-scrollbar:hover::-webkit-scrollbar-thumb {
+        body .accountellence-scrollbar:hover::-webkit-scrollbar-thumb {
           background: rgba(16, 185, 129, 0.3) !important;
         }
-        .sarfis-scrollbar {
+        .accountellence-scrollbar {
           scrollbar-width: none !important;
         }
-        .sarfis-scrollbar:hover {
+        .accountellence-scrollbar:hover {
           scrollbar-width: thin !important;
           scrollbar-color: rgba(16, 185, 129, 0.3) transparent !important;
         }

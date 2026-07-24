@@ -131,7 +131,7 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
               openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
             }`}
           >
-            <div className="max-h-52 overflow-y-auto p-1.5 sarfis-scrollbar">
+            <div className="max-h-52 overflow-y-auto p-1.5 accountellence-scrollbar">
               {filtered.length === 0 ? (
                 <p className="text-[12px] text-slate-400 text-center py-3">No matches</p>
               ) : (
@@ -624,28 +624,28 @@ export default function JournalEntryPage() {
     <>
       <style>{`
         /* Hide scrollbar completely by default, only show when hovering and overflow exists */
-        body .sarfis-scrollbar::-webkit-scrollbar {
+        body .accountellence-scrollbar::-webkit-scrollbar {
           width: 0px !important;
           background: transparent !important;
         }
-        body .sarfis-scrollbar:hover::-webkit-scrollbar {
+        body .accountellence-scrollbar:hover::-webkit-scrollbar {
           width: 5px !important;
         }
-        body .sarfis-scrollbar::-webkit-scrollbar-track {
+        body .accountellence-scrollbar::-webkit-scrollbar-track {
           background: transparent !important;
         }
-        body .sarfis-scrollbar::-webkit-scrollbar-thumb {
+        body .accountellence-scrollbar::-webkit-scrollbar-thumb {
           background: transparent !important;
           border-radius: 99px !important;
           transition: background 0.2s ease;
         }
-        body .sarfis-scrollbar:hover::-webkit-scrollbar-thumb {
+        body .accountellence-scrollbar:hover::-webkit-scrollbar-thumb {
           background: rgba(16, 185, 129, 0.3) !important;
         }
-        .sarfis-scrollbar {
+        .accountellence-scrollbar {
           scrollbar-width: none !important;
         }
-        .sarfis-scrollbar:hover {
+        .accountellence-scrollbar:hover {
           scrollbar-width: thin !important;
           scrollbar-color: rgba(16, 185, 129, 0.3) transparent !important;
         }
@@ -1691,7 +1691,7 @@ export default function JournalEntryPage() {
               </div>
 
               {/* Entries list with custom scrollbar */}
-              <div className="flex-1 overflow-y-auto divide-y divide-slate-50 p-2 sarfis-scrollbar">
+              <div className="flex-1 overflow-y-auto divide-y divide-slate-50 p-2 accountellence-scrollbar">
                 {loadingRecent ? (
                   <div className="p-6 text-center text-slate-400 text-[12px]">
                     <RefreshCw size={18} className="animate-spin mx-auto mb-2 text-emerald-500" />

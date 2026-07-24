@@ -120,7 +120,7 @@ export default function App() {
             {/* Inner rotating gradient arc */}
             <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-emerald-600 border-r-emerald-600 animate-spin"></div>
           </div>
-          <h2 className="text-[16px] font-black text-slate-950 tracking-tight">S A R F I S</h2>
+          <h2 className="text-[15px] font-black text-slate-950 tracking-widest uppercase">A C C O U N T E L L E N C E</h2>
           <p className="mt-2 text-slate-500 text-[12px] font-medium tracking-wide">Syncing enterprise ledger...</p>
         </div>
       </div>
