@@ -458,7 +458,7 @@ export default function AdminPage() {
       const url = URL.createObjectURL(res.data);
       const link = document.createElement('a');
       link.href = url;
-      link.download = `ACCOUNTELLENCE_${backupType.toUpperCase()}_Backup_${activeCompanyName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
+      link.download = `SARFIS_ERP_${backupType.toUpperCase()}_Backup_${activeCompanyName.replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`;
       document.body.appendChild(link);
       link.click();
       document.body.removeChild(link);
@@ -1723,7 +1723,7 @@ export default function AdminPage() {
                     <p className="text-[12px] font-bold text-slate-700">
                       {restoreFile ? restoreFile.name : 'Click or Drag & Drop Backup Excel or JSON file'}
                     </p>
-                    <p className="text-[10px] text-slate-400 mt-1">Accepts valid ACCOUNTELLENCE Excel (.xlsx) or JSON (.json) backup formats</p>
+                    <p className="text-[10px] text-slate-400 mt-1">Accepts valid SARFIS ERP Excel (.xlsx) or JSON (.json) backup formats</p>
                   </div>
 
                   {restorePreview && (

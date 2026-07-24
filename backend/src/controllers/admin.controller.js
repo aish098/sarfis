@@ -285,7 +285,87 @@ exports.exportCompanyBackup = async (req, res) => {
     if (req.query.format === 'xlsx') {
       const ExcelJS = require('exceljs');
       const workbook = new ExcelJS.Workbook();
+      workbook.creator = 'SARFIS ERP System';
+      workbook.lastModifiedBy = req.user?.name || 'System Admin';
+      workbook.created = new Date();
 
+      // 1. Executive Overview / Cover Sheet
+      const overviewSheet = workbook.addWorksheet('Executive Overview', {
+        views: [{ showGridLines: true }]
+      });
+
+      // Executive Title Banner
+      overviewSheet.mergeCells('A1:E2');
+      const titleCell = overviewSheet.getCell('A1');
+      titleCell.value = 'SARFIS ERP — Enterprise Workspace Data Backup';
+      titleCell.font = { name: 'Segoe UI', size: 16, bold: true, color: { argb: 'FFFFFF' } };
+      titleCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '064E3B' } };
+      titleCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+      overviewSheet.mergeCells('A3:E3');
+      const subCell = overviewSheet.getCell('A3');
+      subCell.value = `Workspace: ${company ? company.name : 'System Workspace'} | Export Date: ${new Date().toLocaleString()} | Security Audit: SHA-256 Hash Chained`;
+      subCell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'ECFDF5' } };
+      subCell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '047857' } };
+      subCell.alignment = { horizontal: 'center', vertical: 'middle' };
+
+      // Summary Info Section
+      const summaryRows = [
+        ['', ''],
+        ['Workspace ID', companyId],
+        ['Company Name', company ? company.name : 'Unknown Workspace'],
+        ['Backup Scope', type.toUpperCase()],
+        ['Exported By', `${req.user?.name || 'Admin'} (${req.user?.email || 'admin@sarfis.com'})`],
+        ['Timestamp (UTC)', new Date().toISOString()],
+        ['', ''],
+        ['MODULE ENTITY TABLE', 'EXPORTED RECORD COUNT']
+      ];
+
+      summaryRows.forEach((r, rIdx) => {
+        const row = overviewSheet.addRow(r);
+        row.height = 22;
+        if (rIdx === 7) {
+          row.eachCell(c => {
+            c.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FFFFFF' } };
+            c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '065F46' } };
+            c.alignment = { horizontal: 'left', vertical: 'middle' };
+          });
+        } else if (rIdx > 0 && rIdx < 6) {
+          const c1 = row.getCell(1);
+          const c2 = row.getCell(2);
+          c1.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: '334155' } };
+          c2.font = { name: 'Segoe UI', size: 10, color: { argb: '0F172A' } };
+        }
+      });
+
+      // Module Tables Record Counts
+      let totalRecords = 0;
+      for (const [tName, rows] of Object.entries(data)) {
+        const count = rows ? rows.length : 0;
+        totalRecords += count;
+        const row = overviewSheet.addRow([tName.toUpperCase(), count]);
+        row.height = 20;
+        row.getCell(1).font = { name: 'Segoe UI', size: 9.5, bold: true, color: { argb: '047857' } };
+        row.getCell(2).font = { name: 'Segoe UI', size: 9.5, color: { argb: '0F172A' } };
+      }
+
+      const totRow = overviewSheet.addRow(['TOTAL BACKUP RECORDS', totalRecords]);
+      totRow.height = 24;
+      totRow.eachCell(c => {
+        c.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: '064E3B' } };
+        c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'ECFDF5' } };
+        c.border = { top: { style: 'medium', color: { argb: '059669' } }, bottom: { style: 'double', color: { argb: '059669' } } };
+      });
+
+      overviewSheet.columns = [
+        { width: 32 },
+        { width: 45 },
+        { width: 25 },
+        { width: 25 },
+        { width: 25 }
+      ];
+
+      // Metadata Sheet for Automated Parser Compatibility
       const metaSheet = workbook.addWorksheet('Metadata');
       metaSheet.columns = [
         { header: 'Key', key: 'key', width: 25 },
@@ -296,20 +376,89 @@ exports.exportCompanyBackup = async (req, res) => {
       metaSheet.addRow({ key: 'backupType', value: type });
       metaSheet.addRow({ key: 'timestamp', value: new Date().toISOString() });
 
+      // 2. Individual Formatted Entity Sheets
       for (const [tableName, rows] of Object.entries(data)) {
         const sheetName = tableName.substring(0, 31);
-        const sheet = workbook.addWorksheet(sheetName);
+        const sheet = workbook.addWorksheet(sheetName, {
+          views: [{ showGridLines: true }]
+        });
+
         if (rows && rows.length > 0) {
           const headers = Object.keys(rows[0]);
-          sheet.columns = headers.map(h => ({ header: h, key: h, width: 20 }));
-          for (const row of rows) {
-            sheet.addRow(row);
-          }
+          
+          // Header Row
+          const headerRow = sheet.addRow(headers);
+          headerRow.height = 26;
+          headerRow.eachCell((cell) => {
+            cell.font = { name: 'Segoe UI', size: 10, bold: true, color: { argb: 'FFFFFF' } };
+            cell.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: '065F46' } };
+            cell.alignment = { horizontal: 'center', vertical: 'middle' };
+            cell.border = {
+              top: { style: 'thin', color: { argb: '047857' } },
+              bottom: { style: 'medium', color: { argb: '022C22' } },
+              left: { style: 'thin', color: { argb: '047857' } },
+              right: { style: 'thin', color: { argb: '047857' } }
+            };
+          });
+
+          // Compute max column widths
+          const colWidths = {};
+          headers.forEach(h => { colWidths[h] = h.length; });
+
+          // Add Data Rows
+          rows.forEach((rowObj, idx) => {
+            const rowValues = headers.map(h => {
+              let val = rowObj[h];
+              if (val !== null && val !== undefined) {
+                if (typeof val === 'object') val = JSON.stringify(val);
+                const valStr = String(val);
+                if (valStr.length > (colWidths[h] || 0)) {
+                  colWidths[h] = Math.min(valStr.length, 60);
+                }
+              }
+              return val;
+            });
+
+            const dataRow = sheet.addRow(rowValues);
+            dataRow.height = 20;
+            const isEven = idx % 2 === 0;
+
+            dataRow.eachCell((cell) => {
+              cell.font = { name: 'Segoe UI', size: 9.5, color: { argb: '0F172A' } };
+              cell.fill = {
+                type: 'pattern',
+                pattern: 'solid',
+                fgColor: { argb: isEven ? 'FFFFFF' : 'F8FAFC' }
+              };
+              cell.border = {
+                top: { style: 'thin', color: { argb: 'E2E8F0' } },
+                bottom: { style: 'thin', color: { argb: 'E2E8F0' } },
+                left: { style: 'thin', color: { argb: 'E2E8F0' } },
+                right: { style: 'thin', color: { argb: 'E2E8F0' } }
+              };
+
+              // Format numbers as currency & text as left-aligned
+              if (typeof cell.value === 'number') {
+                cell.alignment = { horizontal: 'right', vertical: 'middle' };
+                cell.numFmt = '#,##0.00';
+              } else {
+                cell.alignment = { horizontal: 'left', vertical: 'middle' };
+              }
+            });
+          });
+
+          // Apply auto column widths
+          sheet.columns = headers.map(h => ({
+            key: h,
+            width: Math.max((colWidths[h] || 10) + 5, 14)
+          }));
+        } else {
+          sheet.addRow(['No records available for this entity module.']);
         }
       }
 
       res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
-      res.setHeader('Content-Disposition', `attachment; filename=ACCOUNTELLENCE_${type.toUpperCase()}_Backup_${(company ? company.name : 'Workspace').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
+      res.setHeader('Content-Disposition', `attachment; filename=SARFIS_ERP_${type.toUpperCase()}_Backup_${(company ? company.name : 'Workspace').replace(/\s+/g, '_')}_${new Date().toISOString().split('T')[0]}.xlsx`);
 
       const buffer = await workbook.xlsx.writeBuffer();
       return res.send(buffer);
