@@ -9,19 +9,15 @@ class AuthService {
     // Dynamic Table Auto-Recovery Check for PostgreSQL Cloud Environments
     const hasAdminsTable = await db.schema.hasTable('admins');
     if (!hasAdminsTable) {
-      console.log('🌱 [SaaS Admin Auto-Recovery] admins table missing on database. Running migrations & seeds...');
-      const path = require('path');
+      console.log('🌱 [SaaS Admin Auto-Recovery] admins table missing on database. Direct table creation & seed running...');
       try {
-        await db.migrate.latest({
-          directory: path.join(__dirname, '../db/migrations'),
-          tableName: 'saas_admin_knex_migrations'
-        });
-        await db.seed.run({
-          directory: path.join(__dirname, '../db/seeds')
-        });
-        console.log('✅ [SaaS Admin Auto-Recovery] Auto-migration & seed completed successfully.');
+        const migration = require('../db/migrations/20260724000000_init_saas_admin_tables');
+        await migration.up(db);
+        const seeder = require('../db/seeds/01_seed_super_admin');
+        await seeder.seed(db);
+        console.log('✅ [SaaS Admin Auto-Recovery] Direct table creation & seed completed successfully.');
       } catch (autoErr) {
-        console.error('⚠️ [SaaS Admin Auto-Recovery] Error during auto-migration:', autoErr.message);
+        console.error('⚠️ [SaaS Admin Auto-Recovery] Error during direct table creation:', autoErr.message);
       }
     }
 

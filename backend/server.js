@@ -54,14 +54,18 @@ async function startServer() {
 
         const hasAdminsTable = await saasDb.schema.hasTable('admins');
         if (!hasAdminsTable) {
-          console.log('[SaaS Admin] admins table missing, running seeders...');
-          await saasDb.seed.run({ directory: saasSeedsDir });
+          console.log('[SaaS Admin] admins table missing, running direct migration & seeders...');
+          const saasMigration = require('../saas-admin-backend/src/db/migrations/20260724000000_init_saas_admin_tables');
+          await saasMigration.up(saasDb);
+          const saasSeeder = require('../saas-admin-backend/src/db/seeds/01_seed_super_admin');
+          await saasSeeder.seed(saasDb);
         }
 
         const superAdminRole = await saasDb('admin_roles').where({ name: 'SUPER_ADMIN' }).first();
         if (!superAdminRole) {
           console.log('[SaaS Admin] Roles missing, running seeders...');
-          await saasDb.seed.run({ directory: saasSeedsDir });
+          const saasSeeder = require('../saas-admin-backend/src/db/seeds/01_seed_super_admin');
+          await saasSeeder.seed(saasDb);
         } else {
           const existingAdmin = await saasDb('admins').whereRaw('LOWER(email) = ?', [initialEmail.toLowerCase()]).first();
           const passwordHash = await bcrypt.hash(initialPassword, 10);
