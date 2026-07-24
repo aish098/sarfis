@@ -1076,7 +1076,7 @@ exports.getCompanyInvitations = async (req, res) => {
 
     const subscription = await db('company_subscriptions').where({ company_id: companyId }).first();
     const maxLicenses = subscription ? subscription.max_user_licenses : 50;
-    const activeUsersCountRes = await db('company_users').where({ company_id: companyId, is_active: true }).count('* as cnt').first();
+    const activeUsersCountRes = await db('company_users').where({ company_id: companyId }).count('* as cnt').first();
     const activeUsersCount = parseInt(activeUsersCountRes.cnt || 0);
 
     res.json({
@@ -1106,7 +1106,7 @@ exports.createCompanyInvitation = async (req, res) => {
     // Check if user is already a member
     const existingUser = await db('users').where({ email: normalizedEmail }).first();
     if (existingUser) {
-      const isMember = await db('company_users').where({ company_id: companyId, user_id: existingUser.id, is_active: true }).first();
+      const isMember = await db('company_users').where({ company_id: companyId, user_id: existingUser.id }).first();
       if (isMember) {
         return res.status(400).json({ error: 'This user is already an active member of this workspace.' });
       }

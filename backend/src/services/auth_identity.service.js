@@ -69,7 +69,7 @@ class AuthIdentityService {
     if (user) {
       userCompanies = await db('company_users')
         .join('companies', 'company_users.company_id', 'companies.id')
-        .where({ 'company_users.user_id': user.id, 'company_users.is_active': true })
+        .where({ 'company_users.user_id': user.id })
         .select('companies.id', 'companies.name', 'companies.slug', 'company_users.role');
     }
 
@@ -176,7 +176,7 @@ class AuthIdentityService {
         // Check License Limits
         const subscription = await trx('company_subscriptions').where({ company_id: targetCompany.id }).first();
         const maxLicenses = subscription ? subscription.max_user_licenses : 50;
-        const activeUsersCountRes = await trx('company_users').where({ company_id: targetCompany.id, is_active: true }).count('* as cnt').first();
+        const activeUsersCountRes = await trx('company_users').where({ company_id: targetCompany.id }).count('* as cnt').first();
         const activeUsersCount = parseInt(activeUsersCountRes.cnt || 0);
 
         if (activeUsersCount >= maxLicenses) {
@@ -200,8 +200,7 @@ class AuthIdentityService {
         await trx('company_users').insert({
           company_id: targetCompany.id,
           user_id: user.id,
-          role: invitation.role_name || 'Accountant',
-          is_active: true
+          role: invitation.role_name || 'Accountant'
         });
 
         // Mark Invitation ACCEPTED
@@ -211,11 +210,7 @@ class AuthIdentityService {
           accepted_at: trx.fn.now()
         });
 
-        membership = { role: invitation.role_name || 'Accountant', is_active: true };
-      }
-
-      if (!membership.is_active) {
-        throw Object.assign(new Error('Your user membership for this company workspace is disabled.'), { code: 'USER_DISABLED', statusCode: 403 });
+        membership = { role: invitation.role_name || 'Accountant' };
       }
 
       // Link Identity if missing
