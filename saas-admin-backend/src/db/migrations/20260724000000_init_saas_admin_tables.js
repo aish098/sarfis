@@ -21,19 +21,26 @@ exports.up = function (knex) {
       table.string('password_hash').notNullable();
       table.integer('role_id').unsigned().references('id').inTable('admin_roles').onDelete('SET NULL');
       table.string('status').notNullable().defaultTo('ACTIVE'); // ACTIVE, SUSPENDED
-      table.boolean('must_change_password').defaultTo(false);
+      table.boolean('must_change_password').defaultTo(true);
       table.timestamp('last_login_at');
       table.timestamps(true, true);
     })
     .createTable('refresh_tokens', table => {
       table.string('id').primary(); // UUID
+      table.string('family_id').notNullable(); // Token family tracking for reuse detection
       table.integer('admin_id').unsigned().references('id').inTable('admins').onDelete('CASCADE');
       table.string('token_hash').notNullable();
+      table.string('parent_token_id');
       table.string('device_info');
       table.string('ip_address');
       table.boolean('is_revoked').defaultTo(false);
+      table.string('revocation_reason');
       table.timestamp('expires_at').notNullable();
       table.timestamp('created_at').defaultTo(knex.fn.now());
+
+      table.index('token_hash');
+      table.index(['admin_id', 'is_revoked']);
+      table.index('family_id');
     })
 
     // 2. Tenants (Companies) & SaaS Users
@@ -58,6 +65,8 @@ exports.up = function (knex) {
       table.timestamp('last_login_at');
       table.integer('login_count').defaultTo(0);
       table.timestamps(true, true);
+
+      table.index(['status', 'role']);
     })
 
     // 3. Plans & Subscriptions
@@ -82,7 +91,7 @@ exports.up = function (knex) {
       table.timestamps(true, true);
     })
 
-    // 4. Coupons & Redemptions
+    // 4. Coupons & Redemptions with DB Constraints
     .createTable('coupons', table => {
       table.string('id').primary(); // cop-XXXX-YYYY
       table.string('code').notNullable().unique();
@@ -94,6 +103,9 @@ exports.up = function (knex) {
       table.integer('used_count').defaultTo(0);
       table.integer('created_by_admin_id').unsigned().references('id').inTable('admins').onDelete('SET NULL');
       table.timestamps(true, true);
+
+      table.index('code');
+      table.index(['status', 'expiry_date']);
     })
     .createTable('coupon_redemptions', table => {
       table.increments('id').primary();
@@ -104,10 +116,10 @@ exports.up = function (knex) {
       table.timestamp('redeemed_at').defaultTo(knex.fn.now());
     })
 
-    // 5. Enhanced Audit Logging Trail
+    // 5. Tamper-Evident Audit Logging Trail with Hash Chaining
     .createTable('audit_logs', table => {
       table.increments('id').primary();
-      table.string('request_id');
+      table.string('request_id').notNullable();
       table.integer('admin_id').unsigned().references('id').inTable('admins').onDelete('SET NULL');
       table.string('action').notNullable(); // USER_BLOCKED, USER_UNBLOCKED, COUPON_CREATED, COUPON_DISABLED
       table.string('target_type');
@@ -118,7 +130,12 @@ exports.up = function (knex) {
       table.string('failure_code');
       table.string('ip_address');
       table.string('user_agent');
+      table.string('previous_hash'); // Tamper-evident hash chain link
+      table.string('record_hash');   // Tamper-evident record SHA-256 hash
       table.timestamp('created_at').defaultTo(knex.fn.now());
+
+      table.index('request_id');
+      table.index(['admin_id', 'created_at']);
     });
 };
 

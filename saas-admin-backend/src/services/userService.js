@@ -1,3 +1,4 @@
+const db = require('../db/knex');
 const userRepository = require('../repositories/userRepository');
 const AppError = require('../errors/AppError');
 const { getPagination, formatPaginatedResponse } = require('../utils/pagination');
@@ -33,9 +34,28 @@ class UserService {
       throw new AppError("The parameter 'status' (boolean) is mandatory.", 400, 'VALIDATION_ERROR');
     }
 
+    // 1. Prevent Administrator Self-Blocking
+    if (String(id) === String(adminId)) {
+      throw new AppError('An administrator cannot block their own account.', 400, 'SELF_BLOCK_FORBIDDEN');
+    }
+
     const user = await userRepository.findById(id);
     if (!user) {
       throw new AppError(`User with ID '${id}' not found.`, 404, 'USER_NOT_FOUND');
+    }
+
+    // 2. Protect Last Active SUPER_ADMIN
+    if (user.role === 'SUPER_ADMIN' || user.role === 'enterprise_admin') {
+      const superAdminsCountRes = await db('users')
+        .whereIn('role', ['SUPER_ADMIN', 'enterprise_admin'])
+        .andWhere('status', 'ACTIVE')
+        .count('id as count')
+        .first();
+
+      const activeSuperAdminCount = parseInt(superAdminsCountRes.count || 0, 10);
+      if (status && activeSuperAdminCount <= 1 && user.status === 'ACTIVE') {
+        throw new AppError('Cannot block the final active Super Administrator account.', 400, 'LAST_SUPER_ADMIN_PROTECTED');
+      }
     }
 
     const newStatus = status ? 'BLOCKED' : 'ACTIVE';

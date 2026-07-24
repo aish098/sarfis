@@ -4,7 +4,7 @@ exports.login = async (req, res, next) => {
   try {
     const { email, password } = req.body;
     const deviceInfo = req.headers['user-agent'] || '';
-    const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
+    const ipAddress = req.ip;
 
     const result = await authService.login(email, password, deviceInfo, ipAddress);
 
@@ -18,10 +18,26 @@ exports.login = async (req, res, next) => {
   }
 };
 
+exports.changeInitialPassword = async (req, res, next) => {
+  try {
+    const { currentPassword, newPassword } = req.body;
+    const result = await authService.changeInitialPassword(req.admin.id, currentPassword, newPassword);
+    return res.status(200).json({
+      success: true,
+      message: result.message
+    });
+  } catch (err) {
+    next(err);
+  }
+};
+
 exports.refresh = async (req, res, next) => {
   try {
     const { refreshToken } = req.body;
-    const result = await authService.refresh(refreshToken);
+    const deviceInfo = req.headers['user-agent'] || '';
+    const ipAddress = req.ip;
+
+    const result = await authService.refresh(refreshToken, deviceInfo, ipAddress);
     return res.status(200).json({
       success: true,
       message: 'Access token refreshed successfully.',

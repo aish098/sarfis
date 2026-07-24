@@ -48,10 +48,13 @@ exports.seed = async function (knex) {
     }
   }
 
-  // 3. Read Initial Administrator Credentials from Environment Variables
-  const initialEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@saas.com';
-  const initialPassword = process.env.INITIAL_ADMIN_PASSWORD || 'AdminPass123!';
-  const mustChangePassword = !process.env.INITIAL_ADMIN_PASSWORD;
+  // 3. Strict Check: Read Administrator Credentials from Environment Variables
+  const initialEmail = process.env.INITIAL_ADMIN_EMAIL;
+  const initialPassword = process.env.INITIAL_ADMIN_PASSWORD;
+
+  if (!initialEmail || !initialPassword) {
+    throw new Error('[CRITICAL SEED ERROR] INITIAL_ADMIN_EMAIL and INITIAL_ADMIN_PASSWORD environment variables are required.');
+  }
 
   const passwordHash = await bcrypt.hash(initialPassword, 10);
   const [adminId] = await knex('admins').insert({
@@ -60,7 +63,7 @@ exports.seed = async function (knex) {
     password_hash: passwordHash,
     role_id: superAdminRoleId,
     status: 'ACTIVE',
-    must_change_password: mustChangePassword
+    must_change_password: true // ALWAYS require initial password rotation upon first login
   });
 
   // 4. Sample Companies
@@ -170,5 +173,5 @@ exports.seed = async function (knex) {
     }
   ]);
 
-  console.log(`✅ Seed completed: Super Admin (${initialEmail}) created.`);
+  console.log(`✅ Seed completed: Super Admin (${initialEmail}) created with must_change_password=true.`);
 };
