@@ -6,7 +6,7 @@ import {
 } from 'lucide-react';
 import axios from 'axios';
 
-const SAAS_API_BASE = 'http://localhost:3000/api';
+const SAAS_API_BASE = import.meta.env.PROD ? '/api' : 'http://localhost:3000/api';
 
 export default function SaaSAdminDashboard() {
   const [token, setToken] = useState(localStorage.getItem('saas_admin_token') || '');
