@@ -214,7 +214,7 @@ export default function DistributionPage() {
           clientId: payload.vendorId || payload.clientId || '',
           warehouseId: payload.warehouseId || '',
           arAccountId: arAccId,
-          notes: `Created from Sales Voucher ${v.voucher_number}. Notes: ${payload.notes || ''}`,
+          notes: `Created from Sales Voucher ${v.voucher_number || v.voucher?.voucher_number || v.voucherNumber || v.number || ''}. Notes: ${payload.notes || ''}`,
           items: items.length > 0 ? items : f.items
         }));
       }
