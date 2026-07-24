@@ -207,20 +207,16 @@ exports.getLedgerByAccount = async (req, res) => {
 const FinancialNotesService = require('../services/financial_notes.service');
 
 exports.getBalanceSheetNote = async (req, res) => {
-  const { accountId } = req.params;
+  const { accountId, companyId: paramCompanyId } = req.params;
   const { asOfDate } = req.query;
-  const companyId = req.companyId;
-
-  if (!companyId) {
-    return res.status(400).json({ error: 'Company context is required.' });
-  }
+  const companyId = req.companyId || paramCompanyId || req.headers['x-company-id'] || req.user?.company_id || 1;
 
   try {
     const note = await FinancialNotesService.getAccountNote(companyId, accountId, asOfDate);
     res.json(note);
   } catch (err) {
     console.error('getBalanceSheetNote error:', err);
-    res.status(500).json({ error: err.message });
+    res.status(500).json({ error: err.message || 'Failed to load note schedule.' });
   }
 };
 

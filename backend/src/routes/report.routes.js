@@ -14,6 +14,7 @@ router.get('/equity/:companyId', companyGuard, requirePermission('report.view'),
 router.get('/comparative/:companyId', companyGuard, requirePermission('report.view'), reportController.getComparativeReport);
 
 router.get('/ledger/:accountId', requirePermission('ledger.view'), reportController.getLedgerByAccount);
+router.get('/balance-sheet/note/:companyId/:accountId', companyGuard, requirePermission('report.view'), reportController.getBalanceSheetNote);
 router.get('/balance-sheet/note/:accountId', requirePermission('report.view'), reportController.getBalanceSheetNote);
 
 router.post('/close-period/:companyId', companyGuard, requirePermission('journal.post'), reportController.closePeriod);
