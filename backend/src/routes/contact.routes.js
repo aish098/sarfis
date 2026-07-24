@@ -1,5 +1,6 @@
 const express = require('express');
 const router = express.Router();
+const crypto = require('crypto');
 const db = require('../config/db');
 
 // In-memory fallback queue for inquiries if DB connection is unavailable
@@ -22,6 +23,7 @@ router.post('/', async (req, res) => {
 
     const ipAddress = req.headers['x-forwarded-for'] || req.socket.remoteAddress || '';
     const inquiryRecord = {
+      id: crypto.randomUUID(),
       name: name.trim(),
       email: email.trim().toLowerCase(),
       subject: subject ? subject.trim() : 'General Inquiry',
@@ -38,7 +40,7 @@ router.post('/', async (req, res) => {
       const hasTable = await db.schema.hasTable('contact_inquiries');
       if (!hasTable) {
         await db.schema.createTable('contact_inquiries', (table) => {
-          table.uuid('id').primary().defaultTo(db.raw('gen_random_uuid()'));
+          table.uuid('id').primary();
           table.string('name').notNullable();
           table.string('email').notNullable();
           table.string('subject').nullable();
@@ -49,13 +51,10 @@ router.post('/', async (req, res) => {
         });
       }
 
-      const [inserted] = await db('contact_inquiries')
-        .insert(inquiryRecord)
-        .returning('*');
-      insertedId = inserted?.id || inserted;
+      await db('contact_inquiries').insert(inquiryRecord);
+      insertedId = inquiryRecord.id;
     } catch (dbErr) {
       console.warn('[CONTACT FORM] Database storage unavailable, saving to memory fallback:', dbErr.message);
-      inquiryRecord.id = `mem_${Date.now()}`;
       memoryInquiries.push(inquiryRecord);
       insertedId = inquiryRecord.id;
     }
