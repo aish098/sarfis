@@ -1,33 +1,29 @@
 import { Link } from 'react-router-dom';
 import { motion } from 'framer-motion';
-import { Zap, ShieldCheck, Globe, Hash, Briefcase, Users } from 'lucide-react';
+import { Zap, ShieldCheck, Globe, Briefcase, Hash, Users } from 'lucide-react';
 import logoImg from '../assets/logo/logo.png';
 
 const footerLinks = {
   Product: [
-    { label: 'Features', href: '/#features', isRoute: false },
-    { label: 'Pricing', href: '/#pricing', isRoute: false },
-    { label: 'Enterprise', href: '#', isRoute: false },
-    { label: 'Changelog', href: '#', isRoute: false },
+    { label: 'System Tutorial', href: '/tutorial', isRoute: true },
+    { label: 'Features Overview', href: '/#features', isRoute: false },
+    { label: 'Pricing Plans', href: '/#pricing', isRoute: false },
   ],
   Company: [
     { label: 'About Us', href: '/about', isRoute: true },
-    { label: 'Careers', href: '#', isRoute: false },
-    { label: 'Blog', href: '#', isRoute: false },
-    { label: 'Contact', href: '/contact', isRoute: true },
+    { label: 'Leadership', href: '/leadership', isRoute: true },
+    { label: 'Contact Us', href: '/contact', isRoute: true },
   ],
-  Legal: [
-    { label: 'Privacy Policy', href: '#', isRoute: false },
-    { label: 'Terms of Service', href: '#', isRoute: false },
-    { label: 'Cookie Policy', href: '#', isRoute: false },
-    { label: 'Security', href: '#', isRoute: false },
+  Platform: [
+    { label: 'Sign In', href: '/login', isRoute: true },
+    { label: 'Create Account', href: '/register', isRoute: true },
   ],
 };
 
 const socials = [
-  { icon: Briefcase, href: '#', label: 'LinkedIn' },
-  { icon: Hash, href: '#', label: 'Twitter' },
-  { icon: Users, href: '#', label: 'Facebook' },
+  { icon: Briefcase, href: '/about', label: 'About' },
+  { icon: Hash, href: '/tutorial', label: 'Tutorial' },
+  { icon: Users, href: '/contact', label: 'Contact' },
 ];
 
 export default function Footer() {
@@ -84,24 +80,22 @@ export default function Footer() {
             <p className="text-slate-500 text-sm leading-relaxed mb-5 max-w-[240px]">
               Smart Cloud Accounting & Financial Intelligence System built for modern enterprise finance teams.
             </p>
-            <div className="flex items-center gap-2 text-xs text-slate-700 mb-5">
-              <ShieldCheck size={13} className="text-emerald-800" />
+            <div className="flex items-center gap-2 text-xs text-slate-400 mb-5">
+              <ShieldCheck size={13} className="text-emerald-500" />
               <span>SOC 2 · IFRS · GAAP · AES-256</span>
             </div>
             {/* Socials */}
             <div className="flex gap-2">
               {socials.map((s) => (
-                <motion.a
+                <MotionLink
                   key={s.label}
-                  href={s.href}
-                  whileHover={{ scale: 1.1, y: -1 }}
-                  whileTap={{ scale: 0.95 }}
+                  to={s.href}
                   aria-label={s.label}
-                  className="w-9 h-9 rounded-lg flex items-center justify-center border transition-all duration-200 hover:border-slate-600 text-slate-600 hover:text-slate-300"
+                  className="w-9 h-9 rounded-lg flex items-center justify-center border transition-all duration-200 hover:border-slate-500 text-slate-400 hover:text-white"
                   style={{ background: 'rgba(255,255,255,0.03)', borderColor: 'rgba(255,255,255,0.07)' }}
                 >
                   <s.icon size={15} />
-                </motion.a>
+                </MotionLink>
               ))}
             </div>
           </div>
@@ -121,14 +115,14 @@ export default function Footer() {
                     {link.isRoute ? (
                       <Link
                         to={link.href}
-                        className="text-sm text-slate-500 hover:text-slate-300 transition-colors duration-200"
+                        className="text-sm text-slate-400 hover:text-white transition-colors duration-200"
                       >
                         {link.label}
                       </Link>
                     ) : (
                       <a
                         href={link.href}
-                        className="text-sm text-slate-500 hover:text-slate-300 transition-colors duration-200"
+                        className="text-sm text-slate-400 hover:text-white transition-colors duration-200"
                       >
                         {link.label}
                       </a>
@@ -142,15 +136,25 @@ export default function Footer() {
 
         {/* Bottom bar */}
         <div className="flex flex-col sm:flex-row items-center justify-between gap-4 pt-8">
-          <span className="text-xs text-slate-700">
+          <span className="text-xs text-slate-500">
             © {new Date().getFullYear()} ACCOUNTELLENCE. All rights reserved.
           </span>
-          <div className="flex items-center gap-1.5 text-xs text-slate-700">
-            <Globe size={12} className="text-slate-700" />
+          <div className="flex items-center gap-1.5 text-xs text-slate-500">
+            <Globe size={12} className="text-slate-500" />
             <span>Built for reliable finance operations.</span>
           </div>
         </div>
       </div>
     </footer>
+  );
+}
+
+function MotionLink({ to, children, className, style, ...props }) {
+  return (
+    <motion.div whileHover={{ scale: 1.1, y: -1 }} whileTap={{ scale: 0.95 }}>
+      <Link to={to} className={className} style={style} {...props}>
+        {children}
+      </Link>
+    </motion.div>
   );
 }

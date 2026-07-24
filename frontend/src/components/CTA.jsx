@@ -1,6 +1,6 @@
 import { motion } from 'framer-motion';
 import { Link } from 'react-router-dom';
-import { ArrowRight, Calendar } from 'lucide-react';
+import { ArrowRight, PlayCircle } from 'lucide-react';
 
 export default function CTA() {
   return (
@@ -59,10 +59,10 @@ export default function CTA() {
         </h2>
 
         <p className="text-xl text-slate-400 mb-12 max-w-xl mx-auto leading-relaxed">
-          Join hundreds of businesses that trust ACCOUNTELLENCE to automate their accounting and financial intelligence.
+          Join growing businesses that trust ACCOUNTELLENCE to automate their accounting and financial intelligence.
         </p>
 
-        <div className="flex flex-col sm:flex-row gap-4 justify-center mb-16">
+        <div className="flex flex-col sm:flex-row gap-4 justify-center">
           <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
             <Link
               to="/register"
@@ -80,24 +80,14 @@ export default function CTA() {
           </motion.div>
           <motion.div whileHover={{ scale: 1.04 }} whileTap={{ scale: 0.96 }}>
             <Link
-              to="/contact"
+              to="/tutorial"
               className="inline-flex items-center gap-2.5 px-8 py-4 text-base font-medium text-white rounded-2xl border transition-all duration-300 hover:bg-white/[0.05]"
               style={{ background: 'rgba(255,255,255,0.04)', borderColor: 'rgba(255,255,255,0.1)' }}
             >
-              <Calendar size={16} />
+              <PlayCircle size={17} className="text-emerald-400" />
               Book a Demo
             </Link>
           </motion.div>
-        </div>
-
-        {/* Trust logos */}
-        <div className="flex flex-col items-center gap-4">
-          <p className="text-xs text-slate-600 uppercase tracking-widest font-semibold">Trusted by finance teams at</p>
-          <div className="flex flex-wrap justify-center gap-8">
-            {['Accenture', 'Deloitte', 'KPMG', 'PwC', 'EY'].map((name) => (
-              <span key={name} className="text-[13px] font-bold text-slate-700 tracking-wide">{name}</span>
-            ))}
-          </div>
         </div>
       </motion.div>
     </section>
