@@ -5,6 +5,7 @@ import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
+import { exportUnifiedPDF, exportUnifiedCSV } from '../../utils/documentExporter';
 import KPIGrid from '../../components/ui/KPIGrid';
 import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 
@@ -75,34 +76,63 @@ export default function LedgerPage({ globalSearch = "" }) {
   const fmt = v => {
     if (v === undefined || v === null) return '—';
     const n = parseFloat(v), abs = Math.abs(n);
-    const s = '$' + abs.toLocaleString('en-US', { minimumFractionDigits: 2 });
+    const s = 'PKR ' + abs.toLocaleString('en-US', { minimumFractionDigits: 2 });
     return n < 0 ? `(${s})` : s;
   };
 
   const exportPDF = () => {
-    if (!selectedAcc || !ledgerData.entries.length) { alert('No data to export.'); return; }
-    const doc = new jsPDF();
-    doc.setFontSize(16); doc.text(`General Ledger: ${selectedAcc.name}`, 14, 20);
-    doc.setFontSize(10); doc.setTextColor(100);
-    doc.text(`Account: ${selectedAcc.code} • Company: ${activeCompany?.name}`, 14, 28);
-    autoTable(doc, {
-      head: [['Date', 'Description / Reference', 'Debit', 'Credit', 'Balance']],
-      body: ledgerData.entries.map(tx => {
+    if (!selectedAcc || !ledgerData.entries.length) { alert('No transaction data to export.'); return; }
+    exportUnifiedPDF({
+      title: 'GENERAL LEDGER STATEMENT',
+      subtitle: `${selectedAcc.code} - ${selectedAcc.name}`,
+      companyName: activeCompany?.name || 'ACCOUNTELLENCE Corporate Workspace',
+      period: dateFrom && dateTo ? `${dateFrom} to ${dateTo}` : 'All Account History',
+      kpis: [
+        { label: 'TOTAL DEBITS', value: `PKR ${ledgerData.totalDebits.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, color: 'emerald' },
+        { label: 'TOTAL CREDITS', value: `PKR ${ledgerData.totalCredits.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, color: 'rose' },
+        { label: 'CLOSING BALANCE', value: `PKR ${ledgerData.closingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, color: 'blue' }
+      ],
+      columns: ['Date', 'Description / Reference', 'Debit (PKR)', 'Credit (PKR)', 'Balance (PKR)'],
+      rows: ledgerData.entries.map(tx => {
         const txDate = tx.entry_date ? new Date(tx.entry_date) : null;
         const formattedDate = txDate && !isNaN(txDate.getTime()) ? txDate.toLocaleDateString() : '—';
         return [
           formattedDate,
           tx.description + (tx.reference ? ` (${tx.reference})` : ''),
-          tx.parsedDebit > 0 ? fmt(tx.parsedDebit) : '—',
-          tx.parsedCredit > 0 ? fmt(tx.parsedCredit) : '—',
-          fmt(tx.runningBalance),
+          tx.parsedDebit > 0 ? tx.parsedDebit.toFixed(2) : '—',
+          tx.parsedCredit > 0 ? tx.parsedCredit.toFixed(2) : '—',
+          tx.runningBalance.toFixed(2),
         ];
       }),
-      startY: 35,
-      styles: { fontSize: 8 },
-      headStyles: { fillColor: [6, 13, 36] },
+      filename: `ledger_${selectedAcc.code}_${new Date().toISOString().split('T')[0]}.pdf`
     });
-    doc.save(`ledger_${selectedAcc.code}_${new Date().toISOString().split('T')[0]}.pdf`);
+  };
+
+  const exportCSV = () => {
+    if (!selectedAcc || !ledgerData.entries.length) { alert('No transaction data to export.'); return; }
+    exportUnifiedCSV({
+      title: 'GENERAL LEDGER STATEMENT',
+      companyName: activeCompany?.name || 'ACCOUNTELLENCE Corporate Workspace',
+      period: dateFrom && dateTo ? `${dateFrom} to ${dateTo}` : 'All Account History',
+      kpis: [
+        { label: 'TOTAL DEBITS', value: `PKR ${ledgerData.totalDebits.toFixed(2)}` },
+        { label: 'TOTAL CREDITS', value: `PKR ${ledgerData.totalCredits.toFixed(2)}` },
+        { label: 'CLOSING BALANCE', value: `PKR ${ledgerData.closingBalance.toFixed(2)}` }
+      ],
+      columns: ['Date', 'Description / Reference', 'Debit (PKR)', 'Credit (PKR)', 'Balance (PKR)'],
+      rows: ledgerData.entries.map(tx => {
+        const txDate = tx.entry_date ? new Date(tx.entry_date) : null;
+        const formattedDate = txDate && !isNaN(txDate.getTime()) ? txDate.toLocaleDateString() : '—';
+        return [
+          formattedDate,
+          tx.description + (tx.reference ? ` (${tx.reference})` : ''),
+          tx.parsedDebit > 0 ? tx.parsedDebit.toFixed(2) : '—',
+          tx.parsedCredit > 0 ? tx.parsedCredit.toFixed(2) : '—',
+          tx.runningBalance.toFixed(2),
+        ];
+      }),
+      filename: `ledger_${selectedAcc.code}_${new Date().toISOString().split('T')[0]}.csv`
+    });
   };
 
   const handleVoid = async (entryId) => {
@@ -123,13 +153,22 @@ export default function LedgerPage({ globalSearch = "" }) {
       badgeText="Finance"
       breadcrumbs={['ACCOUNTELLENCE', 'Finance', 'General Ledger']}
       primaryAction={
-        <button 
-          onClick={exportPDF} 
-          disabled={!selectedAcc || !ledgerData.entries.length}
-          className="flex items-center gap-1.5 bg-[#10b981] hover:bg-[#059669] text-white disabled:opacity-40 disabled:pointer-events-none px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer uppercase tracking-wider border-none outline-none"
-        >
-          <Download size={14} /> Export PDF Report
-        </button>
+        <div className="flex items-center gap-2">
+          <button 
+            onClick={exportPDF} 
+            disabled={!selectedAcc || !ledgerData.entries.length}
+            className="flex items-center gap-1.5 bg-[#10b981] hover:bg-[#059669] text-white disabled:opacity-40 disabled:pointer-events-none px-4 py-2 text-[12.5px] font-bold rounded-xl shadow-md transition-all active:scale-95 cursor-pointer uppercase tracking-wider border-none outline-none"
+          >
+            <Download size={14} /> PDF
+          </button>
+          <button 
+            onClick={exportCSV} 
+            disabled={!selectedAcc || !ledgerData.entries.length}
+            className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 disabled:opacity-40 disabled:pointer-events-none px-4 py-2 text-[12.5px] font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer uppercase tracking-wider outline-none"
+          >
+            <Download size={14} /> Excel
+          </button>
+        </div>
       }
     >
       <style>{`

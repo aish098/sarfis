@@ -9,8 +9,8 @@ import {
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
 import InventoryValuationReport from './InventoryValuationReport';
+import { exportUnifiedPDF, exportUnifiedCSV } from '../../utils/documentExporter';
 
 const TABS = [
   { id: 'trial_balance', label: 'Trial Balance', icon: Calculator },
@@ -307,57 +307,10 @@ export default function ReportsPage() {
     setClosing(false);
   };
 
-  const handleExport = async () => {
+  const handleExport = (exportType = 'pdf') => {
     if (!data) return;
-    const doc = new jsPDF();
     const activeLabel = TABS.find(t => t.id === tab)?.label || 'Financial Report';
     
-    // Hex to RGB converter helper
-    const hexToRgb = (hex) => {
-      let c = hex.replace('#', '');
-      if (c.length === 3) {
-        c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
-      }
-      const num = parseInt(c, 16);
-      return [num >> 16, (num >> 8) & 0x00ff, num & 0x0000ff];
-    };
-    const brandRgb = hexToRgb(settings?.accentColor || '#10b981');
-
-    if (settings?.logoUrl) {
-      const logoUrl = settings.logoUrl.startsWith('http') ? settings.logoUrl : `${import.meta.env.PROD ? window.location.origin : 'http://localhost:5001'}${settings.logoUrl}`;
-      await new Promise((resolve) => {
-        const img = new Image();
-        img.crossOrigin = 'Anonymous';
-        img.onload = () => {
-          try {
-            const maxWidth = 35;
-            const maxHeight = 12;
-            let width = maxWidth;
-            let height = maxWidth / (img.width / img.height);
-            
-            if (height > maxHeight) {
-              height = maxHeight;
-              width = maxHeight * (img.width / img.height);
-            }
-            doc.addImage(img, 'PNG', 196 - width, 8, width, height);
-          } catch (e) {
-            console.error('Failed to draw logo on PDF:', e);
-          }
-          resolve();
-        };
-        img.onerror = () => resolve();
-        img.src = logoUrl;
-      });
-    }
-    
-    doc.setFontSize(20);
-    doc.setTextColor(brandRgb[0], brandRgb[1], brandRgb[2]);
-    doc.text(activeCompany?.name || 'Accountellence Financials', 14, 20);
-    
-    doc.setFontSize(14);
-    doc.setTextColor(100, 116, 139);
-    doc.text(activeLabel, 14, 30);
-
     const formatLocalDate = (dateStr) => {
       if (!dateStr) return '';
       const parts = dateStr.split('-');
@@ -368,127 +321,105 @@ export default function ReportsPage() {
       const d = new Date(year, month, day);
       return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
     };
-    
-    doc.setFontSize(10);
-    doc.text(`Period: ${tab === 'balance_sheet' ? `As of ${formatLocalDate(asOfDate)}` : `${formatLocalDate(startDate)} to ${formatLocalDate(endDate)}`}`, 14, 38);
+
+    const periodStr = tab === 'balance_sheet' ? `As of ${formatLocalDate(asOfDate)}` : `${formatLocalDate(startDate)} to ${formatLocalDate(endDate)}`;
+    const accountList = Array.isArray(data) ? data : (data?.items || []);
 
     let columns = [];
     let rows = [];
-
-    const accountList = Array.isArray(data) ? data : (data?.items || []);
+    let kpis = [];
 
     if (tab === 'trial_balance') {
-      columns = ['Code', 'Account Name', 'Debit', 'Credit'];
+      columns = ['Code', 'Account Name', 'Debit (PKR)', 'Credit (PKR)'];
       rows = accountList.map(acc => {
         const d = parseFloat(acc.total_debit) || 0, c = parseFloat(acc.total_credit) || 0, net = d - c;
         return [acc.code, acc.name, net > 0 ? fmt(net) : '—', net < 0 ? fmt(Math.abs(net)) : '—'];
       }).filter(r => r[2] !== '—' || r[3] !== '—');
     } else if (tab === 'income_statement') {
-      columns = ['Account', 'Amount'];
+      columns = ['Account Code / Name', 'Category', 'Balance (PKR)'];
       const rev = accountList.filter(a => ['income', 'revenue'].includes(a.category?.toLowerCase() || a.type?.toLowerCase())).map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
       const exp = accountList.filter(a => (a.category || a.type)?.toLowerCase() === 'expense').map(a => ({ ...a, net: parseFloat(a.total_debit || 0) - parseFloat(a.total_credit || 0) })).filter(a => Math.abs(a.net) > 0);
       const totalRev = rev.reduce((s, r) => s + r.net, 0);
       const totalExp = exp.reduce((s, r) => s + r.net, 0);
       
+      kpis = [
+        { label: 'TOTAL REVENUE', value: `PKR ${fmt(totalRev)}`, color: 'emerald' },
+        { label: 'TOTAL EXPENSES', value: `PKR ${fmt(totalExp)}`, color: 'rose' },
+        { label: 'NET PROFIT', value: `PKR ${fmt(totalRev - totalExp)}`, color: 'blue' }
+      ];
+
       rows = [
-        ['REVENUE', ''],
-        ...rev.map(r => [r.name, fmt(r.net)]),
-        ['Total Revenue', fmt(totalRev)],
-        ['', ''],
-        ['EXPENSES', ''],
-        ...exp.map(e => [e.name, fmt(e.net)]),
-        ['Total Expenses', fmt(totalExp)],
-        ['', ''],
-        ['NET INCOME', fmt(totalRev - totalExp)]
+        ...rev.map(r => [r.name, 'Revenue', fmt(r.net)]),
+        ['Total Revenue', 'Summary', fmt(totalRev)],
+        ...exp.map(e => [e.name, 'Expense', fmt(e.net)]),
+        ['Total Expenses', 'Summary', fmt(totalExp)],
+        ['NET INCOME', 'Net Summary', fmt(totalRev - totalExp)]
       ];
     } else if (tab === 'balance_sheet') {
-      columns = ['Account', 'Amount'];
+      columns = ['Account Name', 'Classification', 'Balance (PKR)'];
       const assets = accountList.filter(a => (a.category || a.type)?.toLowerCase() === 'asset').map(a => ({ ...a, net: parseFloat(a.total_debit || 0) - parseFloat(a.total_credit || 0) })).filter(a => Math.abs(a.net) > 0);
       const liabs = accountList.filter(a => (a.category || a.type)?.toLowerCase() === 'liability').map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
       const equity = accountList.filter(a => (a.category || a.type)?.toLowerCase() === 'equity').map(a => ({ ...a, net: parseFloat(a.total_credit || 0) - parseFloat(a.total_debit || 0) })).filter(a => Math.abs(a.net) > 0);
-      const revLines = accountList.filter(a => ['income','revenue'].includes((a.category || a.type)?.toLowerCase())).map(a => parseFloat(a.total_credit||0)-parseFloat(a.total_debit||0));
-      const expLines = accountList.filter(a => (a.category || a.type)?.toLowerCase() === 'expense').map(a => parseFloat(a.total_debit||0)-parseFloat(a.total_credit||0));
-      const ytd = revLines.reduce((s,n)=>s+n,0) - expLines.reduce((s,n)=>s+n,0);
-      if (Math.abs(ytd) > 0.001) equity.push({ name: 'Current Year Earnings', net: ytd });
-      
-      const currentAssets = assets.filter(a => a.current_classification !== 'NON_CURRENT');
-      const nonCurrentAssets = assets.filter(a => a.current_classification === 'NON_CURRENT');
-      const currentLiabs = liabs.filter(a => a.current_classification !== 'NON_CURRENT');
-      const nonCurrentLiabs = liabs.filter(a => a.current_classification === 'NON_CURRENT');
-      
-      const tCA = currentAssets.reduce((s,r)=>s+r.net,0);
-      const tNCA = nonCurrentAssets.reduce((s,r)=>s+r.net,0);
-      const tCL = currentLiabs.reduce((s,r)=>s+r.net,0);
-      const tNCL = nonCurrentLiabs.reduce((s,r)=>s+r.net,0);
+
       const tA = assets.reduce((s,r)=>s+r.net,0);
       const tL = liabs.reduce((s,r)=>s+r.net,0);
       const tE = equity.reduce((s,r)=>s+r.net,0);
 
+      kpis = [
+        { label: 'TOTAL ASSETS', value: `PKR ${fmt(tA)}`, color: 'emerald' },
+        { label: 'TOTAL LIABILITIES', value: `PKR ${fmt(tL)}`, color: 'rose' },
+        { label: 'TOTAL EQUITY', value: `PKR ${fmt(tE)}`, color: 'blue' }
+      ];
+
       rows = [
-        ['CURRENT ASSETS', ''],
-        ...currentAssets.map(a => [a.name, fmt(a.net)]),
-        ['Total Current Assets', fmt(tCA)],
-        ['', ''],
-        ['NON-CURRENT ASSETS', ''],
-        ...nonCurrentAssets.map(a => [a.name, fmt(a.net)]),
-        ['Total Non-Current Assets', fmt(tNCA)],
-        ['', ''],
-        ['TOTAL ASSETS', fmt(tA)],
-        ['', ''],
-        ['CURRENT LIABILITIES', ''],
-        ...currentLiabs.map(l => [l.name, fmt(l.net)]),
-        ['Total Current Liabilities', fmt(tCL)],
-        ['', ''],
-        ['NON-CURRENT LIABILITIES', ''],
-        ...nonCurrentLiabs.map(l => [l.name, fmt(l.net)]),
-        ['Total Non-Current Liabilities', fmt(tNCL)],
-        ['', ''],
-        ['TOTAL LIABILITIES', fmt(tL)],
-        ['', ''],
-        ['EQUITY', ''],
-        ...equity.map(e => [e.name, fmt(e.net)]),
-        ['Total Equity', fmt(tE)]
+        ...assets.map(a => [a.name, 'Asset', fmt(a.net)]),
+        ['Total Assets', 'Summary', fmt(tA)],
+        ...liabs.map(l => [l.name, 'Liability', fmt(l.net)]),
+        ['Total Liabilities', 'Summary', fmt(tL)],
+        ...equity.map(e => [e.name, 'Equity', fmt(e.net)]),
+        ['Total Equity', 'Summary', fmt(tE)]
       ];
     } else if (tab === 'cash_flow') {
-      columns = ['Activity', 'Amount'];
+      columns = ['Activity / Item Name', 'Classification', 'Amount (PKR)'];
       const operating = accountList.filter(r => ['income','revenue','expense'].includes((r.category || r.type)?.toLowerCase()));
       const investing = accountList.filter(r => (r.category || r.type)?.toLowerCase() === 'asset');
       const financing = accountList.filter(r => ['liability','equity'].includes((r.category || r.type)?.toLowerCase()));
       
+      const netOperating = operating.reduce((s,r)=>s+(parseFloat(r.magnitude)||0),0);
+      const netInvesting = investing.reduce((s,r)=>s+(parseFloat(r.magnitude)||0),0);
+      const netFinancing = financing.reduce((s,r)=>s+(parseFloat(r.magnitude)||0),0);
+
+      kpis = [
+        { label: 'OPERATING CASH', value: `PKR ${fmt(netOperating)}`, color: 'emerald' },
+        { label: 'INVESTING CASH', value: `PKR ${fmt(netInvesting)}`, color: 'blue' },
+        { label: 'FINANCING CASH', value: `PKR ${fmt(netFinancing)}`, color: 'rose' }
+      ];
+
       rows = [
-        ['OPERATING ACTIVITIES', ''],
-        ...operating.map(o => [o.name, fmt(o.magnitude)]),
-        ['Net Operating Cash', fmt(operating.reduce((s,r)=>s+(parseFloat(r.magnitude)||0),0))],
-        ['', ''],
-        ['INVESTING ACTIVITIES', ''],
-        ...investing.map(i => [i.name, fmt(i.magnitude)]),
-        ['Net Investing Cash', fmt(investing.reduce((s,r)=>s+(parseFloat(r.magnitude)||0),0))],
-        ['', ''],
-        ['FINANCING ACTIVITIES', ''],
-        ...financing.map(f => [f.name, fmt(f.magnitude)]),
-        ['Net Financing Cash', fmt(financing.reduce((s,r)=>s+(parseFloat(r.magnitude)||0),0))],
-        ['', ''],
-        ['NET GAIN/LOSS IN CASH', fmt(operating.reduce((s,r)=>s+(parseFloat(r.magnitude)||0),0) + investing.reduce((s,r)=>s+(parseFloat(r.magnitude)||0),0) + financing.reduce((s,r)=>s+(parseFloat(r.magnitude)||0),0))]
+        ...operating.map(o => [o.name, 'Operating Activity', fmt(o.magnitude)]),
+        ['Net Operating Cash Flow', 'Operating Summary', fmt(netOperating)],
+        ...investing.map(i => [i.name, 'Investing Activity', fmt(i.magnitude)]),
+        ['Net Investing Cash Flow', 'Investing Summary', fmt(netInvesting)],
+        ...financing.map(f => [f.name, 'Financing Activity', fmt(f.magnitude)]),
+        ['Net Financing Cash Flow', 'Financing Summary', fmt(netFinancing)]
       ];
     }
 
-    autoTable(doc, {
-      startY: 45,
-      head: [columns],
-      body: rows,
-      theme: 'grid',
-      headStyles: { fillColor: brandRgb, textColor: 255 },
-      styles: { fontSize: 8, cellPadding: 2 },
-      columnStyles: { [columns.length - 1]: { halign: 'right' } }
-    });
+    const exportOptions = {
+      title: activeLabel,
+      companyName: activeCompany?.name || 'ACCOUNTELLENCE Corporate Workspace',
+      period: periodStr,
+      kpis,
+      columns,
+      rows,
+      filename: `${(activeCompany?.name || 'Accountellence').replace(/\s+/g, '_')}_${tab}.${exportType === 'excel' ? 'csv' : 'pdf'}`
+    };
 
-    const finalY = doc.lastAutoTable.finalY + 12;
-    doc.setFont("Helvetica", "italic");
-    doc.setFontSize(8);
-    doc.setTextColor(148, 163, 184);
-    doc.text(`Generated automatically by ACCOUNTELLENCE System on ${new Date().toLocaleString('en-US', { month: 'short', day: 'numeric', year: 'numeric', hour: '2-digit', minute: '2-digit' })}`, 14, finalY);
-
-    doc.save(`${activeCompany?.name.replace(/\s+/g, '_')}_${tab}.pdf`);
+    if (exportType === 'excel' || exportType === 'csv') {
+      exportUnifiedCSV(exportOptions);
+    } else {
+      exportUnifiedPDF(exportOptions);
+    }
   };
 
   return (
@@ -550,11 +481,20 @@ export default function ReportsPage() {
           
           <button 
             type="button"
-            onClick={handleExport}
+            onClick={() => handleExport('pdf')}
             disabled={!data || loading}
-            className="flex items-center gap-1.5 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white disabled:opacity-40 disabled:pointer-events-none px-5 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer"
+            className="flex items-center gap-1.5 bg-gradient-to-r from-[#10b981] to-[#06b6d4] hover:from-[#059669] hover:to-[#0891b2] text-white disabled:opacity-40 disabled:pointer-events-none px-4 py-2 text-[12.5px] font-bold rounded-xl shadow-md shadow-emerald-500/10 transition-all active:scale-95 cursor-pointer"
           >
-            <Download size={13} /> Export Report
+            <Download size={13} /> PDF
+          </button>
+
+          <button 
+            type="button"
+            onClick={() => handleExport('excel')}
+            disabled={!data || loading}
+            className="flex items-center gap-1.5 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 disabled:opacity-40 disabled:pointer-events-none px-4 py-2 text-[12.5px] font-bold rounded-xl shadow-sm transition-all active:scale-95 cursor-pointer"
+          >
+            <FileSpreadsheet size={13} /> Excel
           </button>
 
           <button 
