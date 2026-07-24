@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const helmet = require('helmet');
 const rateLimit = require('express-rate-limit');
+const jwt = require('jsonwebtoken');
 const db = require('./db/knex');
 const authRoutes = require('./routes/authRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
@@ -52,7 +53,7 @@ app.use((req, res, next) => {
 
 // --- OPERATIONAL OBSERVABILITY & HEALTH PROBES ---
 
-// 1. Liveness Probe (Is server process responsive?)
+// 1. Pure Liveness Probe (Process check only; zero database dependency)
 app.get('/live', (req, res) => {
   res.status(200).json({
     status: 'ALIVE',
@@ -61,7 +62,7 @@ app.get('/live', (req, res) => {
   });
 });
 
-// 2. Readiness Probe (Is database query engine functional?)
+// 2. Readiness Probe (Database & critical dependency check; returns 503 if unavailable)
 app.get('/ready', async (req, res) => {
   try {
     await db.raw('SELECT 1');
@@ -74,14 +75,31 @@ app.get('/ready', async (req, res) => {
     res.status(503).json({
       status: 'UNAVAILABLE',
       database: 'DISCONNECTED',
-      error: dbErr.message,
+      error: 'Database connection failed',
       timestamp: new Date()
     });
   }
 });
 
-// 3. Comprehensive System Health Probe
+// 3. Health Probe (Public = Minimal Safe Status; Authenticated = Rich System Diagnostics)
 app.get('/health', async (req, res) => {
+  const authHeader = req.headers.authorization;
+  let isAuthenticatedAdmin = false;
+
+  if (authHeader && authHeader.startsWith('Bearer ')) {
+    try {
+      const token = authHeader.split(' ')[1];
+      jwt.verify(token, process.env.JWT_ACCESS_SECRET || 'super_secret_saas_admin_jwt_access_key_2026_x89234_secure_min32');
+      isAuthenticatedAdmin = true;
+    } catch (e) {}
+  }
+
+  if (!isAuthenticatedAdmin) {
+    // Safe public response without disclosing internal infrastructure secrets
+    return res.status(200).json({ status: 'HEALTHY' });
+  }
+
+  // Detailed operational diagnostics for authenticated administrators
   let dbStatus = 'DISCONNECTED';
   try {
     await db.raw('SELECT 1');

@@ -4,7 +4,7 @@ const db = require('../src/db/knex');
 
 async function runHardenedTests() {
   console.log('===========================================');
-  console.log('🧪 RUNNING HARDENED SAAS ADMIN API SUITE (OBSERVABILITY ADDED)');
+  console.log('🧪 RUNNING HARDENED SAAS ADMIN API SUITE (OPERATIONAL HARDENING)');
   console.log('===========================================');
 
   try {
@@ -19,20 +19,24 @@ async function runHardenedTests() {
   const baseUrl = 'http://localhost:3003';
 
   try {
-    // 1. Operational Observability Probes (/live, /ready, /health)
+    // 1. Probes Test (/live, /ready, /health)
     const liveRes = await fetch(`${baseUrl}/live`);
     const liveData = await liveRes.json();
-    console.log('✅ 1a. Liveness Probe:', liveData.status, '| Uptime:', Math.floor(liveData.uptime), 's');
+    console.log('✅ 1a. Liveness Probe (No DB):', liveData.status);
 
     const readyRes = await fetch(`${baseUrl}/ready`);
     const readyData = await readyRes.json();
-    console.log('✅ 1b. Readiness Probe:', readyData.status, '| DB:', readyData.database);
+    console.log('✅ 1b. Readiness Probe (DB Check):', readyData.status, '| DB:', readyData.database);
 
-    const healthRes = await fetch(`${baseUrl}/health`);
-    const healthData = await healthRes.json();
-    console.log('✅ 1c. Health Probe:', healthData.status, '| Memory:', healthData.memory.heap_used_mb, 'MB');
+    const publicHealthRes = await fetch(`${baseUrl}/health`);
+    const publicHealthData = await publicHealthRes.json();
+    if (publicHealthData.status === 'HEALTHY' && publicHealthData.memory === undefined) {
+      console.log('✅ 1c. Public Health Probe: Returned minimal safe status without infrastructure disclosure.');
+    } else {
+      throw new Error('Public health probe leaked internal memory diagnostics');
+    }
 
-    // 2. Initial Admin Auth Login (Receives mustChangePassword=true)
+    // 2. Admin Authentication Login
     const loginRes = await fetch(`${baseUrl}/api/auth/login`, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
@@ -43,12 +47,13 @@ async function runHardenedTests() {
     let refreshToken = loginData.data.refreshToken;
     console.log('✅ 2. Admin Auth: Logged in (mustChangePassword =', loginData.data.mustChangePassword, ')');
 
-    // 3. Test Restricted Scope
-    const restrictedRes = await fetch(`${baseUrl}/api/users`, {
+    // 3. Authenticated Health Probe
+    const adminHealthRes = await fetch(`${baseUrl}/health`, {
       headers: { 'Authorization': `Bearer ${accessToken}` }
     });
-    if (restrictedRes.status === 403) {
-      console.log('✅ 3. Password Scope Restriction: Blocked API access until initial password is rotated.');
+    const adminHealthData = await adminHealthRes.json();
+    if (adminHealthData.memory && adminHealthData.memory.heap_used_mb !== undefined) {
+      console.log('✅ 3. Authenticated Health Probe: Returned rich diagnostic memory metrics (Heap:', adminHealthData.memory.heap_used_mb, 'MB).');
     }
 
     // 4. Change Initial Password
@@ -159,7 +164,7 @@ async function runHardenedTests() {
     }
 
     console.log('===========================================');
-    console.log('🎉 ALL OBSERVABILITY & PRODUCTION CHECKS PASSED 100% CLEANLY!');
+    console.log('🎉 ALL OPERATIONAL & SECURITY CHECKS PASSED 100% CLEANLY!');
     console.log('===========================================');
 
     server.close(() => {

@@ -9,6 +9,10 @@ function validateEnv() {
     'ADMIN_FRONTEND_URL'
   ];
 
+  if (process.env.DB_CLIENT === 'pg' || process.env.DB_CLIENT === 'postgres') {
+    required.push('DB_HOST', 'DB_NAME', 'DB_USER', 'DB_PASSWORD');
+  }
+
   const missing = [];
   for (const key of required) {
     if (!process.env[key]) {
