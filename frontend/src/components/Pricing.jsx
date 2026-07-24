@@ -8,8 +8,14 @@ const plans = [
     name: 'Starter',
     monthlyPrice: '$0',
     yearlyPrice: '$0',
-    desc: 'For individuals and small projects',
-    features: ['Limited reports', '1 User', 'Basic Ledger', 'Community Support'],
+    desc: 'Essential finance ledger for sole proprietors and single-user startups',
+    features: [
+      'Single User Access & Core General Ledger',
+      'Standard Journal Vouchers (PV, RV, JV)',
+      'Basic Financial Reports (P&L & Balance Sheet)',
+      'Customer & Vendor Partner Registry',
+      'Community Documentation & Self-Help Support'
+    ],
     cta: 'Get Started Free',
     href: '/register',
     highlight: false,
@@ -18,8 +24,15 @@ const plans = [
     name: 'Basic',
     monthlyPrice: '$29',
     yearlyPrice: '$23',
-    desc: 'For growing teams and businesses',
-    features: ['Full accounting suite', 'Up to 5 Users', 'Standard Email Support', 'Data Export'],
+    desc: 'Complete ERP suite for growing teams, distributors, and trading companies',
+    features: [
+      'Up to 5 Users with Role-Based Permissions (RBAC)',
+      'Full Accounting, Sales Orders & Invoicing Suite',
+      'Purchasing, Vendor Payables & Stock Inventory Register',
+      'Order Tracking & Warehouse Fulfillment (Packing & Delivery)',
+      'Multi-Format Data Export (Excel, PDF & CSV Backup)',
+      'Standard Email Support & System Health Alerts'
+    ],
     cta: 'Start Basic',
     href: '/register',
     highlight: false,
@@ -28,8 +41,15 @@ const plans = [
     name: 'Pro',
     monthlyPrice: '$99',
     yearlyPrice: '$79',
-    desc: 'For established businesses and enterprises',
-    features: ['Advanced Analytics + AI', 'Unlimited Users', 'Priority Phone & Email Support', 'API Access & Integrations'],
+    desc: 'Enterprise-grade multi-company ERP with AI analytics & advanced security',
+    features: [
+      'Unlimited Users & Multi-Branch / Multi-Company Support',
+      'Complete Core: Financials, HR & Automated Payroll Engine',
+      'Warehouse Kanban Operational Board & Distribution Console',
+      'Google Enterprise SSO & Active Session Device Management',
+      'Tamper-Evident SHA-256 Security Audit Trail',
+      '24/7 Priority Phone & Email Support with API Integrations'
+    ],
     cta: 'Start Pro Trial',
     href: '/register',
     highlight: true,
@@ -58,7 +78,7 @@ export default function Pricing() {
             className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full border text-xs font-semibold mb-6"
             style={{ background: 'rgba(16,185,129,0.07)', borderColor: 'rgba(16,185,129,0.22)', color: '#6ee7b7' }}
           >
-            Pricing
+            Pricing Plans
           </motion.div>
           <motion.h2
             initial={{ opacity: 0, y: 18 }}
@@ -68,7 +88,7 @@ export default function Pricing() {
             className="text-4xl sm:text-5xl font-black text-white tracking-tight mb-4"
             style={{ fontFamily: "'Sora', 'DM Sans', system-ui, sans-serif" }}
           >
-            Straightforward Pricing
+            Predictable Plans for Every Stage
           </motion.h2>
           <motion.p
             initial={{ opacity: 0 }}
@@ -77,7 +97,7 @@ export default function Pricing() {
             transition={{ duration: 0.5, delay: 0.15 }}
             className="text-slate-400 text-lg mb-8"
           >
-            Choose the plan that's right for your business. No hidden fees, ever.
+            Scalable ERP modules covering Accounting, Sales, Inventory, HR Payroll & Enterprise Security.
           </motion.p>
 
           {/* Toggle */}
@@ -96,7 +116,7 @@ export default function Pricing() {
               }`}
               style={!yearly ? { background: 'rgba(255,255,255,0.08)' } : {}}
             >
-              Monthly
+              Monthly Billing
             </button>
             <button
               onClick={() => setYearly(true)}
@@ -105,7 +125,7 @@ export default function Pricing() {
               }`}
               style={yearly ? { background: 'rgba(255,255,255,0.08)' } : {}}
             >
-              Yearly
+              Annual Billing
               <span
                 className="text-[10px] font-bold px-2 py-0.5 rounded-full"
                 style={{ background: 'rgba(16,185,129,0.15)', color: '#6ee7b7' }}
@@ -117,7 +137,7 @@ export default function Pricing() {
         </div>
 
         {/* Cards */}
-        <div className="grid lg:grid-cols-3 gap-6 items-center">
+        <div className="grid lg:grid-cols-3 gap-6 items-stretch">
           {plans.map((plan, i) => (
             <PricingCard key={i} plan={plan} yearly={yearly} index={i} />
           ))}
@@ -180,7 +200,7 @@ function PricingCard({ plan, yearly, index }) {
         >
           {plan.name}
         </h3>
-        <p className="text-slate-500 text-sm mb-6">{plan.desc}</p>
+        <p className="text-slate-400 text-sm mb-6 leading-relaxed">{plan.desc}</p>
 
         <div className="flex items-end gap-1 mb-8">
           <motion.span
@@ -205,7 +225,7 @@ function PricingCard({ plan, yearly, index }) {
               >
                 <Check size={11} className={plan.highlight ? 'text-emerald-400' : 'text-slate-400'} />
               </div>
-              <span className={`text-sm ${plan.highlight ? 'text-slate-300' : 'text-slate-400'}`}>
+              <span className={`text-sm ${plan.highlight ? 'text-slate-200 font-medium' : 'text-slate-300'}`}>
                 {feature}
               </span>
             </li>
