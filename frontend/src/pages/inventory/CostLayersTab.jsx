@@ -93,11 +93,12 @@ export default function CostLayersTab() {
   // Export options
   const handleExportCSV = () => {
     if (layers.length === 0) return;
-    const headers = ['Layer ID', 'Warehouse', 'Product', 'Source Doc', 'Source Type', 'Received Date', 'Original Qty', 'Remaining Qty', 'Unit Cost', 'Remaining Value', 'Status'];
+    const headers = ['Layer ID', 'Warehouse', 'Product SKU', 'Product Name', 'Source Doc', 'Source Type', 'Received Date', 'Original Qty', 'Remaining Qty', 'Unit Cost (PKR)', 'Remaining Value (PKR)', 'Status'];
     const rows = layers.map(l => [
-      l.id,
+      `#${l.id}`,
       l.warehouse_name,
-      `${l.product_sku} - ${l.product_name}`,
+      l.product_sku || '',
+      l.product_name,
       l.source_document || 'N/A',
       l.source_type,
       new Date(l.received_date).toLocaleDateString(),
@@ -109,7 +110,7 @@ export default function CostLayersTab() {
     ]);
 
     const csvContent = "data:text/csv;charset=utf-8," 
-      + [headers.join(','), ...rows.map(e => e.map(val => `"${val}"`).join(","))].join("\n");
+      + [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
     
     const encodedUri = encodeURI(csvContent);
     const link = document.createElement("a");
@@ -123,24 +124,41 @@ export default function CostLayersTab() {
   const handleExportExcel = () => {
     if (layers.length === 0) return;
     const wsData = layers.map(l => ({
-      'Layer ID': l.id,
+      'Layer ID': `#${l.id}`,
       'Warehouse': l.warehouse_name,
-      'Product SKU': l.product_sku,
+      'Product SKU': l.product_sku || '',
       'Product Name': l.product_name,
       'Source Doc': l.source_document || 'N/A',
       'Source Type': l.source_type,
       'Received Date': new Date(l.received_date).toLocaleDateString(),
-      'Original Qty': l.received_qty,
-      'Remaining Qty': l.remaining_qty,
-      'Unit Cost (PKR)': l.unit_cost,
-      'Remaining Value (PKR)': l.remaining_value,
+      'Original Qty': Number(l.received_qty || 0),
+      'Remaining Qty': Number(l.remaining_qty || 0),
+      'Unit Cost (PKR)': Number(l.unit_cost || 0),
+      'Remaining Value (PKR)': Number(l.remaining_value || 0),
       'Status': l.status
     }));
 
     const ws = XLSX.utils.json_to_sheet(wsData);
+
+    // Auto-fit column widths so data is neat and unmerged
+    ws['!cols'] = [
+      { wch: 10 }, // Layer ID
+      { wch: 22 }, // Warehouse
+      { wch: 16 }, // Product SKU
+      { wch: 30 }, // Product Name
+      { wch: 18 }, // Source Doc
+      { wch: 16 }, // Source Type
+      { wch: 14 }, // Received Date
+      { wch: 14 }, // Original Qty
+      { wch: 14 }, // Remaining Qty
+      { wch: 18 }, // Unit Cost
+      { wch: 22 }, // Remaining Value
+      { wch: 14 }  // Status
+    ];
+
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Cost Layers');
-    XLSX.writeFile(wb, `inventory_cost_layers_${activeCompany.id}.xlsx`);
+    XLSX.writeFile(wb, `inventory_cost_layers_${activeCompany.id}_${new Date().toISOString().split('T')[0]}.xlsx`);
   };
 
   const handleExportPDF = () => {
