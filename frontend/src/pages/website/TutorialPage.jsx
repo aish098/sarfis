@@ -1,8 +1,9 @@
 import React, { useState, useEffect, useRef } from 'react';
+import { Link } from 'react-router-dom';
 import { motion as Motion, useInView } from 'framer-motion';
 import {
   Play, FileText, Download, Search, Video, Info,
-  HelpCircle, Sparkles, MessageSquare, Mail, Calendar, PhoneCall
+  HelpCircle, Sparkles, MessageSquare, Mail, Calendar, PhoneCall, Users
 } from 'lucide-react';
 import axios from 'axios';
 import Navbar from '../../components/Navbar';
@@ -544,9 +545,9 @@ export default function TutorialPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
             {[
-              { icon: Mail, title: 'Email Support', info: 'info@accountellence.com', cta: 'Send Email', href: 'mailto:info@accountellence.com', color: '#10b981' },
-              { icon: MessageSquare, title: 'WhatsApp Live', info: '+92 300 1234567', cta: 'Chat on WhatsApp', href: 'https://wa.me/923001234567', color: '#06b6d4' },
-              { icon: PhoneCall, title: 'Schedule Demo', info: 'Direct with Leadership', cta: 'Request Calendar', href: '/contact', color: '#f59e0b' }
+              { icon: Mail, title: 'Email Support', info: 'info@accountellence.com', cta: 'Send Email', href: 'mailto:info@accountellence.com', isRoute: false, color: '#10b981' },
+              { icon: MessageSquare, title: 'Contact & Live Desk', info: '24/7 Enterprise Support', cta: 'Contact Us Page', href: '/contact', isRoute: true, color: '#06b6d4' },
+              { icon: Users, title: 'Executive Leadership', info: 'Direct with Leadership', cta: 'Leadership Team', href: '/leadership', isRoute: true, color: '#f59e0b' }
             ].map((s, idx) => (
               <div key={idx} className="p-6 bg-[#050f21]/60 border border-slate-900 rounded-2xl flex flex-col justify-between space-y-4 hover:border-slate-800 transition-all">
                 <div>
@@ -556,13 +557,23 @@ export default function TutorialPage() {
                   <h3 className="text-xs font-black uppercase text-slate-500 tracking-wider">{s.title}</h3>
                   <p className="text-sm font-bold text-white mt-1">{s.info}</p>
                 </div>
-                <a
-                  href={s.href}
-                  className="inline-flex items-center gap-1.5 text-xs font-bold transition-all"
-                  style={{ color: s.color }}
-                >
-                  {s.cta} &rarr;
-                </a>
+                {s.isRoute ? (
+                  <Link
+                    to={s.href}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold transition-all hover:underline"
+                    style={{ color: s.color }}
+                  >
+                    {s.cta} &rarr;
+                  </Link>
+                ) : (
+                  <a
+                    href={s.href}
+                    className="inline-flex items-center gap-1.5 text-xs font-bold transition-all hover:underline"
+                    style={{ color: s.color }}
+                  >
+                    {s.cta} &rarr;
+                  </a>
+                )}
               </div>
             ))}
           </div>
