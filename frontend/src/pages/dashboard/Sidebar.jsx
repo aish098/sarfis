@@ -143,6 +143,7 @@ export default function Sidebar({ collapsed, isMobile, onToggle }) {
           label: 'Administration',
           items: [
             { to: '/dashboard/admin', icon: ShieldCheck, label: 'Admin & Roles' },
+            { to: '/dashboard/admin/saas-control', icon: Activity, label: 'SaaS Control Center' },
             { to: '/dashboard/admin/workflows', icon: Settings, label: 'Workflow Config' },
           ],
         },

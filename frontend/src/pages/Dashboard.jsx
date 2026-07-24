@@ -58,6 +58,7 @@ import WorkflowConfigPage from './admin/WorkflowConfigPage.jsx';
 import BudgetRegisterPage from './finance/BudgetRegisterPage.jsx';
 import BudgetVsActualReport from './finance/BudgetVsActualReport.jsx';
 import BudgetDashboard from './finance/BudgetDashboard.jsx';
+import SaaSAdminDashboard from './admin/SaaSAdminDashboard.jsx';
 
 function ModuleProtectedRoute({ moduleKey, fallbackDefault = true, children }) {
   const { settings } = useAuthStore();
@@ -627,6 +628,8 @@ export default function Dashboard() {
               <Route path="finance/close-wizard" element={<MonthEndCloseWizard />} />
               <Route path="admin/workflows" element={<WorkflowConfigPage />} />
               <Route path="admin/approvals" element={<ApprovalsInboxPage />} />
+              <Route path="admin/saas-control" element={<SaaSAdminDashboard />} />
+              <Route path="saas-admin" element={<SaaSAdminDashboard />} />
               <Route path="finance/budgets" element={<BudgetRegisterPage />} />
               <Route path="finance/budgets/dashboard" element={<BudgetDashboard />} />
               <Route path="finance/budgets/vs-actual" element={<BudgetVsActualReport />} />
