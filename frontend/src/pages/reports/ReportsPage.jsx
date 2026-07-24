@@ -85,7 +85,8 @@ export default function ReportsPage() {
     setNoteData(null);
     setNoteError('');
     try {
-      const res = await api.get(`/reports/balance-sheet/note/${account.id}`, {
+      const targetId = account.id || account.code || 'ytd';
+      const res = await api.get(`/reports/balance-sheet/note/${targetId}`, {
         params: { asOfDate }
       });
       setNoteData(res.data);

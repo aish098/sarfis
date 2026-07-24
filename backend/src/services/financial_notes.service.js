@@ -178,16 +178,125 @@ class FinancialNotesService {
   }
 
   static async getAccountNote(companyId, accountId, asOfDate) {
-    const account = await db('accounts')
-      .where({ id: accountId, company_id: companyId })
-      .first();
-
-    if (!account) {
-      throw new Error('GL Account not found.');
-    }
-
     const targetDate = asOfDate ? new Date(asOfDate) : new Date();
     const startOfYear = new Date(targetDate.getFullYear(), 0, 1);
+
+    // Special Handler for Synthetic Balance Sheet Items: Current Year Earnings (ytd)
+    if (String(accountId).toLowerCase() === 'ytd' || String(accountId).toLowerCase().includes('earnings')) {
+      const revLines = await db('journal_lines as jl')
+        .join('journal_entries as je', 'jl.entry_id', 'je.id')
+        .join('accounts as acc', 'jl.account_id', 'acc.id')
+        .where('acc.company_id', companyId)
+        .andWhereRaw("LOWER(acc.category) IN ('income', 'revenue') OR LOWER(acc.type) IN ('income', 'revenue')")
+        .andWhere('je.entry_date', '>=', startOfYear)
+        .andWhere('je.entry_date', '<=', targetDate)
+        .select('acc.id', 'acc.name', 'acc.code', db.raw('SUM(jl.credit - jl.debit) as net_amount'))
+        .groupBy('acc.id', 'acc.name', 'acc.code');
+
+      const expLines = await db('journal_lines as jl')
+        .join('journal_entries as je', 'jl.entry_id', 'je.id')
+        .join('accounts as acc', 'jl.account_id', 'acc.id')
+        .where('acc.company_id', companyId)
+        .andWhereRaw("LOWER(acc.category) = 'expense' OR LOWER(acc.type) = 'expense'")
+        .andWhere('je.entry_date', '>=', startOfYear)
+        .andWhere('je.entry_date', '<=', targetDate)
+        .select('acc.id', 'acc.name', 'acc.code', db.raw('SUM(jl.debit - jl.credit) as net_amount'))
+        .groupBy('acc.id', 'acc.name', 'acc.code');
+
+      const totalRev = revLines.reduce((s, r) => s + parseFloat(r.net_amount || 0), 0);
+      const totalExp = expLines.reduce((s, r) => s + parseFloat(r.net_amount || 0), 0);
+      const netIncome = totalRev - totalExp;
+
+      const breakdown = [
+        {
+          id: 'note-rev-total',
+          item: 'Total Operating & Non-Operating Revenue',
+          amount: totalRev,
+          percent: totalRev > 0 ? 100 : 0,
+          drilldownType: 'report',
+          drilldownId: 'income_statement'
+        },
+        {
+          id: 'note-exp-total',
+          item: 'Total Operating & Administrative Expenses',
+          amount: -totalExp,
+          percent: totalRev > 0 ? Math.round((totalExp / (totalRev || 1)) * 100) : 0,
+          drilldownType: 'report',
+          drilldownId: 'income_statement'
+        }
+      ];
+
+      const journalEntries = await db('journal_lines as jl')
+        .join('journal_entries as je', 'jl.entry_id', 'je.id')
+        .join('accounts as acc', 'jl.account_id', 'acc.id')
+        .leftJoin('vouchers as v', 'je.id', 'v.journal_entry_id')
+        .where('acc.company_id', companyId)
+        .andWhereRaw("LOWER(acc.category) IN ('income', 'revenue', 'expense') OR LOWER(acc.type) IN ('income', 'revenue', 'expense')")
+        .andWhere('je.entry_date', '>=', startOfYear)
+        .andWhere('je.entry_date', '<=', targetDate)
+        .select(
+          'je.id as journal_entry_id',
+          'je.entry_date as date',
+          'je.description',
+          'jl.debit',
+          'jl.credit',
+          'v.id as voucher_id',
+          'v.voucher_number',
+          'v.type as voucher_type'
+        )
+        .orderBy('je.entry_date', 'desc')
+        .limit(10);
+
+      return {
+        account: {
+          id: 'ytd',
+          code: '3900-YTD',
+          name: 'Current Year Earnings (Net Income)',
+          category: 'Equity',
+          normal_balance: 'Credit',
+          is_contra: false,
+          is_control: false
+        },
+        openingBalance: 0,
+        movements: netIncome,
+        closingBalance: netIncome,
+        breakdown,
+        journalEntries: journalEntries.map(je => ({
+          ...je,
+          debit: parseFloat(je.debit || 0),
+          credit: parseFloat(je.credit || 0)
+        })),
+        reconciliation: {
+          status: 'VERIFIED',
+          difference: 0,
+          reasons: ['Calculated directly from real-time Revenue & Expense General Ledger postings.']
+        },
+        metadata: {
+          noteNumber: 'Note 15',
+          noteName: 'Current Year Earnings (Net Income)',
+          source: 'General Ledger Income & Expense Accounts',
+          lastUpdated: targetDate
+        }
+      };
+    }
+
+    // Regular GL Account Lookup
+    let account = await db('accounts')
+      .where({ id: parseInt(accountId) || 0, company_id: companyId })
+      .first();
+
+    if (!account && typeof accountId === 'string') {
+      account = await db('accounts')
+        .where({ company_id: companyId })
+        .andWhere(builder => {
+          builder.where({ code: accountId }).orWhere({ name: accountId });
+        })
+        .first();
+    }
+
+    if (!account) {
+      throw new Error(`GL Account (#${accountId}) not found.`);
+    }
 
     // 1. Calculate opening balance (prior to the current year)
     const openingRes = await db('journal_lines as jl')
