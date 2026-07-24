@@ -115,7 +115,7 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
             onKeyDown?.(e);
           }
         }}
-        className={`w-full px-3 py-1.5 rounded-lg transition-all text-[13px] bg-white border-2 border-slate-105 focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/10 outline-none text-left ${
+        className={`w-full px-3 py-1.5 rounded-lg transition-all text-[13px] text-slate-800 placeholder:text-slate-400 font-semibold bg-white border-2 border-slate-100 focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 outline-none focus:outline-none text-left ${
           disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50'
         }`}
       />
@@ -146,7 +146,7 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
                     }`}
                   >
                     <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-105 text-slate-500 font-bold">{acc.code}</span>
+                      <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold">{acc.code}</span>
                       <span className="truncate">{acc.name}</span>
                     </div>
                     {String(value) === String(acc.id) && <Check size={13} className="text-emerald-600 flex-shrink-0" />}
@@ -670,7 +670,7 @@ export default function JournalEntryPage() {
           <div className="flex items-center gap-2 flex-wrap">
             {/* Posting Mode Toggle */}
             <div className="flex items-center bg-white border border-[#C2F3DC] rounded-xl p-1.5 shadow-sm no-print">
-              <span className="text-[11px] font-bold uppercase text-slate-505 px-2.5">Engine Mode:</span>
+              <span className="text-[11px] font-bold uppercase text-slate-500 px-2.5">Engine Mode:</span>
               <button
                 type="button"
                 onClick={() => {
@@ -694,7 +694,7 @@ export default function JournalEntryPage() {
             <button
               type="button"
               onClick={() => setRecentDrawerOpen(true)}
-              className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-705 border border-slate-200 rounded-xl px-4 py-2 text-[12px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer no-print"
+              className="flex items-center gap-2 bg-white hover:bg-slate-50 text-slate-700 border border-slate-200 rounded-xl px-4 py-2 text-[12px] font-bold shadow-sm transition-all active:scale-95 cursor-pointer no-print"
             >
               <Zap size={13} className="text-emerald-500 fill-emerald-500" />
               <span>Recent ({recentEntries.length})</span>
