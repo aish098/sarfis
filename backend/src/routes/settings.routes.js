@@ -76,34 +76,112 @@ router.get('/system/health', async (req, res) => {
 
 router.use(authMiddleware);
 
-// Get settings for a company
-router.get('/:companyId', companyGuard, async (req, res) => {
+// GET GOOGLE ACCOUNT SUBSCRIPTION & MODULE ENTITLEMENTS (Must be before /:companyId parameter wildcard)
+router.get('/:companyId/subscription-modules', companyGuard, async (req, res) => {
   try {
+    const db = require('../config/db');
     const { companyId } = req.params;
-    const settings = await SettingsModel.getSettings(companyId);
-    res.json(settings);
-  } catch (error) {
-    console.error('Failed to get settings:', error);
-    res.status(500).json({ error: 'Failed to retrieve settings' });
+
+    let subscription = await db('company_subscriptions').where({ company_id: companyId }).first();
+    if (!subscription) {
+      await db('company_subscriptions').insert({
+        company_id: companyId,
+        provider: 'GOOGLE_PAY',
+        plan_code: 'ENTERPRISE',
+        status: 'ACTIVE',
+        max_user_licenses: 50
+      });
+      subscription = await db('company_subscriptions').where({ company_id: companyId }).first();
+    }
+
+    let authSettings = await db('company_auth_settings').where({ company_id: companyId }).first();
+    if (!authSettings) {
+      const hasBillingCol = await db.schema.hasColumn('company_auth_settings', 'billing_owner_google_email');
+      const insertData = {
+        company_id: companyId,
+        google_login_enabled: true,
+        allow_google_account_linking: true,
+        allow_google_auto_provisioning: true
+      };
+      if (hasBillingCol) {
+        insertData.billing_owner_google_email = req.user?.email || null;
+      }
+      await db('company_auth_settings').insert(insertData);
+      authSettings = await db('company_auth_settings').where({ company_id: companyId }).first();
+    }
+
+    let entitlements = await db('company_module_entitlements').where({ company_id: companyId });
+    if (!entitlements || entitlements.length === 0) {
+      const defaultModules = [
+        { company_id: companyId, module_code: 'financials', enabled: true },
+        { company_id: companyId, module_code: 'inventory', enabled: true },
+        { company_id: companyId, module_code: 'payroll', enabled: true },
+        { company_id: companyId, module_code: 'purchasing', enabled: true },
+        { company_id: companyId, module_code: 'risk_analytics', enabled: true },
+        { company_id: companyId, module_code: 'executive_reports', enabled: true }
+      ];
+      await db('company_module_entitlements').insert(defaultModules);
+      entitlements = await db('company_module_entitlements').where({ company_id: companyId });
+    }
+
+    res.json({
+      subscription,
+      authSettings,
+      entitlements,
+      googleEmail: authSettings?.billing_owner_google_email || req.user?.email || 'Unlinked'
+    });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
-// Update settings for a company
-router.put('/:companyId', companyGuard, requirePermission('settings.manage'), async (req, res) => {
+// UPDATE GOOGLE ACCOUNT SUBSCRIPTION & MODULE ENTITLEMENTS
+router.put('/:companyId/subscription-modules', companyGuard, requirePermission('settings.manage'), async (req, res) => {
   try {
+    const db = require('../config/db');
     const { companyId } = req.params;
-    const value = req.body;
-    
-    const updatedSettings = await SettingsModel.upsertSettings(companyId, value);
-    res.json(updatedSettings);
-  } catch (error) {
-    console.error('Failed to update settings:', error);
-    try {
-      require('fs').writeFileSync('d:\\sarfis\\backend\\settings_error.txt', error.stack || error.message || String(error), 'utf8');
-    } catch (fsErr) {
-      console.error(fsErr);
+    const { planCode, googleEmail, modules } = req.body;
+
+    if (planCode) {
+      await db('company_subscriptions')
+        .where({ company_id: companyId })
+        .update({ plan_code: planCode, status: 'ACTIVE', updated_at: db.fn.now() });
     }
-    res.status(500).json({ error: error.message || 'Failed to update settings' });
+
+    if (googleEmail !== undefined) {
+      const hasBillingCol = await db.schema.hasColumn('company_auth_settings', 'billing_owner_google_email');
+      const updateData = { google_login_enabled: true, allow_google_account_linking: true };
+      if (hasBillingCol) {
+        updateData.billing_owner_google_email = googleEmail;
+      }
+      await db('company_auth_settings')
+        .where({ company_id: companyId })
+        .update(updateData);
+    }
+
+    if (modules && typeof modules === 'object') {
+      for (const [modCode, isEnabled] of Object.entries(modules)) {
+        const exist = await db('company_module_entitlements')
+          .where({ company_id: companyId, module_code: modCode })
+          .first();
+
+        if (exist) {
+          await db('company_module_entitlements')
+            .where({ company_id: companyId, module_code: modCode })
+            .update({ enabled: !!isEnabled });
+        } else {
+          await db('company_module_entitlements').insert({
+            company_id: companyId,
+            module_code: modCode,
+            enabled: !!isEnabled
+          });
+        }
+      }
+    }
+
+    res.json({ success: true, message: 'Google Account Subscription & Module Entitlements Updated Successfully!' });
+  } catch (err) {
+    res.status(500).json({ error: err.message });
   }
 });
 
@@ -206,9 +284,9 @@ router.post('/:companyId/mail-config/test', companyGuard, requirePermission('set
     const dest = testEmail || req.user?.email || username;
     const outcome = await tester.send({
       to: dest,
-      subject: 'ACCOUNTELLENCE Email Integration: Test Connection Success',
+      subject: 'SARFIS Email Integration: Test Connection Success',
       html: `<h3>Test Connection Succeeded</h3>
-             <p>This email confirms that your company SMTP mail server is correctly configured in ACCOUNTELLENCE.</p>
+             <p>This email confirms that your company SMTP mail server is correctly configured in SARFIS.</p>
              <p>Timestamp: ${new Date().toISOString()}</p>`
     });
 
@@ -222,22 +300,22 @@ router.post('/:companyId/mail-config/test', companyGuard, requirePermission('set
   }
 });
 
-// GET MAIL DELIVERY LOGS & METRICS
-router.get('/:companyId/mail-logs', companyGuard, async (req, res) => {
+// GET AUDIT LOGS
+router.get('/:companyId/audit-logs', companyGuard, async (req, res) => {
   try {
     const db = require('../config/db');
     const { companyId } = req.params;
 
-    const logs = await db('email_delivery_logs')
+    const logs = await db('audit_logs')
       .where({ company_id: companyId })
-      .orderBy('id', 'desc')
+      .orderBy('created_at', 'desc')
       .limit(50);
 
-    const stats = await db('email_delivery_logs')
+    const stats = await db('audit_logs')
       .where({ company_id: companyId })
-      .select('status')
+      .select('action')
       .count('id as count')
-      .groupBy('status');
+      .groupBy('action');
 
     const queueStats = await db('notification_queue')
       .where({ company_id: companyId })
@@ -251,103 +329,29 @@ router.get('/:companyId/mail-logs', companyGuard, async (req, res) => {
   }
 });
 
-// GET GOOGLE ACCOUNT SUBSCRIPTION & MODULE ENTITLEMENTS
-router.get('/:companyId/subscription-modules', companyGuard, async (req, res) => {
+// Get settings for a company (Wildcard parameter route MUST be at the bottom)
+router.get('/:companyId', companyGuard, async (req, res) => {
   try {
-    const db = require('../config/db');
     const { companyId } = req.params;
-
-    let subscription = await db('company_subscriptions').where({ company_id: companyId }).first();
-    if (!subscription) {
-      await db('company_subscriptions').insert({
-        company_id: companyId,
-        provider: 'GOOGLE_PAY',
-        plan_code: 'ENTERPRISE',
-        status: 'ACTIVE',
-        max_user_licenses: 50
-      });
-      subscription = await db('company_subscriptions').where({ company_id: companyId }).first();
-    }
-
-    let authSettings = await db('company_auth_settings').where({ company_id: companyId }).first();
-    if (!authSettings) {
-      await db('company_auth_settings').insert({
-        company_id: companyId,
-        google_login_enabled: true,
-        allow_google_account_linking: true,
-        allow_google_auto_provisioning: true,
-        billing_owner_google_email: req.user?.email || null
-      });
-      authSettings = await db('company_auth_settings').where({ company_id: companyId }).first();
-    }
-
-    let entitlements = await db('company_module_entitlements').where({ company_id: companyId });
-    if (!entitlements || entitlements.length === 0) {
-      const defaultModules = [
-        { company_id: companyId, module_code: 'financials', enabled: true },
-        { company_id: companyId, module_code: 'inventory', enabled: true },
-        { company_id: companyId, module_code: 'payroll', enabled: true },
-        { company_id: companyId, module_code: 'purchasing', enabled: true },
-        { company_id: companyId, module_code: 'risk_analytics', enabled: true },
-        { company_id: companyId, module_code: 'executive_reports', enabled: true }
-      ];
-      await db('company_module_entitlements').insert(defaultModules);
-      entitlements = await db('company_module_entitlements').where({ company_id: companyId });
-    }
-
-    res.json({
-      subscription,
-      authSettings,
-      entitlements,
-      googleEmail: authSettings?.billing_owner_google_email || req.user?.email || 'Unlinked'
-    });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const settings = await SettingsModel.getSettings(companyId);
+    res.json(settings);
+  } catch (error) {
+    console.error('Failed to get settings:', error);
+    res.status(500).json({ error: 'Failed to retrieve settings' });
   }
 });
 
-// UPDATE GOOGLE ACCOUNT SUBSCRIPTION & MODULE ENTITLEMENTS
-router.put('/:companyId/subscription-modules', companyGuard, requirePermission('settings.manage'), async (req, res) => {
+// Update settings for a company
+router.put('/:companyId', companyGuard, requirePermission('settings.manage'), async (req, res) => {
   try {
-    const db = require('../config/db');
     const { companyId } = req.params;
-    const { planCode, googleEmail, modules } = req.body;
-
-    if (planCode) {
-      await db('company_subscriptions')
-        .where({ company_id: companyId })
-        .update({ plan_code: planCode, status: 'ACTIVE', updated_at: db.fn.now() });
-    }
-
-    if (googleEmail !== undefined) {
-      await db('company_auth_settings')
-        .where({ company_id: companyId })
-        .update({ billing_owner_google_email: googleEmail, google_login_enabled: true, allow_google_account_linking: true });
-    }
-
-    if (modules && typeof modules === 'object') {
-      for (const [modCode, isEnabled] of Object.entries(modules)) {
-        const exist = await db('company_module_entitlements')
-          .where({ company_id: companyId, module_code: modCode })
-          .first();
-
-        if (exist) {
-          await db('company_module_entitlements')
-            .where({ company_id: companyId, module_code: modCode })
-            .update({ enabled: !!isEnabled });
-        } else {
-          await db('company_module_entitlements').insert({
-            company_id: companyId,
-            module_code: modCode,
-            enabled: !!isEnabled
-          });
-        }
-      }
-    }
-
-    res.json({ success: true, message: 'Google Account Subscription & Module Entitlements Updated Successfully!' });
-  } catch (err) {
-    res.status(500).json({ error: err.message });
+    const value = req.body;
+    
+    const updatedSettings = await SettingsModel.upsertSettings(companyId, value);
+    res.json(updatedSettings);
+  } catch (error) {
+    console.error('Failed to update settings:', error);
+    res.status(500).json({ error: error.message || 'Failed to update settings' });
   }
 });
 
