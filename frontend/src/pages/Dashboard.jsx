@@ -581,8 +581,8 @@ export default function Dashboard() {
                   <DistributionPage globalSearch={globalSearch} />
                 </ModuleProtectedRoute>
               } />
-              <Route path="payroll" element={
-                <ModuleProtectedRoute moduleKey="payrollEnabled" fallbackDefault={false}>
+              <Route path="payroll/*" element={
+                <ModuleProtectedRoute moduleKey="payrollEnabled" fallbackDefault={true}>
                   <PayrollPage />
                 </ModuleProtectedRoute>
               } />

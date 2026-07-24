@@ -186,4 +186,5 @@ const companyGuard = (req, res, next) => {
   next();
 };
 
-module.exports = { authMiddleware, checkRole, requirePermission, companyGuard };
+module.exports = { authMiddleware, authenticate: authMiddleware, checkRole, requirePermission, companyGuard };
+

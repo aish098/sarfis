@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const taxCtrl = require('../controllers/tax.controller');
-const { authenticate, requirePermission } = require('../../../../middleware/auth.middleware');
+const { authMiddleware, authenticate, requirePermission } = require('../../../../middleware/auth.middleware');
 const {
   validate,
   calculateSchema,
