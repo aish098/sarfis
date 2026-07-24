@@ -13,8 +13,11 @@ exports.seed = async function(knex) {
       effective_to: '2027-06-30',
       status: 'ACTIVE',
       version: 1,
-      source_reference: 'Finance Bill 2026 / First Schedule Part I',
-      source_version: 'Enacted 2026',
+      revision: 0,
+      source_reference: 'Finance Act 2026, First Schedule, Part I, Division I',
+      source_version: 'Finance Act 2026',
+      gazette_number: 'C.No.1(6)Tax Policy/2026',
+      published_date: '2026-06-30',
       published_at: new Date(),
       created_at: new Date(),
       updated_at: new Date()
@@ -22,12 +25,28 @@ exports.seed = async function(knex) {
 
     const yearId = typeof insertedId === 'object' ? insertedId.id : insertedId;
     taxYear = { id: yearId };
+  } else {
+    // Update metadata if existing
+    await knex('tax_years').where({ id: taxYear.id }).update({
+      source_reference: 'Finance Act 2026, First Schedule, Part I, Division I',
+      source_version: 'Finance Act 2026',
+      gazette_number: 'C.No.1(6)Tax Policy/2026',
+      status: 'ACTIVE',
+      updated_at: new Date()
+    });
   }
 
-  // Delete old slabs if re-seeding
-  await knex('tax_slabs').where({ tax_year_id: taxYear.id }).del();
+  // Refuse reseeding if payroll snapshots exist for this tax year
+  const hasSnapshots = await knex('payroll_tax_snapshots')
+    .where({ tax_year_id: taxYear.id })
+    .first();
 
-  // Insert standard continuous 8 statutory slabs for PK-2026-27-SALARY
+  if (hasSnapshots) {
+    console.warn(`[SEED] Refusing to reseed tax year ID ${taxYear.id}: Referenced by existing payroll snapshots.`);
+    return;
+  }
+
+  // Insert standard continuous 8 statutory slabs for PK-2026-27-SALARY using idempotent upsert
   const slabs = [
     {
       tax_year_id: taxYear.id,
@@ -111,11 +130,31 @@ exports.seed = async function(knex) {
     }
   ];
 
-  await knex('tax_slabs').insert(slabs.map(s => ({
-    ...s,
-    created_at: new Date(),
-    updated_at: new Date()
-  })));
+  for (const slab of slabs) {
+    const existing = await knex('tax_slabs')
+      .where({ tax_year_id: slab.tax_year_id, sequence_no: slab.sequence_no })
+      .first();
+
+    if (existing) {
+      await knex('tax_slabs')
+        .where({ id: existing.id })
+        .update({
+          lower_bound: slab.lower_bound,
+          upper_bound: slab.upper_bound,
+          base_tax: slab.base_tax,
+          marginal_rate: slab.marginal_rate,
+          excess_over: slab.excess_over,
+          description: slab.description,
+          updated_at: new Date()
+        });
+    } else {
+      await knex('tax_slabs').insert({
+        ...slab,
+        created_at: new Date(),
+        updated_at: new Date()
+      });
+    }
+  }
 
   console.log('[SEED] Pakistan Tax Year 2026-27 & 8 Slabs seeded successfully.');
 };

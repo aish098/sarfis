@@ -11,13 +11,20 @@ exports.up = async function(knex) {
       table.string('tax_category').notNullable().defaultTo('SALARY'); // SALARY, BUSINESS, PENSION
       table.date('effective_from').notNullable();
       table.date('effective_to').notNullable();
-      table.string('status').notNullable().defaultTo('DRAFT'); // DRAFT, REVIEWED, APPROVED, ACTIVE, ARCHIVED
+      table.string('status').notNullable().defaultTo('DRAFT'); // DRAFT, UNDER_REVIEW, APPROVED, ACTIVE, ARCHIVED
       table.integer('version').notNullable().defaultTo(1);
-      table.string('source_reference').nullable(); // Finance Act 2026 / First Schedule
-      table.string('source_version').nullable();
+      table.integer('revision').notNullable().defaultTo(0);
+      table.string('source_reference').nullable(); // Finance Act 2026, First Schedule, Part I, Division I
+      table.string('source_version').nullable(); // Finance Act 2026
+      table.string('gazette_number').nullable();
+      table.string('notification_number').nullable();
+      table.string('official_document_url').nullable();
+      table.date('published_date').nullable();
       table.timestamp('published_at').nullable();
       table.integer('approved_by').nullable();
       table.timestamp('approved_at').nullable();
+      table.integer('activated_by').nullable();
+      table.timestamp('activated_at').nullable();
       table.timestamp('locked_at').nullable();
       table.timestamps(true, true);
     });
@@ -51,6 +58,10 @@ exports.up = async function(knex) {
       table.integer('active_tax_year_id').unsigned().nullable()
         .references('id').inTable('tax_years').onDelete('SET NULL');
       table.string('default_country_code', 10).defaultTo('PK');
+      table.string('default_tax_category', 20).defaultTo('SALARY');
+      table.string('currency_code', 10).defaultTo('PKR');
+      table.date('effective_from').nullable();
+      table.date('effective_to').nullable();
       table.boolean('allow_custom_exemptions').defaultTo(true);
       table.timestamps(true, true);
     });
@@ -64,18 +75,29 @@ exports.up = async function(knex) {
       table.integer('company_id').notNullable();
       table.integer('payroll_line_id').notNullable();
       table.integer('employee_id').notNullable();
-      table.integer('tax_year_id').notNullable();
-      table.integer('tax_slab_id').notNullable();
+      table.integer('tax_year_id').unsigned().notNullable()
+        .references('id').inTable('tax_years').onDelete('RESTRICT');
+      table.integer('tax_slab_id').unsigned().notNullable()
+        .references('id').inTable('tax_slabs').onDelete('RESTRICT');
       table.decimal('annual_taxable_income', 15, 2).notNullable();
       table.decimal('projected_annual_income', 15, 2).notNullable();
       table.decimal('base_tax', 15, 2).notNullable();
       table.decimal('marginal_rate', 6, 4).notNullable();
       table.decimal('excess_amount', 15, 2).notNullable();
+      table.decimal('raw_annual_tax', 15, 4).notNullable();
       table.decimal('annual_tax', 15, 2).notNullable();
       table.decimal('current_period_tax', 15, 2).notNullable();
       table.decimal('tax_already_withheld', 15, 2).defaultTo(0);
+      table.string('calculation_engine_version', 20).defaultTo('1.0.0');
+      table.string('tax_formula_version', 20).defaultTo('1.0');
+      table.string('source_reference').nullable();
+      table.string('source_version').nullable();
       table.jsonb('calculation_json').nullable();
       table.timestamp('calculated_at').defaultTo(knex.fn.now());
+
+      table.index(['company_id', 'employee_id', 'calculated_at']);
+      table.index(['tax_year_id']);
+      table.index(['payroll_line_id']);
     });
   }
 };

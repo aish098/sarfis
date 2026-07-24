@@ -168,7 +168,9 @@ export default function TaxManagementPage() {
             <span>Active Tax Year</span>
             <Globe size={15} className="text-emerald-600" />
           </div>
-          <div className="text-xl font-black text-slate-800">TY 2026–27</div>
+          <div className="text-xl font-black text-slate-800">
+            {taxYears.length > 0 ? taxYears[0].code : 'TY 2026–27'}
+          </div>
           <div className="text-[11px] text-emerald-600 font-bold">Jul 1, 2026 – Jun 30, 2027</div>
         </div>
 
@@ -177,17 +179,23 @@ export default function TaxManagementPage() {
             <span>Statutory Basis</span>
             <FileText size={15} className="text-cyan-600" />
           </div>
-          <div className="text-xl font-black text-slate-800">Finance Act 2026</div>
-          <div className="text-[11px] text-slate-500 font-semibold">First Schedule Part I (Salary)</div>
+          <div className="text-xl font-black text-slate-800">
+            {taxYears.length > 0 ? (taxYears[0].source_version || 'Finance Act 2026') : 'Finance Act 2026'}
+          </div>
+          <div className="text-[11px] text-slate-500 font-semibold truncate" title={taxYears.length > 0 ? taxYears[0].source_reference : ''}>
+            {taxYears.length > 0 ? (taxYears[0].source_reference || 'First Schedule Part I') : 'First Schedule Part I (Salary)'}
+          </div>
         </div>
 
         <div className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-2xs space-y-1">
           <div className="flex items-center justify-between text-[11px] font-extrabold text-slate-400 uppercase tracking-wider">
-            <span>Tax Brackets</span>
-            <Layers size={15} className="text-amber-600" />
+            <span>Gazette Notification</span>
+            <Shield size={15} className="text-amber-600" />
           </div>
-          <div className="text-xl font-black text-slate-800">{slabs.length} Progressive Slabs</div>
-          <div className="text-[11px] text-slate-500 font-semibold">0% tax up to PKR 600k</div>
+          <div className="text-sm font-black text-slate-800 truncate" title={taxYears.length > 0 ? taxYears[0].gazette_number : 'C.No.1(6)Tax Policy/2026'}>
+            {taxYears.length > 0 ? (taxYears[0].gazette_number || 'C.No.1(6)/2026') : 'C.No.1(6)Tax Policy/2026'}
+          </div>
+          <div className="text-[11px] text-emerald-600 font-semibold">Official FBR Gazette Enacted</div>
         </div>
 
         <div className="p-4 bg-white border border-slate-200/80 rounded-2xl shadow-2xs space-y-1">
