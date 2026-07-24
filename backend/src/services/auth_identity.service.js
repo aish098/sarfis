@@ -33,23 +33,8 @@ class AuthIdentityService {
     const providerInstance = AuthProviderFactory.getProvider('GOOGLE');
     const profile = await providerInstance.verifyIdentity(credential);
 
-    // 1. Validate Email Hint if supplied
-    if (emailHint && typeof emailHint === 'string' && emailHint.trim()) {
-      const normalizedHint = emailHint.trim().toLowerCase();
-      if (normalizedHint !== profile.email) {
-        await this.logAudit({
-          email: profile.email,
-          eventType: 'GOOGLE_LOGIN_FAILED',
-          success: false,
-          failureCode: 'GOOGLE_EMAIL_MISMATCH',
-          ip, userAgent
-        });
-        const err = new Error('Please sign in using the same Google account as the entered email');
-        err.code = 'GOOGLE_EMAIL_MISMATCH';
-        err.statusCode = 403;
-        throw err;
-      }
-    }
+    // 1. Email Profile Claim Resolution
+    const userEmail = profile.email;
 
     // 2. Primary Lookup: Find existing linked user identity by provider & sub
     let identity = await db('user_auth_identities')

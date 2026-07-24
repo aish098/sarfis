@@ -22,7 +22,6 @@ export default function LoginPage() {
   const handleGoogleCredential = async (credential) => {
     const res = await loginWithGoogle({
       credential,
-      email: formData.email,
       companySlug: formData.companySlug
     });
 
