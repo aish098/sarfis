@@ -379,65 +379,109 @@ export default function SettingsPage() {
     }
   };
 
-  // CSV template generation
-  const downloadTemplate = (type) => {
+  // CSV live data & template generation
+  const downloadTemplate = async (type) => {
     let title = 'DATA IMPORT TEMPLATE';
     let columns = [];
     let rows = [];
     let filename = 'import_template.csv';
 
-    switch (type) {
-      case 'coa':
-        title = 'CHART OF ACCOUNTS TEMPLATE';
-        columns = ['Code', 'Name', 'Type', 'Category', 'Description'];
-        rows = [
-          ['1010', 'Main Cash', 'Asset', 'Asset', 'Primary cash account'],
-          ['2010', 'Accounts Payable', 'Liability', 'Liability', 'AP control account'],
-          ['4010', 'Sales Revenue', 'Revenue', 'Revenue', 'Sales revenue']
-        ];
-        filename = 'chart_of_accounts_template.csv';
-        break;
-      case 'customers':
-        title = 'CUSTOMERS DIRECTORY TEMPLATE';
-        columns = ['Name', 'Email', 'Phone', 'Address', 'NTN', 'STRN'];
-        rows = [
-          ['Acme Corp', 'acme@example.com', '0300-1234567', '123 Main St Lahore', '1234567-8', '9876543-2']
-        ];
-        filename = 'customers_template.csv';
-        break;
-      case 'vendors':
-        title = 'VENDORS DIRECTORY TEMPLATE';
-        columns = ['Name', 'Email', 'Phone', 'Address', 'NTN', 'STRN'];
-        rows = [
-          ['Global Supplier', 'supplier@example.com', '0321-7654321', '456 Industrial Zone Karachi', '8765432-1', '2345678-9']
-        ];
-        filename = 'vendors_template.csv';
-        break;
-      case 'products':
-        title = 'PRODUCT INVENTORY TEMPLATE';
-        columns = ['Code', 'Name', 'Description', 'Price', 'Cost', 'Sku'];
-        rows = [
-          ['PROD001', 'Premium Widget', 'Industrial widget', '1500.00', '1000.00', 'WIDG-PREM-1']
-        ];
-        filename = 'products_template.csv';
-        break;
-      case 'balances':
-        title = 'OPENING BALANCES TEMPLATE';
-        columns = ['AccountCode', 'Debit', 'Credit', 'Date'];
-        rows = [
-          ['1010', '50000.00', '0.00', '2026-06-01'],
-          ['4010', '0.00', '50000.00', '2026-06-01']
-        ];
-        filename = 'opening_balances_template.csv';
-        break;
-      default:
-        break;
+    try {
+      switch (type) {
+        case 'coa': {
+          title = 'CHART OF ACCOUNTS TEMPLATE';
+          columns = ['Code', 'Name', 'Type', 'Category', 'Description'];
+          filename = 'chart_of_accounts_export.csv';
+
+          const res = await api.get(`/accounts/company/${activeCompanyId}`, requestConfig).catch(() => ({ data: [] }));
+          const list = Array.isArray(res.data) ? res.data : [];
+          if (list.length > 0) {
+            rows = list.map(a => [a.code, a.name, a.type, a.category, a.description || '']);
+          } else {
+            rows = [
+              ['1010', 'Main Cash', 'Asset', 'Asset', 'Primary cash account'],
+              ['2010', 'Accounts Payable', 'Liability', 'Liability', 'AP control account'],
+              ['4010', 'Sales Revenue', 'Revenue', 'Revenue', 'Sales revenue']
+            ];
+          }
+          break;
+        }
+        case 'customers': {
+          title = 'CUSTOMERS DIRECTORY TEMPLATE';
+          columns = ['Name', 'Email', 'Phone', 'Address', 'NTN', 'STRN'];
+          filename = 'customers_export.csv';
+
+          const res = await api.get('/subledger/receivables', requestConfig).catch(() => ({ data: [] }));
+          const list = Array.isArray(res.data) ? res.data : (res.data?.subledgers || res.data?.items || []);
+          if (list.length > 0) {
+            rows = list.map(c => [c.name || c.customer_name || 'Customer', c.email || '', c.phone || '', c.address || '', c.ntn || '', c.strn || '']);
+          } else {
+            rows = [
+              ['Acme Corp', 'acme@example.com', '0300-1234567', '123 Main St Lahore', '1234567-8', '9876543-2']
+            ];
+          }
+          break;
+        }
+        case 'vendors': {
+          title = 'VENDORS DIRECTORY TEMPLATE';
+          columns = ['Name', 'Email', 'Phone', 'Address', 'NTN', 'STRN'];
+          filename = 'vendors_export.csv';
+
+          const res = await api.get('/subledger/payables', requestConfig).catch(() => ({ data: [] }));
+          const list = Array.isArray(res.data) ? res.data : (res.data?.subledgers || res.data?.items || []);
+          if (list.length > 0) {
+            rows = list.map(v => [v.name || v.vendor_name || 'Vendor', v.email || '', v.phone || '', v.address || '', v.ntn || '', v.strn || '']);
+          } else {
+            rows = [
+              ['Global Supplier', 'supplier@example.com', '0321-7654321', '456 Industrial Zone Karachi', '8765432-1', '2345678-9']
+            ];
+          }
+          break;
+        }
+        case 'products': {
+          title = 'PRODUCT INVENTORY TEMPLATE';
+          columns = ['Code', 'Name', 'Description', 'Price', 'Cost', 'Sku'];
+          filename = 'products_export.csv';
+
+          const res = await api.get(`/products/${activeCompanyId}`, requestConfig).catch(() => ({ data: [] }));
+          const list = Array.isArray(res.data) ? res.data : [];
+          if (list.length > 0) {
+            rows = list.map(p => [p.code || p.sku, p.name, p.description || '', parseFloat(p.unit_price || p.price || 0).toFixed(2), parseFloat(p.cost || p.unit_cost || 0).toFixed(2), p.sku || p.code]);
+          } else {
+            rows = [
+              ['PROD001', 'Premium Widget', 'Industrial widget', '1500.00', '1000.00', 'WIDG-PREM-1']
+            ];
+          }
+          break;
+        }
+        case 'balances': {
+          title = 'OPENING BALANCES TEMPLATE';
+          columns = ['AccountCode', 'Debit', 'Credit', 'Date'];
+          filename = 'opening_balances_export.csv';
+
+          const res = await api.get('/opening-balances', requestConfig).catch(() => ({ data: [] }));
+          const list = Array.isArray(res.data) ? res.data : (res.data?.items || res.data?.balances || []);
+          if (list.length > 0) {
+            rows = list.map(b => [b.account_code || b.code, parseFloat(b.debit || 0).toFixed(2), parseFloat(b.credit || 0).toFixed(2), b.as_of_date || new Date().toISOString().split('T')[0]]);
+          } else {
+            rows = [
+              ['1010', '50000.00', '0.00', '2026-06-01'],
+              ['4010', '0.00', '50000.00', '2026-06-01']
+            ];
+          }
+          break;
+        }
+        default:
+          break;
+      }
+    } catch (err) {
+      console.error('Failed to load live data for CSV export:', err);
     }
 
     exportUnifiedCSV({
       title,
       companyName: activeCompany?.name || 'ACCOUNTELLENCE Corporate Workspace',
-      period: 'Official Import Schema Template',
+      period: 'Live Database Export & Import Schema',
       columns,
       rows,
       filename,
