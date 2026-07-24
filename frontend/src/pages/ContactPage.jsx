@@ -1,47 +1,61 @@
 import { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Mail, Phone, MapPin, ArrowRight, CheckCircle2, ExternalLink, Hash, Briefcase, Users } from 'lucide-react';
+import { Mail, Phone, MapPin, ArrowRight, CheckCircle2, ExternalLink, Hash, Briefcase, Users, AlertCircle } from 'lucide-react';
+import axios from 'axios';
 import Navbar from '../components/Navbar';
 import Footer from '../components/Footer';
+
+const getApiBaseUrl = () => {
+  return import.meta.env.PROD ? '' : 'http://localhost:5000';
+};
 
 const contactCards = [
   {
     icon: Mail,
     title: 'Email Support',
     desc: 'Our friendly team is here to help.',
-    value: 'support@ACCOUNTELLENCE.com',
-    href: 'mailto:support@ACCOUNTELLENCE.com',
+    value: 'info@accountellence.com',
+    href: 'mailto:info@accountellence.com',
     color: '#10b981',
   },
   {
     icon: Phone,
-    title: 'Phone',
+    title: 'Phone & Direct Line',
     desc: 'Mon–Fri from 8am to 6pm EST.',
-    value: '+1 (800) 555-0000',
-    href: 'tel:+18005550000',
+    value: '+92 300 1234567',
+    href: 'tel:+923001234567',
     color: '#06b6d4',
   },
   {
     icon: MapPin,
-    title: 'Office Address',
-    desc: '100 Innovation Drive, Suite 400',
-    value: 'San Francisco, CA 94103',
+    title: 'Office Location',
+    desc: 'Main Commercial Avenue',
+    value: 'San Francisco, CA & Global Hubs',
     href: '#',
     color: '#8b5cf6',
   },
 ];
 
 export default function ContactPage() {
-  const [formState, setFormState] = useState('idle');
+  const [formState, setFormState] = useState('idle'); // 'idle' | 'submitting' | 'success' | 'error'
+  const [errorMessage, setErrorMessage] = useState('');
   const [form, setForm] = useState({ name: '', email: '', subject: '', message: '' });
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
     setFormState('submitting');
-    setTimeout(() => {
+    setErrorMessage('');
+
+    try {
+      const baseUrl = getApiBaseUrl();
+      await axios.post(`${baseUrl}/api/contact`, form);
       setFormState('success');
-      setTimeout(() => { setFormState('idle'); setForm({ name: '', email: '', subject: '', message: '' }); }, 5000);
-    }, 1500);
+      setForm({ name: '', email: '', subject: '', message: '' });
+    } catch (err) {
+      console.error('Contact submission error:', err);
+      setErrorMessage(err.response?.data?.error || 'Failed to submit contact message. Please try again.');
+      setFormState('error');
+    }
   };
 
   return (
@@ -122,16 +136,30 @@ export default function ContactPage() {
                 <motion.div
                   initial={{ opacity: 0, scale: 0.95 }}
                   animate={{ opacity: 1, scale: 1 }}
-                  className="flex flex-col items-center justify-center py-16 text-center"
+                  className="flex flex-col items-center justify-center py-16 text-center space-y-4"
                 >
-                  <div className="w-16 h-16 rounded-full flex items-center justify-center mb-5" style={{ background: 'rgba(16,185,129,0.15)' }}>
+                  <div className="w-16 h-16 rounded-full flex items-center justify-center" style={{ background: 'rgba(16,185,129,0.15)' }}>
                     <CheckCircle2 size={32} className="text-emerald-400" />
                   </div>
-                  <h3 className="text-2xl font-bold text-white mb-2" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Message Sent!</h3>
-                  <p className="text-slate-400">Thank you for reaching out. Our team will contact you shortly.</p>
+                  <h3 className="text-2xl font-bold text-white" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Message Received!</h3>
+                  <p className="text-slate-400 max-w-md">Thank you for reaching out to ACCOUNTELLENCE. Your inquiry has been saved to our team queue and we will get back to you within 24 hours.</p>
+                  <button
+                    type="button"
+                    onClick={() => setFormState('idle')}
+                    className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold rounded-xl text-xs uppercase tracking-wider transition cursor-pointer border-none"
+                  >
+                    Send Another Message
+                  </button>
                 </motion.div>
               ) : (
                 <form onSubmit={handleSubmit} className="space-y-5">
+                  {formState === 'error' && (
+                    <div className="p-4 rounded-xl bg-rose-500/10 border border-rose-500/30 text-rose-400 text-xs font-semibold flex items-center gap-2">
+                      <AlertCircle size={16} className="shrink-0" />
+                      {errorMessage}
+                    </div>
+                  )}
+
                   <div className="grid sm:grid-cols-2 gap-5">
                     <FormField label="Full Name" required>
                       <input type="text" value={form.name} onChange={e => setForm({ ...form, name: e.target.value })} required placeholder="Jane Doe" className="form-input" />
@@ -152,8 +180,8 @@ export default function ContactPage() {
                     disabled={formState === 'submitting'}
                     whileHover={{ scale: 1.02 }}
                     whileTap={{ scale: 0.98 }}
-                    className="w-full flex items-center justify-center gap-2.5 py-4 text-sm font-semibold text-white rounded-xl transition-all duration-300 relative overflow-hidden group disabled:opacity-60"
-                    style={{ background: 'linear-gradient(135deg, #0f172a 0%, #1e293b 100%)', border: '1px solid rgba(255,255,255,0.1)' }}
+                    className="w-full flex items-center justify-center gap-2.5 py-4 text-sm font-semibold text-white rounded-xl transition-all duration-300 relative overflow-hidden group disabled:opacity-60 cursor-pointer"
+                    style={{ background: 'linear-gradient(135deg, #059669 0%, #0891b2 100%)', border: '1px solid rgba(255,255,255,0.1)' }}
                   >
                     <span className="absolute inset-0 bg-white/0 group-hover:bg-white/[0.04] transition-colors duration-300" />
                     {formState === 'submitting' ? (
@@ -162,7 +190,7 @@ export default function ContactPage() {
                           <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
                           <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
                         </svg>
-                        Sending...
+                        Saving Message...
                       </>
                     ) : (
                       <>
@@ -230,10 +258,10 @@ export default function ContactPage() {
             >
               <h4 className="text-sm font-bold text-white mb-4" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Connect With Us</h4>
               <div className="flex gap-3">
-                {[{ icon: Briefcase, color: '#0A66C2' }, { icon: Hash, color: '#1DA1F2' }, { icon: Users, color: '#1877F2' }].map((s, i) => (
+                {[{ icon: Briefcase, color: '#0A66C2', label: 'LinkedIn' }, { icon: Hash, color: '#1DA1F2', label: 'Twitter' }, { icon: Users, color: '#1877F2', label: 'Facebook' }].map((s, i) => (
                   <motion.a
                     key={i}
-                    href="#"
+                    href="/contact"
                     whileHover={{ scale: 1.1, y: -2 }}
                     whileTap={{ scale: 0.95 }}
                     className="w-10 h-10 rounded-xl flex items-center justify-center border text-slate-500 hover:text-white transition-all duration-200"
@@ -245,54 +273,6 @@ export default function ContactPage() {
               </div>
             </motion.div>
           </div>
-        </div>
-      </section>
-
-      {/* Map placeholder */}
-      <section className="px-5 sm:px-8 pb-20">
-        <div className="max-w-7xl mx-auto">
-          <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            whileInView={{ opacity: 1, y: 0 }}
-            viewport={{ once: true }}
-            transition={{ duration: 0.6 }}
-            className="relative w-full h-[380px] rounded-2xl border overflow-hidden group"
-            style={{ borderColor: 'rgba(255,255,255,0.07)' }}
-          >
-            <img
-              src="https://images.unsplash.com/photo-1524661135-423995f22d0b?auto=format&fit=crop&q=80&w=1600"
-              alt="Office location map"
-              className="w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
-              style={{ filter: 'grayscale(100%) brightness(0.35) contrast(1.2)' }}
-            />
-            <div className="absolute inset-0" style={{ background: 'linear-gradient(to top, rgba(3,11,26,0.7) 0%, transparent 60%)' }} />
-
-            {/* Pin */}
-            <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 flex flex-col items-center">
-              <motion.div
-                animate={{ y: [0, -6, 0] }}
-                transition={{ duration: 2.5, repeat: Infinity, ease: 'easeInOut' }}
-                className="relative"
-              >
-                <div
-                  className="w-12 h-12 rounded-full flex items-center justify-center z-10 relative cursor-pointer"
-                  style={{ background: 'linear-gradient(135deg, #059669, #0891b2)', boxShadow: '0 4px 20px rgba(16,185,129,0.4)' }}
-                >
-                  <MapPin size={22} className="text-white fill-white" />
-                </div>
-                <div className="absolute inset-0 rounded-full animate-ping opacity-25" style={{ background: '#10b981' }} />
-              </motion.div>
-            </div>
-
-            {/* Info box */}
-            <div
-              className="absolute bottom-5 left-5 px-5 py-3.5 rounded-xl border"
-              style={{ background: 'rgba(3,11,26,0.92)', borderColor: 'rgba(255,255,255,0.1)', backdropFilter: 'blur(20px)' }}
-            >
-              <div className="text-white font-bold text-sm" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>ACCOUNTELLENCE HQ</div>
-              <div className="text-slate-400 text-xs mt-0.5">San Francisco, CA</div>
-            </div>
-          </motion.div>
         </div>
       </section>
 
@@ -314,9 +294,9 @@ export default function ContactPage() {
             </div>
             <div className="flex-1">
               <h3 className="text-xl font-bold text-white mb-2" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>Need Help?</h3>
-              <p className="text-slate-400 text-sm mb-3 max-w-lg">Can't find what you're looking for? Visit our robust Help Center for setup guides, FAQs, and extensive documentation.</p>
-              <a href="#" className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-400 hover:text-emerald-300 transition-colors duration-200 group">
-                Visit Help Center
+              <p className="text-slate-400 text-sm mb-3 max-w-lg">Can't find what you're looking for? Visit our System Tutorial & Documentation for setup guides, FAQs, and extensive walkthroughs.</p>
+              <a href="/tutorial" className="inline-flex items-center gap-1.5 text-sm font-semibold text-emerald-400 hover:text-emerald-300 transition-colors duration-200 group">
+                Visit System Tutorial
                 <ExternalLink size={14} className="group-hover:-translate-y-0.5 group-hover:translate-x-0.5 transition-transform duration-200" />
               </a>
             </div>
