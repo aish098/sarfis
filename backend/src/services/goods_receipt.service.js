@@ -133,11 +133,13 @@ class GoodsReceiptService {
         const q_curr = parseFloat(stockSummary?.total_qty || 0);
         const c_curr = parseFloat(item.cost_price || 0);
         const q_new = qty;
-        const c_new = c_curr; // Using current cost price as default purchase cost if not provided
+        const actualUnitCost = (item.unit_cost !== undefined && item.unit_cost !== null && parseFloat(item.unit_cost) > 0)
+          ? parseFloat(item.unit_cost)
+          : c_curr;
 
-        let newWAC = c_new;
+        let newWAC = actualUnitCost;
         if (q_curr + q_new > 0) {
-          newWAC = ((q_curr * c_curr) + (q_new * c_new)) / (q_curr + q_new);
+          newWAC = ((q_curr * c_curr) + (q_new * actualUnitCost)) / (q_curr + q_new);
         }
 
         // Update WAC on product
@@ -155,7 +157,7 @@ class GoodsReceiptService {
           type: 'PURCHASE',
           quantity_change: qty,
           quantity_after: newQty,
-          unit_cost: c_curr,
+          unit_cost: actualUnitCost,
           reference_id: id,
           reference_type: 'goods_receipt',
           notes: `Received via ${grn.grn_number}. Ref: ${grn.supplier_reference || ''}`,
@@ -168,7 +170,7 @@ class GoodsReceiptService {
           warehouseId: grn.warehouse_id,
           productId: item.product_id,
           quantity: qty,
-          unitCost: c_curr,
+          unitCost: actualUnitCost,
           sourceDocument: grn.grn_number || String(id),
           sourceType: 'goods_receipt',
           userId
