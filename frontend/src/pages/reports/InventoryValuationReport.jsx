@@ -6,6 +6,7 @@ import {
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { exportUnifiedPDF, exportUnifiedCSV } from '../../utils/documentExporter';
 
 export default function InventoryValuationReport({ data, asOfDate, companyName }) {
   // Grouping drill-down states
@@ -117,58 +118,52 @@ export default function InventoryValuationReport({ data, asOfDate, companyName }
   // Export handlers
   const handleExportPDF = () => {
     if (!data || !data.data) return;
-    const doc = new jsPDF();
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text("INVENTORY VALUATION REPORT", 14, 20);
-    
-    doc.setFontSize(9.5);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Company: ${companyName || 'ACCOUNTELLENCE'}`, 14, 26);
-    doc.text(`Valuation Date: As of ${new Date(asOfDate).toLocaleDateString()}`, 14, 31);
-    doc.text(`Costing Method: ${data.summary.costingMethod}`, 14, 36);
-
-    const headers = [['Warehouse', 'Category', 'Product SKU', 'Product Name', 'Remaining Qty', 'Unit Cost', 'Carrying Value']];
-    const tableData = data.data.map(l => [
-      l.warehouse_name,
-      l.category_name,
-      l.product_sku,
-      l.product_name,
-      l.remaining_qty.toLocaleString(),
-      `PKR ${l.unit_cost.toFixed(2)}`,
-      `PKR ${l.layer_value.toFixed(2)}`
-    ]);
-
-    autoTable(doc, {
-      startY: 42,
-      head: headers,
-      body: tableData,
-      theme: 'striped',
-      headStyles: { fillColor: [16, 185, 129] },
-      styles: { fontSize: 8 }
+    exportUnifiedPDF({
+      title: 'INVENTORY VALUATION REPORT',
+      subtitle: `Costing Method: ${data.summary?.costingMethod || 'FIFO'}`,
+      companyName: companyName || 'ACCOUNTELLENCE Corporate Workspace',
+      period: `As of ${new Date(asOfDate).toLocaleDateString()}`,
+      kpis: [
+        { label: 'TOTAL VALUATION', value: `PKR ${totalValuation.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, color: 'emerald' },
+        { label: 'TOTAL LAYERS', value: `${data.data.length} Batches`, color: 'blue' }
+      ],
+      columns: ['Warehouse', 'Category', 'Product SKU', 'Product Name', 'Remaining Qty', 'Unit Cost (PKR)', 'Carrying Value (PKR)'],
+      rows: data.data.map(l => [
+        l.warehouse_name,
+        l.category_name,
+        l.product_sku,
+        l.product_name,
+        l.remaining_qty.toLocaleString(),
+        l.unit_cost.toFixed(2),
+        l.layer_value.toFixed(2)
+      ]),
+      filename: `inventory_valuation_${asOfDate}.pdf`
     });
-
-    doc.save(`inventory_valuation_${asOfDate}.pdf`);
   };
 
   const handleExportExcel = () => {
     if (!data || !data.data) return;
-    const sheetData = data.data.map(l => ({
-      'Warehouse': l.warehouse_name,
-      'Category': l.category_name,
-      'Product SKU': l.product_sku,
-      'Product Name': l.product_name,
-      'Remaining Quantity': l.remaining_qty,
-      'Unit Cost (PKR)': l.unit_cost,
-      'Layer Value (PKR)': l.layer_value,
-      'Received Date': new Date(l.received_date).toLocaleDateString()
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(sheetData);
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Valuation');
-    XLSX.writeFile(wb, `inventory_valuation_${asOfDate}.xlsx`);
+    exportUnifiedCSV({
+      title: 'INVENTORY VALUATION REPORT',
+      companyName: companyName || 'ACCOUNTELLENCE Corporate Workspace',
+      period: `As of ${new Date(asOfDate).toLocaleDateString()}`,
+      kpis: [
+        { label: 'TOTAL VALUATION', value: `PKR ${totalValuation.toFixed(2)}` },
+        { label: 'COSTING METHOD', value: data.summary?.costingMethod || 'FIFO' }
+      ],
+      columns: ['Warehouse', 'Category', 'Product SKU', 'Product Name', 'Remaining Qty', 'Unit Cost (PKR)', 'Carrying Value (PKR)', 'Received Date'],
+      rows: data.data.map(l => [
+        l.warehouse_name,
+        l.category_name,
+        l.product_sku,
+        l.product_name,
+        l.remaining_qty,
+        l.unit_cost.toFixed(2),
+        l.layer_value.toFixed(2),
+        new Date(l.received_date).toLocaleDateString()
+      ]),
+      filename: `inventory_valuation_${asOfDate}.csv`
+    });
   };
 
   if (!data) return null;

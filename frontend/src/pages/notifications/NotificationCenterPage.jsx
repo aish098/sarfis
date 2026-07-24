@@ -8,6 +8,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import { exportUnifiedCSV } from '../../utils/documentExporter';
 
 const PBI = {
   blue: '#059669',
@@ -160,33 +161,27 @@ export default function NotificationCenterPage() {
 
   const handleExportCSV = () => {
     if (notifications.length === 0) return;
-    
-    // Headers
-    const headers = ['ID', 'Title', 'Message', 'Type', 'Priority', 'Read', 'Archived', 'Created At'];
-    
-    // Rows
-    const rows = notifications.map(n => [
-      n.id,
-      `"${n.title.replace(/"/g, '""')}"`,
-      `"${n.message.replace(/"/g, '""')}"`,
-      n.type,
-      n.priority,
-      n.is_read ? 'YES' : 'NO',
-      n.is_archived ? 'YES' : 'NO',
-      new Date(n.created_at).toLocaleString()
-    ]);
-    
-    const csvContent = [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
-    
-    // Create download link
-    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `notifications_export_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportUnifiedCSV({
+      title: 'SYSTEM NOTIFICATION AUDIT TRAIL',
+      companyName: activeCompany?.name || 'ACCOUNTELLENCE Corporate Workspace',
+      period: `As of ${new Date().toLocaleDateString()}`,
+      kpis: [
+        { label: 'TOTAL NOTIFICATIONS', value: `${notifications.length} Messages` },
+        { label: 'UNREAD COUNT', value: `${notifications.filter(n => !n.is_read).length} Unread` }
+      ],
+      columns: ['ID', 'Title', 'Message', 'Type', 'Priority', 'Read', 'Archived', 'Created At'],
+      rows: notifications.map(n => [
+        n.id,
+        n.title,
+        n.message,
+        n.type,
+        n.priority,
+        n.is_read ? 'YES' : 'NO',
+        n.is_archived ? 'YES' : 'NO',
+        new Date(n.created_at).toLocaleString()
+      ]),
+      filename: `notifications_export_${new Date().toISOString().split('T')[0]}.csv`
+    });
   };
 
   const getPriorityStyles = (priority) => {

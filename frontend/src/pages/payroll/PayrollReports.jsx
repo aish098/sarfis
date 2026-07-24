@@ -6,6 +6,7 @@ import {
 } from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
+import { exportUnifiedCSV, exportUnifiedPDF } from '../../utils/documentExporter';
 
 export default function PayrollReports({ userRole }) {
   const { activeCompany } = useAuthStore();
@@ -156,31 +157,46 @@ export default function PayrollReports({ userRole }) {
   };
 
   const handleExportPayslipsCSV = () => {
-    let headers = 'Employee Name,Disbursement Period,Gross Salary,Net Salary,Status\n';
-    let content = '';
-    payslips.forEach(p => {
-      content += `"${p.name}","${p.period}",${p.gross},${p.net},"${p.status}"\n`;
+    exportUnifiedCSV({
+      title: 'PAYROLL PAYSLIPS REGISTER',
+      companyName: activeCompany?.name || 'ACCOUNTELLENCE Corporate Workspace',
+      period: `Disbursement Period: ${selectedPeriod}`,
+      kpis: [
+        { label: 'TOTAL EMPLOYEES', value: `${payslips.length} Employees` },
+        { label: 'TOTAL DISBURSED', value: `PKR ${payslips.reduce((s, p) => s + (p.net || 0), 0).toFixed(2)}` }
+      ],
+      columns: ['Employee Name', 'Disbursement Period', 'Gross Salary (PKR)', 'Net Salary (PKR)', 'Status'],
+      rows: payslips.map(p => [
+        p.name,
+        p.period,
+        p.gross.toFixed(2),
+        p.net.toFixed(2),
+        p.status
+      ]),
+      filename: `payroll_payslips_register_${selectedPeriod}.csv`
     });
-    const blob = new Blob([headers + content], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `payroll_payslips_register_${selectedPeriod}.csv`);
-    link.click();
   };
 
   const handleExportCostCSV = () => {
-    let headers = 'Employee Name,Gross Salary,Income Tax Withheld,Provident Fund (PF),Overtime Pay,Bonuses,Total Employer Cost\n';
-    let content = '';
-    employeeCosts.forEach(c => {
-      content += `"${c.name}",${c.gross},${c.tax},${c.pf},${c.overtime},${c.bonus},${c.cost}\n`;
+    exportUnifiedCSV({
+      title: 'PAYROLL EMPLOYER COST ANALYSIS',
+      companyName: activeCompany?.name || 'ACCOUNTELLENCE Corporate Workspace',
+      period: `Disbursement Period: ${selectedPeriod}`,
+      kpis: [
+        { label: 'TOTAL EMPLOYER COST', value: `PKR ${employeeCosts.reduce((s, c) => s + (c.cost || 0), 0).toFixed(2)}` }
+      ],
+      columns: ['Employee Name', 'Gross Salary (PKR)', 'Income Tax (PKR)', 'Provident Fund (PKR)', 'Overtime (PKR)', 'Bonuses (PKR)', 'Total Employer Cost (PKR)'],
+      rows: employeeCosts.map(c => [
+        c.name,
+        c.gross.toFixed(2),
+        c.tax.toFixed(2),
+        c.pf.toFixed(2),
+        c.overtime.toFixed(2),
+        c.bonus.toFixed(2),
+        c.cost.toFixed(2)
+      ]),
+      filename: `payroll_cost_analysis_${selectedPeriod}.csv`
     });
-    const blob = new Blob([headers + content], { type: 'text/csv;charset=utf-8;' });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement('a');
-    link.setAttribute('href', url);
-    link.setAttribute('download', `payroll_cost_analysis_${selectedPeriod}.csv`);
-    link.click();
   };
 
   return (

@@ -8,6 +8,7 @@ import useAuthStore from '../../store/authStore';
 import { jsPDF } from 'jspdf';
 import autoTable from 'jspdf-autotable';
 import * as XLSX from 'xlsx';
+import { exportUnifiedPDF, exportUnifiedCSV } from '../../utils/documentExporter';
 
 export default function CostLayersTab() {
   const { activeCompany } = useAuthStore();
@@ -93,112 +94,61 @@ export default function CostLayersTab() {
   // Export options
   const handleExportCSV = () => {
     if (layers.length === 0) return;
-    const headers = ['Layer ID', 'Warehouse', 'Product SKU', 'Product Name', 'Source Doc', 'Source Type', 'Received Date', 'Original Qty', 'Remaining Qty', 'Unit Cost (PKR)', 'Remaining Value (PKR)', 'Status'];
-    const rows = layers.map(l => [
-      `#${l.id}`,
-      l.warehouse_name,
-      l.product_sku || '',
-      l.product_name,
-      l.source_document || 'N/A',
-      l.source_type,
-      new Date(l.received_date).toLocaleDateString(),
-      l.received_qty,
-      l.remaining_qty,
-      l.unit_cost,
-      l.remaining_value,
-      l.status
-    ]);
-
-    const csvContent = "data:text/csv;charset=utf-8," 
-      + [headers.join(','), ...rows.map(e => e.map(val => `"${String(val).replace(/"/g, '""')}"`).join(","))].join("\n");
-    
-    const encodedUri = encodeURI(csvContent);
-    const link = document.createElement("a");
-    link.setAttribute("href", encodedUri);
-    link.setAttribute("download", `inventory_cost_layers_${activeCompany.id}_${new Date().toISOString().split('T')[0]}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportUnifiedCSV({
+      title: 'INVENTORY COST LAYERS REGISTRY',
+      companyName: activeCompany?.name || 'ACCOUNTELLENCE Corporate Workspace',
+      period: `As of ${new Date().toLocaleDateString()}`,
+      kpis: [
+        { label: 'TOTAL LAYERS', value: `${layers.length} Layers` },
+        { label: 'TOTAL ASSET VALUE', value: `PKR ${summaryData.totalValue.toFixed(2)}` }
+      ],
+      columns: ['Layer ID', 'Warehouse', 'Product SKU', 'Product Name', 'Source Doc', 'Source Type', 'Received Date', 'Original Qty', 'Remaining Qty', 'Unit Cost (PKR)', 'Remaining Value (PKR)', 'Status'],
+      rows: layers.map(l => [
+        `#${l.id}`,
+        l.warehouse_name,
+        l.product_sku || '',
+        l.product_name,
+        l.source_document || 'N/A',
+        l.source_type,
+        new Date(l.received_date).toLocaleDateString(),
+        l.received_qty,
+        l.remaining_qty,
+        l.unit_cost.toFixed(2),
+        l.remaining_value.toFixed(2),
+        l.status
+      ]),
+      filename: `inventory_cost_layers_${activeCompany.id}_${new Date().toISOString().split('T')[0]}.csv`
+    });
   };
 
-  const handleExportExcel = () => {
-    if (layers.length === 0) return;
-    const wsData = layers.map(l => ({
-      'Layer ID': `#${l.id}`,
-      'Warehouse': l.warehouse_name,
-      'Product SKU': l.product_sku || '',
-      'Product Name': l.product_name,
-      'Source Doc': l.source_document || 'N/A',
-      'Source Type': l.source_type,
-      'Received Date': new Date(l.received_date).toLocaleDateString(),
-      'Original Qty': Number(l.received_qty || 0),
-      'Remaining Qty': Number(l.remaining_qty || 0),
-      'Unit Cost (PKR)': Number(l.unit_cost || 0),
-      'Remaining Value (PKR)': Number(l.remaining_value || 0),
-      'Status': l.status
-    }));
-
-    const ws = XLSX.utils.json_to_sheet(wsData);
-
-    // Auto-fit column widths so data is neat and unmerged
-    ws['!cols'] = [
-      { wch: 10 }, // Layer ID
-      { wch: 22 }, // Warehouse
-      { wch: 16 }, // Product SKU
-      { wch: 30 }, // Product Name
-      { wch: 18 }, // Source Doc
-      { wch: 16 }, // Source Type
-      { wch: 14 }, // Received Date
-      { wch: 14 }, // Original Qty
-      { wch: 14 }, // Remaining Qty
-      { wch: 18 }, // Unit Cost
-      { wch: 22 }, // Remaining Value
-      { wch: 14 }  // Status
-    ];
-
-    const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, 'Cost Layers');
-    XLSX.writeFile(wb, `inventory_cost_layers_${activeCompany.id}_${new Date().toISOString().split('T')[0]}.xlsx`);
-  };
+  const handleExportExcel = handleExportCSV;
 
   const handleExportPDF = () => {
     if (layers.length === 0) return;
-    const doc = new jsPDF('landscape');
-    
-    doc.setFont("helvetica", "bold");
-    doc.setFontSize(16);
-    doc.text(`INVENTORY COST LAYERS REGISTRY`, 14, 20);
-    
-    doc.setFontSize(10);
-    doc.setFont("helvetica", "normal");
-    doc.text(`Company: ${activeCompany?.name || 'ACCOUNTELLENCE'}`, 14, 26);
-    doc.text(`Report Date: ${new Date().toLocaleDateString()}`, 14, 31);
-
-    const headers = [['Layer ID', 'Warehouse', 'Product', 'Source Doc', 'Type', 'Rec. Date', 'Orig Qty', 'Rem Qty', 'Unit Cost', 'Value', 'Status']];
-    const data = layers.map(l => [
-      l.id,
-      l.warehouse_name,
-      `${l.product_sku} - ${l.product_name}`,
-      l.source_document || 'N/A',
-      l.source_type,
-      new Date(l.received_date).toLocaleDateString(),
-      l.received_qty.toLocaleString(),
-      l.remaining_qty.toLocaleString(),
-      `PKR ${l.unit_cost.toFixed(2)}`,
-      `PKR ${l.remaining_value.toFixed(2)}`,
-      l.status
-    ]);
-
-    autoTable(doc, {
-      startY: 38,
-      head: headers,
-      body: data,
-      theme: 'striped',
-      headStyles: { fillColor: [16, 185, 129] },
-      styles: { fontSize: 8.5 }
+    exportUnifiedPDF({
+      title: 'INVENTORY COST LAYERS REGISTRY',
+      companyName: activeCompany?.name || 'ACCOUNTELLENCE Corporate Workspace',
+      period: `As of ${new Date().toLocaleDateString()}`,
+      kpis: [
+        { label: 'TOTAL LAYERS', value: `${layers.length} Active Batches`, color: 'emerald' },
+        { label: 'TOTAL REMAINING VALUE', value: `PKR ${summaryData.totalValue.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, color: 'blue' }
+      ],
+      columns: ['Layer ID', 'Warehouse', 'Product', 'Source Doc', 'Type', 'Rec. Date', 'Orig Qty', 'Rem Qty', 'Unit Cost (PKR)', 'Value (PKR)', 'Status'],
+      rows: layers.map(l => [
+        `#${l.id}`,
+        l.warehouse_name,
+        `${l.product_sku || ''} ${l.product_name}`,
+        l.source_document || 'N/A',
+        l.source_type,
+        new Date(l.received_date).toLocaleDateString(),
+        l.received_qty.toLocaleString(),
+        l.remaining_qty.toLocaleString(),
+        l.unit_cost.toFixed(2),
+        l.remaining_value.toFixed(2),
+        l.status
+      ]),
+      filename: `inventory_cost_layers_${activeCompany.id}.pdf`
     });
-
-    doc.save(`inventory_cost_layers_${activeCompany.id}.pdf`);
   };
 
   return (
