@@ -37,6 +37,7 @@ app.use('/api', require('./routes/employee.routes'));
 app.use('/api', require('./routes/notification.routes'));
 app.use('/api/risk', require('./routes/risk.routes'));
 app.use('/api/tutorial', require('./routes/tutorial.routes'));
+app.use('/api/saas-control', require('../../saas-admin-backend/src/app'));
 
 // ERP Modules (Now includes Analytics)
 app.use('/api', require('./routes/erp.routes'));

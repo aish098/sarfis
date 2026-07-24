@@ -35,6 +35,44 @@ async function startServer() {
       await db.migrate.latest();
       console.log('[Migrations] Migrations completed successfully');
 
+      // Run SaaS Admin Backend migrations & Master Admin Sync
+      try {
+        const saasDb = require('../saas-admin-backend/src/db/knex');
+        console.log('[SaaS Admin] Running SaaS Admin migrations...');
+        await saasDb.migrate.latest();
+        
+        const bcrypt = require('bcryptjs');
+        const initialEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@saas.com';
+        const initialPassword = process.env.INITIAL_ADMIN_PASSWORD || 'AdminPass123!';
+        
+        const superAdminRole = await saasDb('admin_roles').where({ name: 'SUPER_ADMIN' }).first();
+        if (!superAdminRole) {
+          await saasDb.seed.run();
+        } else {
+          const existingAdmin = await saasDb('admins').whereRaw('LOWER(email) = ?', [initialEmail.toLowerCase()]).first();
+          const passwordHash = await bcrypt.hash(initialPassword, 10);
+          if (!existingAdmin) {
+            await saasDb('admins').insert({
+              name: 'Master Admin',
+              email: initialEmail,
+              password_hash: passwordHash,
+              role_id: superAdminRole.id,
+              status: 'ACTIVE',
+              must_change_password: true
+            });
+          } else {
+            await saasDb('admins').where({ id: existingAdmin.id }).update({
+              password_hash: passwordHash,
+              status: 'ACTIVE',
+              updated_at: new Date()
+            });
+          }
+        }
+        console.log('[SaaS Admin] Master Admin credentials synced successfully.');
+      } catch (saasErr) {
+        console.error('[SaaS Admin] Startup init error:', saasErr.message);
+      }
+
       // Seed default document types if missing
       await db('workflow_document_types')
         .insert([
