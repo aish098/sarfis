@@ -87,10 +87,18 @@ export default function SaaSAdminDashboard() {
         { currentPassword: loginPassword, newPassword },
         getHeaders()
       );
-      setSuccessMsg('Password changed successfully! Please log in again.');
-      setToken('');
-      localStorage.removeItem('saas_admin_token');
+      setSuccessMsg('Password updated successfully! Authenticating with new credentials...');
+      setLoginPassword(newPassword);
       setMustChangePassword(false);
+
+      // Auto-relogin with new password
+      const reloginRes = await axios.post(`${SAAS_API_BASE}/auth/login`, {
+        email: loginEmail,
+        password: newPassword
+      });
+      const { accessToken } = reloginRes.data.data;
+      setToken(accessToken);
+      localStorage.setItem('saas_admin_token', accessToken);
     } catch (err) {
       setErrorMsg(err.response?.data?.message || 'Password change failed.');
     } finally {
