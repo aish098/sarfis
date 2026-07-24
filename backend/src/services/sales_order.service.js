@@ -424,9 +424,18 @@ exports.convertToVoucher = async (id, companyId, userId) => {
     if (order.status !== 'DELIVERED') throw new Error('Only delivered Sales Orders can be invoiced.');
     if (order.relatedVoucher) throw new Error('Sales Order has already been invoiced.');
 
-    // Fetch details settings to get Default AR account
+    // Fetch details settings to get Default AR account with automatic fallback
     const settings = await trx('company_accounting_settings').where({ company_id: companyId }).first();
-    const arAccountId = settings?.default_ar_account_id;
+    let arAccountId = settings?.default_ar_account_id;
+    if (!arAccountId) {
+      const fallbackAr = await trx('accounts')
+        .where({ company_id: companyId })
+        .where(function() {
+          this.where('code', '1100').orWhere('name', 'like', '%Receivable%').orWhere('name', 'like', '%AR%');
+        })
+        .first();
+      arAccountId = fallbackAr?.id;
+    }
     if (!arAccountId) throw new Error('Default Accounts Receivable account mapping is missing.');
 
     // Format Voucher items payload
