@@ -57,11 +57,20 @@ app.use('/api/scheduled-reports', require('./routes/scheduled_reports.routes'));
 app.use('/api/communications', require('./routes/communication.routes'));
 app.use('/api/subledger', require('./routes/subledger.routes'));
 
+app.get('/favicon.ico', (req, res) => res.status(204).end());
+
 // Serve static assets in production
 if (process.env.NODE_ENV === 'production') {
-  app.use(express.static(path.join(__dirname, '../../frontend/dist')));
+  const distPath = path.join(__dirname, '../../frontend/dist');
+  app.use(express.static(distPath));
   app.get(/^\/(?!api).*/, (req, res) => {
-    res.sendFile(path.resolve(__dirname, '../../frontend', 'dist', 'index.html'));
+    const indexPath = path.resolve(distPath, 'index.html');
+    const fs = require('fs');
+    if (fs.existsSync(indexPath)) {
+      res.sendFile(indexPath);
+    } else {
+      res.status(200).send('SARFIS API Server Running');
+    }
   });
 }
 
