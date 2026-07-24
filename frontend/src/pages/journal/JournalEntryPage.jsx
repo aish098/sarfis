@@ -811,7 +811,7 @@ export default function JournalEntryPage() {
             </div>
 
             {/* Excel-style spreadsheet grid */}
-            <div className="overflow-x-auto lg:overflow-visible pb-24" style={{ minHeight: '380px' }}>
+            <div className="overflow-x-auto pb-24" style={{ minHeight: '380px' }}>
               <table className="w-full" style={{ minWidth: 720 }}>
                 <thead>
                   <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>

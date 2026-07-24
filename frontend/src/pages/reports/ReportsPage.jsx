@@ -1051,7 +1051,7 @@ function TrialBalance({ data }) {
   const balanced = Math.abs(sumD - sumC) < 0.01;
   return (
     <div className="space-y-6">
-      <div className="overflow-x-auto lg:overflow-visible pb-6 accountellence-scrollbar">
+      <div className="overflow-x-auto pb-6 accountellence-scrollbar">
         <table className="w-full text-left" style={{ minWidth: 600 }}>
           <thead>
             <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>

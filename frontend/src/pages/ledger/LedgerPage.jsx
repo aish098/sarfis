@@ -264,7 +264,7 @@ export default function LedgerPage({ globalSearch = "" }) {
             <p className="text-[13px] text-slate-400 mt-1 font-semibold">Try adjusting your filters or date periods.</p>
           </div>
         ) : (
-          <div className="overflow-x-auto lg:overflow-visible pb-24" style={{ minHeight: '380px' }}>
+          <div className="overflow-x-auto pb-24" style={{ minHeight: '380px' }}>
             <table className="w-full text-left" style={{ minWidth: 720 }}>
               <thead>
                 <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
