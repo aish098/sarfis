@@ -14,21 +14,27 @@ exports.seed = async function (knex) {
   await knex('admin_permissions').del();
   await knex('admin_roles').del();
 
+  // Helper to extract numeric ID across SQLite and PostgreSQL drivers
+  const extractId = (res) => (typeof res === 'object' && res !== null ? (res.id || Object.values(res)[0]) : res);
+
   // 1. Insert Master Admin Roles
-  const [superAdminRoleId] = await knex('admin_roles').insert({
+  const [superAdminRaw] = await knex('admin_roles').insert({
     name: 'SUPER_ADMIN',
     description: 'Full unconstrained system administration access'
   });
+  const superAdminRoleId = extractId(superAdminRaw);
 
-  const [adminRoleId] = await knex('admin_roles').insert({
+  const [adminRaw] = await knex('admin_roles').insert({
     name: 'ADMIN',
     description: 'Standard admin access with user and coupon management'
   });
+  const adminRoleId = extractId(adminRaw);
 
-  const [supportRoleId] = await knex('admin_roles').insert({
+  const [supportRaw] = await knex('admin_roles').insert({
     name: 'SUPPORT',
     description: 'Support staff access with read-only & block permissions'
   });
+  const supportRoleId = extractId(supportRaw);
 
   // 2. Insert Permissions
   const permissions = [

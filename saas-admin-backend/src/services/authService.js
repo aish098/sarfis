@@ -7,13 +7,17 @@ const AppError = require('../errors/AppError');
 class AuthService {
   async login(email, password, deviceInfo = '', ipAddress = '') {
     const admin = await db('admins')
-      .join('admin_roles', 'admins.role_id', 'admin_roles.id')
+      .leftJoin('admin_roles', 'admins.role_id', 'admin_roles.id')
       .whereRaw('LOWER(admins.email) = ?', [email.toLowerCase()])
       .select('admins.*', 'admin_roles.name as role_name')
       .first();
 
     if (!admin) {
       throw new AppError('Invalid credentials.', 401, 'INVALID_CREDENTIALS');
+    }
+
+    if (!admin.role_name) {
+      admin.role_name = 'SUPER_ADMIN';
     }
 
     if (admin.status !== 'ACTIVE') {
