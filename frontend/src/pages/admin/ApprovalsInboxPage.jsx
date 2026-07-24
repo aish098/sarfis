@@ -216,7 +216,7 @@ export default function ApprovalsInboxPage() {
 
       {/* Tabs and Search */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
-        <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-xl w-fit">
+        <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl w-full sm:w-auto overflow-x-auto hide-scrollbar">
           <button 
             onClick={() => setActiveTab('pending')}
             className={`px-4 py-2 text-[12.5px] font-bold rounded-lg transition-all ${
