@@ -49,7 +49,7 @@ export default function RejectionBanner({
         </div>
 
         {/* Right Side: Action Buttons */}
-        <div className="flex items-center gap-2 w-full md:w-auto justify-end border-t md:border-t-0 border-rose-200/50 pt-3 md:pt-0">
+        <div className="flex flex-wrap items-center gap-2 w-full md:w-auto justify-start sm:justify-end border-t md:border-t-0 border-rose-200/50 pt-3 md:pt-0">
           {onViewDiff && (
             <button
               type="button"
