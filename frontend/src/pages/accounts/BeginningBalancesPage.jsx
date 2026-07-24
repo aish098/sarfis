@@ -695,7 +695,7 @@ export default function BeginningBalancesPage() {
       <div className="col-span-full space-y-6 pb-16 no-print">
         
         {/* Step Indicator */}
-        <div className="bg-white border border-slate-200/60 rounded-2xl p-4 flex items-center justify-between shadow-2xs select-none">
+        <div className="bg-white border border-slate-200/60 rounded-2xl p-4 flex items-center justify-between gap-3 overflow-x-auto hide-scrollbar whitespace-nowrap shadow-2xs select-none">
           {[
             { s: 1, label: 'Select Year' },
             { s: 2, label: 'Import & Adjust' },
@@ -705,7 +705,7 @@ export default function BeginningBalancesPage() {
             const isCompleted = step > item.s || (status === 'POSTED' && item.s === 4);
             const isActive = step === item.s;
             return (
-              <div key={item.s} className="flex items-center gap-2.5">
+              <div key={item.s} className="flex items-center gap-2.5 shrink-0">
                 <span className={`w-6 h-6 rounded-full flex items-center justify-center text-[11px] font-black border transition-all ${
                   isCompleted ? 'bg-emerald-500 text-white border-emerald-600' :
                   isActive ? 'bg-emerald-600 text-white border-emerald-700 shadow-xs shadow-emerald-600/10' :

@@ -49,12 +49,12 @@ function HeaderDropdown({ open, onClose, align = 'right', children, className = 
       {open && (
         <Motion.div
           ref={ref}
-          initial={{ opacity: 0, y: 6, scale: 0.98 }}
+          initial={{ opacity: 0, y: 8, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
-          exit={{ opacity: 0, y: 6, scale: 0.98 }}
-          transition={{ duration: 0.14 }}
-          className={`absolute top-full mt-1.5 bg-white rounded-lg border overflow-hidden z-50 max-w-[calc(100vw-24px)] shadow-[0_6.4px_14.4px_rgba(0,0,0,.11)] ${align === 'right' ? 'right-0' : 'left-0'} ${className}`}
-          style={{ borderColor: PBI.border, boxShadow: '0 12px 30px rgba(15,23,42,0.12)' }}
+          exit={{ opacity: 0, y: 8, scale: 0.96 }}
+          transition={{ duration: 0.16 }}
+          className={`fixed inset-x-2.5 top-16 sm:absolute sm:inset-auto sm:top-full sm:mt-1.5 bg-white rounded-2xl sm:rounded-xl border overflow-hidden z-50 shadow-2xl max-h-[80vh] sm:max-h-none overflow-y-auto ${align === 'right' ? 'sm:right-0' : 'sm:left-0'} ${className}`}
+          style={{ borderColor: PBI.border, boxShadow: '0 20px 40px rgba(15,23,42,0.18)' }}
         >
           {children}
         </Motion.div>

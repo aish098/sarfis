@@ -382,7 +382,7 @@ export default function EmailCenterPage() {
       </div>
 
       {/* Tabs Row */}
-      <div className="flex flex-wrap items-center gap-1.5 p-1 bg-slate-100 rounded-xl w-fit">
+      <div className="flex items-center gap-1.5 p-1 bg-slate-100 rounded-xl w-full sm:w-auto overflow-x-auto hide-scrollbar">
         {[
           { id: 'communications', label: 'Communications', icon: MessageSquareIcon },
           { id: 'templates', label: 'Templates', icon: CheckSquare },
