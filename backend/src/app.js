@@ -59,23 +59,22 @@ app.use('/api/subledger', require('./routes/subledger.routes'));
 
 app.get('/favicon.ico', (req, res) => res.status(204).end());
 
-// Serve static assets in production
-if (process.env.NODE_ENV === 'production') {
-  const distPath = path.join(__dirname, '../../frontend/dist');
-  app.use(express.static(distPath));
-  app.get(/^\/(?!api).*/, (req, res) => {
-    const indexPath = path.resolve(distPath, 'index.html');
-    const fs = require('fs');
-    if (fs.existsSync(indexPath)) {
-      res.sendFile(indexPath);
-    } else {
-      res.status(200).send('SARFIS API Server Running');
-    }
-  });
-}
+const distPath = path.join(__dirname, '../../frontend/dist');
+app.use(express.static(distPath));
 
 app.get('/api', (req, res) => {
-  res.json({ message: 'Welcome to ACCOUNTELLENCE API' });
+  res.json({ message: 'Welcome to ACCOUNTELLENCE API', status: 'ONLINE' });
+});
+
+// Universal SPA fallback for client routes (e.g. /dashboard/payroll)
+app.get(/^\/(?!api).*/, (req, res) => {
+  const indexPath = path.resolve(distPath, 'index.html');
+  const fs = require('fs');
+  if (fs.existsSync(indexPath)) {
+    res.sendFile(indexPath);
+  } else {
+    res.status(200).send('<!DOCTYPE html><html><head><title>SARFIS ERP</title></head><body><div id="root"><h1>SARFIS ERP Server Online</h1><p>API & Application Gateway Ready.</p></div></body></html>');
+  }
 });
 
 // Global Error Handler

@@ -3,12 +3,19 @@ const path = require('path');
 const app = require('./src/app');
 const db = require('./src/config/db');
 
+process.on('uncaughtException', (err) => {
+  console.error('[UNCAUGHT EXCEPTION]', err);
+});
+process.on('unhandledRejection', (reason) => {
+  console.error('[UNHANDLED REJECTION]', reason);
+});
+
 const PORT = process.env.PORT || 5000;
 
 async function startServer() {
-  // Start listening on the port immediately so Railway health checks succeed instantly
-  app.listen(PORT, () => {
-    console.log(`Server running on port ${PORT}`);
+  // Start listening on 0.0.0.0 immediately so Railway health checks succeed instantly
+  app.listen(PORT, '0.0.0.0', () => {
+    console.log(`Server running on port ${PORT} (0.0.0.0)`);
   });
 
   // Run database checks and migrations asynchronously in the background
