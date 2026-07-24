@@ -544,7 +544,7 @@ export default function TutorialPage() {
 
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6 text-left">
             {[
-              { icon: Mail, title: 'Email Support', info: 'support@accountellence.com', cta: 'Send Email', href: 'mailto:support@accountellence.com', color: '#10b981' },
+              { icon: Mail, title: 'Email Support', info: 'info@accountellence.com', cta: 'Send Email', href: 'mailto:info@accountellence.com', color: '#10b981' },
               { icon: MessageSquare, title: 'WhatsApp Live', info: '+92 300 1234567', cta: 'Chat on WhatsApp', href: 'https://wa.me/923001234567', color: '#06b6d4' },
               { icon: PhoneCall, title: 'Schedule Demo', info: 'Direct with Leadership', cta: 'Request Calendar', href: '/contact', color: '#f59e0b' }
             ].map((s, idx) => (
