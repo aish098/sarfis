@@ -9,6 +9,7 @@ import {
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import { jsPDF } from 'jspdf';
+import autoTable from 'jspdf-autotable';
 import InventoryValuationReport from './InventoryValuationReport';
 import { exportUnifiedPDF, exportUnifiedCSV } from '../../utils/documentExporter';
 
@@ -147,180 +148,192 @@ export default function ReportsPage() {
 
   const exportNoteToPDF = async () => {
     if (!noteData) return;
-    const doc = new jsPDF();
+    try {
+      const doc = new jsPDF();
 
-    // Hex to RGB converter helper
-    const hexToRgb = (hex) => {
-      let c = hex.replace('#', '');
-      if (c.length === 3) {
-        c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
-      }
-      const num = parseInt(c, 16);
-      return [num >> 16, (num >> 8) & 0x00ff, num & 0x0000ff];
-    };
-    const brandRgb = hexToRgb(settings?.accentColor || '#10b981');
+      // Hex to RGB converter helper
+      const hexToRgb = (hex) => {
+        let c = (hex || '#10b981').replace('#', '');
+        if (c.length === 3) {
+          c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
+        }
+        const num = parseInt(c, 16);
+        return [num >> 16, (num >> 8) & 0x00ff, num & 0x0000ff];
+      };
+      const brandRgb = hexToRgb(settings?.accentColor || '#10b981');
 
-    if (settings?.logoUrl) {
-      const logoUrl = settings.logoUrl.startsWith('http') ? settings.logoUrl : `${import.meta.env.PROD ? window.location.origin : 'http://localhost:5001'}${settings.logoUrl}`;
-      await new Promise((resolve) => {
-        const img = new Image();
-        img.crossOrigin = 'Anonymous';
-        img.onload = () => {
-          try {
-            const maxWidth = 35;
-            const maxHeight = 12;
-            let width = maxWidth;
-            let height = maxWidth / (img.width / img.height);
-            
-            if (height > maxHeight) {
-              height = maxHeight;
-              width = maxHeight * (img.width / img.height);
+      const opBal = parseFloat(noteData.openingBalance || 0);
+      const mvBal = parseFloat(noteData.movements || 0);
+      const clBal = parseFloat(noteData.closingBalance || 0);
+      const accName = noteData.account?.name || 'Financial Note Schedule';
+      const accCode = noteData.account?.code || 'NOTE';
+      const sourceReg = noteData.metadata?.source || 'General Ledger';
+      const noteNumStr = noteData.metadata?.noteNumber ? `NOTE ${noteData.metadata.noteNumber}: ` : '';
+
+      if (settings?.logoUrl) {
+        const logoUrl = settings.logoUrl.startsWith('http') ? settings.logoUrl : `${import.meta.env.PROD ? window.location.origin : 'http://localhost:5001'}${settings.logoUrl}`;
+        await new Promise((resolve) => {
+          const img = new Image();
+          img.crossOrigin = 'Anonymous';
+          img.onload = () => {
+            try {
+              const maxWidth = 35;
+              const maxHeight = 12;
+              let width = maxWidth;
+              let height = maxWidth / (img.width / img.height);
+              
+              if (height > maxHeight) {
+                height = maxHeight;
+                width = maxHeight * (img.width / img.height);
+              }
+              doc.addImage(img, 'PNG', 196 - width, 8, width, height);
+            } catch (e) {
+              console.error('Failed to draw logo on PDF:', e);
             }
-            doc.addImage(img, 'PNG', 196 - width, 8, width, height);
-          } catch (e) {
-            console.error('Failed to draw logo on PDF:', e);
-          }
-          resolve();
-        };
-        img.onerror = () => resolve();
-        img.src = logoUrl;
+            resolve();
+          };
+          img.onerror = () => resolve();
+          img.src = logoUrl;
+        });
+      }
+      
+      // 1. Company Name & Main Title
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(18);
+      doc.setTextColor(30, 41, 59);
+      doc.text((activeCompany?.name || 'ACCOUNTELLENCE FINANCIALS').toUpperCase(), 14, 20);
+      
+      doc.setFont("Helvetica", "normal");
+      doc.setFontSize(11);
+      doc.setTextColor(100, 116, 139);
+      doc.text('Notes to the Financial Statements', 14, 26);
+      doc.text(`Financial Period: FY${new Date(asOfDate).getFullYear()} | Version: ${statementVersion.toUpperCase()}`, 14, 32);
+      
+      // Draw divider line
+      doc.setDrawColor(226, 232, 240);
+      doc.setLineWidth(0.5);
+      doc.line(14, 36, 196, 36);
+
+      // 2. Note Header
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(13);
+      doc.setTextColor(30, 41, 59);
+      doc.text(`${noteNumStr}${accName.toUpperCase()}`, 14, 44);
+
+      // Draw divider line
+      doc.line(14, 48, 196, 48);
+
+      // 3. Carrying Summary Card Table
+      const summaryData = [
+        ['Opening Balance', `${currencyLabel} ${opBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
+        ['Current Movements', `${currencyLabel} ${mvBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
+        ['Closing Balance', `${currencyLabel} ${clBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`]
+      ];
+
+      autoTable(doc, {
+        startY: 52,
+        body: summaryData,
+        theme: 'plain',
+        styles: { fontSize: 10, cellPadding: 3, fontStyle: 'bold' },
+        columnStyles: {
+          0: { textColor: [100, 116, 139], width: 60 },
+          1: { halign: 'right', textColor: [30, 41, 59] }
+        }
       });
+
+      // 4. Reconciliation Status Card
+      const reconciliationY = (doc.lastAutoTable?.finalY || 65) + 8;
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(30, 41, 59);
+      doc.text('RECONCILIATION SUMMARY', 14, reconciliationY);
+
+      const reconStatus = (noteData.reconciliation?.status === 'VERIFIED')
+        ? `✓ VERIFIED (No differences detected between General Ledger and ${sourceReg})`
+        : `⚠ DISCREPANCY DETECTED (Difference: ${currencyLabel} ${parseFloat(noteData.reconciliation?.difference || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })})`;
+
+      const reconRows = [
+        ['Reconciliation Status', reconStatus],
+        ['GL Control Balance', `${currencyLabel} ${clBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
+        ['Source Registry', sourceReg]
+      ];
+
+      autoTable(doc, {
+        startY: reconciliationY + 4,
+        body: reconRows,
+        theme: 'grid',
+        styles: { fontSize: 9, cellPadding: 3 },
+        columnStyles: {
+          0: { fontStyle: 'bold', textColor: [100, 116, 139], width: 50 },
+          1: { textColor: [30, 41, 59] }
+        }
+      });
+
+      // 5. Supporting Schedule Breakdown Table
+      const breakdownY = (doc.lastAutoTable?.finalY || 100) + 10;
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(30, 41, 59);
+      doc.text('SUPPORTING SCHEDULE / COMPOSITION', 14, breakdownY);
+
+      const breakdownRows = (noteData.breakdown || []).map(b => [
+        b.item || 'Schedule Item',
+        `${currencyLabel} ${parseFloat(b.amount || 0).toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
+        `${b.percent || 0}%`
+      ]);
+
+      autoTable(doc, {
+        startY: breakdownY + 4,
+        head: [['Item Name', 'Carrying Amount', 'Contribution %']],
+        body: breakdownRows.length > 0 ? breakdownRows : [['General Ledger Postings', `${currencyLabel} ${clBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, '100%']],
+        theme: 'striped',
+        headStyles: { fillColor: brandRgb, fontStyle: 'bold' },
+        styles: { fontSize: 8.5, cellPadding: 2.5 },
+        columnStyles: {
+          1: { halign: 'right' },
+          2: { halign: 'center' }
+        }
+      });
+
+      // 6. Recent GL Postings
+      const postingsY = (doc.lastAutoTable?.finalY || 140) + 10;
+      doc.setFont("Helvetica", "bold");
+      doc.setFontSize(11);
+      doc.setTextColor(30, 41, 59);
+      doc.text('RECENT GENERAL LEDGER POSTINGS', 14, postingsY);
+
+      const journalRows = (noteData.journalEntries || []).map(je => [
+        new Date(je.date || new Date()).toLocaleDateString(),
+        je.voucher_number ? `${je.voucher_type || 'VOUCHER'} #${je.voucher_number}` : je.description || 'Journal Entry',
+        je.debit > 0 ? `${currencyLabel} ${parseFloat(je.debit).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—',
+        je.credit > 0 ? `${currencyLabel} ${parseFloat(je.credit).toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'
+      ]);
+
+      autoTable(doc, {
+        startY: postingsY + 4,
+        head: [['Date', 'Reference / Description', 'Debit', 'Credit']],
+        body: journalRows.length > 0 ? journalRows : [[new Date().toLocaleDateString(), 'Period Movement Summary', `${currencyLabel} ${clBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, '—']],
+        theme: 'grid',
+        headStyles: { fillColor: [99, 102, 241], fontStyle: 'bold' },
+        styles: { fontSize: 8, cellPadding: 2.5 },
+        columnStyles: {
+          2: { halign: 'right' },
+          3: { halign: 'right' }
+        }
+      });
+
+      // Footer info
+      const finalY = (doc.lastAutoTable?.finalY || 180) + 12;
+      doc.setFont("Helvetica", "italic");
+      doc.setFontSize(8);
+      doc.setTextColor(148, 163, 184);
+      doc.text(`Generated Automatically by ACCOUNTELLENCE System on ${new Date().toLocaleString()}`, 14, finalY);
+
+      doc.save(`GL_Note_${accCode}_V${statementVersion}.pdf`);
+    } catch (pdfErr) {
+      console.error('Failed to export note to PDF:', pdfErr);
+      alert('Failed to generate PDF note schedule. Please try again.');
     }
-    
-    // 1. Company Name & Main Title
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(20);
-    doc.setTextColor(30, 41, 59);
-    doc.text(activeCompany?.name.toUpperCase() || 'ACCOUNTELLENCE FINANCIALS', 14, 20);
-    
-    doc.setFont("Helvetica", "normal");
-    doc.setFontSize(12);
-    doc.setTextColor(100, 116, 139);
-    doc.text('Notes to the Financial Statements', 14, 26);
-    doc.text(`Financial Period: FY${new Date(asOfDate).getFullYear()} | Version: ${statementVersion.toUpperCase()}`, 14, 32);
-    
-    // Draw divider line
-    doc.setDrawColor(226, 232, 240);
-    doc.setLineWidth(0.5);
-    doc.line(14, 36, 196, 36);
-
-    // 2. Note Header
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(14);
-    doc.setTextColor(30, 41, 59);
-    const noteNumStr = noteData.metadata.noteNumber ? `NOTE ${noteData.metadata.noteNumber}: ` : '';
-    doc.text(`${noteNumStr}${noteData.account.name.toUpperCase()}`, 14, 44);
-
-    // Draw divider line
-    doc.line(14, 48, 196, 48);
-
-    // 3. Carrying Summary Card Table
-    const summaryData = [
-      ['Opening Balance', `${currencyLabel} ${noteData.openingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-      ['Current Movements', `${currencyLabel} ${noteData.movements.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-      ['Closing Balance', `${currencyLabel} ${noteData.closingBalance.toLocaleString('en-US', { minimumFractionDigits: 2 })}`]
-    ];
-
-    autoTable(doc, {
-      startY: 52,
-      body: summaryData,
-      theme: 'plain',
-      styles: { fontSize: 10, cellPadding: 3, fontStyle: 'bold' },
-      columnStyles: {
-        0: { textColor: [100, 116, 139], width: 60 },
-        1: { halign: 'right', textColor: [30, 41, 59] }
-      }
-    });
-
-    // 4. Reconciliation Status Card
-    const reconciliationY = doc.lastAutoTable.finalY + 8;
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(11);
-    doc.setTextColor(30, 41, 59);
-    doc.text('RECONCILIATION SUMMARY', 14, reconciliationY);
-
-    const reconStatus = noteData.reconciliation.status === 'VERIFIED'
-      ? `✓ VERIFIED (No differences detected between General Ledger and ${noteData.metadata.source})`
-      : `⚠ DISCREPANCY DETECTED (Difference: ${currencyLabel} ${noteData.reconciliation.difference.toLocaleString('en-US', { minimumFractionDigits: 2 })})`;
-
-    const reconRows = [
-      ['Reconciliation Status', reconStatus],
-      ['GL Control Balance', `${currencyLabel} ${noteData.reconciliation.ledgerTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-      ['Sub-ledger Balance', `${currencyLabel} ${noteData.reconciliation.subledgerTotal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`]
-    ];
-
-    autoTable(doc, {
-      startY: reconciliationY + 4,
-      body: reconRows,
-      theme: 'grid',
-      styles: { fontSize: 9, cellPadding: 3 },
-      columnStyles: {
-        0: { fontStyle: 'bold', textColor: [100, 116, 139], width: 50 },
-        1: { textColor: [30, 41, 59] }
-      }
-    });
-
-    // 5. Supporting Schedule Breakdown Table
-    const breakdownY = doc.lastAutoTable.finalY + 10;
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(11);
-    doc.setTextColor(30, 41, 59);
-    doc.text('SUPPORTING SCHEDULE / COMPOSITION', 14, breakdownY);
-
-    const breakdownRows = (noteData.breakdown || []).map(b => [
-      b.item,
-      `${currencyLabel} ${b.amount.toLocaleString('en-US', { minimumFractionDigits: 2 })}`,
-      `${b.percent}%`
-    ]);
-
-    autoTable(doc, {
-      startY: breakdownY + 4,
-      head: [['Item Name', 'Carrying Amount', 'Contribution %']],
-      body: breakdownRows,
-      theme: 'striped',
-      headStyles: { fillColor: brandRgb, fontStyle: 'bold' },
-      styles: { fontSize: 8.5, cellPadding: 2.5 },
-      columnStyles: {
-        1: { halign: 'right' },
-        2: { halign: 'center' }
-      }
-    });
-
-    // 6. Recent GL Postings
-    const postingsY = doc.lastAutoTable.finalY + 10;
-    doc.setFont("Helvetica", "bold");
-    doc.setFontSize(11);
-    doc.setTextColor(30, 41, 59);
-    doc.text('RECENT GENERAL LEDGER POSTINGS', 14, postingsY);
-
-    const journalRows = (noteData.journalEntries || []).map(je => [
-      new Date(je.date).toLocaleDateString(),
-      je.voucher_number ? `${je.voucher_type} #${je.voucher_number}` : je.description || 'Journal Entry',
-      je.debit > 0 ? `${currencyLabel} ${je.debit.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—',
-      je.credit > 0 ? `${currencyLabel} ${je.credit.toLocaleString('en-US', { minimumFractionDigits: 2 })}` : '—'
-    ]);
-
-    autoTable(doc, {
-      startY: postingsY + 4,
-      head: [['Date', 'Reference / Description', 'Debit', 'Credit']],
-      body: journalRows,
-      theme: 'grid',
-      headStyles: { fillColor: [99, 102, 241], fontStyle: 'bold' },
-      styles: { fontSize: 8, cellPadding: 2.5 },
-      columnStyles: {
-        2: { halign: 'right' },
-        3: { halign: 'right' }
-      }
-    });
-
-    // Footer info
-    const finalY = doc.lastAutoTable.finalY + 12;
-    doc.setFont("Helvetica", "italic");
-    doc.setFontSize(8);
-    doc.setTextColor(148, 163, 184);
-    doc.text(`Generated Automatically by ACCOUNTELLENCE System on ${new Date(noteData.metadata.lastUpdated).toLocaleString()}`, 14, finalY);
-
-    doc.save(`GL_Note_${noteData.account.code}_V${statementVersion}.pdf`);
   };
 
   useEffect(() => { load(); }, [load]);
