@@ -1,6 +1,10 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Search, RefreshCw, X, Truck, Calendar, ArrowRight, User, Package, Box, Layers, Clipboard, ShieldAlert, CheckCircle, CheckCircle2, ChevronRight, Inbox, Printer } from 'lucide-react';
+import { 
+  Search, RefreshCw, X, Truck, Calendar, ArrowRight, User, Package, 
+  Box, Layers, Clipboard, ShieldAlert, CheckCircle2, ChevronRight, 
+  Inbox, Printer, MapPin, DollarSign, Clock, FileText, Sparkles
+} from 'lucide-react';
 import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import RelatedDocuments from '../../components/RelatedDocuments';
@@ -9,15 +13,16 @@ import StatusBadge from '../../components/ui/StatusBadge';
 import SubledgerDrawer from '../../components/SubledgerDrawer';
 
 const STATUS_CONFIG = {
-  DRAFT: { label: 'Draft', bg: 'bg-slate-50 text-slate-650' },
-  CONFIRMED: { label: 'Confirmed', bg: 'bg-blue-50 text-blue-700' },
+  DRAFT: { label: 'Draft', bg: 'bg-slate-100 text-slate-700 border-slate-200' },
+  CONFIRMED: { label: 'Confirmed', bg: 'bg-sky-50 text-sky-700 border-sky-200' },
   PICKING: { label: 'Picking', bg: 'bg-amber-50 text-amber-700 border-amber-200' },
-  PACKED: { label: 'Packed', bg: 'bg-indigo-50 text-indigo-700' },
-  READY_FOR_DISPATCH: { label: 'Ready for Dispatch', bg: 'bg-cyan-50 text-cyan-700' },
-  PARTIALLY_DELIVERED: { label: 'Partially Delivered', bg: 'bg-amber-100 text-amber-800' },
-  DELIVERED: { label: 'Delivered', bg: 'bg-emerald-50 text-emerald-700' },
-  CLOSED: { label: 'Closed', bg: 'bg-slate-100 text-slate-600' },
-  CANCELLED: { label: 'Cancelled', bg: 'bg-rose-50 text-rose-700' }
+  PACKED: { label: 'Packed', bg: 'bg-indigo-50 text-indigo-700 border-indigo-200' },
+  READY_FOR_DISPATCH: { label: 'Ready for Dispatch', bg: 'bg-cyan-50 text-cyan-700 border-cyan-200' },
+  DISPATCHED: { label: 'In Transit', bg: 'bg-orange-50 text-orange-700 border-orange-200' },
+  PARTIALLY_DELIVERED: { label: 'Partially Delivered', bg: 'bg-amber-100 text-amber-800 border-amber-300' },
+  DELIVERED: { label: 'Delivered', bg: 'bg-emerald-50 text-emerald-700 border-emerald-200' },
+  CLOSED: { label: 'Closed', bg: 'bg-emerald-100/70 text-emerald-800 border-emerald-300' },
+  CANCELLED: { label: 'Cancelled', bg: 'bg-rose-50 text-rose-700 border-rose-200' }
 };
 
 export default function OrderTrackingPage() {
@@ -39,11 +44,11 @@ export default function OrderTrackingPage() {
     courierName: '',
     trackingNumber: '',
     remarks: '',
-    items: [] // { productId, name, ordered, dispatched, remaining, dispatchNow }
+    items: []
   });
 
   // Print Modals
-  const [printSlipModal, setPrintSlipModal] = useState(null); // 'PACKING' | 'DELIVERY'
+  const [printSlipModal, setPrintSlipModal] = useState(null);
   const printAreaRef = useRef(null);
 
   const loadOrders = useCallback(async () => {
@@ -52,6 +57,11 @@ export default function OrderTrackingPage() {
     try {
       const { data } = await api.get(`/sales-orders/${activeCompany.id}`);
       setOrders(data);
+      if (data.length > 0 && !selectedOrder) {
+        // Pre-select first order for rich UI experience
+        const { data: firstOrderDetails } = await api.get(`/sales-orders/${activeCompany.id}/${data[0].id}`);
+        setSelectedOrder(firstOrderDetails);
+      }
     } catch (err) {
       console.error('Failed to load orders:', err);
     }
@@ -63,7 +73,6 @@ export default function OrderTrackingPage() {
   }, [loadOrders]);
 
   const handleSelectOrder = async (order) => {
-    setSelectedOrder(null);
     try {
       const { data } = await api.get(`/sales-orders/${activeCompany.id}/${order.id}`);
       setSelectedOrder(data);
@@ -95,7 +104,7 @@ export default function OrderTrackingPage() {
         ordered: parseFloat(item.quantity),
         dispatched: parseFloat(item.quantity_dispatched || 0),
         remaining,
-        dispatchNow: remaining // default to full remaining
+        dispatchNow: remaining
       };
     });
 
@@ -145,37 +154,39 @@ export default function OrderTrackingPage() {
     document.body.innerHTML = printContent;
     window.print();
     document.body.innerHTML = originalContent;
-    window.location.reload(); // Reload to restore React state cleanly
+    window.location.reload();
   };
+
+  const filteredOrders = orders.filter(o => {
+    if (o.status === 'CANCELLED') return false;
+    return o.so_number.toLowerCase().includes(searchQuery.toLowerCase()) || 
+      o.client_name.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      (o.warehouse_name && o.warehouse_name.toLowerCase().includes(searchQuery.toLowerCase()));
+  });
 
   const getOrdersByColumn = (colType) => {
     return filteredOrders.filter(o => {
-      if (colType === 'PICKING') return ['CONFIRMED', 'PICKING'].includes(o.status);
-      if (colType === 'READY') return ['PACKED', 'READY_FOR_DISPATCH'].includes(o.status);
+      if (colType === 'WAITING') return ['CONFIRMED', 'DRAFT'].includes(o.status);
+      if (colType === 'PICKING') return ['PICKING', 'PACKED'].includes(o.status);
+      if (colType === 'READY') return o.status === 'READY_FOR_DISPATCH';
       if (colType === 'DISPATCHED') return ['DISPATCHED', 'PARTIALLY_DELIVERED'].includes(o.status);
       if (colType === 'DELIVERED') return ['DELIVERED', 'CLOSED'].includes(o.status);
       return false;
     });
   };
 
-  const filteredOrders = orders.filter(o => {
-    if (o.status === 'DRAFT' || o.status === 'CANCELLED') return false;
-    return o.so_number.toLowerCase().includes(searchQuery.toLowerCase()) || 
-      o.client_name.toLowerCase().includes(searchQuery.toLowerCase());
-  });
-
-  const countWaiting = orders.filter(o => o.status === 'CONFIRMED').length;
-  const countPicking = orders.filter(o => o.status === 'PICKING').length;
-  const countReady = orders.filter(o => ['PACKED', 'READY_FOR_DISPATCH'].includes(o.status)).length;
-  const countPartial = orders.filter(o => o.status === 'PARTIALLY_DELIVERED').length;
-  const countDeliveredToday = orders.filter(o => o.status === 'DELIVERED' || o.status === 'CLOSED').length;
+  const countWaiting = orders.filter(o => ['CONFIRMED', 'DRAFT'].includes(o.status)).length;
+  const countPicking = orders.filter(o => ['PICKING', 'PACKED'].includes(o.status)).length;
+  const countReady = orders.filter(o => o.status === 'READY_FOR_DISPATCH').length;
+  const countPartial = orders.filter(o => ['DISPATCHED', 'PARTIALLY_DELIVERED'].includes(o.status)).length;
+  const countDeliveredToday = orders.filter(o => ['DELIVERED', 'CLOSED'].includes(o.status)).length;
 
   const kpiList = [
-    { label: 'Orders Waiting', value: countWaiting, icon: Clipboard, iconBgClass: 'bg-blue-50', iconColorClass: 'text-blue-650' },
-    { label: 'Picking', value: countPicking, icon: Box, iconBgClass: 'bg-amber-50', iconColorClass: 'text-amber-600' },
-    { label: 'Ready', value: countReady, icon: Layers, iconBgClass: 'bg-indigo-50', iconColorClass: 'text-indigo-650' },
-    { label: 'Partially Delivered', value: countPartial, icon: Truck, iconBgClass: 'bg-orange-50', iconColorClass: 'text-orange-655' },
-    { label: 'Delivered', value: countDeliveredToday, icon: CheckCircle2, iconBgClass: 'bg-emerald-50', iconColorClass: 'text-emerald-600' }
+    { label: 'Orders Waiting', value: countWaiting, icon: Clock, iconBgClass: 'bg-sky-50', iconColorClass: 'text-sky-600' },
+    { label: 'Picking & Packing', value: countPicking, icon: Box, iconBgClass: 'bg-amber-50', iconColorClass: 'text-amber-600' },
+    { label: 'Ready for Dispatch', value: countReady, icon: Layers, iconBgClass: 'bg-indigo-50', iconColorClass: 'text-indigo-600' },
+    { label: 'In Transit / Dispatched', value: countPartial, icon: Truck, iconBgClass: 'bg-orange-50', iconColorClass: 'text-orange-600' },
+    { label: 'Completed & Closed', value: countDeliveredToday, icon: CheckCircle2, iconBgClass: 'bg-emerald-50', iconColorClass: 'text-emerald-600' }
   ];
 
   return (
@@ -237,7 +248,7 @@ export default function OrderTrackingPage() {
               <div className="flex justify-between border-b pb-4">
                 <div>
                   <h1 className="text-xl font-bold uppercase tracking-wider">{activeCompany?.name || 'ACCOUNTELLENCE ERP'}</h1>
-                  <p className="text-xs text-slate-500">Customer Delivery challan</p>
+                  <p className="text-xs text-slate-500">Customer Delivery Challan</p>
                 </div>
                 <div className="text-right">
                   <h2 className="text-lg font-black text-emerald-700">DELIVERY NOTE</h2>
@@ -299,133 +310,303 @@ export default function OrderTrackingPage() {
         title="Order Tracking Console"
         subtitle="Real-time warehouse operational board tracking picking, packing, and client delivery dispatch."
         icon={Clipboard}
-        badgeText="Logistics"
-        breadcrumbs={['ACCOUNTELLENCE', 'Distribution', 'Order Tracking']}
+        badgeText="Logistics Operations"
+        breadcrumbs={['SARFIS ERP', 'Distribution', 'Order Tracking']}
         searchQuery={searchQuery}
         onSearchChange={setSearchQuery}
-        searchPlaceholder="Search Order No, Customer..."
+        searchPlaceholder="Search Order No, Customer, Warehouse..."
         kpis={kpiList}
       >
         
-        {/* Kanban Board Columns */}
-        <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-4 gap-4 items-start">
+        {/* Kanban Board Columns Container */}
+        <div className="lg:col-span-8 grid grid-cols-1 md:grid-cols-5 gap-3.5 items-start">
           
-          {/* 1. PICKING COLUMN */}
-          <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-100 space-y-3 min-h-[300px]">
-            <div className="flex justify-between items-center px-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Picking</span>
-              <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-bold rounded-full">{getOrdersByColumn('PICKING').length}</span>
+          {/* 1. WAITING / DRAFT COLUMN */}
+          <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
+            <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-slate-500 flex items-center gap-1.5">
+                <Clock size={13} className="text-sky-500" /> Waiting
+              </span>
+              <span className="px-2 py-0.5 bg-sky-100 text-sky-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('WAITING').length}</span>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
+              {getOrdersByColumn('WAITING').map(o => (
+                <div 
+                  key={o.id} 
+                  onClick={() => handleSelectOrder(o)}
+                  className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
+                    selectedOrder?.id === o.id 
+                      ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
+                      : 'border-slate-200/90 hover:border-emerald-300'
+                  }`}
+                >
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
+                    <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-slate-100'}`}>
+                      {STATUS_CONFIG[o.status]?.label || o.status}
+                    </span>
+                  </div>
+
+                  <div className="mt-2.5 flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] flex items-center justify-center shrink-0">
+                      {o.client_name?.charAt(0).toUpperCase() || 'C'}
+                    </div>
+                    <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
+                  </div>
+
+                  <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
+                    <span className="flex items-center gap-1 text-slate-500 truncate">
+                      <MapPin size={11} className="text-slate-400 shrink-0" />
+                      <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
+                    </span>
+                    {o.total_amount && (
+                      <span className="font-mono font-bold text-slate-700">
+                        PKR {parseFloat(o.total_amount).toLocaleString()}
+                      </span>
+                    )}
+                  </div>
+                </div>
+              ))}
+              {getOrdersByColumn('WAITING').length === 0 && (
+                <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
+                  No orders waiting.
+                </div>
+              )}
+            </div>
+          </div>
+
+          {/* 2. PICKING & PACKING COLUMN */}
+          <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
+            <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-amber-700 flex items-center gap-1.5">
+                <Box size={13} className="text-amber-500" /> Picking & Packing
+              </span>
+              <span className="px-2 py-0.5 bg-amber-100 text-amber-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('PICKING').length}</span>
+            </div>
+            <div className="space-y-2.5">
               {getOrdersByColumn('PICKING').map(o => (
                 <div 
                   key={o.id} 
                   onClick={() => handleSelectOrder(o)}
-                  className={`bg-white p-3 rounded-xl border border-slate-150 shadow-2xs hover:shadow cursor-pointer hover:border-indigo-200 transition ${selectedOrder?.id === o.id ? 'ring-2 ring-indigo-500' : ''}`}
+                  className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
+                    selectedOrder?.id === o.id 
+                      ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
+                      : 'border-slate-200/90 hover:border-emerald-300'
+                  }`}
                 >
-                  <span className="block font-mono text-[11.5px] font-bold text-indigo-600">{o.so_number}</span>
-                  <span className="block text-[12px] font-bold text-slate-800 mt-1 truncate">{o.client_name}</span>
-                  <span className="block text-[10px] text-slate-400 mt-0.5 font-medium">{o.warehouse_name}</span>
-                  <div className="mt-2.5">
-                    <StatusBadge status={o.status} />
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
+                    <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-amber-100'}`}>
+                      {STATUS_CONFIG[o.status]?.label || o.status}
+                    </span>
+                  </div>
+
+                  <div className="mt-2.5 flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-amber-100 text-amber-800 font-bold text-[10px] flex items-center justify-center shrink-0">
+                      {o.client_name?.charAt(0).toUpperCase() || 'C'}
+                    </div>
+                    <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
+                  </div>
+
+                  <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
+                    <span className="flex items-center gap-1 text-slate-500 truncate">
+                      <MapPin size={11} className="text-slate-400 shrink-0" />
+                      <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
+                    </span>
+                    {o.total_amount && (
+                      <span className="font-mono font-bold text-slate-700">
+                        PKR {parseFloat(o.total_amount).toLocaleString()}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
-              {getOrdersByColumn('PICKING').length === 0 && <div className="text-[11px] text-slate-400 italic text-center py-6">No orders in picking.</div>}
+              {getOrdersByColumn('PICKING').length === 0 && (
+                <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
+                  No picking orders.
+                </div>
+              )}
             </div>
           </div>
 
-          {/* 2. READY FOR DISPATCH COLUMN */}
-          <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-100 space-y-3 min-h-[300px]">
-            <div className="flex justify-between items-center px-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Ready</span>
-              <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-[10px] font-bold rounded-full">{getOrdersByColumn('READY').length}</span>
+          {/* 3. READY FOR DISPATCH COLUMN */}
+          <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
+            <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-indigo-700 flex items-center gap-1.5">
+                <Layers size={13} className="text-indigo-500" /> Ready
+              </span>
+              <span className="px-2 py-0.5 bg-indigo-100 text-indigo-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('READY').length}</span>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {getOrdersByColumn('READY').map(o => (
                 <div 
                   key={o.id} 
                   onClick={() => handleSelectOrder(o)}
-                  className={`bg-white p-3 rounded-xl border border-slate-150 shadow-2xs hover:shadow cursor-pointer hover:border-indigo-200 transition ${selectedOrder?.id === o.id ? 'ring-2 ring-indigo-500' : ''}`}
+                  className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
+                    selectedOrder?.id === o.id 
+                      ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
+                      : 'border-slate-200/90 hover:border-emerald-300'
+                  }`}
                 >
-                  <span className="block font-mono text-[11.5px] font-bold text-indigo-600">{o.so_number}</span>
-                  <span className="block text-[12px] font-bold text-slate-800 mt-1 truncate">{o.client_name}</span>
-                  <span className="block text-[10px] text-slate-400 mt-0.5 font-medium">{o.warehouse_name}</span>
-                  <div className="mt-2.5">
-                    <StatusBadge status={o.status} />
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
+                    <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-indigo-100'}`}>
+                      {STATUS_CONFIG[o.status]?.label || o.status}
+                    </span>
+                  </div>
+
+                  <div className="mt-2.5 flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-indigo-100 text-indigo-800 font-bold text-[10px] flex items-center justify-center shrink-0">
+                      {o.client_name?.charAt(0).toUpperCase() || 'C'}
+                    </div>
+                    <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
+                  </div>
+
+                  <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
+                    <span className="flex items-center gap-1 text-slate-500 truncate">
+                      <MapPin size={11} className="text-slate-400 shrink-0" />
+                      <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
+                    </span>
+                    {o.total_amount && (
+                      <span className="font-mono font-bold text-slate-700">
+                        PKR {parseFloat(o.total_amount).toLocaleString()}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
-              {getOrdersByColumn('READY').length === 0 && <div className="text-[11px] text-slate-400 italic text-center py-6">No orders ready.</div>}
+              {getOrdersByColumn('READY').length === 0 && (
+                <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
+                  No orders ready.
+                </div>
+              )}
             </div>
           </div>
 
-          {/* 3. DISPATCHED / PARTIAL COLUMN */}
-          <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-100 space-y-3 min-h-[300px]">
-            <div className="flex justify-between items-center px-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">In Transit</span>
-              <span className="px-2 py-0.5 bg-orange-100 text-orange-850 text-[10px] font-bold rounded-full">{getOrdersByColumn('DISPATCHED').length}</span>
+          {/* 4. IN TRANSIT / DISPATCHED COLUMN */}
+          <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
+            <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-orange-700 flex items-center gap-1.5">
+                <Truck size={13} className="text-orange-500" /> In Transit
+              </span>
+              <span className="px-2 py-0.5 bg-orange-100 text-orange-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('DISPATCHED').length}</span>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {getOrdersByColumn('DISPATCHED').map(o => (
                 <div 
                   key={o.id} 
                   onClick={() => handleSelectOrder(o)}
-                  className={`bg-white p-3 rounded-xl border border-slate-150 shadow-2xs hover:shadow cursor-pointer hover:border-indigo-200 transition ${selectedOrder?.id === o.id ? 'ring-2 ring-indigo-500' : ''}`}
+                  className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
+                    selectedOrder?.id === o.id 
+                      ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
+                      : 'border-slate-200/90 hover:border-emerald-300'
+                  }`}
                 >
-                  <span className="block font-mono text-[11.5px] font-bold text-indigo-600">{o.so_number}</span>
-                  <span className="block text-[12px] font-bold text-slate-800 mt-1 truncate">{o.client_name}</span>
-                  <span className="block text-[10px] text-slate-400 mt-0.5 font-medium">{o.warehouse_name}</span>
-                  <div className="mt-2.5">
-                    <StatusBadge status={o.status} />
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
+                    <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-orange-100'}`}>
+                      {STATUS_CONFIG[o.status]?.label || o.status}
+                    </span>
+                  </div>
+
+                  <div className="mt-2.5 flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-orange-100 text-orange-800 font-bold text-[10px] flex items-center justify-center shrink-0">
+                      {o.client_name?.charAt(0).toUpperCase() || 'C'}
+                    </div>
+                    <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
+                  </div>
+
+                  <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
+                    <span className="flex items-center gap-1 text-slate-500 truncate">
+                      <MapPin size={11} className="text-slate-400 shrink-0" />
+                      <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
+                    </span>
+                    {o.total_amount && (
+                      <span className="font-mono font-bold text-slate-700">
+                        PKR {parseFloat(o.total_amount).toLocaleString()}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
-              {getOrdersByColumn('DISPATCHED').length === 0 && <div className="text-[11px] text-slate-400 italic text-center py-6">No transit shipments.</div>}
+              {getOrdersByColumn('DISPATCHED').length === 0 && (
+                <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
+                  No transit shipments.
+                </div>
+              )}
             </div>
           </div>
 
-          {/* 4. DELIVERED COLUMN */}
-          <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-100 space-y-3 min-h-[300px]">
-            <div className="flex justify-between items-center px-1">
-              <span className="text-[11px] font-bold uppercase tracking-wider text-slate-400">Delivered</span>
-              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-bold rounded-full">{getOrdersByColumn('DELIVERED').length}</span>
+          {/* 5. DELIVERED & CLOSED COLUMN */}
+          <div className="bg-[#f8fafc] p-3 rounded-2xl border border-slate-200/80 space-y-3 min-h-[420px] shadow-xs">
+            <div className="flex justify-between items-center px-1 pb-1 border-b border-slate-200/60">
+              <span className="text-[11px] font-extrabold uppercase tracking-wider text-emerald-700 flex items-center gap-1.5">
+                <CheckCircle2 size={13} className="text-emerald-500" /> Delivered & Closed
+              </span>
+              <span className="px-2 py-0.5 bg-emerald-100 text-emerald-800 text-[10px] font-extrabold rounded-full">{getOrdersByColumn('DELIVERED').length}</span>
             </div>
-            <div className="space-y-2">
+            <div className="space-y-2.5">
               {getOrdersByColumn('DELIVERED').map(o => (
                 <div 
                   key={o.id} 
                   onClick={() => handleSelectOrder(o)}
-                  className={`bg-white p-3 rounded-xl border border-slate-150 shadow-2xs hover:shadow cursor-pointer hover:border-indigo-200 transition ${selectedOrder?.id === o.id ? 'ring-2 ring-indigo-500' : ''}`}
+                  className={`bg-white p-3.5 rounded-2xl border transition-all duration-200 cursor-pointer shadow-xs hover:shadow-md hover:-translate-y-0.5 ${
+                    selectedOrder?.id === o.id 
+                      ? 'border-emerald-500 ring-2 ring-emerald-500/20 bg-emerald-50/10' 
+                      : 'border-slate-200/90 hover:border-emerald-300'
+                  }`}
                 >
-                  <span className="block font-mono text-[11.5px] font-bold text-indigo-600">{o.so_number}</span>
-                  <span className="block text-[12px] font-bold text-slate-800 mt-1 truncate">{o.client_name}</span>
-                  <span className="block text-[10px] text-slate-400 mt-0.5 font-medium">{o.warehouse_name}</span>
-                  <div className="mt-2.5">
-                    <StatusBadge status={o.status} />
+                  <div className="flex items-center justify-between">
+                    <span className="font-mono text-[12px] font-black text-indigo-600 tracking-tight">{o.so_number}</span>
+                    <span className={`px-2 py-0.5 rounded-md text-[9.5px] font-extrabold uppercase tracking-wider ${STATUS_CONFIG[o.status]?.bg || 'bg-emerald-100'}`}>
+                      {STATUS_CONFIG[o.status]?.label || o.status}
+                    </span>
+                  </div>
+
+                  <div className="mt-2.5 flex items-center gap-2">
+                    <div className="w-6 h-6 rounded-full bg-emerald-100 text-emerald-800 font-bold text-[10px] flex items-center justify-center shrink-0">
+                      {o.client_name?.charAt(0).toUpperCase() || 'C'}
+                    </div>
+                    <span className="text-[12.5px] font-bold text-slate-800 truncate">{o.client_name}</span>
+                  </div>
+
+                  <div className="mt-2 flex items-center justify-between text-[10.5px] text-slate-500 font-medium pt-2 border-t border-slate-100">
+                    <span className="flex items-center gap-1 text-slate-500 truncate">
+                      <MapPin size={11} className="text-slate-400 shrink-0" />
+                      <span className="truncate">{o.warehouse_name || 'Main WH'}</span>
+                    </span>
+                    {o.total_amount && (
+                      <span className="font-mono font-bold text-slate-700">
+                        PKR {parseFloat(o.total_amount).toLocaleString()}
+                      </span>
+                    )}
                   </div>
                 </div>
               ))}
-              {getOrdersByColumn('DELIVERED').length === 0 && <div className="text-[11px] text-slate-400 italic text-center py-6">No delivered orders.</div>}
+              {getOrdersByColumn('DELIVERED').length === 0 && (
+                <div className="text-[11px] text-slate-400 italic text-center py-10 bg-white/50 rounded-xl border border-dashed border-slate-200">
+                  No closed orders.
+                </div>
+              )}
             </div>
           </div>
 
         </div>
 
-        {/* Selected Order Drawer */}
+        {/* Selected Order Drawer (Right Details View) */}
         <div className="lg:col-span-4 space-y-6">
           {selectedOrder ? (
-            <div className="bg-white p-5 rounded-3xl border border-slate-100 shadow-sm space-y-5">
+            <div className="bg-white p-5 rounded-3xl border border-slate-200/80 shadow-md space-y-5">
               
               <div className="flex justify-between items-center border-b border-slate-100 pb-3">
                 <div>
-                  <h3 className="font-mono font-black text-slate-850 text-[15px] flex items-center gap-2">
+                  <h3 className="font-mono font-black text-slate-900 text-[15px] flex items-center gap-2">
                     {selectedOrder.so_number}
                     <StatusBadge status={selectedOrder.status} />
                   </h3>
-                  <p className="text-[10px] font-bold uppercase text-slate-400 mt-0.5">Fulfillment Details</p>
+                  <p className="text-[10.5px] font-bold uppercase text-slate-400 mt-0.5">Fulfillment & Operations Workspace</p>
                 </div>
-                <button onClick={() => setSelectedOrder(null)} className="text-slate-400 hover:text-slate-600 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-50 border-none bg-transparent cursor-pointer"><X size={15} /></button>
+                <button onClick={() => setSelectedOrder(null)} className="text-slate-400 hover:text-slate-600 w-7 h-7 rounded-lg flex items-center justify-center hover:bg-slate-100 border-none bg-transparent cursor-pointer"><X size={15} /></button>
               </div>
 
               {/* Print Shortcuts */}
@@ -435,18 +616,18 @@ export default function OrderTrackingPage() {
                     setPrintSlipModal('PACKING');
                     setTimeout(triggerBrowserPrint, 200);
                   }}
-                  className="flex-1 py-1.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer"
+                  className="flex-1 py-2 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-xl text-[11.5px] font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs transition"
                 >
-                  <Printer size={13} /> Packing Slip
+                  <Printer size={13} className="text-slate-500" /> Packing Slip
                 </button>
                 <button 
                   onClick={() => {
                     setPrintSlipModal('DELIVERY');
                     setTimeout(triggerBrowserPrint, 200);
                   }}
-                  className="flex-1 py-1.5 px-3 bg-slate-50 hover:bg-slate-100 text-slate-700 border border-slate-200 rounded-lg text-[11px] font-bold flex items-center justify-center gap-1 cursor-pointer"
+                  className="flex-1 py-2 px-3 bg-emerald-50 hover:bg-emerald-100 text-emerald-800 border border-emerald-200 rounded-xl text-[11.5px] font-bold flex items-center justify-center gap-1.5 cursor-pointer shadow-2xs transition"
                 >
-                  <Printer size={13} /> Delivery Note
+                  <Printer size={13} className="text-emerald-600" /> Delivery Note
                 </button>
               </div>
 
@@ -462,7 +643,7 @@ export default function OrderTrackingPage() {
                       name: selectedOrder.client_name,
                       virtualCode: `CUS-${String(selectedOrder.client_id).padStart(4, '0')}`
                     })}
-                    className="font-bold text-indigo-600 hover:text-indigo-800 hover:underline mt-0.5 block text-left bg-transparent border-none p-0 cursor-pointer"
+                    className="font-extrabold text-indigo-600 hover:text-indigo-800 hover:underline mt-0.5 block text-left bg-transparent border-none p-0 cursor-pointer text-[13px]"
                   >
                     {selectedOrder.client_name}
                   </button>
@@ -474,21 +655,21 @@ export default function OrderTrackingPage() {
                 <div>
                   <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Target Date</span>
                   <span className="font-bold text-slate-800 mt-0.5 block font-mono">
-                    {new Date(selectedOrder.delivery_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short' })}
+                    {new Date(selectedOrder.delivery_date).toLocaleDateString(undefined, { day: 'numeric', month: 'short', year: 'numeric' })}
                   </span>
                 </div>
                 <div>
-                  <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Status</span>
-                  <span className={`inline-block px-2.5 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider mt-0.5 ${STATUS_CONFIG[selectedOrder.status]?.bg || 'bg-slate-50'}`}>
-                    {STATUS_CONFIG[selectedOrder.status]?.label || selectedOrder.status}
+                  <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Total Value</span>
+                  <span className="font-mono font-black text-slate-900 mt-0.5 block">
+                    PKR {parseFloat(selectedOrder.total_amount || 0).toLocaleString()}
                   </span>
                 </div>
               </div>
 
               {/* Fulfillment Summary with progress bar */}
-              <div className="bg-slate-50/50 p-3 rounded-2xl border border-slate-100 space-y-2">
-                <span className="block text-[10px] font-bold uppercase text-slate-400 tracking-wider">Fulfillment Summary</span>
-                <div className="grid grid-cols-3 text-center text-[12px] font-bold text-slate-700 pt-1">
+              <div className="bg-slate-50/70 p-3.5 rounded-2xl border border-slate-200/80 space-y-2.5">
+                <span className="block text-[10px] font-bold uppercase text-slate-400 tracking-wider">Fulfillment Progress</span>
+                <div className="grid grid-cols-3 text-center text-[12px] font-bold text-slate-700 pt-0.5">
                   <div>
                     <span className="block text-[9px] uppercase font-medium text-slate-400">Ordered</span>
                     <span>{selectedOrder.total_ordered}</span>
@@ -502,32 +683,32 @@ export default function OrderTrackingPage() {
                     <span className="text-amber-600">{selectedOrder.total_remaining}</span>
                   </div>
                 </div>
-                <div className="space-y-1 pt-1.5">
+                <div className="space-y-1 pt-1">
                   <div className="flex justify-between text-[10.5px] font-bold text-slate-650">
-                    <span>Fulfillment progress</span>
+                    <span>Fulfillment Rate</span>
                     <span>{selectedOrder.completion_rate}%</span>
                   </div>
                   <div className="w-full bg-slate-200 h-2 rounded-full overflow-hidden">
-                    <div className="bg-emerald-500 h-full rounded-full transition-all duration-300" style={{ width: `${selectedOrder.completion_rate}%` }}></div>
+                    <div className="bg-gradient-to-r from-emerald-500 to-teal-400 h-full rounded-full transition-all duration-500" style={{ width: `${selectedOrder.completion_rate}%` }}></div>
                   </div>
                 </div>
               </div>
 
               {/* Products checklist with Shelf locations */}
               <div className="space-y-2">
-                <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Products Locations & Quantities</span>
-                <div className="border border-slate-100 rounded-xl overflow-hidden text-[11px] bg-white">
+                <span className="block text-[10px] uppercase font-bold text-slate-400 tracking-wider">Products & Shelf Locations</span>
+                <div className="border border-slate-200/80 rounded-2xl overflow-hidden text-[11.5px] bg-white shadow-2xs">
                   <table className="w-full">
-                    <thead className="bg-slate-50 border-b text-slate-400 font-bold">
+                    <thead className="bg-slate-50/80 border-b border-slate-100 text-slate-400 font-bold">
                       <tr>
                         <th className="px-3 py-2 text-left">Product</th>
                         <th className="px-3 py-2 text-right">Location</th>
                         <th className="px-3 py-2 text-right">Fulfillment</th>
                       </tr>
                     </thead>
-                    <tbody className="divide-y divide-slate-50 font-medium text-slate-700">
+                    <tbody className="divide-y divide-slate-100 font-medium text-slate-700">
                       {selectedOrder.items?.map((item, idx) => (
-                        <tr key={idx} className="hover:bg-slate-50/20">
+                        <tr key={idx} className="hover:bg-slate-50/40">
                           <td className="px-3 py-2.5">
                             <span className="block font-bold text-slate-800">{item.product_name}</span>
                             <span className="block text-[9.5px] text-slate-400 font-mono">{item.product_sku}</span>
@@ -536,7 +717,7 @@ export default function OrderTrackingPage() {
                             {item.shelf_location || 'A-01'}
                           </td>
                           <td className="px-3 py-2.5 text-right font-mono">
-                            {parseFloat(item.quantity_dispatched)} / <span className="text-slate-400">{parseFloat(item.quantity)}</span>
+                            <span className="font-bold text-emerald-600">{parseFloat(item.quantity_dispatched)}</span> / <span className="text-slate-400">{parseFloat(item.quantity)}</span>
                           </td>
                         </tr>
                       ))}
@@ -591,31 +772,31 @@ export default function OrderTrackingPage() {
                   <button 
                     disabled={updating}
                     onClick={() => handleUpdateStatus(selectedOrder.id, 'PICKING')}
-                    className="w-full py-2.5 bg-amber-600 text-white rounded-xl text-[12.5px] font-bold shadow-sm hover:bg-amber-700 transition cursor-pointer border-none flex items-center justify-center gap-1"
+                    className="w-full py-2.5 bg-amber-600 hover:bg-amber-700 text-white rounded-xl text-[12.5px] font-bold shadow-md transition cursor-pointer border-none flex items-center justify-center gap-1.5"
                   >
-                    Start Picking
+                    <Box size={14} /> Start Picking
                   </button>
                 )}
                 {selectedOrder.status === 'PICKING' && (
                   <button 
                     disabled={updating}
                     onClick={() => handleUpdateStatus(selectedOrder.id, 'PACKED')}
-                    className="w-full py-2.5 bg-indigo-600 text-white rounded-xl text-[12.5px] font-bold shadow-sm hover:bg-indigo-700 transition cursor-pointer border-none flex items-center justify-center gap-1"
+                    className="w-full py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl text-[12.5px] font-bold shadow-md transition cursor-pointer border-none flex items-center justify-center gap-1.5"
                   >
-                    Pack Order
+                    <Package size={14} /> Pack Order
                   </button>
                 )}
                 {selectedOrder.status === 'PACKED' && (
                   <button 
                     disabled={updating}
                     onClick={() => handleUpdateStatus(selectedOrder.id, 'READY_FOR_DISPATCH')}
-                    className="w-full py-2.5 bg-cyan-600 text-white rounded-xl text-[12.5px] font-bold shadow-sm hover:bg-cyan-700 transition cursor-pointer border-none flex items-center justify-center gap-1"
+                    className="w-full py-2.5 bg-cyan-600 hover:bg-cyan-700 text-white rounded-xl text-[12.5px] font-bold shadow-md transition cursor-pointer border-none flex items-center justify-center gap-1.5"
                   >
-                    Ready for Dispatch
+                    <Layers size={14} /> Ready for Dispatch
                   </button>
                 )}
                 {['READY_FOR_DISPATCH', 'PACKED', 'PARTIALLY_DELIVERED'].includes(selectedOrder.status) && (
-                  <div className="bg-emerald-50/50 border border-emerald-150 p-3.5 rounded-2xl space-y-2.5 shadow-sm text-left animate-slide-up">
+                  <div className="bg-emerald-50/70 border border-emerald-200 p-3.5 rounded-2xl space-y-2.5 shadow-xs text-left">
                     <span className="block text-[10px] font-black uppercase text-emerald-800 tracking-wider">Next Recommended Action</span>
                     <p className="text-[11.5px] text-slate-650 font-semibold leading-relaxed">
                       Confirm physical dispatch. You can record driver details, carrier logs, and enter partial dispatch amounts.
@@ -623,15 +804,17 @@ export default function OrderTrackingPage() {
                     <button 
                       disabled={updating}
                       onClick={openDispatchModal}
-                      className="w-full py-2.5 bg-emerald-600 text-white rounded-xl text-[12.5px] font-bold shadow-sm hover:bg-emerald-700 transition cursor-pointer border-none flex items-center justify-center gap-1"
+                      className="w-full py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl text-[12.5px] font-bold shadow-md transition cursor-pointer border-none flex items-center justify-center gap-1.5"
                     >
                       <Truck size={14} /> Dispatch Shipment
                     </button>
                   </div>
                 )}
-                {selectedOrder.status === 'DELIVERED' && (
-                  <div className="bg-slate-50 border border-slate-200 p-3 rounded-xl flex items-center justify-between text-[11.5px] font-semibold text-slate-650">
-                    <span>Fulfillment Completed</span>
+                {['DELIVERED', 'CLOSED'].includes(selectedOrder.status) && (
+                  <div className="bg-slate-50 border border-slate-200/80 p-3 rounded-2xl flex items-center justify-between text-[11.5px] font-semibold text-slate-650">
+                    <span className="flex items-center gap-1.5 font-bold text-emerald-700">
+                      <CheckCircle2 size={15} /> Fulfillment Completed
+                    </span>
                     <button 
                       onClick={() => navigate(`/dashboard/sales-orders?open=${selectedOrder.id}`)}
                       className="text-[11.5px] font-bold text-indigo-600 border-none bg-transparent cursor-pointer hover:underline flex items-center gap-0.5"
@@ -644,9 +827,9 @@ export default function OrderTrackingPage() {
 
             </div>
           ) : (
-            <div className="bg-slate-50 border border-slate-200 rounded-3xl p-8 text-center text-slate-400 italic text-[12.5px] shadow-inner select-none">
-              <Box size={30} className="mx-auto mb-2 text-slate-350 opacity-60" />
-              Select an order from the board to perform picking, packing, and dispatch operations.
+            <div className="bg-slate-50/70 border border-slate-200/80 rounded-3xl p-10 text-center text-slate-400 italic text-[12.5px] shadow-inner select-none">
+              <Box size={32} className="mx-auto mb-2.5 text-slate-350 opacity-60" />
+              Select an order card from the board to perform picking, packing, and dispatch operations.
             </div>
           )}
         </div>
