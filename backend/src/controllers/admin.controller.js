@@ -1064,3 +1064,141 @@ exports.getCompanyMembers = async (req, res) => {
     res.status(err.status || 500).json({ error: err.message });
   }
 };
+
+exports.getCompanyInvitations = async (req, res) => {
+  try {
+    const companyId = parseInt(req.params.companyId, 10);
+    await assertCompanyAdmin(req, companyId);
+
+    const invitations = await db('user_access_invitations')
+      .where({ company_id: companyId })
+      .orderBy('created_at', 'desc');
+
+    const subscription = await db('company_subscriptions').where({ company_id: companyId }).first();
+    const maxLicenses = subscription ? subscription.max_user_licenses : 50;
+    const activeUsersCountRes = await db('company_users').where({ company_id: companyId, is_active: true }).count('* as cnt').first();
+    const activeUsersCount = parseInt(activeUsersCountRes.cnt || 0);
+
+    res.json({
+      invitations,
+      licenseUsage: {
+        used: activeUsersCount,
+        max: maxLicenses
+      }
+    });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+};
+
+exports.createCompanyInvitation = async (req, res) => {
+  try {
+    const companyId = parseInt(req.params.companyId, 10);
+    await assertCompanyAdmin(req, companyId);
+
+    const { email, roleName } = req.body;
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ error: 'Valid email address is required' });
+    }
+
+    const normalizedEmail = email.trim().toLowerCase();
+
+    // Check if user is already a member
+    const existingUser = await db('users').where({ email: normalizedEmail }).first();
+    if (existingUser) {
+      const isMember = await db('company_users').where({ company_id: companyId, user_id: existingUser.id, is_active: true }).first();
+      if (isMember) {
+        return res.status(400).json({ error: 'This user is already an active member of this workspace.' });
+      }
+    }
+
+    const expiresAt = new Date();
+    expiresAt.setDate(expiresAt.getDate() + 14); // 14 days expiration
+
+    await db('user_access_invitations')
+      .insert({
+        company_id: companyId,
+        email: normalizedEmail,
+        invitation_status: 'PENDING',
+        role_name: roleName || 'Accountant',
+        expires_at: expiresAt,
+        invited_by: req.user.id
+      })
+      .onConflict(['company_id', 'email'])
+      .merge({
+        invitation_status: 'PENDING',
+        role_name: roleName || 'Accountant',
+        expires_at: expiresAt,
+        invited_by: req.user.id,
+        updated_at: db.fn.now()
+      });
+
+    res.json({ success: true, message: 'Workspace invitation sent successfully' });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+};
+
+exports.revokeCompanyInvitation = async (req, res) => {
+  try {
+    const companyId = parseInt(req.params.companyId, 10);
+    const invitationId = parseInt(req.params.invitationId, 10);
+    await assertCompanyAdmin(req, companyId);
+
+    await db('user_access_invitations')
+      .where({ id: invitationId, company_id: companyId })
+      .update({ invitation_status: 'REVOKED' });
+
+    res.json({ success: true, message: 'Invitation revoked' });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+};
+
+exports.getCompanyAuthSettings = async (req, res) => {
+  try {
+    const companyId = parseInt(req.params.companyId, 10);
+    await assertCompanyAdmin(req, companyId);
+
+    let settings = await db('company_auth_settings').where({ company_id: companyId }).first();
+    if (!settings) {
+      const [newSettings] = await db('company_auth_settings').insert({
+        company_id: companyId,
+        google_login_enabled: false,
+        allow_google_account_linking: false,
+        allowed_google_domains: JSON.stringify([])
+      }).returning('*');
+      settings = newSettings;
+    }
+
+    res.json(settings);
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+};
+
+exports.updateCompanyAuthSettings = async (req, res) => {
+  try {
+    const companyId = parseInt(req.params.companyId, 10);
+    await assertCompanyAdmin(req, companyId);
+
+    const { google_login_enabled, allow_google_account_linking, allowed_google_domains } = req.body;
+
+    const payload = {
+      google_login_enabled: !!google_login_enabled,
+      allow_google_account_linking: !!allow_google_account_linking,
+      allowed_google_domains: Array.isArray(allowed_google_domains) ? JSON.stringify(allowed_google_domains) : null,
+      updated_at: db.fn.now()
+    };
+
+    await db('company_auth_settings')
+      .insert({ company_id: companyId, ...payload })
+      .onConflict('company_id')
+      .merge(payload);
+
+    res.json({ success: true, message: 'Authentication policies updated successfully' });
+  } catch (err) {
+    res.status(err.status || 500).json({ error: err.message });
+  }
+};
+

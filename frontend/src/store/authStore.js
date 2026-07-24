@@ -59,6 +59,32 @@ const useAuthStore = create((set) => ({
     }
   },
 
+  loginWithGoogle: async ({ credential, email, companySlug }) => {
+    set({ isLoading: true, error: null });
+    try {
+      const response = await api.post('/auth/google', { credential, email, companySlug });
+      
+      if (response.data?.requireWorkspaceSelection) {
+        set({ isLoading: false });
+        return { requireWorkspaceSelection: true, userCompanies: response.data.userCompanies, profile: response.data.profile };
+      }
+
+      const { token, user, company } = response.data;
+      localStorage.setItem('token', token);
+      
+      set({ user, token, isAuthenticated: true, isLoading: false });
+      if (company) {
+        useAuthStore.getState().setActiveCompany(company);
+      }
+      await useAuthStore.getState().fetchUserCompanies();
+      return { success: true };
+    } catch (err) {
+      const message = err.response?.data?.message || 'Google authentication failed';
+      set({ error: message, isLoading: false });
+      return { success: false, error: message, code: err.response?.data?.code };
+    }
+  },
+
   login: async (email, password) => {
     set({ isLoading: true, error: null });
     try {

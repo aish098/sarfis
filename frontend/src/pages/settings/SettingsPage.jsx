@@ -11,6 +11,7 @@ import api from '../../services/api';
 import useAuthStore from '../../store/authStore';
 import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 import NotificationPreferencesTab from './NotificationPreferencesTab';
+import ActiveSessionsCard from '../../components/settings/ActiveSessionsCard';
 
 // Tabs configuration
 const TABS = [
@@ -1185,6 +1186,9 @@ export default function SettingsPage() {
                 </div>
               </div>
             </div>
+
+            {/* Active Sessions & Devices Management */}
+            <ActiveSessionsCard />
           </div>
         );
 

@@ -302,3 +302,81 @@ exports.seedKhaanUser = async (req, res) => {
     res.status(500).json({ success: false, error: err.message });
   }
 };
+
+const AuthIdentityService = require('../services/auth_identity.service');
+const SessionService = require('../services/session.service');
+
+exports.googleLogin = async (req, res) => {
+  const { credential, email, companySlug } = req.body;
+  const ip = req.ip || req.headers['x-forwarded-for'] || req.socket.remoteAddress;
+  const userAgent = req.headers['user-agent'] || 'Unknown';
+
+  try {
+    const result = await AuthIdentityService.loginWithGoogle({
+      credential,
+      emailHint: email,
+      companySlug,
+      ip,
+      userAgent
+    });
+    res.json(result);
+  } catch (err) {
+    console.error('Google login controller error:', err);
+    res.status(err.statusCode || 500).json({
+      success: false,
+      code: err.code || 'GOOGLE_LOGIN_ERROR',
+      message: err.message || 'Google authentication failed'
+    });
+  }
+};
+
+exports.linkGoogleAccount = async (req, res) => {
+  const { credential, passwordConfirmation } = req.body;
+  try {
+    const result = await AuthIdentityService.linkGoogleAccount({
+      userId: req.user.id,
+      credential,
+      passwordConfirmation
+    });
+    res.json(result);
+  } catch (err) {
+    res.status(err.statusCode || 400).json({ success: false, message: err.message });
+  }
+};
+
+exports.unlinkGoogleAccount = async (req, res) => {
+  try {
+    const result = await AuthIdentityService.unlinkGoogleAccount({ userId: req.user.id });
+    res.json(result);
+  } catch (err) {
+    res.status(err.statusCode || 400).json({ success: false, message: err.message });
+  }
+};
+
+exports.getUserSessions = async (req, res) => {
+  try {
+    const sessions = await SessionService.getUserSessions(req.user.id);
+    res.json(sessions);
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.revokeSession = async (req, res) => {
+  const { sessionId } = req.params;
+  try {
+    await SessionService.revokeSession(sessionId, req.user.id);
+    res.json({ success: true, message: 'Session revoked successfully' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.revokeAllSessions = async (req, res) => {
+  try {
+    await SessionService.revokeAllUserSessions(req.user.id, req.user.sessionId);
+    res.json({ success: true, message: 'All other active sessions revoked' });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};

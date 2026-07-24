@@ -34,4 +34,13 @@ router.get('/companies/:companyId/members/:userId/permissions', companyGuard, re
 router.post('/companies/:companyId/members/:userId/permissions', companyGuard, requirePermission('settings.manage'), adminController.saveUserPermissionOverrides);
 router.post('/companies/:companyId/members/:userId/permissions/:permissionId/approve', companyGuard, requirePermission('settings.manage'), adminController.approveUserPermissionOverride);
 
+// User Invitations & License Management
+router.get('/companies/:companyId/invitations', companyGuard, requirePermission('user.manage'), adminController.getCompanyInvitations);
+router.post('/companies/:companyId/invitations', companyGuard, requirePermission('user.manage'), adminController.createCompanyInvitation);
+router.delete('/companies/:companyId/invitations/:invitationId', companyGuard, requirePermission('user.manage'), adminController.revokeCompanyInvitation);
+
+// SSO Authentication Policies & Domain Restrictions
+router.get('/companies/:companyId/auth-settings', companyGuard, requirePermission('settings.manage'), adminController.getCompanyAuthSettings);
+router.put('/companies/:companyId/auth-settings', companyGuard, requirePermission('settings.manage'), adminController.updateCompanyAuthSettings);
+
 module.exports = router;

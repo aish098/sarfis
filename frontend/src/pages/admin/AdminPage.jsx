@@ -213,6 +213,10 @@ export default function AdminPage() {
     [activeCompanyId]
   );
 
+  const [invitationsData, setInvitationsData] = useState({ invitations: [], licenseUsage: { used: 0, max: 50 } });
+  const [ssoSettings, setSsoSettings] = useState({ google_login_enabled: false, allow_google_account_linking: false, allowed_google_domains: [] });
+  const [newInvite, setNewInvite] = useState({ email: '', roleName: 'Accountant' });
+
   const loadData = useCallback(async () => {
     if (!activeCompanyId) {
       setLoading(false);
@@ -235,6 +239,22 @@ export default function AdminPage() {
       // Fetch active sessions
       const resSessions = await api.get(`/admin/companies/${activeCompanyId}/sessions`, requestConfig);
       setSessions(resSessions.data || []);
+
+      // Fetch workspace invitations & license usage
+      const resInvs = await api.get(`/admin/companies/${activeCompanyId}/invitations`, requestConfig);
+      setInvitationsData(resInvs.data || { invitations: [], licenseUsage: { used: 0, max: 50 } });
+
+      // Fetch company SSO settings
+      const resSso = await api.get(`/admin/companies/${activeCompanyId}/auth-settings`, requestConfig);
+      let domains = resSso.data?.allowed_google_domains;
+      if (typeof domains === 'string') {
+        try { domains = JSON.parse(domains); } catch { domains = []; }
+      }
+      setSsoSettings({
+        google_login_enabled: !!resSso.data?.google_login_enabled,
+        allow_google_account_linking: !!resSso.data?.allow_google_account_linking,
+        allowed_google_domains: Array.isArray(domains) ? domains : []
+      });
     } catch (err) {
       const text = err.response?.status === 403
         ? 'Admin access required. Only Company Admins can manage workspace controls.'
@@ -297,6 +317,49 @@ export default function AdminPage() {
       await loadData();
     } catch (err) {
       setMessage({ type: 'error', text: err.response?.data?.message || 'Failed to remove user.' });
+    }
+    setSaving(false);
+  };
+
+  const handleCreateInvitation = async (e) => {
+    e.preventDefault();
+    if (!newInvite.email.trim()) return;
+    setSaving(true);
+    setMessage(null);
+    try {
+      await api.post(`/admin/companies/${activeCompanyId}/invitations`, newInvite, requestConfig);
+      setNewInvite({ email: '', roleName: 'Accountant' });
+      setMessage({ type: 'success', text: 'Workspace invitation created and emailed.' });
+      await loadData();
+    } catch (err) {
+      setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to create workspace invitation.' });
+    }
+    setSaving(false);
+  };
+
+  const handleRevokeInvitation = async (invitationId) => {
+    if (!window.confirm('Are you sure you want to revoke this pending invitation?')) return;
+    setSaving(true);
+    try {
+      await api.delete(`/admin/companies/${activeCompanyId}/invitations/${invitationId}`, requestConfig);
+      setMessage({ type: 'success', text: 'Invitation revoked.' });
+      await loadData();
+    } catch (err) {
+      setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to revoke invitation.' });
+    }
+    setSaving(false);
+  };
+
+  const handleSaveSsoSettings = async (e) => {
+    e.preventDefault();
+    setSaving(true);
+    setMessage(null);
+    try {
+      await api.put(`/admin/companies/${activeCompanyId}/auth-settings`, ssoSettings, requestConfig);
+      setMessage({ type: 'success', text: 'Google SSO policies and domain controls saved.' });
+      await loadData();
+    } catch (err) {
+      setMessage({ type: 'error', text: err.response?.data?.error || 'Failed to update SSO policies.' });
     }
     setSaving(false);
   };
@@ -822,6 +885,8 @@ export default function AdminPage() {
       <div className="flex items-center gap-1.5 border-b border-slate-200 mb-6 bg-white p-1 rounded-lg border overflow-x-auto hide-scrollbar">
         {[
           { id: 'users', label: 'Users & Teams', icon: Users },
+          { id: 'invitations', label: 'Authorized Emails & Invitations', icon: UserPlus },
+          { id: 'sso', label: 'Authentication & SSO', icon: KeyRound },
           { id: 'permissions', label: 'Permissions Matrix', icon: ShieldCheck },
           { id: 'periods', label: 'Fiscal Periods', icon: Calendar },
           { id: 'data', label: 'Data Wizards', icon: Database },
@@ -1025,6 +1090,192 @@ export default function AdminPage() {
                 </div>
               </section>
             </div>
+          </div>
+        )}
+
+        {/* --- TAB: AUTHORIZED EMAILS & INVITATIONS --- */}
+        {activeTab === 'invitations' && (
+          <div className="grid grid-cols-1 xl:grid-cols-3 gap-5">
+            <div className="xl:col-span-2 space-y-5">
+              <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="flex items-center justify-between gap-4 px-5 py-4 border-b border-slate-100 bg-slate-50/60">
+                  <div>
+                    <h2 className="text-[15px] font-black text-slate-900 flex items-center gap-2">
+                      <UserPlus size={17} className="text-emerald-600" />
+                      Workspace Invitations & License Entitlements
+                    </h2>
+                    <p className="text-[11px] text-slate-500 mt-0.5">
+                      Authorized emails can auto-join this workspace when logging in with verified Google SSO.
+                    </p>
+                  </div>
+                  <div className="bg-emerald-50 border border-emerald-200 px-3 py-1.5 rounded-xl text-[12px] font-bold text-emerald-800 flex items-center gap-1.5">
+                    <Crown size={14} className="text-emerald-600" />
+                    <span>Licenses: {invitationsData.licenseUsage?.used || 0} / {invitationsData.licenseUsage?.max || 50} Used</span>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <table className="w-full text-left">
+                    <thead>
+                      <tr className="border-b border-slate-100 bg-slate-50">
+                        <th className="px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-400">Target Email</th>
+                        <th className="px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-400">Assigned Role</th>
+                        <th className="px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-400">Status</th>
+                        <th className="px-5 py-3 text-[11px] font-black uppercase tracking-wider text-slate-400">Expires</th>
+                        <th className="px-5 py-3 text-right text-[11px] font-black uppercase tracking-wider text-slate-400">Action</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-slate-100">
+                      {invitationsData.invitations?.length === 0 ? (
+                        <tr>
+                          <td colSpan={5} className="px-5 py-8 text-center text-slate-400 text-xs">
+                            No pending or active workspace invitations recorded.
+                          </td>
+                        </tr>
+                      ) : (
+                        invitationsData.invitations?.map((inv) => {
+                          const statusColor = 
+                            inv.invitation_status === 'ACCEPTED' ? 'bg-emerald-100 text-emerald-800' :
+                            inv.invitation_status === 'PENDING' ? 'bg-amber-100 text-amber-800' : 'bg-slate-100 text-slate-600';
+                          return (
+                            <tr key={inv.id} className="hover:bg-slate-50/60">
+                              <td className="px-5 py-3.5 font-bold text-xs text-slate-900">{inv.email}</td>
+                              <td className="px-5 py-3.5"><RoleBadge role={inv.role_name} /></td>
+                              <td className="px-5 py-3.5">
+                                <span className={`px-2.5 py-0.5 rounded-md text-[10px] font-black uppercase tracking-wider ${statusColor}`}>
+                                  {inv.invitation_status}
+                                </span>
+                              </td>
+                              <td className="px-5 py-3.5 text-xs text-slate-500 font-mono">
+                                {inv.expires_at ? new Date(inv.expires_at).toLocaleDateString() : '—'}
+                              </td>
+                              <td className="px-5 py-3.5 text-right">
+                                {inv.invitation_status === 'PENDING' && (
+                                  <button
+                                    onClick={() => handleRevokeInvitation(inv.id)}
+                                    disabled={saving}
+                                    className="text-rose-600 hover:text-rose-700 text-xs font-bold px-2.5 py-1 bg-white border border-slate-200 hover:border-rose-300 rounded-lg transition-all cursor-pointer"
+                                  >
+                                    Revoke
+                                  </button>
+                                )}
+                              </td>
+                            </tr>
+                          );
+                        })
+                      )}
+                    </tbody>
+                  </table>
+                </div>
+              </section>
+            </div>
+
+            {/* Invite Form Sidebar */}
+            <div className="space-y-5">
+              <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden">
+                <div className="px-5 py-4 border-b border-slate-100 bg-slate-50/60">
+                  <h2 className="text-[15px] font-black text-slate-900 flex items-center gap-2">
+                    <UserPlus size={17} className="text-emerald-600" />
+                    Authorize New Email
+                  </h2>
+                </div>
+                <form onSubmit={handleCreateInvitation} className="p-5 space-y-4">
+                  <Field label="Work Email Address">
+                    <Input
+                      type="email"
+                      value={newInvite.email}
+                      onChange={(val) => setNewInvite((f) => ({ ...f, email: val }))}
+                      placeholder="user@company.com"
+                    />
+                  </Field>
+                  <Field label="Assigned Role">
+                    <select
+                      value={newInvite.roleName}
+                      onChange={(e) => setNewInvite((f) => ({ ...f, roleName: e.target.value }))}
+                      className="w-full h-10 rounded-lg border border-slate-200 bg-white px-3 text-[13px] font-bold text-slate-700 outline-none focus:border-emerald-500"
+                    >
+                      {roles.map((r) => <option key={r} value={r}>{r}</option>)}
+                    </select>
+                  </Field>
+                  <button
+                    disabled={saving || !newInvite.email.trim()}
+                    className="w-full inline-flex items-center justify-center gap-2 h-10 rounded-lg bg-emerald-600 text-white text-[13px] font-bold hover:bg-emerald-700 disabled:opacity-50 cursor-pointer"
+                  >
+                    <UserPlus size={15} /> Authorize & Send Invitation
+                  </button>
+                </form>
+              </section>
+            </div>
+          </div>
+        )}
+
+        {/* --- TAB: AUTHENTICATION & SSO --- */}
+        {activeTab === 'sso' && (
+          <div className="max-w-3xl space-y-6">
+            <section className="bg-white rounded-xl border border-slate-200 shadow-sm overflow-hidden p-6 space-y-6">
+              <div className="border-b border-slate-100 pb-4">
+                <h2 className="text-[17px] font-black text-slate-900 flex items-center gap-2">
+                  <KeyRound size={20} className="text-emerald-600" />
+                  Google SSO Policy & Workspace Domain Controls
+                </h2>
+                <p className="text-slate-500 text-xs mt-1">
+                  Configure corporate Single Sign-On policies, account linking rules, and allowed Google Workspace domains.
+                </p>
+              </div>
+
+              <form onSubmit={handleSaveSsoSettings} className="space-y-6">
+                <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-xs text-slate-900 block">Enable Google Single Sign-On (SSO)</span>
+                      <span className="text-[11px] text-slate-500">Allow users to log into this workspace using Google Identity Services.</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={ssoSettings.google_login_enabled}
+                      onChange={(e) => setSsoSettings((f) => ({ ...f, google_login_enabled: e.target.checked }))}
+                      className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                    />
+                  </div>
+
+                  <div className="border-t border-slate-200 pt-4 flex items-center justify-between">
+                    <div>
+                      <span className="font-bold text-xs text-slate-900 block">Allow Manual Google Account Linking</span>
+                      <span className="text-[11px] text-slate-500">Allow logged-in users to link their Google profile under Security Settings.</span>
+                    </div>
+                    <input
+                      type="checkbox"
+                      checked={ssoSettings.allow_google_account_linking}
+                      onChange={(e) => setSsoSettings((f) => ({ ...f, allow_google_account_linking: e.target.checked }))}
+                      className="w-5 h-5 rounded border-slate-300 text-emerald-600 focus:ring-emerald-500 cursor-pointer"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Field label="Allowed Google Workspace Domains (Optional)" hint="Enter comma-separated domains (e.g. company.com, logistics.com) to restrict Google SSO only to managed Google Workspace accounts matching the verified hd claim. Leave blank to allow any Google account with an active invitation.">
+                    <textarea
+                      rows={3}
+                      value={ssoSettings.allowed_google_domains.join(', ')}
+                      onChange={(e) => {
+                        const domains = e.target.value.split(',').map(d => d.trim()).filter(Boolean);
+                        setSsoSettings((f) => ({ ...f, allowed_google_domains: domains }));
+                      }}
+                      placeholder="company.com, enterprise.org"
+                      className="w-full p-3 border border-slate-200 rounded-xl text-xs bg-white outline-none focus:border-emerald-500 font-mono"
+                    />
+                  </Field>
+                </div>
+
+                <button
+                  type="submit"
+                  disabled={saving}
+                  className="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl transition-all shadow-sm cursor-pointer border-none flex items-center gap-2"
+                >
+                  <Save size={15} /> Save SSO Policies
+                </button>
+              </form>
+            </section>
           </div>
         )}
 
