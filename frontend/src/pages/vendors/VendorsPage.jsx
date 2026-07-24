@@ -165,7 +165,7 @@ export default function VendorsPage() {
                       </div>
                       
                       {/* Actions */}
-                      <div className="flex items-center opacity-0 group-hover:opacity-100 transition-opacity">
+                      <div className="flex items-center opacity-100 sm:opacity-0 sm:group-hover:opacity-100 transition-opacity">
                         <button onClick={() => handleEdit(vendor)}
                           className="w-7 h-7 rounded-lg flex items-center justify-center text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 border-none bg-transparent cursor-pointer transition-all">
                           <Edit2 size={13} />

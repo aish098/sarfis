@@ -348,7 +348,7 @@ export default function PayrollPage() {
             </select>
           </div>
 
-          <div className="flex flex-wrap items-center gap-1.5 bg-slate-200/40 p-1 rounded-2xl">
+          <div className="flex items-center gap-1.5 bg-slate-200/40 p-1 rounded-2xl w-full sm:w-auto overflow-x-auto hide-scrollbar whitespace-nowrap">
             {tabs.map(tab => {
               const Icon = tab.icon;
               return (
