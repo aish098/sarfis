@@ -392,7 +392,7 @@ export default function PayrollPage() {
                 {/* Inner rotating gradient arc */}
                 <div className="absolute inset-0 rounded-full border-[3px] border-transparent border-t-emerald-600 border-r-emerald-600 animate-spin"></div>
               </div>
-              <h2 className="text-[14px] font-black text-slate-950 tracking-tight font-mono">S A R F I S</h2>
+              <h2 className="text-[13px] font-black text-slate-950 tracking-widest font-sans uppercase">A C C O U N T E L L E N C E</h2>
               <p className="mt-2 text-slate-500 text-[11px] font-medium tracking-wide">{loadingText}</p>
             </div>
           </div>
