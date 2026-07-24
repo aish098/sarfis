@@ -483,12 +483,7 @@ export default function AdminPage() {
         const formData = new FormData();
         formData.append('file', file);
 
-        const response = await api.post(`/admin/companies/${activeCompanyId}/backup/parse`, formData, {
-          headers: {
-            ...requestConfig?.headers,
-            'Content-Type': 'multipart/form-data'
-          }
-        });
+        const response = await api.post(`/admin/companies/${activeCompanyId}/backup/parse`, formData, requestConfig);
 
         const parsed = response.data;
         const stats = {

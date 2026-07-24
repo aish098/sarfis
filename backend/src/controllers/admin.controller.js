@@ -614,7 +614,7 @@ exports.parseExcelBackup = async (req, res) => {
     }
 
     workbook.eachSheet(sheet => {
-      if (sheet.name === 'Metadata') return;
+      if (sheet.name === 'Metadata' || sheet.name === 'Executive Overview') return;
 
       const tableName = sheet.name;
       const rows = [];
@@ -624,6 +624,8 @@ exports.parseExcelBackup = async (req, res) => {
         if (rowNumber === 1) {
           headers = row.values.slice(1);
         } else {
+          if (!headers || headers.length === 0 || headers[0] === 'No records available for this entity module.') return;
+          
           const item = {};
           const vals = row.values.slice(1);
           headers.forEach((h, idx) => {
@@ -638,9 +640,12 @@ exports.parseExcelBackup = async (req, res) => {
         }
       });
 
-      backup.data[tableName] = rows;
+      if (headers && headers.length > 0 && headers[0] !== 'No records available for this entity module.') {
+        backup.data[tableName] = rows;
+      }
     });
 
+    if (!backup.backupType) backup.backupType = 'full';
     res.json(backup);
   } catch (err) {
     res.status(500).json({ message: err.message });

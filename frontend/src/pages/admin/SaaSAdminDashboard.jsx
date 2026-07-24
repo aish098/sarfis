@@ -200,7 +200,7 @@ export default function SaaSAdminDashboard() {
             </div>
             <div>
               <h2 className="text-xl font-bold bg-gradient-to-r from-white via-slate-100 to-slate-300 bg-clip-text text-transparent">
-                SARFIS SaaS Control Panel
+                ACCOUNTELLENCE SaaS Control Panel
               </h2>
               <p className="text-xs text-emerald-400/90 font-medium">Enterprise Security & Platform Gateway</p>
             </div>
