@@ -68,12 +68,21 @@ const authMiddleware = async (req, res, next) => {
         const RoleService = require('../services/role.service');
         const db = require('../config/db');
         
-        const membership = await db('user_roles')
+        let membership = await db('user_roles')
           .join('roles', 'user_roles.role_id', 'roles.id')
           .select('roles.name as role')
           .where('user_roles.user_id', req.user.id)
           .andWhere('user_roles.company_id', companyId)
           .first();
+
+        if (!membership) {
+          const cu = await db('company_users')
+            .where({ user_id: req.user.id, company_id: companyId })
+            .first();
+          if (cu) {
+            membership = { role: cu.role || req.user.role || 'Admin' };
+          }
+        }
 
         if (membership) {
           req.companyId = companyId;
