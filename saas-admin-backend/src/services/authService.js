@@ -6,6 +6,25 @@ const AppError = require('../errors/AppError');
 
 class AuthService {
   async login(email, password, deviceInfo = '', ipAddress = '') {
+    // Dynamic Table Auto-Recovery Check for PostgreSQL Cloud Environments
+    const hasAdminsTable = await db.schema.hasTable('admins');
+    if (!hasAdminsTable) {
+      console.log('🌱 [SaaS Admin Auto-Recovery] admins table missing on database. Running migrations & seeds...');
+      const path = require('path');
+      try {
+        await db.migrate.latest({
+          directory: path.join(__dirname, '../db/migrations'),
+          tableName: 'saas_admin_knex_migrations'
+        });
+        await db.seed.run({
+          directory: path.join(__dirname, '../db/seeds')
+        });
+        console.log('✅ [SaaS Admin Auto-Recovery] Auto-migration & seed completed successfully.');
+      } catch (autoErr) {
+        console.error('⚠️ [SaaS Admin Auto-Recovery] Error during auto-migration:', autoErr.message);
+      }
+    }
+
     const admin = await db('admins')
       .leftJoin('admin_roles', 'admins.role_id', 'admin_roles.id')
       .whereRaw('LOWER(admins.email) = ?', [email.toLowerCase()])
