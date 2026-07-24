@@ -131,7 +131,7 @@ export default function LedgerPage({ globalSearch = "" }) {
           tx.runningBalance.toFixed(2),
         ];
       }),
-      filename: `ledger_${selectedAcc.code}_${new Date().toISOString().split('T')[0]}.csv`
+      filename: `ledger_${selectedAcc.code}_${new Date().toISOString().split('T')[0]}.xlsx`
     });
   };
 

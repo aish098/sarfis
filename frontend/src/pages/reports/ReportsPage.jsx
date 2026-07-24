@@ -442,7 +442,7 @@ export default function ReportsPage() {
       kpis,
       columns,
       rows,
-      filename: `${(activeCompany?.name || 'Accountellence').replace(/\s+/g, '_')}_${tab}.${exportType === 'excel' ? 'csv' : 'pdf'}`
+      filename: `${(activeCompany?.name || 'Accountellence').replace(/\s+/g, '_')}_${tab}.${exportType === 'excel' ? 'xlsx' : exportType === 'csv' ? 'csv' : 'pdf'}`
     };
 
     if (exportType === 'excel' || exportType === 'csv') {
