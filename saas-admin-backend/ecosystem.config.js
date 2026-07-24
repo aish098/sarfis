@@ -3,8 +3,8 @@ module.exports = {
     {
       name: 'saas-admin-backend',
       script: 'src/server.js',
-      instances: 'max',
-      exec_mode: 'cluster',
+      instances: 1, // Single instance required for SQLite to prevent database file locking
+      exec_mode: 'fork', // Fork mode for SQLite persistence
       env: {
         NODE_ENV: 'production',
         PORT: 3000

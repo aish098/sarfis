@@ -4,6 +4,7 @@ const userController = require('../controllers/userController');
 const authMiddleware = require('../middleware/auth.middleware');
 const rbacMiddleware = require('../middleware/rbac.middleware');
 const auditMiddleware = require('../middleware/audit.middleware');
+const { validateToggleBlockStatus } = require('../validators/userValidator');
 
 router.use(authMiddleware);
 
@@ -13,14 +14,15 @@ router.get('/', rbacMiddleware('users.view'), userController.getAllUsers);
 // 2. Get Single User Details
 router.get('/:user_id', rbacMiddleware('users.view'), userController.getUserById);
 
-// 3. Block or Unblock a User (Audited Action)
+// 3. Block or Unblock a User (Validated & Audited Action)
 router.put(
   '/:user_id/block',
   rbacMiddleware('users.block'),
+  validateToggleBlockStatus,
   auditMiddleware('USER_BLOCK_STATUS_TOGGLED', (req, resData) => ({
     targetType: 'user',
     targetId: req.params.user_id,
-    payload: { status: req.body.status, reason: req.body.reason }
+    afterJson: resData?.data || { status: req.body.status, reason: req.body.reason }
   })),
   userController.toggleBlockStatus
 );

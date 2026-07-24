@@ -2,13 +2,14 @@ const bcrypt = require('bcryptjs');
 
 exports.seed = async function (knex) {
   // Clear existing records
+  await knex('audit_logs').del();
   await knex('coupon_redemptions').del();
   await knex('coupons').del();
   await knex('company_subscriptions').del();
   await knex('plans').del();
   await knex('users').del();
   await knex('companies').del();
-  await knex('user_sessions').del();
+  await knex('refresh_tokens').del();
   await knex('admins').del();
   await knex('admin_permissions').del();
   await knex('admin_roles').del();
@@ -47,14 +48,19 @@ exports.seed = async function (knex) {
     }
   }
 
-  // 3. Insert Default Super Admin (`admin@saas.com` / `AdminPass123!`)
-  const passwordHash = await bcrypt.hash('AdminPass123!', 10);
+  // 3. Read Initial Administrator Credentials from Environment Variables
+  const initialEmail = process.env.INITIAL_ADMIN_EMAIL || 'admin@saas.com';
+  const initialPassword = process.env.INITIAL_ADMIN_PASSWORD || 'AdminPass123!';
+  const mustChangePassword = !process.env.INITIAL_ADMIN_PASSWORD;
+
+  const passwordHash = await bcrypt.hash(initialPassword, 10);
   const [adminId] = await knex('admins').insert({
     name: 'Master Admin',
-    email: 'admin@saas.com',
+    email: initialEmail,
     password_hash: passwordHash,
     role_id: superAdminRoleId,
-    status: 'ACTIVE'
+    status: 'ACTIVE',
+    must_change_password: mustChangePassword
   });
 
   // 4. Sample Companies
@@ -164,5 +170,5 @@ exports.seed = async function (knex) {
     }
   ]);
 
-  console.log('✅ Seed completed: Super Admin (admin@saas.com / AdminPass123!) created with sample users, plans, and coupons.');
+  console.log(`✅ Seed completed: Super Admin (${initialEmail}) created.`);
 };

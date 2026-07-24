@@ -1,5 +1,7 @@
 const express = require('express');
 const cors = require('cors');
+const helmet = require('helmet');
+const rateLimit = require('express-rate-limit');
 const authRoutes = require('./routes/authRoutes');
 const dashboardRoutes = require('./routes/dashboardRoutes');
 const userRoutes = require('./routes/userRoutes');
@@ -10,9 +12,36 @@ const errorMiddleware = require('./middleware/error.middleware');
 
 const app = express();
 
-// Global Middleware
-app.use(cors());
+// Trust Nginx Reverse Proxy Header
+app.set('trust proxy', 1);
+
+// Security Headers & Server Identification Masking
+app.use(helmet());
+app.disable('x-powered-by');
+
+// Restricted CORS configuration
+const allowedOrigin = process.env.ADMIN_FRONTEND_URL || '*';
+app.use(cors({
+  origin: allowedOrigin,
+  credentials: true,
+  methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE']
+}));
+
 app.use(express.json());
+
+// Global API Rate Limiter (100 requests per 15 minutes per IP)
+const globalApiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 100,
+  message: {
+    success: false,
+    error: 'TOO_MANY_REQUESTS',
+    message: 'Global API rate limit exceeded. Please slow down your requests.'
+  },
+  standardHeaders: true,
+  legacyHeaders: false
+});
+app.use('/api', globalApiLimiter);
 
 // Request logging middleware for production diagnostics
 app.use((req, res, next) => {
@@ -26,7 +55,7 @@ app.get('/', (req, res) => {
     name: 'SaaS Admin Dashboard API',
     version: '1.0.0',
     status: 'ONLINE',
-    message: 'Production-Ready SaaS Admin Dashboard API is running smoothly!',
+    security: 'JWT + Refresh Token Rotation, RBAC, Rate Limiting, Zod Schema Validation',
     timestamp: new Date()
   });
 });

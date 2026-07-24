@@ -19,13 +19,17 @@ class AuditLogRepository {
     const auditLogs = await query
       .select(
         'al.id',
+        'al.request_id',
         'al.admin_id',
         'a.name as admin_name',
         'a.email as admin_email',
         'al.action',
         'al.target_type',
         'al.target_id',
-        'al.payload_json',
+        'al.before_json',
+        'al.after_json',
+        'al.success',
+        'al.failure_code',
         'al.ip_address',
         'al.user_agent',
         'al.created_at'

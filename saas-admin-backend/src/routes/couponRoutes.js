@@ -4,17 +4,19 @@ const couponController = require('../controllers/couponController');
 const authMiddleware = require('../middleware/auth.middleware');
 const rbacMiddleware = require('../middleware/rbac.middleware');
 const auditMiddleware = require('../middleware/audit.middleware');
+const { validateGenerateCoupon } = require('../validators/couponValidator');
 
 router.use(authMiddleware);
 
-// 1. Generate Coupon (Audited Action)
+// 1. Generate Coupon (Validated & Audited Action)
 router.post(
   '/generate',
   rbacMiddleware('coupons.create'),
+  validateGenerateCoupon,
   auditMiddleware('COUPON_GENERATED', (req, resData) => ({
     targetType: 'coupon',
     targetId: resData?.data?.id,
-    payload: { code: req.body.code, discount_type: req.body.discount_type, value: req.body.discount_value }
+    afterJson: resData?.data
   })),
   couponController.generateCoupon
 );
@@ -29,7 +31,7 @@ router.patch(
   auditMiddleware('COUPON_STATUS_UPDATED', (req, resData) => ({
     targetType: 'coupon',
     targetId: req.params.coupon_id,
-    payload: { status: req.body.status }
+    afterJson: resData?.data
   })),
   couponController.updateCouponStatus
 );
@@ -41,7 +43,7 @@ router.delete(
   auditMiddleware('COUPON_DELETED', (req, resData) => ({
     targetType: 'coupon',
     targetId: req.params.coupon_id,
-    payload: {}
+    afterJson: resData
   })),
   couponController.deleteCoupon
 );

@@ -21,15 +21,17 @@ exports.up = function (knex) {
       table.string('password_hash').notNullable();
       table.integer('role_id').unsigned().references('id').inTable('admin_roles').onDelete('SET NULL');
       table.string('status').notNullable().defaultTo('ACTIVE'); // ACTIVE, SUSPENDED
+      table.boolean('must_change_password').defaultTo(false);
       table.timestamp('last_login_at');
       table.timestamps(true, true);
     })
-    .createTable('user_sessions', table => {
-      table.string('id').primary();
+    .createTable('refresh_tokens', table => {
+      table.string('id').primary(); // UUID
       table.integer('admin_id').unsigned().references('id').inTable('admins').onDelete('CASCADE');
       table.string('token_hash').notNullable();
+      table.string('device_info');
       table.string('ip_address');
-      table.string('user_agent');
+      table.boolean('is_revoked').defaultTo(false);
       table.timestamp('expires_at').notNullable();
       table.timestamp('created_at').defaultTo(knex.fn.now());
     })
@@ -86,7 +88,7 @@ exports.up = function (knex) {
       table.string('code').notNullable().unique();
       table.string('discount_type').notNullable(); // percentage, fixed, free_trial, upgrade_discount, lifetime, referral, partner, internal
       table.decimal('discount_value', 10, 2).notNullable();
-      table.string('status').notNullable().defaultTo('active'); // active, disabled, expired
+      table.string('status').notNullable().defaultTo('active'); // active, disabled, expired, exhausted
       table.timestamp('expiry_date').notNullable();
       table.integer('usage_limit').defaultTo(100);
       table.integer('used_count').defaultTo(0);
@@ -102,14 +104,18 @@ exports.up = function (knex) {
       table.timestamp('redeemed_at').defaultTo(knex.fn.now());
     })
 
-    // 5. Audit Logging Trail
+    // 5. Enhanced Audit Logging Trail
     .createTable('audit_logs', table => {
       table.increments('id').primary();
+      table.string('request_id');
       table.integer('admin_id').unsigned().references('id').inTable('admins').onDelete('SET NULL');
-      table.string('action').notNullable(); // USER_BLOCKED, USER_UNBLOCKED, COUPON_CREATED, COUPON_DISABLED, PLAN_UPDATED
+      table.string('action').notNullable(); // USER_BLOCKED, USER_UNBLOCKED, COUPON_CREATED, COUPON_DISABLED
       table.string('target_type');
       table.string('target_id');
-      table.text('payload_json');
+      table.text('before_json');
+      table.text('after_json');
+      table.boolean('success').defaultTo(true);
+      table.string('failure_code');
       table.string('ip_address');
       table.string('user_agent');
       table.timestamp('created_at').defaultTo(knex.fn.now());
@@ -125,7 +131,7 @@ exports.down = function (knex) {
     .dropTableIfExists('plans')
     .dropTableIfExists('users')
     .dropTableIfExists('companies')
-    .dropTableIfExists('user_sessions')
+    .dropTableIfExists('refresh_tokens')
     .dropTableIfExists('admins')
     .dropTableIfExists('admin_permissions')
     .dropTableIfExists('admin_roles');
