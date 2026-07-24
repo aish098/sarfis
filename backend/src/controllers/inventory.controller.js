@@ -361,8 +361,10 @@ exports.getValuationReport = async (req, res) => {
 
     const parsedAsOf = asOfDate ? new Date(asOfDate) : new Date();
 
+    const SettingsModel = require('../models/settings.model');
+    const generalSettings = await SettingsModel.getSettings(companyId);
     const settings = await db('company_accounting_settings').where({ company_id: companyId }).first();
-    const costingMethod = settings?.inventory_costing_method || 'AVERAGE';
+    const costingMethod = settings?.inventory_costing_method || generalSettings?.inventoryCostingMethod || 'AVERAGE';
 
     const layersQuery = db('inventory_layers as il')
       .join('products as p', 'il.product_id', 'p.id')
