@@ -149,104 +149,84 @@ export default function ReportsPage() {
   const exportNoteToPDF = async () => {
     if (!noteData) return;
     try {
-      const doc = new jsPDF();
-
-      // Hex to RGB converter helper
-      const hexToRgb = (hex) => {
-        let c = (hex || '#10b981').replace('#', '');
-        if (c.length === 3) {
-          c = c[0] + c[0] + c[1] + c[1] + c[2] + c[2];
-        }
-        const num = parseInt(c, 16);
-        return [num >> 16, (num >> 8) & 0x00ff, num & 0x0000ff];
-      };
-      const brandRgb = hexToRgb(settings?.accentColor || '#10b981');
+      const doc = new jsPDF({ orientation: 'portrait', unit: 'mm', format: 'a4' });
 
       const opBal = parseFloat(noteData.openingBalance || 0);
       const mvBal = parseFloat(noteData.movements || 0);
       const clBal = parseFloat(noteData.closingBalance || 0);
-      const accName = noteData.account?.name || 'Financial Note Schedule';
-      const accCode = noteData.account?.code || 'NOTE';
+      const accName = noteData.account?.name || selectedNoteAccount?.name || 'Financial Note Schedule';
+      const accCode = noteData.account?.code || selectedNoteAccount?.code || 'NOTE';
       const sourceReg = noteData.metadata?.source || 'General Ledger';
-      const noteNumStr = noteData.metadata?.noteNumber ? `NOTE ${noteData.metadata.noteNumber}: ` : '';
+      const noteNumStr = noteData.metadata?.noteNumber ? `NOTE ${noteData.metadata.noteNumber}` : 'NOTE SCHEDULE';
 
-      if (settings?.logoUrl) {
-        const logoUrl = settings.logoUrl.startsWith('http') ? settings.logoUrl : `${import.meta.env.PROD ? window.location.origin : 'http://localhost:5001'}${settings.logoUrl}`;
-        await new Promise((resolve) => {
-          const img = new Image();
-          img.crossOrigin = 'Anonymous';
-          img.onload = () => {
-            try {
-              const maxWidth = 35;
-              const maxHeight = 12;
-              let width = maxWidth;
-              let height = maxWidth / (img.width / img.height);
-              
-              if (height > maxHeight) {
-                height = maxHeight;
-                width = maxHeight * (img.width / img.height);
-              }
-              doc.addImage(img, 'PNG', 196 - width, 8, width, height);
-            } catch (e) {
-              console.error('Failed to draw logo on PDF:', e);
-            }
-            resolve();
-          };
-          img.onerror = () => resolve();
-          img.src = logoUrl;
-        });
-      }
-      
-      // 1. Company Name & Main Title
-      doc.setFont("Helvetica", "bold");
-      doc.setFontSize(18);
-      doc.setTextColor(30, 41, 59);
-      doc.text((activeCompany?.name || 'ACCOUNTELLENCE FINANCIALS').toUpperCase(), 14, 20);
-      
-      doc.setFont("Helvetica", "normal");
-      doc.setFontSize(11);
-      doc.setTextColor(100, 116, 139);
-      doc.text('Notes to the Financial Statements', 14, 26);
-      doc.text(`Financial Period: FY${new Date(asOfDate).getFullYear()} | Version: ${statementVersion.toUpperCase()}`, 14, 32);
-      
-      // Draw divider line
-      doc.setDrawColor(226, 232, 240);
-      doc.setLineWidth(0.5);
-      doc.line(14, 36, 196, 36);
+      // 1. Unified Emerald Header Banner (#065f46)
+      doc.setFillColor(6, 95, 70);
+      doc.rect(14, 12, 182, 22, 'F');
 
-      // 2. Note Header
-      doc.setFont("Helvetica", "bold");
-      doc.setFontSize(13);
-      doc.setTextColor(30, 41, 59);
-      doc.text(`${noteNumStr}${accName.toUpperCase()}`, 14, 44);
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(14);
+      doc.setTextColor(255, 255, 255);
+      doc.text('ACCOUNTELLENCE ERP', 18, 21);
 
-      // Draw divider line
-      doc.line(14, 48, 196, 48);
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(9);
+      doc.text(`${noteNumStr.toUpperCase()} — ${accName.toUpperCase()} (${accCode})`, 18, 28);
 
-      // 3. Carrying Summary Card Table
-      const summaryData = [
-        ['Opening Balance', `${currencyLabel} ${opBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-        ['Current Movements', `${currencyLabel} ${mvBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`],
-        ['Closing Balance', `${currencyLabel} ${clBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`]
+      doc.setFont('Helvetica', 'bold');
+      doc.setFontSize(9);
+      doc.text((activeCompany?.name || 'Corporate Workspace').toUpperCase(), 190, 20, { align: 'right' });
+
+      doc.setFont('Helvetica', 'normal');
+      doc.setFontSize(8);
+      doc.text(`As of: ${asOfDate}`, 190, 25, { align: 'right' });
+      doc.text(`Version: ${statementVersion.toUpperCase()}`, 190, 29, { align: 'right' });
+
+      let startY = 40;
+
+      // 2. Unified KPI Summary Cards (Opening Balance, Movements, Closing Balance)
+      const kpis = [
+        { label: 'OPENING BALANCE', value: `${currencyLabel} ${opBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, color: 'slate' },
+        { label: 'PERIOD MOVEMENTS', value: `${mvBal >= 0 ? '+' : ''}${currencyLabel} ${mvBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, color: 'blue' },
+        { label: 'CLOSING BALANCE', value: `${currencyLabel} ${clBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, color: 'emerald' }
       ];
 
-      autoTable(doc, {
-        startY: 52,
-        body: summaryData,
-        theme: 'plain',
-        styles: { fontSize: 10, cellPadding: 3, fontStyle: 'bold' },
-        columnStyles: {
-          0: { textColor: [100, 116, 139], width: 60 },
-          1: { halign: 'right', textColor: [30, 41, 59] }
+      const cardWidth = (182 - (kpis.length - 1) * 4) / kpis.length;
+      kpis.forEach((kpi, idx) => {
+        const x = 14 + idx * (cardWidth + 4);
+        let bgRgb = [248, 250, 252];
+        let strokeRgb = [226, 232, 240];
+        let textRgb = [30, 41, 59];
+        let valRgb = [15, 23, 42];
+
+        if (kpi.color === 'emerald') {
+          bgRgb = [236, 253, 245]; strokeRgb = [167, 243, 208]; textRgb = [6, 95, 70]; valRgb = [4, 120, 87];
+        } else if (kpi.color === 'blue') {
+          bgRgb = [239, 246, 255]; strokeRgb = [191, 219, 254]; textRgb = [30, 64, 175]; valRgb = [29, 78, 216];
         }
+
+        doc.setFillColor(bgRgb[0], bgRgb[1], bgRgb[2]);
+        doc.setDrawColor(strokeRgb[0], strokeRgb[1], strokeRgb[2]);
+        doc.roundedRect(x, startY, cardWidth, 16, 2, 2, 'FD');
+
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(7);
+        doc.setTextColor(textRgb[0], textRgb[1], textRgb[2]);
+        doc.text(String(kpi.label).toUpperCase(), x + 4, startY + 5);
+
+        doc.setFont('Helvetica', 'bold');
+        doc.setFontSize(10);
+        doc.setTextColor(valRgb[0], valRgb[1], valRgb[2]);
+        doc.text(String(kpi.value), x + 4, startY + 12);
       });
 
-      // 4. Reconciliation Status Card
-      const reconciliationY = (doc.lastAutoTable?.finalY || 65) + 8;
+      startY += 22;
+
+      // 3. Reconciliation Status Card
       doc.setFont("Helvetica", "bold");
-      doc.setFontSize(11);
+      doc.setFontSize(10);
       doc.setTextColor(30, 41, 59);
-      doc.text('RECONCILIATION SUMMARY', 14, reconciliationY);
+      doc.text('1. RECONCILIATION & CONTROL SUMMARY', 14, startY);
+      startY += 4;
 
       const reconStatus = (noteData.reconciliation?.status === 'VERIFIED')
         ? `✓ VERIFIED (No differences detected between General Ledger and ${sourceReg})`
@@ -259,22 +239,24 @@ export default function ReportsPage() {
       ];
 
       autoTable(doc, {
-        startY: reconciliationY + 4,
+        startY,
         body: reconRows,
         theme: 'grid',
-        styles: { fontSize: 9, cellPadding: 3 },
+        styles: { fontSize: 8.5, cellPadding: 2.5 },
         columnStyles: {
           0: { fontStyle: 'bold', textColor: [100, 116, 139], width: 50 },
           1: { textColor: [30, 41, 59] }
         }
       });
 
-      // 5. Supporting Schedule Breakdown Table
-      const breakdownY = (doc.lastAutoTable?.finalY || 100) + 10;
+      startY = (doc.lastAutoTable?.finalY || 100) + 10;
+
+      // 4. Supporting Schedule Breakdown Table
       doc.setFont("Helvetica", "bold");
-      doc.setFontSize(11);
+      doc.setFontSize(10);
       doc.setTextColor(30, 41, 59);
-      doc.text('SUPPORTING SCHEDULE / COMPOSITION', 14, breakdownY);
+      doc.text('2. SUPPORTING SCHEDULE / COMPOSITION', 14, startY);
+      startY += 4;
 
       const breakdownRows = (noteData.breakdown || []).map(b => [
         b.item || 'Schedule Item',
@@ -283,24 +265,31 @@ export default function ReportsPage() {
       ]);
 
       autoTable(doc, {
-        startY: breakdownY + 4,
-        head: [['Item Name', 'Carrying Amount', 'Contribution %']],
-        body: breakdownRows.length > 0 ? breakdownRows : [['General Ledger Postings', `${currencyLabel} ${clBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, '100%']],
+        startY,
+        head: [['Item Name / Lineage', 'Carrying Amount', 'Contribution %']],
+        body: breakdownRows.length > 0 ? breakdownRows : [['General Ledger Balance', `${currencyLabel} ${clBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, '100%']],
         theme: 'striped',
-        headStyles: { fillColor: brandRgb, fontStyle: 'bold' },
+        headStyles: {
+          fillColor: [30, 41, 59], // Dark Slate (#1e293b)
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8.5
+        },
         styles: { fontSize: 8.5, cellPadding: 2.5 },
         columnStyles: {
-          1: { halign: 'right' },
+          1: { halign: 'right', fontStyle: 'bold' },
           2: { halign: 'center' }
         }
       });
 
-      // 6. Recent GL Postings
-      const postingsY = (doc.lastAutoTable?.finalY || 140) + 10;
+      startY = (doc.lastAutoTable?.finalY || 140) + 10;
+
+      // 5. Recent GL Postings Table
       doc.setFont("Helvetica", "bold");
-      doc.setFontSize(11);
+      doc.setFontSize(10);
       doc.setTextColor(30, 41, 59);
-      doc.text('RECENT GENERAL LEDGER POSTINGS', 14, postingsY);
+      doc.text('3. RECENT GENERAL LEDGER POSTINGS', 14, startY);
+      startY += 4;
 
       const journalRows = (noteData.journalEntries || []).map(je => [
         new Date(je.date || new Date()).toLocaleDateString(),
@@ -310,11 +299,16 @@ export default function ReportsPage() {
       ]);
 
       autoTable(doc, {
-        startY: postingsY + 4,
+        startY,
         head: [['Date', 'Reference / Description', 'Debit', 'Credit']],
         body: journalRows.length > 0 ? journalRows : [[new Date().toLocaleDateString(), 'Period Movement Summary', `${currencyLabel} ${clBal.toLocaleString('en-US', { minimumFractionDigits: 2 })}`, '—']],
-        theme: 'grid',
-        headStyles: { fillColor: [99, 102, 241], fontStyle: 'bold' },
+        theme: 'striped',
+        headStyles: {
+          fillColor: [6, 95, 70], // Emerald 800 (#065f46)
+          textColor: [255, 255, 255],
+          fontStyle: 'bold',
+          fontSize: 8.5
+        },
         styles: { fontSize: 8, cellPadding: 2.5 },
         columnStyles: {
           2: { halign: 'right' },
@@ -322,12 +316,18 @@ export default function ReportsPage() {
         }
       });
 
-      // Footer info
-      const finalY = (doc.lastAutoTable?.finalY || 180) + 12;
-      doc.setFont("Helvetica", "italic");
-      doc.setFontSize(8);
-      doc.setTextColor(148, 163, 184);
-      doc.text(`Generated Automatically by ACCOUNTELLENCE System on ${new Date().toLocaleString()}`, 14, finalY);
+      // 6. Unified Footer
+      const totalPages = doc.internal.getNumberOfPages();
+      for (let i = 1; i <= totalPages; i++) {
+        doc.setPage(i);
+        doc.setDrawColor(226, 232, 240);
+        doc.line(14, 282, 196, 282);
+        doc.setFont('Helvetica', 'normal');
+        doc.setFontSize(7.5);
+        doc.setTextColor(148, 163, 184);
+        doc.text(`ACCOUNTELLENCE ERP — Audit-Verifiable Financial Note Schedule | Generated ${new Date().toLocaleString()}`, 14, 287);
+        doc.text(`Page ${i} of ${totalPages}`, 196, 287, { align: 'right' });
+      }
 
       doc.save(`GL_Note_${accCode}_V${statementVersion}.pdf`);
     } catch (pdfErr) {
