@@ -532,44 +532,113 @@ exports.restoreCompanyBackup = async (req, res) => {
         await trx('accounts').where('company_id', companyId).del();
       }
 
-      // 2. Helper to insert and reset primary key sequence
-      const insertTable = async (tableName, rows) => {
-        if (!rows || rows.length === 0) return;
-        
-        const mappedRows = rows.map(row => {
+      // ID Remapping dictionaries across child entities
+      const idMaps = {
+        accounts: {},
+        clients: {},
+        vendors: {},
+        products: {},
+        journal_entries: {}
+      };
+
+      // 2. Helper to insert tables safely avoiding primary key collisions
+      const insertTableSafely = async (tableName, rows) => {
+        if (!rows || !Array.isArray(rows) || rows.length === 0) return;
+
+        // For settings table, strip 'id' so DB auto-increments and scope/target_id unique key works
+        if (tableName === 'settings') {
+          const sanitized = rows.map(r => {
+            const mapped = { ...r };
+            delete mapped.id;
+            mapped.scope = 'company';
+            mapped.target_id = String(companyId);
+            return mapped;
+          });
+          await trx('settings').insert(sanitized);
+          return;
+        }
+
+        // For company_accounting_settings, strip 'id' and set company_id
+        if (tableName === 'company_accounting_settings') {
+          const sanitized = rows.map(r => {
+            const mapped = { ...r };
+            delete mapped.id;
+            mapped.company_id = companyId;
+            return mapped;
+          });
+          await trx('company_accounting_settings').insert(sanitized);
+          return;
+        }
+
+        // Fetch existing IDs in database for this table to detect collisions across companies
+        const existingIdRows = await trx(tableName).select('id');
+        const existingIds = new Set(existingIdRows.map(r => String(r.id)));
+
+        for (const row of rows) {
           const mapped = { ...row };
           if (mapped.hasOwnProperty('company_id')) {
             mapped.company_id = companyId;
           }
-          if (tableName === 'settings' && mapped.scope === 'company') {
-            mapped.target_id = String(companyId);
-          }
-          return mapped;
-        });
 
-        await trx(tableName).insert(mappedRows);
-        
-        const hasId = rows[0].hasOwnProperty('id');
+          // Remap foreign key pointers if parent IDs changed
+          if (tableName === 'journal_lines') {
+            if (mapped.entry_id && idMaps.journal_entries[mapped.entry_id]) {
+              mapped.entry_id = idMaps.journal_entries[mapped.entry_id];
+            }
+            if (mapped.account_id && idMaps.accounts[mapped.account_id]) {
+              mapped.account_id = idMaps.accounts[mapped.account_id];
+            }
+          }
+          if (tableName === 'inventory' || tableName === 'stock_logs') {
+            if (mapped.product_id && idMaps.products[mapped.product_id]) {
+              mapped.product_id = idMaps.products[mapped.product_id];
+            }
+          }
+
+          const origId = mapped.id;
+          if (origId !== undefined && origId !== null) {
+            if (existingIds.has(String(origId))) {
+              delete mapped.id; // Let DB assign new auto-increment ID to prevent duplicate key error
+            }
+          }
+
+          const result = await trx(tableName).insert(mapped).returning('id');
+          let insertedId = result;
+          if (Array.isArray(result) && result.length > 0) {
+            insertedId = typeof result[0] === 'object' ? result[0].id : result[0];
+          }
+
+          if (origId !== undefined && insertedId !== undefined && idMaps[tableName]) {
+            idMaps[tableName][origId] = insertedId;
+          }
+        }
+
+        // Reset PostgreSQL primary key sequence if needed
+        const hasId = rows[0] && rows[0].hasOwnProperty('id');
         if (hasId) {
-          const [{ max }] = await trx(tableName).max('id as max');
-          if (max) {
-            await trx.raw(`SELECT setval(pg_get_serial_sequence('${tableName}', 'id'), ${max})`);
+          try {
+            const [{ max }] = await trx(tableName).max('id as max');
+            if (max && typeof max === 'number') {
+              await trx.raw(`SELECT setval(pg_get_serial_sequence('${tableName}', 'id'), ${max})`);
+            }
+          } catch (seqErr) {
+            // Ignore sequence reset error on non-serial or SQLite
           }
         }
       };
 
       // Order of insertions to satisfy relational foreign keys
-      if (data.settings) await insertTable('settings', data.settings);
-      if (data.company_accounting_settings) await insertTable('company_accounting_settings', data.company_accounting_settings);
-      if (data.accounts) await insertTable('accounts', data.accounts);
-      if (data.clients) await insertTable('clients', data.clients);
-      if (data.vendors) await insertTable('vendors', data.vendors);
-      if (data.products) await insertTable('products', data.products);
-      if (data.inventory) await insertTable('inventory', data.inventory);
-      if (data.journal_entries) await insertTable('journal_entries', data.journal_entries);
-      if (data.journal_lines) await insertTable('journal_lines', data.journal_lines);
-      if (data.vouchers) await insertTable('vouchers', data.vouchers);
-      if (data.stock_logs) await insertTable('stock_logs', data.stock_logs);
+      if (data.settings) await insertTableSafely('settings', data.settings);
+      if (data.company_accounting_settings) await insertTableSafely('company_accounting_settings', data.company_accounting_settings);
+      if (data.accounts) await insertTableSafely('accounts', data.accounts);
+      if (data.clients) await insertTableSafely('clients', data.clients);
+      if (data.vendors) await insertTableSafely('vendors', data.vendors);
+      if (data.products) await insertTableSafely('products', data.products);
+      if (data.inventory) await insertTableSafely('inventory', data.inventory);
+      if (data.journal_entries) await insertTableSafely('journal_entries', data.journal_entries);
+      if (data.journal_lines) await insertTableSafely('journal_lines', data.journal_lines);
+      if (data.vouchers) await insertTableSafely('vouchers', data.vouchers);
+      if (data.stock_logs) await insertTableSafely('stock_logs', data.stock_logs);
     });
 
     res.json({ success: true, message: `Successfully restored ${backupType} backup.` });
