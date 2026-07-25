@@ -498,6 +498,11 @@ export default function AdminPage() {
           products: dataObj.products?.length || 0,
           clients: dataObj.clients?.length || 0,
           vendors: dataObj.vendors?.length || 0,
+          requisitions: dataObj.purchase_requisitions?.length || 0,
+          purchaseOrders: dataObj.purchase_orders?.length || 0,
+          salesOrders: dataObj.sales_orders?.length || 0,
+          employees: dataObj.employees?.length || 0,
+          inventoryLayers: dataObj.inventory_layers?.length || 0,
         };
 
         setRestorePreview({
@@ -531,6 +536,11 @@ export default function AdminPage() {
             products: dataObj.products?.length || 0,
             clients: dataObj.clients?.length || 0,
             vendors: dataObj.vendors?.length || 0,
+            requisitions: dataObj.purchase_requisitions?.length || 0,
+            purchaseOrders: dataObj.purchase_orders?.length || 0,
+            salesOrders: dataObj.sales_orders?.length || 0,
+            employees: dataObj.employees?.length || 0,
+            inventoryLayers: dataObj.inventory_layers?.length || 0,
           };
 
           setRestorePreview({
@@ -1752,18 +1762,38 @@ export default function AdminPage() {
 
                       <div className="pt-2 border-t border-slate-200">
                         <p className="text-[11px] font-bold text-slate-400 uppercase tracking-wider mb-2">Record Count Statistics:</p>
-                        <div className="grid grid-cols-3 gap-2 text-center">
-                          <div className="rounded border bg-white p-2">
-                            <div className="text-[14px] font-black text-slate-800">{restorePreview.stats.accounts}</div>
+                        <div className="grid grid-cols-4 gap-2 text-center">
+                          <div className="rounded border border-slate-200 bg-white p-2">
+                            <div className="text-[13px] font-black text-slate-800">{restorePreview.stats.accounts}</div>
                             <div className="text-[9px] font-black text-slate-400 uppercase">Accounts</div>
                           </div>
-                          <div className="rounded border bg-white p-2">
-                            <div className="text-[14px] font-black text-slate-800">{restorePreview.stats.journalEntries}</div>
+                          <div className="rounded border border-slate-200 bg-white p-2">
+                            <div className="text-[13px] font-black text-slate-800">{restorePreview.stats.journalEntries}</div>
                             <div className="text-[9px] font-black text-slate-400 uppercase">Journals</div>
                           </div>
-                          <div className="rounded border bg-white p-2">
-                            <div className="text-[14px] font-black text-slate-800">{restorePreview.stats.vouchers}</div>
+                          <div className="rounded border border-slate-200 bg-white p-2">
+                            <div className="text-[13px] font-black text-slate-800">{restorePreview.stats.vouchers}</div>
                             <div className="text-[9px] font-black text-slate-400 uppercase">Vouchers</div>
+                          </div>
+                          <div className="rounded border border-slate-200 bg-white p-2">
+                            <div className="text-[13px] font-black text-slate-800">{restorePreview.stats.requisitions || 0}</div>
+                            <div className="text-[9px] font-black text-slate-400 uppercase">Requisitions</div>
+                          </div>
+                          <div className="rounded border border-slate-200 bg-white p-2">
+                            <div className="text-[13px] font-black text-slate-800">{restorePreview.stats.purchaseOrders || 0}</div>
+                            <div className="text-[9px] font-black text-slate-400 uppercase">Purchase Orders</div>
+                          </div>
+                          <div className="rounded border border-slate-200 bg-white p-2">
+                            <div className="text-[13px] font-black text-slate-800">{restorePreview.stats.salesOrders || 0}</div>
+                            <div className="text-[9px] font-black text-slate-400 uppercase">Sales Orders</div>
+                          </div>
+                          <div className="rounded border border-slate-200 bg-white p-2">
+                            <div className="text-[13px] font-black text-slate-800">{restorePreview.stats.employees || 0}</div>
+                            <div className="text-[9px] font-black text-slate-400 uppercase">Employees</div>
+                          </div>
+                          <div className="rounded border border-slate-200 bg-white p-2">
+                            <div className="text-[13px] font-black text-slate-800">{restorePreview.stats.inventoryLayers || 0}</div>
+                            <div className="text-[9px] font-black text-slate-400 uppercase">Stock Layers</div>
                           </div>
                         </div>
                       </div>
