@@ -796,6 +796,10 @@ exports.restoreCompanyBackup = async (req, res) => {
             }
           }
           if (tableName === 'delivery_items') {
+            delete mapped.line_total;
+            delete mapped.line_cost;
+            delete mapped['line_total'];
+            delete mapped['line_cost'];
             if (mapped.delivery_id && idMaps.deliveries[mapped.delivery_id]) {
               mapped.delivery_id = idMaps.deliveries[mapped.delivery_id];
             }
