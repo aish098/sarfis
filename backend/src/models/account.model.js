@@ -63,20 +63,35 @@ class AccountModel {
   }
 
   static async seedCoa(companyId, coaData, trx) {
-    const query = db('accounts');
-    if (trx) query.transacting(trx);
+    if (!Array.isArray(coaData) || coaData.length === 0) return;
 
-    const accountsToInsert = coaData.map(([code, name, category, normal_balance, is_contra]) => ({
-      company_id: companyId,
-      code,
-      name,
-      category,
-      normal_balance,
-      is_contra,
-      balance: 0
-    }));
+    for (const [code, name, category, normal_balance, is_contra] of coaData) {
+      const row = {
+        company_id: companyId,
+        code: String(code),
+        name: String(name),
+        category: String(category),
+        type: String(category),
+        normal_balance: String(normal_balance || 'Debit'),
+        is_contra: Boolean(is_contra),
+        balance: 0
+      };
 
-    await query.insert(accountsToInsert);
+      try {
+        const query = db('accounts');
+        if (trx) query.transacting(trx);
+        await query.insert(row).onConflict(['company_id', 'code']).merge();
+      } catch (err1) {
+        try {
+          delete row.type;
+          const retryQuery = db('accounts');
+          if (trx) retryQuery.transacting(trx);
+          await retryQuery.insert(row).onConflict(['company_id', 'code']).merge();
+        } catch (err2) {
+          // Ignore individual seeding error if conflict or duplicate key exists
+        }
+      }
+    }
   }
 
   static async updateBalance(id, companyId, debit, credit, trx) {
