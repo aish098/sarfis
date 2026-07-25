@@ -42,13 +42,18 @@ class AuthService {
       await CompanyModel.addUser(company.id, newUser.id, validatedRole, trx);
 
       // Seed user_roles RBAC mapping atomically inside the same transaction
-      const roleRecord = await trx('roles').whereIn('name', ['company_admin', 'Admin']).first();
+      const roleRecord = await trx('roles').whereIn('name', ['company_admin', 'Admin', 'Company Admin']).first();
       if (roleRecord) {
-        await trx('user_roles').insert({
-          user_id: newUser.id,
-          company_id: company.id,
-          role_id: roleRecord.id
-        }).catch(() => {});
+        const existingUR = await trx('user_roles')
+          .where({ user_id: newUser.id, company_id: company.id, role_id: roleRecord.id })
+          .first();
+        if (!existingUR) {
+          await trx('user_roles').insert({
+            user_id: newUser.id,
+            company_id: company.id,
+            role_id: roleRecord.id
+          });
+        }
       }
 
       // Seed the company with COA data

@@ -65,33 +65,31 @@ class AccountModel {
   static async seedCoa(companyId, coaData, trx) {
     if (!Array.isArray(coaData) || coaData.length === 0) return;
 
-    for (const [code, name, category, normal_balance, is_contra] of coaData) {
-      const row = {
+    // 1. Check which account codes already exist for this company_id
+    const queryExisting = db('accounts');
+    if (trx) queryExisting.transacting(trx);
+    const existingRows = await queryExisting.where({ company_id: companyId }).select('code').catch(() => []);
+    const existingCodes = new Set(existingRows.map(r => String(r.code)));
+
+    // 2. Prepare new accounts list avoiding duplicates
+    const newAccounts = coaData
+      .filter(([code]) => !existingCodes.has(String(code)))
+      .map(([code, name, category, normal_balance, is_contra]) => ({
         company_id: companyId,
         code: String(code),
         name: String(name),
         category: String(category),
-        type: String(category),
         normal_balance: String(normal_balance || 'Debit'),
         is_contra: Boolean(is_contra),
         balance: 0
-      };
+      }));
 
-      try {
-        const query = db('accounts');
-        if (trx) query.transacting(trx);
-        await query.insert(row).onConflict(['company_id', 'code']).merge();
-      } catch (err1) {
-        try {
-          delete row.type;
-          const retryQuery = db('accounts');
-          if (trx) retryQuery.transacting(trx);
-          await retryQuery.insert(row).onConflict(['company_id', 'code']).merge();
-        } catch (err2) {
-          // Ignore individual seeding error if conflict or duplicate key exists
-        }
-      }
-    }
+    if (newAccounts.length === 0) return;
+
+    // 3. Batch insert new accounts cleanly
+    const insertQuery = db('accounts');
+    if (trx) insertQuery.transacting(trx);
+    await insertQuery.insert(newAccounts);
   }
 
   static async updateBalance(id, companyId, debit, credit, trx) {
