@@ -684,8 +684,20 @@ exports.restoreCompanyBackup = async (req, res) => {
       if (data.company_accounting_settings) {
         await trx('company_accounting_settings').where('company_id', companyId).del().catch(() => { });
       }
+      if (data.company_tax_settings) {
+        await trx('company_tax_settings').where('company_id', companyId).del().catch(() => { });
+      }
+      if (data.company_auth_settings) {
+        await trx('company_auth_settings').where('company_id', companyId).del().catch(() => { });
+      }
       if (data.settings) {
         await trx('settings').where({ scope: 'company', target_id: String(companyId) }).del().catch(() => { });
+      }
+      if (data.accounting_periods) {
+        await trx('accounting_periods').where('company_id', companyId).del().catch(() => { });
+      }
+      if (data.fiscal_years) {
+        await trx('fiscal_years').where('company_id', companyId).del().catch(() => { });
       }
       if (data.vouchers) {
         await trx('vouchers').where('company_id', companyId).del().catch(() => { });
@@ -771,6 +783,31 @@ exports.restoreCompanyBackup = async (req, res) => {
             return mapped;
           });
           await trx('company_accounting_settings').insert(sanitized);
+          return;
+        }
+
+        // For accounting_periods, strip 'id' and set company_id with conflict merge
+        if (tableName === 'accounting_periods') {
+          for (const row of rows) {
+            const mapped = { ...row };
+            delete mapped.id;
+            mapped.company_id = companyId;
+            await trx('accounting_periods').insert(mapped).onConflict(['company_id', 'period_name']).merge().catch(async () => {
+              delete mapped.period_name;
+              await trx('accounting_periods').insert(mapped).catch(() => {});
+            });
+          }
+          return;
+        }
+
+        // For fiscal_years, strip 'id' and set company_id
+        if (tableName === 'fiscal_years') {
+          for (const row of rows) {
+            const mapped = { ...row };
+            delete mapped.id;
+            mapped.company_id = companyId;
+            await trx('fiscal_years').insert(mapped).catch(() => {});
+          }
           return;
         }
 
