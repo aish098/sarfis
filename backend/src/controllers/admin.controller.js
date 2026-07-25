@@ -13,33 +13,71 @@ const COMPANY_ROLES = [
   'Viewer',
 ];
 
-async function assertCompanyAdmin(req, companyId) {
+async function assertCompanyAdmin(req, companyId, trx = null) {
   // Super Admin overrides everything
   if (req.user.role === 'Super Admin' || req.userCompanyRole === 'Super Admin') return;
 
-  const membership = await db('company_users')
-    .where({ company_id: companyId, user_id: req.user.id })
+  const query = (trx || db)('user_roles as ur')
+    .join('roles as r', 'r.id', 'ur.role_id')
+    .where('ur.company_id', companyId)
+    .where('ur.user_id', req.user.id)
+    .whereIn('r.code', ['company_admin', 'admin', 'super_admin'])
     .first();
 
-  const allowedCompanyRoles = ['company_admin', 'Company Admin', 'Admin', 'Owner', 'CEO'];
+  let hasAdminRole = await query;
 
-  if (!membership || !allowedCompanyRoles.includes(membership.role)) {
+  if (!hasAdminRole) {
+    // Fallback check company_users during legacy migration phase
+    const cu = await (trx || db)('company_users')
+      .where({ company_id: companyId, user_id: req.user.id })
+      .first();
+    const allowedCompanyRoles = ['company_admin', 'Company Admin', 'Admin', 'Owner', 'CEO'];
+    if (cu && allowedCompanyRoles.includes(cu.role)) {
+      hasAdminRole = true;
+    }
+  }
+
+  if (!hasAdminRole) {
     const err = new Error('Company Admin access required. Only Company Admins can manage workspace controls.');
     err.status = 403;
     throw err;
   }
 }
 
-async function checkLastAdminProtection(companyId, targetUserId) {
-  const adminMembers = await db('company_users')
-    .where({ company_id: companyId })
-    .whereIn('role', ['company_admin', 'Company Admin', 'Admin', 'Owner', 'CEO']);
+async function checkLastAdminProtection(companyId, targetUserId, trx = null) {
+  const executeCheck = async (transaction) => {
+    let adminUserIds = [];
+    try {
+      const admins = await transaction('user_roles as ur')
+        .join('roles as r', 'r.id', 'ur.role_id')
+        .where('ur.company_id', companyId)
+        .whereIn('r.code', ['company_admin', 'admin'])
+        .forUpdate();
+      adminUserIds = admins.map(a => a.user_id);
+    } catch (e) {
+      // Ignore if forUpdate not supported on SQLite
+    }
 
-  const isTargetAdmin = adminMembers.some(m => m.user_id === targetUserId);
-  if (isTargetAdmin && adminMembers.length <= 1) {
-    const err = new Error('Cannot demote or remove the last Company Admin of the workspace.');
-    err.status = 400;
-    throw err;
+    if (adminUserIds.length === 0) {
+      const cuAdmins = await transaction('company_users')
+        .where({ company_id: companyId })
+        .whereIn('role', ['company_admin', 'Company Admin', 'Admin', 'Owner', 'CEO']);
+      adminUserIds = cuAdmins.map(c => c.user_id);
+    }
+
+    if (adminUserIds.includes(targetUserId) && adminUserIds.length <= 1) {
+      const err = new Error('Cannot demote or remove the last Company Admin of the workspace.');
+      err.status = 400;
+      throw err;
+    }
+  };
+
+  if (trx) {
+    await executeCheck(trx);
+  } else {
+    await db.transaction(async (t) => {
+      await executeCheck(t);
+    });
   }
 }
 
@@ -1164,6 +1202,7 @@ exports.getActiveSessions = async (req, res) => {
 
     const sessions = await db('user_sessions as us')
       .join('users as u', 'u.id', 'us.user_id')
+      .where('us.company_id', companyId)
       .select('us.id', 'u.name', 'u.email', 'us.ip_address', 'us.device', 'us.login_time', 'us.last_activity', 'us.is_active', 'us.user_id')
       .orderBy('us.last_activity', 'desc');
 

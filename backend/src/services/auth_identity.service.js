@@ -351,6 +351,20 @@ class AuthIdentityService {
         role: 'Company Admin'
       });
 
+      const roleRecord = await trx('roles').whereIn('name', ['company_admin', 'Admin', 'Company Admin']).first();
+      if (roleRecord) {
+        const existingUR = await trx('user_roles')
+          .where({ user_id: user.id, company_id: companyId, role_id: roleRecord.id })
+          .first();
+        if (!existingUR) {
+          await trx('user_roles').insert({
+            user_id: user.id,
+            company_id: companyId,
+            role_id: roleRecord.id
+          });
+        }
+      }
+
       const existingId = await trx('user_auth_identities').where({ provider: 'GOOGLE', provider_subject: profile.subject }).first();
       if (!existingId) {
         await trx('user_auth_identities').insert({
