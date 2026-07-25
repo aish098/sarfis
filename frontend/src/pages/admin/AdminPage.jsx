@@ -508,8 +508,11 @@ export default function AdminPage() {
           requisitions: dataObj.purchase_requisitions?.length || 0,
           purchaseOrders: dataObj.purchase_orders?.length || 0,
           salesOrders: dataObj.sales_orders?.length || 0,
+          deliveries: dataObj.deliveries?.length || 0,
+          sectors: dataObj.sectors?.length || 0,
           employees: dataObj.employees?.length || 0,
           inventoryLayers: dataObj.inventory_layers?.length || 0,
+          assets: (dataObj.assets?.length || 0) + (dataObj.fixed_assets?.length || 0),
         };
 
         setRestorePreview({
@@ -546,8 +549,11 @@ export default function AdminPage() {
             requisitions: dataObj.purchase_requisitions?.length || 0,
             purchaseOrders: dataObj.purchase_orders?.length || 0,
             salesOrders: dataObj.sales_orders?.length || 0,
+            deliveries: dataObj.deliveries?.length || 0,
+            sectors: dataObj.sectors?.length || 0,
             employees: dataObj.employees?.length || 0,
             inventoryLayers: dataObj.inventory_layers?.length || 0,
+            assets: (dataObj.assets?.length || 0) + (dataObj.fixed_assets?.length || 0),
           };
 
           setRestorePreview({
@@ -1791,11 +1797,19 @@ export default function AdminPage() {
                           </div>
                           <div className="rounded border border-slate-200 bg-white p-2">
                             <div className="text-[13px] font-black text-slate-800">{restorePreview.stats.purchaseOrders || 0}</div>
-                            <div className="text-[9px] font-black text-slate-400 uppercase">Purchase Orders</div>
+                            <div className="text-[9px] font-black text-slate-400 uppercase">PO & Orders</div>
                           </div>
                           <div className="rounded border border-slate-200 bg-white p-2">
                             <div className="text-[13px] font-black text-slate-800">{restorePreview.stats.salesOrders || 0}</div>
                             <div className="text-[9px] font-black text-slate-400 uppercase">Sales Orders</div>
+                          </div>
+                          <div className="rounded border border-slate-200 bg-white p-2">
+                            <div className="text-[13px] font-black text-slate-800">{restorePreview.stats.deliveries || 0}</div>
+                            <div className="text-[9px] font-black text-slate-400 uppercase">Deliveries</div>
+                          </div>
+                          <div className="rounded border border-slate-200 bg-white p-2">
+                            <div className="text-[13px] font-black text-slate-800">{restorePreview.stats.sectors || 0}</div>
+                            <div className="text-[9px] font-black text-slate-400 uppercase">Sectors</div>
                           </div>
                           <div className="rounded border border-slate-200 bg-white p-2">
                             <div className="text-[13px] font-black text-slate-800">{restorePreview.stats.employees || 0}</div>
@@ -1804,6 +1818,10 @@ export default function AdminPage() {
                           <div className="rounded border border-slate-200 bg-white p-2">
                             <div className="text-[13px] font-black text-slate-800">{restorePreview.stats.inventoryLayers || 0}</div>
                             <div className="text-[9px] font-black text-slate-400 uppercase">Stock Layers</div>
+                          </div>
+                          <div className="rounded border border-slate-200 bg-white p-2">
+                            <div className="text-[13px] font-black text-slate-800">{restorePreview.stats.assets || 0}</div>
+                            <div className="text-[9px] font-black text-slate-400 uppercase">Fixed Assets</div>
                           </div>
                         </div>
                       </div>

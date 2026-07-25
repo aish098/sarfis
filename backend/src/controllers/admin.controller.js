@@ -357,11 +357,18 @@ exports.exportCompanyBackup = async (req, res) => {
         ? await db('goods_receipt_items').whereIn('goods_receipt_id', grnIds).orderBy('id', 'asc').catch(() => [])
         : [];
 
-      // Sales Distribution
+      // Sales & Distribution Deliveries
       data.sales_orders = await db('sales_orders').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
       const soIds = data.sales_orders.map(s => s.id);
       data.sales_order_items = soIds.length > 0
         ? await db('sales_order_items').whereIn('sales_order_id', soIds).orderBy('id', 'asc').catch(() => [])
+        : [];
+
+      data.sectors = await db('sectors').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
+      data.deliveries = await db('deliveries').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
+      const delIds = data.deliveries.map(d => d.id);
+      data.delivery_items = delIds.length > 0
+        ? await db('delivery_items').whereIn('delivery_id', delIds).orderBy('id', 'asc').catch(() => [])
         : [];
 
       // HR & Payroll Workspace
@@ -372,7 +379,9 @@ exports.exportCompanyBackup = async (req, res) => {
         ? await db('employee_payslips').whereIn('payroll_run_id', prIds).orderBy('id', 'asc').catch(() => [])
         : [];
 
-      // Fixed Assets & Budgets
+      // Asset Management & Budgets
+      data.asset_categories = await db('asset_categories').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
+      data.assets = await db('assets').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
       data.fixed_assets = await db('fixed_assets').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
       data.budgets = await db('budgets').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
     }
@@ -590,6 +599,21 @@ exports.restoreCompanyBackup = async (req, res) => {
       if (data.employees) {
         await trx('employees').where('company_id', companyId).del().catch(() => {});
       }
+      if (data.delivery_items) {
+        await trx('delivery_items').whereIn('delivery_id', trx('deliveries').where('company_id', companyId).select('id')).del().catch(() => {});
+      }
+      if (data.deliveries) {
+        await trx('deliveries').where('company_id', companyId).del().catch(() => {});
+      }
+      if (data.sectors) {
+        await trx('sectors').where('company_id', companyId).del().catch(() => {});
+      }
+      if (data.assets) {
+        await trx('assets').where('company_id', companyId).del().catch(() => {});
+      }
+      if (data.asset_categories) {
+        await trx('asset_categories').where('company_id', companyId).del().catch(() => {});
+      }
       if (data.fixed_assets) {
         await trx('fixed_assets').where('company_id', companyId).del().catch(() => {});
       }
@@ -683,7 +707,11 @@ exports.restoreCompanyBackup = async (req, res) => {
         purchase_orders: {},
         goods_receipts: {},
         sales_orders: {},
-        payroll_runs: {}
+        payroll_runs: {},
+        sectors: {},
+        deliveries: {},
+        asset_categories: {},
+        assets: {}
       };
 
       // 2. Helper to insert tables safely avoiding primary key collisions
@@ -759,6 +787,27 @@ exports.restoreCompanyBackup = async (req, res) => {
               mapped.sales_order_id = idMaps.sales_orders[mapped.sales_order_id];
             }
           }
+          if (tableName === 'deliveries') {
+            if (mapped.client_id && idMaps.clients[mapped.client_id]) {
+              mapped.client_id = idMaps.clients[mapped.client_id];
+            }
+            if (mapped.sector_id && idMaps.sectors[mapped.sector_id]) {
+              mapped.sector_id = idMaps.sectors[mapped.sector_id];
+            }
+          }
+          if (tableName === 'delivery_items') {
+            if (mapped.delivery_id && idMaps.deliveries[mapped.delivery_id]) {
+              mapped.delivery_id = idMaps.deliveries[mapped.delivery_id];
+            }
+            if (mapped.product_id && idMaps.products[mapped.product_id]) {
+              mapped.product_id = idMaps.products[mapped.product_id];
+            }
+          }
+          if (tableName === 'assets') {
+            if (mapped.category_id && idMaps.asset_categories[mapped.category_id]) {
+              mapped.category_id = idMaps.asset_categories[mapped.category_id];
+            }
+          }
           if (tableName === 'employee_payslips') {
             if (mapped.payroll_run_id && idMaps.payroll_runs[mapped.payroll_run_id]) {
               mapped.payroll_run_id = idMaps.payroll_runs[mapped.payroll_run_id];
@@ -822,9 +871,14 @@ exports.restoreCompanyBackup = async (req, res) => {
       if (data.goods_receipt_items) await insertTableSafely('goods_receipt_items', data.goods_receipt_items);
       if (data.sales_orders) await insertTableSafely('sales_orders', data.sales_orders);
       if (data.sales_order_items) await insertTableSafely('sales_order_items', data.sales_order_items);
+      if (data.sectors) await insertTableSafely('sectors', data.sectors);
+      if (data.deliveries) await insertTableSafely('deliveries', data.deliveries);
+      if (data.delivery_items) await insertTableSafely('delivery_items', data.delivery_items);
       if (data.employees) await insertTableSafely('employees', data.employees);
       if (data.payroll_runs) await insertTableSafely('payroll_runs', data.payroll_runs);
       if (data.employee_payslips) await insertTableSafely('employee_payslips', data.employee_payslips);
+      if (data.asset_categories) await insertTableSafely('asset_categories', data.asset_categories);
+      if (data.assets) await insertTableSafely('assets', data.assets);
       if (data.fixed_assets) await insertTableSafely('fixed_assets', data.fixed_assets);
       if (data.budgets) await insertTableSafely('budgets', data.budgets);
     });
