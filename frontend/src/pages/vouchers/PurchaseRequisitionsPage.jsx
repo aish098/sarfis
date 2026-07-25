@@ -358,9 +358,9 @@ export default function PurchaseRequisitionsPage() {
     >
       {/* Table List Card */}
       <div className="card overflow-hidden lg:col-span-8 shadow-sm">
-        <div className="overflow-x-auto">
-          <table className="w-full">
-            <thead>
+        <div className="overflow-x-auto max-h-[620px] overflow-y-auto">
+          <table className="w-full relative border-collapse">
+            <thead className="sticky top-0 z-10 bg-[#EBF2EE]">
               <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
                 <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Requisition No</th>
                 <th className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left">Requested By</th>
