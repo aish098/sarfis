@@ -303,16 +303,31 @@ exports.exportCompanyBackup = async (req, res) => {
     // 2. Conditionally aggregate based on type
     if (type === 'full' || type === 'settings') {
       data.company_accounting_settings = await db('company_accounting_settings').where({ company_id: companyId }).catch(() => []);
+      data.company_tax_settings = await db('company_tax_settings').where({ company_id: companyId }).catch(() => []);
+      data.company_auth_settings = await db('company_auth_settings').where({ company_id: companyId }).catch(() => []);
       data.settings = await db('settings').where({ scope: 'company', target_id: String(companyId) }).catch(() => []);
+      data.accounting_periods = await db('accounting_periods').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
+      data.fiscal_years = await db('fiscal_years').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
     }
 
     if (type === 'full' || type === 'accounting') {
       if (!data.company_accounting_settings) {
         data.company_accounting_settings = await db('company_accounting_settings').where({ company_id: companyId }).catch(() => []);
       }
-      data.accounts = await db('accounts').where({ company_id: companyId }).orderBy('code', 'asc').catch(() => []);
-      data.journal_entries = await db('journal_entries').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
+      data.accounts = await db('accounts')
+        .where(function() { this.where('company_id', companyId).orWhereNull('company_id'); })
+        .orderBy('code', 'asc')
+        .catch(() => []);
+      data.clients = await db('clients')
+        .where(function() { this.where('company_id', companyId).orWhereNull('company_id'); })
+        .orderBy('id', 'asc')
+        .catch(() => []);
+      data.vendors = await db('vendors')
+        .where(function() { this.where('company_id', companyId).orWhereNull('company_id'); })
+        .orderBy('id', 'asc')
+        .catch(() => []);
 
+      data.journal_entries = await db('journal_entries').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
       const entryIds = data.journal_entries.map(e => e.id);
       data.journal_lines = entryIds.length > 0
         ? await db('journal_lines').whereIn('entry_id', entryIds).orderBy('id', 'asc').catch(() => [])
@@ -321,6 +336,10 @@ exports.exportCompanyBackup = async (req, res) => {
     }
 
     if (type === 'full' || type === 'inventory') {
+      data.warehouses = await db('warehouses')
+        .where(function() { this.where('company_id', companyId).orWhereNull('company_id'); })
+        .orderBy('id', 'asc')
+        .catch(() => []);
       data.products = await db('products').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
 
       const productIds = data.products.map(p => p.id);
@@ -335,8 +354,18 @@ exports.exportCompanyBackup = async (req, res) => {
     }
 
     if (type === 'full') {
-      data.clients = await db('clients').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
-      data.vendors = await db('vendors').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
+      if (!data.clients) {
+        data.clients = await db('clients')
+          .where(function() { this.where('company_id', companyId).orWhereNull('company_id'); })
+          .orderBy('id', 'asc')
+          .catch(() => []);
+      }
+      if (!data.vendors) {
+        data.vendors = await db('vendors')
+          .where(function() { this.where('company_id', companyId).orWhereNull('company_id'); })
+          .orderBy('id', 'asc')
+          .catch(() => []);
+      }
 
       // Procurement Pipeline
       data.purchase_requisitions = await db('purchase_requisitions').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
@@ -373,11 +402,13 @@ exports.exportCompanyBackup = async (req, res) => {
 
       // HR & Payroll Workspace
       data.employees = await db('employees').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
+      data.salary_structures = await db('salary_structures').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
       data.payroll_runs = await db('payroll_runs').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
       const prIds = data.payroll_runs.map(pr => pr.id);
       data.employee_payslips = prIds.length > 0
         ? await db('employee_payslips').whereIn('payroll_run_id', prIds).orderBy('id', 'asc').catch(() => [])
         : [];
+      data.employee_loans = await db('employee_loans').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
 
       // Asset Management & Budgets
       data.asset_categories = await db('asset_categories').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
@@ -856,9 +887,13 @@ exports.restoreCompanyBackup = async (req, res) => {
       // Order of insertions to satisfy relational foreign keys
       if (data.settings) await insertTableSafely('settings', data.settings);
       if (data.company_accounting_settings) await insertTableSafely('company_accounting_settings', data.company_accounting_settings);
+      if (data.company_tax_settings) await insertTableSafely('company_tax_settings', data.company_tax_settings);
+      if (data.accounting_periods) await insertTableSafely('accounting_periods', data.accounting_periods);
+      if (data.fiscal_years) await insertTableSafely('fiscal_years', data.fiscal_years);
       if (data.accounts) await insertTableSafely('accounts', data.accounts);
       if (data.clients) await insertTableSafely('clients', data.clients);
       if (data.vendors) await insertTableSafely('vendors', data.vendors);
+      if (data.warehouses) await insertTableSafely('warehouses', data.warehouses);
       if (data.products) await insertTableSafely('products', data.products);
       if (data.inventory) await insertTableSafely('inventory', data.inventory);
       if (data.inventory_layers) await insertTableSafely('inventory_layers', data.inventory_layers);
@@ -879,8 +914,10 @@ exports.restoreCompanyBackup = async (req, res) => {
       if (data.deliveries) await insertTableSafely('deliveries', data.deliveries);
       if (data.delivery_items) await insertTableSafely('delivery_items', data.delivery_items);
       if (data.employees) await insertTableSafely('employees', data.employees);
+      if (data.salary_structures) await insertTableSafely('salary_structures', data.salary_structures);
       if (data.payroll_runs) await insertTableSafely('payroll_runs', data.payroll_runs);
       if (data.employee_payslips) await insertTableSafely('employee_payslips', data.employee_payslips);
+      if (data.employee_loans) await insertTableSafely('employee_loans', data.employee_loans);
       if (data.asset_categories) await insertTableSafely('asset_categories', data.asset_categories);
       if (data.assets) await insertTableSafely('assets', data.assets);
       if (data.fixed_assets) await insertTableSafely('fixed_assets', data.fixed_assets);
