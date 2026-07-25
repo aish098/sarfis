@@ -34,7 +34,7 @@ app.use((req, res, next) => {
   if (req.body && typeof req.body === 'object' && Object.keys(req.body).length > 0) {
     return next();
   }
-  express.json()(req, res, next);
+  express.json({ limit: '50mb' })(req, res, next);
 });
 
 // Global API Rate Limiter (100 requests per 15 minutes per IP)
