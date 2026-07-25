@@ -928,7 +928,7 @@ exports.purgeCompanyTransactions = async (req, res) => {
 
     // 2. Verify company name
     const company = await db('companies').where({ id: companyId }).first();
-    if (!company || company.name !== companyName.trim()) {
+    if (!company || company.name.trim().toLowerCase() !== companyName.trim().toLowerCase()) {
       return res.status(400).json({ message: 'Company name confirmation mismatch.' });
     }
 

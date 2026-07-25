@@ -159,7 +159,7 @@ export default function AdminPage() {
   const activeCompanyId = activeCompany?.id;
   const activeCompanyName = activeCompany?.name || '';
   const effectiveRole = activeCompany?.user_role || user?.role || 'Member';
-  const adminRoles = ['Company Admin', 'Super Admin', 'Admin', 'Owner', 'CEO'];
+  const adminRoles = ['company_admin', 'Company Admin', 'Super Admin', 'Admin', 'Owner', 'CEO'];
   const canAdmin = adminRoles.includes(effectiveRole) || adminRoles.includes(user?.role);
 
   const [searchParams, setSearchParams] = useSearchParams();
@@ -613,9 +613,12 @@ export default function AdminPage() {
 
   // --- PURGE LEDGER UTILITY ---
   const executePurge = async () => {
-    if (!canAdmin) return;
-    if (!purgePassword || purgeConfirmName.trim() !== activeCompanyName) {
-      setMessage({ type: 'error', text: 'Details validation failed. Please check password and company name.' });
+    if (!canAdmin) {
+      setMessage({ type: 'error', text: 'Company Admin access required to execute ledger purge.' });
+      return;
+    }
+    if (!purgePassword || purgeConfirmName.trim().toLowerCase() !== activeCompanyName.trim().toLowerCase()) {
+      setMessage({ type: 'error', text: 'Details validation failed. Please check password and exact company name.' });
       return;
     }
     if (!purgeSlider) {
@@ -1878,7 +1881,7 @@ export default function AdminPage() {
                     <button
                       type="button"
                       onClick={executePurge}
-                      disabled={saving || !purgeSlider || !purgePassword || purgeConfirmName !== activeCompanyName}
+                      disabled={saving || !purgeSlider || !purgePassword || purgeConfirmName.trim().toLowerCase() !== activeCompanyName.trim().toLowerCase()}
                       className="w-full inline-flex items-center justify-center gap-2 h-10 rounded-lg bg-red-600 text-white text-[13px] font-bold hover:bg-red-700 disabled:opacity-50"
                     >
                       <Trash2 size={15} /> Execute Dangerous Purge
