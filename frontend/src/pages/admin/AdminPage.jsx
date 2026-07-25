@@ -229,7 +229,14 @@ export default function AdminPage() {
       const resOverview = await api.get(`/admin/overview?companyId=${activeCompanyId}`, requestConfig);
       setMembers(resOverview.data.members || []);
       setCompanies(resOverview.data.companies || []);
-      setRoles(resOverview.data.roles || Object.keys(ROLE_NOTES));
+      let availableRoleNames = resOverview.data.roles || Object.keys(ROLE_NOTES);
+      try {
+        const resRoles = await api.get('/admin/roles', requestConfig);
+        if (Array.isArray(resRoles.data) && resRoles.data.length > 0) {
+          availableRoleNames = resRoles.data.map(r => r.name);
+        }
+      } catch (e) {}
+      setRoles(availableRoleNames);
       setRename(activeCompanyName);
 
       // Fetch fiscal periods

@@ -5,6 +5,7 @@ const { authMiddleware, requirePermission, companyGuard } = require('../middlewa
 router.use(authMiddleware);
 
 router.get('/overview', adminController.getOverview);
+router.get('/roles', adminController.getAvailableRoles);
 router.post('/companies', adminController.createCompany);
 router.patch('/companies/:companyId', companyGuard, requirePermission('settings.manage'), adminController.updateCompany);
 router.post('/companies/:companyId/members', companyGuard, requirePermission('user.manage'), adminController.addMember);
