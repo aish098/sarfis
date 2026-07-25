@@ -65,23 +65,23 @@ exports.getOverview = async (req, res) => {
 
     const [members, companies] = await Promise.all([
       db('users as u')
-        .leftJoin('company_users as cu', function() {
+        .leftJoin('company_users as cu', function () {
           this.on('cu.user_id', '=', 'u.id').andOn('cu.company_id', '=', db.raw('?', [companyId]));
         })
         .select('u.id', 'u.name', 'u.email', 'u.role as global_role', 'u.created_at', 'cu.role as company_role')
         .orderBy('u.name', 'asc'),
       req.user.role === 'Super Admin'
         ? db('companies as c')
-            .leftJoin('company_users as cu', 'cu.company_id', 'c.id')
-            .select('c.id', 'c.name', 'c.owner_id', 'c.created_at')
-            .count('cu.user_id as member_count')
-            .groupBy('c.id')
-            .orderBy('c.created_at', 'desc')
+          .leftJoin('company_users as cu', 'cu.company_id', 'c.id')
+          .select('c.id', 'c.name', 'c.owner_id', 'c.created_at')
+          .count('cu.user_id as member_count')
+          .groupBy('c.id')
+          .orderBy('c.created_at', 'desc')
         : db('companies as c')
-            .join('company_users as cu', 'cu.company_id', 'c.id')
-            .where('cu.user_id', req.user.id)
-            .select('c.id', 'c.name', 'c.owner_id', 'c.created_at', 'cu.role as user_role')
-            .orderBy('c.created_at', 'desc'),
+          .join('company_users as cu', 'cu.company_id', 'c.id')
+          .where('cu.user_id', req.user.id)
+          .select('c.id', 'c.name', 'c.owner_id', 'c.created_at', 'cu.role as user_role')
+          .orderBy('c.created_at', 'desc'),
     ]);
 
     res.json({ roles: COMPANY_ROLES, members, companies });
@@ -299,7 +299,7 @@ exports.exportCompanyBackup = async (req, res) => {
 
     // 1. Fetch metadata
     const company = await db('companies').where({ id: companyId }).first();
-    
+
     // 2. Conditionally aggregate based on type
     if (type === 'full' || type === 'settings') {
       data.company_accounting_settings = await db('company_accounting_settings').where({ company_id: companyId }).catch(() => []);
@@ -312,23 +312,23 @@ exports.exportCompanyBackup = async (req, res) => {
       }
       data.accounts = await db('accounts').where({ company_id: companyId }).orderBy('code', 'asc').catch(() => []);
       data.journal_entries = await db('journal_entries').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
-      
+
       const entryIds = data.journal_entries.map(e => e.id);
-      data.journal_lines = entryIds.length > 0 
-        ? await db('journal_lines').whereIn('entry_id', entryIds).orderBy('id', 'asc').catch(() => []) 
+      data.journal_lines = entryIds.length > 0
+        ? await db('journal_lines').whereIn('entry_id', entryIds).orderBy('id', 'asc').catch(() => [])
         : [];
       data.vouchers = await db('vouchers').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
     }
 
     if (type === 'full' || type === 'inventory') {
       data.products = await db('products').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
-      
+
       const productIds = data.products.map(p => p.id);
-      data.inventory = productIds.length > 0 
-        ? await db('inventory').whereIn('product_id', productIds).orderBy('id', 'asc').catch(() => []) 
+      data.inventory = productIds.length > 0
+        ? await db('inventory').whereIn('product_id', productIds).orderBy('id', 'asc').catch(() => [])
         : [];
-      data.stock_logs = productIds.length > 0 
-        ? await db('stock_logs').whereIn('product_id', productIds).orderBy('id', 'asc').catch(() => []) 
+      data.stock_logs = productIds.length > 0
+        ? await db('stock_logs').whereIn('product_id', productIds).orderBy('id', 'asc').catch(() => [])
         : [];
       data.inventory_layers = await db('inventory_layers').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
       data.inventory_transfers = await db('inventory_transfers').where({ company_id: companyId }).orderBy('id', 'asc').catch(() => []);
@@ -489,7 +489,7 @@ exports.exportCompanyBackup = async (req, res) => {
 
         if (rows && rows.length > 0) {
           const headers = Object.keys(rows[0]);
-          
+
           // Header Row
           const headerRow = sheet.addRow(headers);
           headerRow.height = 26;
@@ -591,109 +591,109 @@ exports.restoreCompanyBackup = async (req, res) => {
     await db.transaction(async (trx) => {
       // 1. Delete existing records for the tables present in the backup data
       if (data.employee_payslips) {
-        await trx('employee_payslips').whereIn('payroll_run_id', trx('payroll_runs').where('company_id', companyId).select('id')).del().catch(() => {});
+        await trx('employee_payslips').whereIn('payroll_run_id', trx('payroll_runs').where('company_id', companyId).select('id')).del().catch(() => { });
       }
       if (data.payroll_runs) {
-        await trx('payroll_runs').where('company_id', companyId).del().catch(() => {});
+        await trx('payroll_runs').where('company_id', companyId).del().catch(() => { });
       }
       if (data.employees) {
-        await trx('employees').where('company_id', companyId).del().catch(() => {});
+        await trx('employees').where('company_id', companyId).del().catch(() => { });
       }
       if (data.delivery_items) {
-        await trx('delivery_items').whereIn('delivery_id', trx('deliveries').where('company_id', companyId).select('id')).del().catch(() => {});
+        await trx('delivery_items').whereIn('delivery_id', trx('deliveries').where('company_id', companyId).select('id')).del().catch(() => { });
       }
       if (data.deliveries) {
-        await trx('deliveries').where('company_id', companyId).del().catch(() => {});
+        await trx('deliveries').where('company_id', companyId).del().catch(() => { });
       }
       if (data.sectors) {
-        await trx('sectors').where('company_id', companyId).del().catch(() => {});
+        await trx('sectors').where('company_id', companyId).del().catch(() => { });
       }
       if (data.assets) {
-        await trx('assets').where('company_id', companyId).del().catch(() => {});
+        await trx('assets').where('company_id', companyId).del().catch(() => { });
       }
       if (data.asset_categories) {
-        await trx('asset_categories').where('company_id', companyId).del().catch(() => {});
+        await trx('asset_categories').where('company_id', companyId).del().catch(() => { });
       }
       if (data.fixed_assets) {
-        await trx('fixed_assets').where('company_id', companyId).del().catch(() => {});
+        await trx('fixed_assets').where('company_id', companyId).del().catch(() => { });
       }
       if (data.budgets) {
-        await trx('budgets').where('company_id', companyId).del().catch(() => {});
+        await trx('budgets').where('company_id', companyId).del().catch(() => { });
       }
       if (data.sales_order_items) {
-        await trx('sales_order_items').whereIn('sales_order_id', trx('sales_orders').where('company_id', companyId).select('id')).del().catch(() => {});
+        await trx('sales_order_items').whereIn('sales_order_id', trx('sales_orders').where('company_id', companyId).select('id')).del().catch(() => { });
       }
       if (data.sales_orders) {
-        await trx('sales_orders').where('company_id', companyId).del().catch(() => {});
+        await trx('sales_orders').where('company_id', companyId).del().catch(() => { });
       }
       if (data.goods_receipt_items) {
-        await trx('goods_receipt_items').whereIn('goods_receipt_id', trx('goods_receipts').where('company_id', companyId).select('id')).del().catch(() => {});
+        await trx('goods_receipt_items').whereIn('goods_receipt_id', trx('goods_receipts').where('company_id', companyId).select('id')).del().catch(() => { });
       }
       if (data.goods_receipts) {
-        await trx('goods_receipts').where('company_id', companyId).del().catch(() => {});
+        await trx('goods_receipts').where('company_id', companyId).del().catch(() => { });
       }
       if (data.purchase_order_items) {
-        await trx('purchase_order_items').whereIn('purchase_order_id', trx('purchase_orders').where('company_id', companyId).select('id')).del().catch(() => {});
+        await trx('purchase_order_items').whereIn('purchase_order_id', trx('purchase_orders').where('company_id', companyId).select('id')).del().catch(() => { });
       }
       if (data.purchase_orders) {
-        await trx('purchase_orders').where('company_id', companyId).del().catch(() => {});
+        await trx('purchase_orders').where('company_id', companyId).del().catch(() => { });
       }
       if (data.purchase_requisition_items) {
-        await trx('purchase_requisition_items').whereIn('requisition_id', trx('purchase_requisitions').where('company_id', companyId).select('id')).del().catch(() => {});
+        await trx('purchase_requisition_items').whereIn('requisition_id', trx('purchase_requisitions').where('company_id', companyId).select('id')).del().catch(() => { });
       }
       if (data.purchase_requisitions) {
-        await trx('purchase_requisitions').where('company_id', companyId).del().catch(() => {});
+        await trx('purchase_requisitions').where('company_id', companyId).del().catch(() => { });
       }
       if (data.inventory_layers) {
-        await trx('inventory_layers').where('company_id', companyId).del().catch(() => {});
+        await trx('inventory_layers').where('company_id', companyId).del().catch(() => { });
       }
       if (data.inventory_transfers) {
-        await trx('inventory_transfers').where('company_id', companyId).del().catch(() => {});
+        await trx('inventory_transfers').where('company_id', companyId).del().catch(() => { });
       }
       if (data.company_accounting_settings) {
-        await trx('company_accounting_settings').where('company_id', companyId).del().catch(() => {});
+        await trx('company_accounting_settings').where('company_id', companyId).del().catch(() => { });
       }
       if (data.settings) {
-        await trx('settings').where({ scope: 'company', target_id: String(companyId) }).del().catch(() => {});
+        await trx('settings').where({ scope: 'company', target_id: String(companyId) }).del().catch(() => { });
       }
       if (data.vouchers) {
-        await trx('vouchers').where('company_id', companyId).del().catch(() => {});
+        await trx('vouchers').where('company_id', companyId).del().catch(() => { });
       }
       if (data.journal_lines) {
         const entryIds = await trx('journal_entries').where('company_id', companyId).select('id');
         const ids = entryIds.map(e => e.id);
         if (ids.length > 0) {
-          await trx('journal_lines').whereIn('entry_id', ids).del().catch(() => {});
+          await trx('journal_lines').whereIn('entry_id', ids).del().catch(() => { });
         }
       }
       if (data.journal_entries) {
-        await trx('journal_entries').where('company_id', companyId).del().catch(() => {});
+        await trx('journal_entries').where('company_id', companyId).del().catch(() => { });
       }
       if (data.stock_logs) {
         const prodIds = await trx('products').where('company_id', companyId).select('id');
         const ids = prodIds.map(p => p.id);
         if (ids.length > 0) {
-          await trx('stock_logs').whereIn('product_id', ids).del().catch(() => {});
+          await trx('stock_logs').whereIn('product_id', ids).del().catch(() => { });
         }
       }
       if (data.inventory) {
         const prodIds = await trx('products').where('company_id', companyId).select('id');
         const ids = prodIds.map(p => p.id);
         if (ids.length > 0) {
-          await trx('inventory').whereIn('product_id', ids).del().catch(() => {});
+          await trx('inventory').whereIn('product_id', ids).del().catch(() => { });
         }
       }
       if (data.products) {
-        await trx('products').where('company_id', companyId).del().catch(() => {});
+        await trx('products').where('company_id', companyId).del().catch(() => { });
       }
       if (data.clients) {
-        await trx('clients').where('company_id', companyId).del().catch(() => {});
+        await trx('clients').where('company_id', companyId).del().catch(() => { });
       }
       if (data.vendors) {
-        await trx('vendors').where('company_id', companyId).del().catch(() => {});
+        await trx('vendors').where('company_id', companyId).del().catch(() => { });
       }
       if (data.accounts) {
-        await trx('accounts').where('company_id', companyId).del().catch(() => {});
+        await trx('accounts').where('company_id', companyId).del().catch(() => { });
       }
 
       // ID Remapping dictionaries across child entities
@@ -936,7 +936,7 @@ exports.parseExcelBackup = async (req, res) => {
           headers = row.values.slice(1);
         } else {
           if (!headers || headers.length === 0 || headers[0] === 'No records available for this entity module.') return;
-          
+
           const item = {};
           const vals = row.values.slice(1);
           headers.forEach((h, idx) => {
@@ -988,59 +988,59 @@ exports.purgeCompanyTransactions = async (req, res) => {
 
     // 3. Execute purge transactionally
     await db.transaction(async (trx) => {
-      await trx('transaction_audit_logs').where('company_id', companyId).del().catch(() => {});
-      
+      await trx('transaction_audit_logs').where('company_id', companyId).del().catch(() => { });
+
       const entryIds = await trx('journal_entries').where('company_id', companyId).select('id');
       const ids = entryIds.map(e => e.id);
       if (ids.length > 0) {
-        await trx('journal_lines').whereIn('entry_id', ids).del().catch(() => {});
+        await trx('journal_lines').whereIn('entry_id', ids).del().catch(() => { });
       }
-      await trx('journal_entries').where('company_id', companyId).del().catch(() => {});
-      await trx('vouchers').where('company_id', companyId).del().catch(() => {});
+      await trx('journal_entries').where('company_id', companyId).del().catch(() => { });
+      await trx('vouchers').where('company_id', companyId).del().catch(() => { });
 
       // Requisitions, POs, GRNs, & Sales Orders
       const reqIds = await trx('purchase_requisitions').where('company_id', companyId).select('id');
       const rqids = reqIds.map(r => r.id);
       if (rqids.length > 0) {
-        await trx('purchase_requisition_items').whereIn('purchase_requisition_id', rqids).del().catch(() => {});
+        await trx('purchase_requisition_items').whereIn('purchase_requisition_id', rqids).del().catch(() => { });
       }
-      await trx('purchase_requisitions').where('company_id', companyId).del().catch(() => {});
+      await trx('purchase_requisitions').where('company_id', companyId).del().catch(() => { });
 
       const poIds = await trx('purchase_orders').where('company_id', companyId).select('id');
       const poids = poIds.map(p => p.id);
       if (poids.length > 0) {
-        await trx('purchase_order_items').whereIn('purchase_order_id', poids).del().catch(() => {});
+        await trx('purchase_order_items').whereIn('purchase_order_id', poids).del().catch(() => { });
       }
-      await trx('purchase_orders').where('company_id', companyId).del().catch(() => {});
+      await trx('purchase_orders').where('company_id', companyId).del().catch(() => { });
 
       const grnIds = await trx('goods_receipts').where('company_id', companyId).select('id');
       const grnids = grnIds.map(g => g.id);
       if (grnids.length > 0) {
-        await trx('goods_receipt_items').whereIn('goods_receipt_id', grnids).del().catch(() => {});
+        await trx('goods_receipt_items').whereIn('goods_receipt_id', grnids).del().catch(() => { });
       }
-      await trx('goods_receipts').where('company_id', companyId).del().catch(() => {});
+      await trx('goods_receipts').where('company_id', companyId).del().catch(() => { });
 
       const soIds = await trx('sales_orders').where('company_id', companyId).select('id');
       const soids = soIds.map(s => s.id);
       if (soids.length > 0) {
-        await trx('sales_order_items').whereIn('sales_order_id', soids).del().catch(() => {});
+        await trx('sales_order_items').whereIn('sales_order_id', soids).del().catch(() => { });
       }
-      await trx('sales_orders').where('company_id', companyId).del().catch(() => {});
+      await trx('sales_orders').where('company_id', companyId).del().catch(() => { });
 
       // Inventory Stock Logs & Valuation Layers
-      await trx('inventory_layers').where('company_id', companyId).del().catch(() => {});
-      await trx('inventory_transfers').where('company_id', companyId).del().catch(() => {});
+      await trx('inventory_layers').where('company_id', companyId).del().catch(() => { });
+      await trx('inventory_transfers').where('company_id', companyId).del().catch(() => { });
 
       const prodIds = await trx('products').where('company_id', companyId).select('id');
       const pids = prodIds.map(p => p.id);
       if (pids.length > 0) {
-        await trx('stock_logs').whereIn('product_id', pids).del().catch(() => {});
-        await trx('inventory').whereIn('product_id', pids).update({ quantity: 0 }).catch(() => {});
+        await trx('stock_logs').whereIn('product_id', pids).del().catch(() => { });
+        await trx('inventory').whereIn('product_id', pids).update({ quantity: 0 }).catch(() => { });
       }
 
-      await trx('clients').where('company_id', companyId).update({ current_balance: 0 }).catch(() => {});
-      await trx('vendors').where('company_id', companyId).update({ current_balance: 0 }).catch(() => {});
-      await trx('accounts').where('company_id', companyId).update({ balance: 0 }).catch(() => {});
+      await trx('clients').where('company_id', companyId).update({ current_balance: 0 }).catch(() => { });
+      await trx('vendors').where('company_id', companyId).update({ current_balance: 0 }).catch(() => { });
+      await trx('accounts').where('company_id', companyId).update({ balance: 0 }).catch(() => { });
 
       // 4. Clear payroll transactions
       const runIds = await trx('payroll_runs').where('company_id', companyId).select('id');
@@ -1366,7 +1366,7 @@ exports.saveUserPermissionOverrides = async (req, res) => {
           const datesDesc = (startDate || endDate)
             ? ` (Active: ${startDate || 'Anytime'} to ${endDate || 'Anytime'})`
             : '';
-          
+
           await trx('audit_logs').insert({
             company_id: companyId,
             user_id: req.user.id,
