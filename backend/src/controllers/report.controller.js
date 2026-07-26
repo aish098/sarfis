@@ -2,6 +2,7 @@ const ReportService = require('../services/report.service');
 const ReportModel = require('../models/report.model');
 const JournalModel = require('../models/journal.model');
 const AccountModel = require('../models/account.model');
+const db = require('../config/db');
 
 exports.getTrialBalance = async (req, res) => {
   const { companyId } = req.params;
@@ -122,13 +123,20 @@ exports.getCashFlow = async (req, res) => {
   if (!sDate || !eDate) {
     try {
       const activePeriod = await db('accounting_periods')
-        .where({ company_id: companyId, status: 'OPEN' })
+        .where('company_id', parseInt(companyId, 10))
         .orderBy('start_date', 'desc')
         .first();
 
-      if (activePeriod) {
-        if (!sDate) sDate = activePeriod.start_date;
-        if (!eDate) eDate = activePeriod.end_date;
+      if (activePeriod && activePeriod.start_date && activePeriod.end_date) {
+        let sStr = activePeriod.start_date;
+        let eStr = activePeriod.end_date;
+        if (sStr instanceof Date) sStr = sStr.toISOString().split('T')[0];
+        if (eStr instanceof Date) eStr = eStr.toISOString().split('T')[0];
+        if (typeof sStr === 'string' && sStr.includes('T')) sStr = sStr.split('T')[0];
+        if (typeof eStr === 'string' && eStr.includes('T')) eStr = eStr.split('T')[0];
+
+        sDate = sDate || sStr;
+        eDate = eDate || eStr;
       } else {
         return res.status(400).json({
           code: 'ACTIVE_PERIOD_REQUIRED',
@@ -136,6 +144,7 @@ exports.getCashFlow = async (req, res) => {
         });
       }
     } catch (e) {
+      console.error('[getCashFlow activePeriod catch e]:', e);
       return res.status(400).json({
         code: 'ACTIVE_PERIOD_REQUIRED',
         message: 'Select an accounting period or provide start and end dates.'

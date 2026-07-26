@@ -304,23 +304,12 @@ class InventoryCostingService {
       });
     }
 
-    // Fallback to product cost_price if layers are insufficient
+    // Throw error if requested issue quantity exceeds total available layer stock
     if (qtyNeeded > 0) {
-      const product = await trx('products')
-        .where({ id: productId, company_id: companyId })
-        .first();
-      const fallbackCost = Number(product?.cost_price || 0);
-      const extendedCost = qtyNeeded * fallbackCost;
-      totalCost += extendedCost;
-
-      consumptions.push({
-        layerId: null,
-        sourceDocument: 'Fallback Reference Cost',
-        qty: qtyNeeded,
-        quantity: qtyNeeded,
-        unitCost: fallbackCost,
-        extendedCost
-      });
+      const err = new Error(`Insufficient inventory available for requested stock issue. Shortage of ${qtyNeeded} units.`);
+      err.code = 'INSUFFICIENT_INVENTORY';
+      err.status = 400;
+      throw err;
     }
 
     const blendedUnitCost = quantity > 0 ? totalCost / quantity : 0;
