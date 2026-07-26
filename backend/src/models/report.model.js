@@ -175,9 +175,25 @@ class ReportModel {
       return { ...r, balance };
     });
 
-    // Automatically include unclosed Income Statement net profit in Equity as Current Period Retained Earnings
-    const incomeStatement = await this.getIncomeStatement(companyId, null, asOfDate, trx);
-    const currentPeriodNetIncome = incomeStatement?.netProfit || 0;
+    // Check if period is closed or closing entry exists to prevent double-counting retained earnings
+    let isClosedPeriod = false;
+    if (asOfDate) {
+      const closedSession = await trx('period_close_sessions')
+        .join('accounting_periods as ap', 'period_close_sessions.period_id', 'ap.id')
+        .where('ap.company_id', companyId)
+        .andWhere('ap.start_date', '<=', asOfDate)
+        .andWhere('ap.end_date', '>=', asOfDate)
+        .andWhere('period_close_sessions.status', 'CLOSED')
+        .first();
+      if (closedSession) isClosedPeriod = true;
+    }
+
+    let currentPeriodNetIncome = 0;
+    if (!isClosedPeriod) {
+      const incomeStatement = await this.getIncomeStatement(companyId, null, asOfDate, trx);
+      currentPeriodNetIncome = incomeStatement?.netProfit || 0;
+    }
+
     const finalEquity = totalEquity + currentPeriodNetIncome;
 
     return {
@@ -185,6 +201,7 @@ class ReportModel {
       totalLiabilities,
       totalEquity: finalEquity,
       currentPeriodNetIncome,
+      isClosedPeriod,
       items
     };
   }

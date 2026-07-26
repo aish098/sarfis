@@ -129,14 +129,19 @@ exports.getCashFlow = async (req, res) => {
       if (activePeriod) {
         if (!sDate) sDate = activePeriod.start_date;
         if (!eDate) eDate = activePeriod.end_date;
+      } else {
+        return res.status(400).json({
+          code: 'ACTIVE_PERIOD_REQUIRED',
+          message: 'Select an accounting period or provide start and end dates.'
+        });
       }
     } catch (e) {
-      // Fallback if query fails
+      return res.status(400).json({
+        code: 'ACTIVE_PERIOD_REQUIRED',
+        message: 'Select an accounting period or provide start and end dates.'
+      });
     }
   }
-
-  if (!sDate) sDate = '1970-01-01';
-  if (!eDate) eDate = new Date().toISOString().split('T')[0];
 
   try {
     const cashFlow = await ReportModel.getCashFlow(companyId, sDate, eDate, method);
