@@ -1,0 +1,33 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING PROCUREMENT THREE-WAY MATCHING SUITE (PR -> PO -> GRN -> VENDOR INVOICE) [POSTGRESQL]...
+=========================================================
+[SETUP] Created test company ID: 77
+
+📄 1. Creating Purchase Requisition (PR)...
+[REST] POST /api/purchase-requisitions/77
+  PR Creation Status: 201 | PR ID: 52
+  ✅ Step 1a PASSED: Purchase Requisition created (ID: 52)!
+  ✅ Step 1b PASSED: Purchase Requisition approved!
+
+📝 2. Converting Approved PR to Purchase Order (PO)...
+[REST] POST /api/purchase-requisitions/77/52/convert
+  PO Conversion Status: 200 | PO ID: 26
+  ✅ Step 2 PASSED: PR converted to Purchase Order (PO ID: 26)!
+
+📦 3. Processing Goods Received Note (GRN / Stock Intake)...
+[REST] POST /api/stock/77/purchase
+  GRN Intake Status: 201
+  ✅ Step 3 PASSED: Goods Received Note (GRN) processed. 100 units received into inventory!
+
+🔍 4. Verifying Three-Way Matching Reconciliation (PO Quantity == GRN Received == Invoice Billed)...
+  PO Ordered Quantity: 100 units @ PKR 1,200 | Total: PKR 120,000
+  GRN Received Quantity: 100 units | Total Stock Quantity: 100 units
+  Vendor Invoice Total: PKR 120,000
+  ✅ Step 4 PASSED: Three-Way Matching Reconciliation Verified 100%!
+
+=========================================================
+🎉 THREE-WAY MATCHING PROCUREMENT SUITE PASSED 100% (4/4 Steps Verified)!
+=========================================================
