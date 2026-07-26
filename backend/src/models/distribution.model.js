@@ -25,12 +25,24 @@ const getClientById = (id, companyId) =>
     .select('c.*', 's.name as sector_name')
     .first();
 
-const createClient = (data) =>
-  db('clients').insert(data).returning('*').then(r => r[0]);
+const createClient = async (data) => {
+  const result = await db('clients').insert(data).returning('*');
+  if (Array.isArray(result) && result.length > 0) {
+    if (typeof result[0] === 'object' && result[0] !== null) {
+      return result[0];
+    }
+    const insertedId = typeof result[0] === 'number' ? result[0] : (result[0]?.id);
+    if (insertedId) {
+      return getClientById(insertedId, data.company_id);
+    }
+  }
+  return db('clients').where({ company_id: data.company_id, name: data.name }).orderBy('id', 'desc').first();
+};
 
-const updateClient = (id, companyId, data) =>
-  db('clients').where({ id, company_id: companyId })
-    .update({ ...data, updated_at: db.fn.now() }).returning('*').then(r => r[0]);
+const updateClient = async (id, companyId, data) => {
+  await db('clients').where({ id, company_id: companyId }).update({ ...data, updated_at: db.fn.now() });
+  return getClientById(id, companyId);
+};
 
 const getClientBalances = (companyId) =>
   db('v_client_balance').where({ company_id: companyId }).orderBy('current_balance', 'desc');

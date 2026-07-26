@@ -5,7 +5,7 @@ class VendorModel {
     const query = db('vendors');
     if (trx) query.transacting(trx);
 
-    const [vendor] = await query
+    const res = await query
       .insert({
         company_id: vendorData.companyId,
         name: vendorData.name,
@@ -16,7 +16,13 @@ class VendorModel {
         is_active: vendorData.isActive !== undefined ? vendorData.isActive : true
       })
       .returning('*');
-    return vendor;
+
+    if (Array.isArray(res) && res.length > 0) {
+      if (typeof res[0] === 'object' && res[0] !== null) return res[0];
+      const insertedId = typeof res[0] === 'number' ? res[0] : (res[0]?.id);
+      if (insertedId) return this.getById(insertedId, vendorData.companyId);
+    }
+    return db('vendors').where({ company_id: vendorData.companyId, name: vendorData.name }).orderBy('id', 'desc').first();
   }
 
   static async getByCompany(companyId) {
