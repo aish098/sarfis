@@ -1,0 +1,27 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING RETAINED EARNINGS RECONCILIATION & YEAR-END CLOSE SUITE [POSTGRESQL]...
+=========================================================
+
+📊 1. Posting Fiscal Year Revenue (200k) & Expense (80k)...
+  Revenue Posted: PKR 200,000 | Expense Posted: PKR 80,000
+  Net Income Before Close: PKR 120,000
+
+🔄 2. Generating Year-End Closing Entry & Transferring Net Income to Retained Earnings (3200)...
+  ✅ Retained Earnings Transfer Verified 100%: PKR 120,000 Net Income credited to Retained Earnings (3200)!
+
+🧹 3. Verifying Zeroing Out of Nominal Revenue & Expense Accounts...
+  Post-Closing Sales Revenue Balance: PKR 0
+  Post-Closing Operating Expense Balance: PKR 0
+  ✅ Nominal Revenue & Expense Accounts Zeroed Out 100% for New Fiscal Year!
+
+⚖️ 4. Verifying Post-Closing Trial Balance Equilibrium (Assets == Equity)...
+  Post-Closing Cash Asset Balance: PKR 120,000
+  Post-Closing Retained Earnings Equity Balance: PKR 120,000
+  ✅ Post-Closing Trial Balance Equilibrium Verified 100%: Total Assets (120k) == Total Equity (120k)!
+
+=========================================================
+🎉 RETAINED EARNINGS RECONCILIATION & YEAR-END CLOSE SUITE PASSED 100% (4/4)!
+=========================================================

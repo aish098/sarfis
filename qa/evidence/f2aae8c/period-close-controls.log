@@ -1,0 +1,22 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING MONTH-END & YEAR-END PERIOD CLOSE CONTROLS SUITE [POSTGRESQL]...
+=========================================================
+
+🚫 1. Testing Unposted Draft Records Blocking Period Close...
+  ✅ Period Close Engine correctly flagged 1 unposted DRAFT journal entry blocking month-end close.
+
+🔒 2. Testing Accounting Period Close Execution & Lock State...
+  ✅ Period July 2026 successfully transition from OPEN to CLOSED state.
+
+🚫 3. Testing Duplicate Period Close Prevention...
+  ✅ Duplicate Period Close Session attempt blocked / flagged by unique constraint!
+
+🔒 4. Testing Postings Blocked in Closed Accounting Period (July 2026)...
+  ✅ Closed Period Lock Verified: Postings of Vouchers, Payroll, Stock Intake & Depreciation blocked for July 2026.
+
+=========================================================
+🎉 MONTH-END & YEAR-END PERIOD CLOSE CONTROLS SUITE PASSED 100% (4/4)!
+=========================================================

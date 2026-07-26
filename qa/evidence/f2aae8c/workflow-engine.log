@@ -1,0 +1,19 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING UNIFIED WORKFLOW & APPROVAL ENGINE SUITE [POSTGRESQL]...
+=========================================================
+
+⚙️ 1. Testing Workflow Definition & Escalation Threshold Setup...
+  ✅ Workflow Definition defined: Document VOUCHER, Escalation Threshold PKR 100,000+ requires CFO/Admin approval.
+
+🔀 2. Testing Multi-Stage Routing & Approval Instance Submission...
+  ✅ Workflow Instance 152 created in PENDING state at Stage 1.
+
+🟢 3. Testing Approval Instance Resolution & Auto-Posting Callback...
+  ✅ Workflow Instance APPROVED & Auto-posting callback executed successfully!
+
+=========================================================
+🎉 UNIFIED WORKFLOW & APPROVAL ENGINE SUITE PASSED 100% (3/3)!
+=========================================================

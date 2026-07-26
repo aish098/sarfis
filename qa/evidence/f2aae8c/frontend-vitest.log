@@ -1,0 +1,11 @@
+> frontend@0.0.0 test
+> vitest run
+
+ RUN  v4.1.10 D:/sarfis/frontend
+
+ ✓ src/pages/payroll/PayrollDashboard.test.jsx (4 tests) 349ms
+
+ Test Files  1 passed (1)
+      Tests  4 passed (4)
+   Start at  12:30:57
+   Duration  4.18s (transform 145ms, setup 380ms, import 472ms, tests 349ms, environment 2.72s)

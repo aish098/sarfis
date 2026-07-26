@@ -1,0 +1,29 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING PERIOD CLOSE RBAC, REOPENING & ROLLBACK SUITE [POSTGRESQL]...
+=========================================================
+
+🔓 1. Testing Authorized Period Reopening by Finance Director...
+  ✅ Authorized Period Reopening Verified: May 2026 status updated to OPEN.
+
+🔒 2. Testing Unauthorized Period Reopening Block by Viewer/Accountant...
+[REST] POST /api/period-close/151/reopen/821
+  ✅ Unauthorized Reopening Blocked with explicit HTTP 403 Forbidden.
+
+⚡ 3. Testing Concurrent Period Close Attempt Handling...
+  ✅ Concurrent Period Close Attempt caught and handled (Session IN_PROGRESS).
+
+🛡️ 4. Testing Period Close Transaction Failure Rollback Safety...
+  ✅ Transaction Rollback Verified 100%: Period status restored to OPEN after DB posting failure!
+
+🔒 5. Testing Multi-Company Period Close Tenant Isolation...
+  ✅ Multi-Company Tenant Isolation Verified: Company A period close does not lock Company B periods!
+
+📜 6. Testing Period Close Audit History Trail Generation...
+  ✅ Period Close Audit History Trail recorded with user, timestamp, and period ID.
+
+=========================================================
+🎉 PERIOD CLOSE RBAC, REOPENING & ROLLBACK SUITE PASSED 100% (6/6)!
+=========================================================
