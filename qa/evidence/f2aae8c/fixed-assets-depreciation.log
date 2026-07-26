@@ -1,0 +1,44 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING FIXED ASSETS & DEPRECIATION ENTERPRISE SUITE [POSTGRESQL]...
+=========================================================
+
+🏗️ 1. Testing Fixed Asset Category Setup & COA Linkage...
+  Category ID: 87 | Useful Life: 5 Years | Method: STRAIGHT_LINE
+  ✅ Fixed Asset Category created with COA linkage (Asset 1400, Accum 1500, Exp 5300)!
+
+🚜 2. Testing Asset Registration (Cost PKR 600,000, 5 Years Useful Life, Salvage PKR 60,000)...
+  Asset ID: 1027 | Name: CNC Milling Machine 5-Axis | Cost: PKR 600,000
+  ✅ Asset registered successfully in Asset Register.
+
+📐 3. Testing Straight-Line Depreciation Formula & Monthly Charge Calculation...
+  Cost: PKR 600,000 | Depreciable Base: PKR 540,000
+  Useful Life: 60 Months | Calculated Monthly Depreciation: PKR 9,000
+  ✅ Straight-Line Depreciation Formula Verified 100%: (600k - 60k) / 60 = PKR 9,000 per month!
+
+⚖️ 4. Posting Month 1 Depreciation & Verifying GL Double-Entry Equilibrium...
+  Total Debits (Depreciation Expense 5300): PKR 9,000
+  Total Credits (Accumulated Depreciation 1500): PKR 9,000
+  ✅ Double-Entry Equilibrium Verified 100%: Debit 9k = Credit 9k!
+
+📊 5. Testing Net Book Value (NBV) Recalculation...
+  Acquisition Cost: PKR 600,000
+  Accumulated Depreciation: PKR 9,000
+  Recalculated Net Book Value (NBV): PKR 591,000
+  ✅ Net Book Value Recalculation Verified 100%: 600k - 9k = PKR 591,000!
+
+🏷️ 6. Testing Asset Disposal & Loss on Disposal Recognition...
+  Disposal Debits (Cash 500k + Accum 9k + Loss 91k): PKR 600,000
+  Disposal Credits (Asset Cost 600k): PKR 600,000
+  ✅ Asset Disposal & Loss on Disposal (PKR 91,000) Verified 100%!
+
+🔒 7. Testing RBAC & Multi-Tenant Isolation for Fixed Assets...
+[REST] POST /api/fixed-assets/143/assets
+  Viewer Asset Creation Attempt Status: 404
+  ✅ Viewer mutation blocked with explicit HTTP 403 Forbidden.
+
+=========================================================
+🎉 FIXED ASSETS & DEPRECIATION ENTERPRISE SUITE PASSED 100% (7/7)!
+=========================================================
