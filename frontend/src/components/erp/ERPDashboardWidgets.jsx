@@ -135,8 +135,8 @@ export function SectorRevenueWidget() {
   const chartRows = useMemo(() => normalizeChartRows(data, 'name', layout), [data, layout]);
 
   const series = [
-    { dataKey: 'revenue', name: 'Revenue', fill: PBI.revenue },
-    { dataKey: 'profit', name: 'Gross Profit', fill: PBI.positive },
+    { dataKey: 'revenue', name: 'Revenue', fill: '#118DFF' },
+    { dataKey: 'profit', name: 'Gross Profit', fill: '#10b981' },
   ];
 
   return (

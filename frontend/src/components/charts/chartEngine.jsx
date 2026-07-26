@@ -20,7 +20,7 @@ export const PBI = {
   muted: "#64748b",
   surface: "#ffffff",
   border: "#f1f5f9",
-  revenue: "var(--brand-primary, #10b981)",
+  revenue: "#118DFF",
   expense: "#f43f5e",
   profit: "#10b981",
 };
