@@ -1,0 +1,22 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING PAYROLL GENERAL LEDGER RECONCILIATION SUITE [POSTGRESQL]...
+=========================================================
+
+📊 1. Posting Payroll Run & Generating Double-Entry Journal...
+
+⚖️ 2. Verifying Double-Entry Equilibrium (Debits == Credits)...
+  Total Debits (Expense): PKR 500,000
+  Total Credits (Payable + Tax + Loan): PKR 500,000
+  ✅ Double-Entry Equilibrium Verified 100%: Total Debits (500k) == Total Credits (500k)!
+
+📑 3. Reconciling Payroll Register Totals with General Ledger Entries...
+  Payroll Register Net Payable: PKR 420,000
+  General Ledger Credit Payable: PKR 420,000
+  ✅ Payroll Register & General Ledger Reconciliation Verified 100%!
+
+=========================================================
+🎉 PAYROLL GENERAL LEDGER RECONCILIATION SUITE PASSED 100% (2/2)!
+=========================================================

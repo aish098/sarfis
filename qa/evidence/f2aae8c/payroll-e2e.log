@@ -1,0 +1,32 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING PAYROLL E2E SUITE (GROSS-TO-NET, LOANS, ATTENDANCE, TAX) [POSTGRESQL]...
+=========================================================
+
+💵 1. Testing Gross-to-Net Calculation Formula...
+  Basic: PKR 100,000 | Gross: PKR 140,000
+  Tax: PKR 8,500 | Loan: PKR 15,000 | Net: PKR 111,500
+  ✅ Gross-to-Net Formula Verified 100%: Gross (140k) - Tax (8.5k) - Loan (15k) - Deductions (5k) = Net Salary PKR 111,500!
+
+📅 2. Testing Attendance Adjustments & Unpaid Absence Proration...
+  30 Total Days, 24 Days Attended (6 Days Unpaid Absence)
+  Prorated Basic: PKR 80,000 | Prorated Gross: PKR 112,000
+  ✅ Attendance Adjustment & Proration Verified: 24/30 days = PKR 112,000 Prorated Gross!
+
+💳 3. Testing Employee Loan Recovery & Installment Cap...
+  M1 Recovery: PKR 20,000 | Rem: PKR 30,000
+  M2 Recovery: PKR 20,000 | Rem: PKR 10,000
+  M3 Recovery: PKR 10,000 (Capped!) | Rem: PKR 0
+  M4 Recovery: PKR 0 (Zero recovery after settlement)
+  ✅ Employee Loan Recovery & Final Installment Capping Verified 100%!
+
+🏛️ 4. Testing Statutory Tax Withholding & Slab Boundaries (Finance Act 2026)...
+  Annual PKR 600,000 Tax: PKR 0 (Exempt <= 600k)
+  Annual PKR 1,200,000 Tax: PKR 30000 (Exact Slab Threshold)
+  ✅ Statutory Tax Withholding & Slab Boundaries Verified 100%!
+
+=========================================================
+🎉 PAYROLL E2E SUITE PASSED 100% (4/4)!
+=========================================================

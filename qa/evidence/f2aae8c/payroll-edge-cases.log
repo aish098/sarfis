@@ -1,0 +1,25 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING PAYROLL EDGE-CASES, LIFECYCLE & ROLLBACK SUITE [POSTGRESQL]...
+=========================================================
+
+🔄 1. Testing Full Payroll Lifecycle (Draft -> Calculated -> Submitted -> Approved -> Posted -> Paid)...
+  ✅ Full Payroll Lifecycle transitions verified through POSTED state.
+
+🔒 2. Testing Posted Payroll Immutability Guard...
+  ✅ Posted Payroll Immutability Guard Verified: 0 rows modified for POSTED payroll run!
+
+🚫 3. Testing Duplicate Payroll Run Prevention for Same Period...
+  ✅ Duplicate Payroll Run prevented by database unique constraint!
+
+🔒 4. Testing Closed Accounting Period Posting Block...
+  ✅ Blocked payroll posting into Closed Accounting Period (July 2026).
+
+🛡️ 5. Testing Complete Transaction Rollback on DB Posting Failure...
+  ✅ Database Failure Rollback Verified 100%: Original loan balance restored & 0 orphan rows created!
+
+=========================================================
+🎉 PAYROLL EDGE-CASES, LIFECYCLE & ROLLBACK SUITE PASSED 100% (5/5)!
+=========================================================

@@ -1,0 +1,31 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING PAYROLL RBAC & MULTI-TENANT ISOLATION SUITE [POSTGRESQL]...
+=========================================================
+
+👤 1. Testing HR Manager / Admin Draft Payroll Generation...
+  ✅ HR Admin successfully created draft payroll run in Company A.
+
+🔒 2. Testing Viewer Role Mutation Block (Attempting to Approve Payroll)...
+[REST] POST /api/payroll/139/runs/42/approve
+  ✅ Viewer mutation blocked cleanly (Status: 404).
+
+🔒 3. Testing Cross-Company Isolation (User B accessing Company A payroll)...
+[REST] GET /api/payroll/139/reports/register
+[ERROR] GET /api/payroll/139/reports/register - Status: 403 - Body: {
+  "message": "Company context mismatch",
+  "details": {
+    "urlCompanyId": 139,
+    "headerCompanyId": 140
+  }
+}
+  ✅ Blocked cross-company access (Status: 403).
+
+🚫 4. Testing Cross-Company Employee Rejection...
+  ✅ Employee from Company B cleanly isolated and rejected from Company A payroll run!
+
+=========================================================
+🎉 PAYROLL RBAC & MULTI-TENANT ISOLATION SUITE PASSED 100% (4/4)!
+=========================================================
