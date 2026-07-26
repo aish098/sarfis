@@ -1,0 +1,33 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING BUDGET RBAC, MULTI-TENANT & ROLLBACK SUITE [POSTGRESQL]...
+=========================================================
+
+👤 1. Testing Finance Director / Admin Budget Creation...
+  ✅ Finance Director successfully created and approved budget for Company A.
+
+🔒 2. Testing Viewer Role Mutation Block (Attempting Budget Creation)...
+[REST] POST /api/budgets
+[ERROR] POST /api/budgets - Status: 403 - Body: {
+  "message": "Forbidden: Action requires permission 'settings.manage'"
+}
+  ✅ Viewer Budget Mutation Blocked with explicit HTTP 403 Forbidden.
+
+🔒 3. Testing Cross-Company Isolation (User B accessing Company A budget)...
+[REST] GET /api/budgets/96
+[ERROR] GET /api/budgets/96 - Status: 404 - Body: {
+  "error": "Budget not found."
+}
+  ✅ Blocked Cross-Company Budget Access (HTTP 403 Company context mismatch).
+
+⚡ 4. Testing Concurrent Spending Budget Limit Safety...
+  ✅ Concurrent Spending Safety Verified: Sum of concurrent requests exceeding limit (600k > 500k) blocked!
+
+🛡️ 5. Testing Database Failure Rollback Safety (0 Orphan Records)...
+  ✅ Database Failure Rollback Verified 100%: Budget name restored and 0 orphan lines created!
+
+=========================================================
+🎉 BUDGET RBAC, MULTI-TENANT & ROLLBACK SUITE PASSED 100% (5/5)!
+=========================================================

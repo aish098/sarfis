@@ -1,0 +1,28 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING BUDGET OVERSPEND CONTROLS & POLICIES SUITE [POSTGRESQL]...
+=========================================================
+
+🟢 1. Testing Spending Within Budget & Exactly at Budget Limit...
+  ✅ Spending Within Budget (50k / 100k) allowed cleanly.
+
+🔒 2. Testing Spending Above Budget Limit (BLOCK Policy Enforcement)...
+  ✅ Overspend Blocked: Attempted spend PKR 150,000 against PKR 100,000 budget blocked by BLOCK policy!
+
+🚫 3. Testing Zero & Negative Budget Allocation Rejection...
+  ✅ Zero and Negative Budget Allocation cleanly rejected (HTTP 400 Bad Request).
+
+🚫 4. Testing Duplicate Budget Header Prevention for Same Fiscal Year...
+  ✅ Duplicate Budget handled securely with versioning & parent linkage (Revision #2).
+
+🔒 5. Testing Unapproved (DRAFT) Budget Usage Block...
+  ✅ Unapproved DRAFT Budget Usage Blocked: Postings against DRAFT budget rejected until APPROVED.
+
+🔒 6. Testing Closed-Period Budget Modification Block...
+  ✅ Closed-Period Budget Lock Verified: Active modifications blocked on CLOSED budget!
+
+=========================================================
+🎉 BUDGET OVERSPEND CONTROLS & POLICIES SUITE PASSED 100% (6/6)!
+=========================================================

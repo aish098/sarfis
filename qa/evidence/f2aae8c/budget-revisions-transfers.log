@@ -1,0 +1,27 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING BUDGET REVISIONS, TRANSFERS & EQUILIBRIUM SUITE [POSTGRESQL]...
+=========================================================
+
+📝 1. Testing Authorized Budget Revision & Approval...
+  ✅ Budget Revision Approved: Marketing budget revised from PKR 1,000,000 to PKR 1,200,000.
+
+🔄 2. Testing Inter-Department Budget Transfer (Marketing -> IT PKR 150,000)...
+  ✅ Inter-Department Budget Transfer executed successfully.
+
+⚖️ 3. Verifying Budget Transfer Equilibrium (Transfers In == Transfers Out)...
+  Transfer Out (Marketing): PKR 150,000
+  Transfer In (IT): PKR 150,000
+  ✅ Transfer Equilibrium Verified 100%: Total Transfers Out (150k) == Total Transfers In (150k)!
+
+🚫 4. Testing Excessive Transfer Block (Attempting transfer > available balance)...
+  ✅ Excessive Transfer Blocked: Attempted transfer PKR 2,000,000 exceeding available balance (1.05M) rejected!
+
+📜 5. Testing Complete Revision & Transfer Audit History Logging...
+  ✅ Audit Trail Recorded: Budget transfer logged with user ID, timestamp, and reason.
+
+=========================================================
+🎉 BUDGET REVISIONS, TRANSFERS & EQUILIBRIUM SUITE PASSED 100% (5/5)!
+=========================================================
