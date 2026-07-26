@@ -13,7 +13,7 @@ import RequirePermission from '../../components/RequirePermission';
 import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 import StatusBadge from '../../components/ui/StatusBadge';
 
-function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onAccountNotFound, idx }) {
+function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onAccountNotFound, idx, onOpenChange }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const ref = useRef();
@@ -30,7 +30,12 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
   }, [value, accounts]);
 
   useEffect(() => {
-    const handle = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
+    const handle = e => { 
+      if (ref.current && !ref.current.contains(e.target)) {
+        setOpen(false);
+        onOpenChange?.(false);
+      }
+    };
     document.addEventListener('mousedown', handle);
     return () => document.removeEventListener('mousedown', handle);
   }, []);
@@ -42,7 +47,7 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
       const viewportHeight = window.innerHeight;
       const spaceBelow = viewportHeight - rect.bottom;
       const spaceAbove = rect.top;
-      const dropdownHeight = 260;
+      const dropdownHeight = 240;
 
       if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
         setOpenUpward(true);
@@ -55,6 +60,7 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
   const handleSelect = (accId) => {
     onChange(accId);
     setOpen(false);
+    onOpenChange?.(false);
     setQ('');
   };
 
@@ -76,6 +82,7 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
       return;
     }
     setOpen(false);
+    onOpenChange?.(false);
     validateCode(inputValue);
   };
 
@@ -95,6 +102,7 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
         placeholder="Select or enter account code..."
         onFocus={() => {
           setOpen(true);
+          onOpenChange?.(true);
           setQ('');
         }}
         onBlur={handleBlur}
@@ -193,6 +201,7 @@ export default function JournalEntryPage() {
   const [lines, setLines] = useState([genRow(), genRow()]);
   const [editingId, setEditingId] = useState(null);
   const [focusedField, setFocusedField] = useState({ index: null, field: null });
+  const [activeRowIdx, setActiveRowIdx] = useState(null);
 
   // Ledger Settings
   const [postingMode, setPostingMode] = useState('REALTIME'); // REALTIME | BATCH (saves draft)
@@ -830,10 +839,11 @@ export default function JournalEntryPage() {
                 <tbody className="divide-y divide-[#E6EBE8]">
                   {lines.map((line, idx) => {
                     const isRowFilled = line.accountId && (parseFloat(line.debit) > 0 || parseFloat(line.credit) > 0);
+                    const isActive = activeRowIdx === idx;
                     return (
                       <tr
                         key={line.id}
-                        style={{ position: 'relative', zIndex: lines.length - idx }}
+                        style={{ position: 'relative', zIndex: isActive ? 9999 : lines.length - idx }}
                         className={`group transition-colors ${idx % 2 === 0 ? 'bg-[#FFFDFB] hover:bg-emerald-50/15' : 'bg-[#FAFAF9] hover:bg-emerald-50/15'
                           }`}
                       >
@@ -856,6 +866,10 @@ export default function JournalEntryPage() {
                             onKeyDown={e => handleKeyDown(e, idx, 'account')}
                             onAccountNotFound={handleAccountNotFound}
                             idx={idx}
+                            onOpenChange={(isOpen) => {
+                              if (isOpen) setActiveRowIdx(idx);
+                              else setActiveRowIdx(prev => prev === idx ? null : prev);
+                            }}
                           />
                         </td>
                         <td className="px-2 py-1.5">
