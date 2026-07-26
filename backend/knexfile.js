@@ -26,6 +26,19 @@ module.exports = {
       directory: path.join(__dirname, 'src/db/seeds')
     }
   },
+  test: {
+    client: 'sqlite3',
+    connection: {
+      filename: path.join(__dirname, 'src/db/test.sqlite3')
+    },
+    useNullAsDefault: true,
+    migrations: {
+      directory: path.join(__dirname, 'src/db/migrations')
+    },
+    seeds: {
+      directory: path.join(__dirname, 'src/db/seeds')
+    }
+  },
   production: {
     client: hasPgConfig ? 'pg' : 'sqlite3',
     connection: hasPgConfig ? (process.env.DATABASE_URL ? {
