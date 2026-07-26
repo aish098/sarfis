@@ -1,0 +1,41 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING CASH FLOW & GL RECONCILIATION REGRESSION SUITE (POSTGRESQL)...
+=========================================================
+
+💵 1. Cash Flow: Both dates supplied (2026-01-01 to 2026-12-31)...
+[REST] GET /api/reports/cash-flow/1?startDate=2026-01-01&endDate=2026-12-31
+  ✅ Passed (200 OK, Returned items count: 6 )
+
+💵 2. Cash Flow: Both dates omitted (Automatic Fallback)...
+[REST] GET /api/reports/cash-flow/1
+  ✅ Passed (200 OK, Returned items count: 6 )
+
+💵 3. Cash Flow: Only startDate supplied (startDate=2026-01-01)...
+[REST] GET /api/reports/cash-flow/1?startDate=2026-01-01
+  ✅ Passed (200 OK, Returned items count: 6 )
+
+💵 4. Cash Flow: Invalid date format (startDate=invalid-date)...
+[REST] GET /api/reports/cash-flow/1?startDate=invalid-date
+[ERROR] GET /api/reports/cash-flow/1?startDate=invalid-date - Status: 400 - Body: {
+  "error": "Invalid startDate parameter format. Expected YYYY-MM-DD."
+}
+  ✅ Passed (400 Bad Request returned with message: Invalid startDate parameter format. Expected YYYY-MM-DD. )
+
+💵 5. Cash Flow: Start date later than end date (startDate=2026-12-31&endDate=2026-01-01)...
+[REST] GET /api/reports/cash-flow/1?startDate=2026-12-31&endDate=2026-01-01
+[ERROR] GET /api/reports/cash-flow/1?startDate=2026-12-31&endDate=2026-01-01 - Status: 400 - Body: {
+  "error": "startDate cannot be later than endDate."
+}
+  ✅ Passed (400 Bad Request returned with message: startDate cannot be later than endDate. )
+
+🏦 6. Balance Sheet: Verifying Assets == Liabilities + Equity Equation...
+[REST] GET /api/reports/balance-sheet/1
+  Assets: PKR 3,188,571.34 | Liabilities: PKR 3,646,300 | Equity: PKR 94,954.66
+  ✅ Balance Sheet Report API Operational.
+
+=========================================================
+🎉 ALL CASH FLOW & GL REGRESSION SUITE CHECKS PASSED (6/6)!
+=========================================================

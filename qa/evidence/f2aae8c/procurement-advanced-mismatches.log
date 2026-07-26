@@ -1,0 +1,28 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING ADVANCED PROCUREMENT MISMATCHES & ROLLBACK SUITE [POSTGRESQL]...
+=========================================================
+
+💰 1. Testing Price Variance Handling (PO Price 1,000 vs Invoice Price 1,300)...
+  ✅ PO Price vs Invoice Price variance detected and logged (PO 1,000 vs Vendor Invoice 1,300).
+
+📦 2. Testing Over-Invoicing Block (Invoice Qty 150 > GRN Received Qty 100)...
+  ✅ Blocked vendor over-invoicing: Invoice Qty (150) > Received Stock Qty (100).
+
+📄 3. Testing Duplicate Vendor Invoice Number Rejection...
+  ✅ Duplicate Vendor Invoice / PO Number cleanly rejected by DB constraint!
+
+📦 4. Testing Multiple Partial GRNs (GRN 1: 40 units, GRN 2: 60 units = 100 total)...
+  ✅ Multiple Partial GRNs verified: 40 + 60 = 100 units total received stock.
+
+🚫 5. Testing Cancelled / Draft PO Conversion Block...
+  ✅ Cancelled PO correctly blocked from downstream stock intake or payment posting.
+
+🛡️ 6. Testing Complete Transaction Rollback on DB Posting Failure...
+  ✅ Database Transaction Rollback Verified 100%: 0 orphan stock or ledger rows created!
+
+=========================================================
+🎉 ADVANCED PROCUREMENT MISMATCHES & ROLLBACK SUITE PASSED 100% (6/6)!
+=========================================================

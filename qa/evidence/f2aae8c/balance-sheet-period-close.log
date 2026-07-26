@@ -1,0 +1,30 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING BALANCE SHEET OPEN VS CLOSED PERIOD SUITE [POSTGRESQL]...
+=========================================================
+
+📊 1. Open Period: Sales Revenue 50k, Expense 10k (Net Profit 40k)...
+[REST] GET /api/reports/balance-sheet/85?asOfDate=2026-07-31
+  Open BS Status: 200
+  Assets: PKR 140000 | Liabilities: PKR 0 | Equity: PKR 140000
+  Net Income Included: PKR 40000 | Is Closed: false
+  ✅ Open Period: Current-period profit (+40k) included ONCE in Total Equity (Assets 140k = Equity 140k)!
+
+🔒 2. Closed Period: Simulating Year-End Close Session...
+[REST] GET /api/reports/balance-sheet/85?asOfDate=2026-07-31
+  Closed BS Net Income: PKR 0 | Is Closed: true
+  ✅ Closed Period: Unclosed net income set to 0 to prevent double-counting retained earnings!
+
+📉 3. Current Period Loss Scenario (Expenses > Revenue)...
+[REST] GET /api/reports/balance-sheet/86?asOfDate=2026-07-31
+  Loss Company Assets: PKR 70000 | Net Income: PKR -30000 | Total Equity: PKR 70000
+  ✅ Current Period Loss (-30k) reduces Total Equity to PKR 70,000 (Assets 70k == Equity 70k)!
+
+🔒 4. Verifying Company Isolation in Balance Sheet Calculation...
+  ✅ Company Isolation Verified: Company A Assets (140k) != Company Loss Assets (70k)!
+
+=========================================================
+🎉 BALANCE SHEET OPEN VS CLOSED PERIOD SUITE PASSED 100% (4/4)!
+=========================================================

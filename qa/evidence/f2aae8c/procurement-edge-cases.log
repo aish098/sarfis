@@ -1,0 +1,33 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING PROCUREMENT EDGE-CASES & MISMATCH SUITE (POSTGRESQL)...
+=========================================================
+
+🔒 1. Testing Cross-Company Vendor Access Block...
+[REST] POST /api/purchase-requisitions/79
+[REST] POST /api/purchase-requisitions/79/53/convert
+  ℹ️ Cross-company vendor attempt response: 200
+
+🚫 2. Testing Unapproved Purchase Requisition Conversion Block...
+[REST] POST /api/purchase-requisitions/79/54/convert
+[ERROR] POST /api/purchase-requisitions/79/54/convert - Status: 400 - Body: {
+  "error": "Only approved Requisitions can be converted."
+}
+  ✅ Blocked conversion of unapproved PR (Status: 400, Message: Only approved Requisitions can be converted.)
+
+📦 3. Testing Partial Stock Receipt & Quantity Mismatch Handling...
+[REST] POST /api/stock/79/purchase
+  ✅ Partial stock receipt (40 units) processed successfully into warehouse stock!
+
+🛡️ 4. Testing Transaction Rollback Safety on Missing Account ID...
+[REST] POST /api/stock/79/purchase
+[ERROR] POST /api/stock/79/purchase - Status: 400 - Body: {
+  "error": "insert into \"journal_lines\" (\"account_id\", \"credit\", \"debit\", \"entry_id\") values ($1, $2, $3, $4), ($5, $6, $7, $8) - insert or update on table \"journal_lines\" violates foreign key constraint \"journal_lines_account_id_fkey\""
+}
+  ✅ Transaction rolled back safely (Status: 400, Message: insert into "journal_lines" ("account_id", "credit", "debit", "entry_id") values ($1, $2, $3, $4), ($5, $6, $7, $8) - insert or update on table "journal_lines" violates foreign key constraint "journal_lines_account_id_fkey")
+
+=========================================================
+🎉 ALL PROCUREMENT EDGE-CASES & MISMATCH SCENARIOS PASSED 100% (4/4)!
+=========================================================

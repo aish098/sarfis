@@ -1,0 +1,24 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING INVENTORY FIFO LAYER CONSUMPTION SUITE [POSTGRESQL]...
+=========================================================
+
+📦 1. Batch 1 Purchase: 100 units @ PKR 1,000 (Cost = PKR 100,000)...
+  ✅ Batch 1 stock layer recorded (100 units @ 1,000).
+
+📦 2. Batch 2 Purchase: 100 units @ PKR 1,400 (Cost = PKR 140,000)...
+  ✅ Batch 2 stock layer recorded (100 units @ 1,400).
+
+🚚 3. Issuing 120 units under FIFO layer consumption rule...
+  Expected FIFO COGS Cost: PKR 128,000 (100x1,000 + 20x1,400)
+  Expected Remaining Inventory Valuation: PKR 112,000 (80 units @ PKR 1,400)
+  ✅ Current Stock Quantity before issue: 200 units.
+  Ending Stock Quantity: 80 units.
+  Calculated Ending Inventory Asset Valuation: PKR 112,000
+  ✅ FIFO Layer Consumption Rule Verified 100%: 100x1,000 + 20x1,400 = PKR 128,000 COGS! Remaining: 80x1,400 = PKR 112,000!
+
+=========================================================
+🎉 INVENTORY FIFO LAYER CONSUMPTION SUITE PASSED 100% (4/4)!
+=========================================================

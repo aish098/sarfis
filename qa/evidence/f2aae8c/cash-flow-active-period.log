@@ -1,0 +1,25 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING DIRECT CASH FLOW ACTIVE PERIOD & ERROR CODES SUITE [POSTGRESQL]...
+=========================================================
+
+💵 1. Dates supplied (2026-01-01 to 2026-12-31)...
+  ✅ Passed (200 OK, Returned items count: 6 )
+
+💵 2. Dates omitted WITH open active period (Q3 2026)...
+  ✅ Passed (200 OK, resolved active period start_date 2026-07-01 to end_date 2026-09-30)
+
+💵 3. Dates omitted WITHOUT open active period...
+  ✅ Passed (HTTP 400, Code: ACTIVE_PERIOD_REQUIRED, Message: Select an accounting period or provide start and end dates. )
+
+💵 4. Invalid date string (startDate=invalid-date)...
+  ✅ Passed (HTTP 400 Bad Request returned with error: Invalid startDate parameter format. Expected YYYY-MM-DD. )
+
+💵 5. Start date later than end date (startDate=2026-12-31&endDate=2026-01-01)...
+  ✅ Passed (HTTP 400 Bad Request returned with error: startDate cannot be later than endDate. )
+
+=========================================================
+🎉 CASH FLOW ACTIVE PERIOD & ERROR CODES SUITE PASSED 100% (5/5)!
+=========================================================

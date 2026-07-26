@@ -1,0 +1,88 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING HARDENED RBAC & CROSS-COMPANY TENANT ISOLATION MATRIX (POSTGRESQL)...
+=========================================================
+[SETUP] Company A ID: 68 | Company B ID: 69
+[SETUP] Created User A (ID 89) in Company A, User B (ID 90) in Company B, Viewer A (ID 91) in Company A
+
+🔒 1. Testing Cross-Company Isolation (User A -> Company B Header)...
+[REST] GET /api/accounts?companyId=69
+[AUTH] 403 Denied: User 89 NOT in Company 69
+[ERROR] GET /api/accounts?companyId=69 - Status: 403 - Body: {
+  "message": "Access to this company is denied",
+  "debug": {
+    "userId": 89,
+    "requestedCompanyId": 69
+  }
+}
+  ✅ Blocked User A from /api/accounts?companyId=69 (Status: 403)
+[REST] GET /api/vouchers?companyId=69
+[AUTH] 403 Denied: User 89 NOT in Company 69
+[ERROR] GET /api/vouchers?companyId=69 - Status: 403 - Body: {
+  "message": "Access to this company is denied",
+  "debug": {
+    "userId": 89,
+    "requestedCompanyId": 69
+  }
+}
+  ✅ Blocked User A from /api/vouchers?companyId=69 (Status: 403)
+[REST] GET /api/journal?companyId=69
+[AUTH] 403 Denied: User 89 NOT in Company 69
+[ERROR] GET /api/journal?companyId=69 - Status: 403 - Body: {
+  "message": "Access to this company is denied",
+  "debug": {
+    "userId": 89,
+    "requestedCompanyId": 69
+  }
+}
+  ✅ Blocked User A from /api/journal?companyId=69 (Status: 403)
+[REST] GET /api/reports/balance-sheet?companyId=69
+[AUTH] 403 Denied: User 89 NOT in Company 69
+[ERROR] GET /api/reports/balance-sheet?companyId=69 - Status: 403 - Body: {
+  "message": "Access to this company is denied",
+  "debug": {
+    "userId": 89,
+    "requestedCompanyId": 69
+  }
+}
+  ✅ Blocked User A from /api/reports/balance-sheet?companyId=69 (Status: 403)
+[REST] GET /api/payroll?companyId=69
+[AUTH] 403 Denied: User 89 NOT in Company 69
+[ERROR] GET /api/payroll?companyId=69 - Status: 403 - Body: {
+  "message": "Access to this company is denied",
+  "debug": {
+    "userId": 89,
+    "requestedCompanyId": 69
+  }
+}
+  ✅ Blocked User A from /api/payroll?companyId=69 (Status: 403)
+[REST] GET /api/employees?companyId=69
+[AUTH] 403 Denied: User 89 NOT in Company 69
+[ERROR] GET /api/employees?companyId=69 - Status: 403 - Body: {
+  "message": "Access to this company is denied",
+  "debug": {
+    "userId": 89,
+    "requestedCompanyId": 69
+  }
+}
+  ✅ Blocked User A from /api/employees?companyId=69 (Status: 403)
+
+🛡️ 2. Testing RBAC Permission Boundaries (Viewer Role in Company A)...
+[REST] POST /api/vouchers/68
+[ERROR] POST /api/vouchers/68 - Status: 403 - Body: {
+  "message": "Forbidden: Action requires permission 'voucher.create'"
+}
+  ✅ Blocked Viewer mutation attempt (Status: 403, Message: Forbidden: Action requires permission 'voucher.create')
+
+👑 3. Testing Last Company Admin Protection Guard...
+[REST] DELETE /api/admin/companies/68/members/89
+[ERROR] DELETE /api/admin/companies/68/members/89 - Status: 400 - Body: {
+  "message": "You cannot remove your own access."
+}
+  ✅ Blocked removal of last Company Admin (Status: 400, Message: You cannot remove your own access.)
+
+=========================================================
+🎉 ALL RBAC & CROSS-COMPANY TENANT ISOLATION TESTS PASSED (8/8)!
+=========================================================
