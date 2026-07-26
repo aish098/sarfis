@@ -6,6 +6,8 @@ const authRateLimiter = require('../middleware/auth_rate_limit.middleware');
 
 router.post('/register', authController.registerUser);
 router.post('/login', authController.loginUser);
+router.post('/forgot-password', authRateLimiter, authController.requestPasswordReset);
+router.post('/reset-password', authRateLimiter, authController.resetPassword);
 router.post('/google', authRateLimiter, authController.googleLogin);
 router.post('/google/create-workspace', authRateLimiter, authController.createWorkspaceWithGoogle);
 router.get('/me', authMiddleware, authController.getCurrentUser);

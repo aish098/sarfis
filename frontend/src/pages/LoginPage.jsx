@@ -1,9 +1,10 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
-import { ShieldCheck, Building2, Check, ArrowRight, ShieldAlert, Plus, RefreshCw } from 'lucide-react';
+import { ShieldCheck, Building2, Check, ArrowRight, ShieldAlert, Plus, RefreshCw, KeyRound, CheckCircle2 } from 'lucide-react';
 import useAuthStore from '../store/authStore';
 import { AuthLayout, AuthInput, AuthButton, AuthError, AuthWrapper } from './Auth';
 import GoogleSignInButton from '../components/auth/GoogleSignInButton';
+import api from '../services/api';
 
 export default function LoginPage() {
   const navigate = useNavigate();
@@ -12,12 +13,76 @@ export default function LoginPage() {
   const [workspaceSelection, setWorkspaceSelection] = useState(null); // { userCompanies, credential }
   const [unauthorizedModal, setUnauthorizedModal] = useState(null); // { email, credential, message }
 
+  // Forgot Password States
+  const [forgotModal, setForgotModal] = useState(false);
+  const [resetStep, setResetStep] = useState(1);
+  const [resetEmail, setResetEmail] = useState('');
+  const [newPassword, setNewPassword] = useState('');
+  const [confirmPassword, setConfirmPassword] = useState('');
+  const [resetLoading, setResetLoading] = useState(false);
+  const [resetMessage, setResetMessage] = useState(null);
+
   const handleChange = (e) => setFormData({ ...formData, [e.target.name]: e.target.value });
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     const success = await login(formData.email, formData.password);
     if (success) navigate('/dashboard');
+  };
+
+  const handleOpenForgotModal = (e) => {
+    e.preventDefault();
+    setResetEmail(formData.email || '');
+    setNewPassword('');
+    setConfirmPassword('');
+    setResetStep(1);
+    setResetMessage(null);
+    setForgotModal(true);
+  };
+
+  const handleRequestReset = async (e) => {
+    e.preventDefault();
+    if (!resetEmail.trim()) {
+      setResetMessage({ type: 'error', text: 'Please enter your registered email address.' });
+      return;
+    }
+    setResetLoading(true);
+    setResetMessage(null);
+    try {
+      const res = await api.post('/auth/forgot-password', { email: resetEmail });
+      setResetStep(2);
+      setResetMessage({ type: 'success', text: res.data.message || 'Verification code generated. Set your new password below.' });
+    } catch (err) {
+      setResetMessage({ type: 'error', text: err.response?.data?.message || 'No account found with this email address.' });
+    } finally {
+      setResetLoading(false);
+    }
+  };
+
+  const handlePerformReset = async (e) => {
+    e.preventDefault();
+    if (!newPassword || newPassword.length < 6) {
+      setResetMessage({ type: 'error', text: 'New password must be at least 6 characters long.' });
+      return;
+    }
+    if (newPassword !== confirmPassword) {
+      setResetMessage({ type: 'error', text: 'Passwords do not match.' });
+      return;
+    }
+    setResetLoading(true);
+    setResetMessage(null);
+    try {
+      const res = await api.post('/auth/reset-password', { email: resetEmail, newPassword });
+      setResetMessage({ type: 'success', text: res.data.message || 'Password updated successfully! Redirecting...' });
+      setFormData((prev) => ({ ...prev, email: resetEmail, password: newPassword }));
+      setTimeout(() => {
+        setForgotModal(false);
+      }, 1500);
+    } catch (err) {
+      setResetMessage({ type: 'error', text: err.response?.data?.message || 'Failed to reset password.' });
+    } finally {
+      setResetLoading(false);
+    }
   };
 
   const handleGoogleCredential = async (credential) => {
@@ -78,6 +143,112 @@ export default function LoginPage() {
   return (
     <AuthLayout title="Sign in to ACCOUNTELLENCE ERP" subtitle={subtitle}>
       <AuthWrapper>
+        {/* Forgot Password Modal Overlay */}
+        {forgotModal && (
+          <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
+            <div className="bg-white rounded-3xl p-6 max-w-md w-full shadow-2xl border border-slate-200 animate-in zoom-in-95 duration-200 space-y-5">
+              <div className="text-center space-y-2">
+                <div className="w-12 h-12 bg-emerald-50 border border-emerald-200 rounded-2xl flex items-center justify-center mx-auto text-emerald-600 mb-1 shadow-xs">
+                  <KeyRound size={24} />
+                </div>
+                <h3 className="text-lg font-black text-slate-900 tracking-tight">
+                  {resetStep === 1 ? 'Reset Your Password' : 'Set New Password'}
+                </h3>
+                <p className="text-slate-500 text-xs leading-relaxed px-2">
+                  {resetStep === 1 
+                    ? 'Enter your registered email address below to initiate password recovery.'
+                    : `Enter a new password for ${resetEmail}.`
+                  }
+                </p>
+              </div>
+
+              {resetMessage && (
+                <div className={`p-3 rounded-xl text-xs font-semibold flex items-center gap-2 ${
+                  resetMessage.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-rose-50 text-rose-800 border border-rose-200'
+                }`}>
+                  {resetMessage.type === 'success' ? <CheckCircle2 size={16} className="text-emerald-600 shrink-0" /> : <ShieldAlert size={16} className="text-rose-600 shrink-0" />}
+                  <span>{resetMessage.text}</span>
+                </div>
+              )}
+
+              {resetStep === 1 ? (
+                <form onSubmit={handleRequestReset} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Registered Email</label>
+                    <input
+                      type="email"
+                      required
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-emerald-500 text-slate-800 text-xs font-medium outline-none transition-all"
+                      placeholder="name@company.com"
+                      value={resetEmail}
+                      onChange={(e) => setResetEmail(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setForgotModal(false)}
+                      className="flex-1 py-2.5 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer border-none"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={resetLoading}
+                      className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition cursor-pointer border-none flex items-center justify-center gap-2 shadow-md shadow-emerald-600/10"
+                    >
+                      {resetLoading ? <RefreshCw size={14} className="animate-spin" /> : 'Continue'}
+                    </button>
+                  </div>
+                </form>
+              ) : (
+                <form onSubmit={handlePerformReset} className="space-y-4">
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">New Password</label>
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-emerald-500 text-slate-800 text-xs font-medium outline-none transition-all"
+                      placeholder="At least 6 characters"
+                      value={newPassword}
+                      onChange={(e) => setNewPassword(e.target.value)}
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-bold text-slate-700 mb-1">Confirm New Password</label>
+                    <input
+                      type="password"
+                      required
+                      minLength={6}
+                      className="w-full px-3.5 py-2.5 rounded-xl border border-slate-200 bg-slate-50 focus:bg-white focus:border-emerald-500 text-slate-800 text-xs font-medium outline-none transition-all"
+                      placeholder="Re-enter new password"
+                      value={confirmPassword}
+                      onChange={(e) => setConfirmPassword(e.target.value)}
+                    />
+                  </div>
+                  <div className="flex items-center gap-2 pt-2">
+                    <button
+                      type="button"
+                      onClick={() => setResetStep(1)}
+                      className="py-2.5 px-4 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-bold rounded-xl transition cursor-pointer border-none"
+                    >
+                      Back
+                    </button>
+                    <button
+                      type="submit"
+                      disabled={resetLoading}
+                      className="flex-1 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white text-xs font-bold rounded-xl transition cursor-pointer border-none flex items-center justify-center gap-2 shadow-md shadow-emerald-600/10"
+                    >
+                      {resetLoading ? <RefreshCw size={14} className="animate-spin" /> : 'Save New Password'}
+                    </button>
+                  </div>
+                </form>
+              )}
+            </div>
+          </div>
+        )}
+
         {/* Multi-Workspace Selection Modal Overlay */}
         {workspaceSelection && (
           <div className="fixed inset-0 z-50 bg-slate-900/80 backdrop-blur-sm flex items-center justify-center p-4">
@@ -217,9 +388,13 @@ export default function LoginPage() {
                 />
                 Remember me
               </label>
-              <a href="#" className="text-sm text-emerald-400 hover:text-emerald-300 transition">
+              <button 
+                type="button"
+                onClick={handleOpenForgotModal}
+                className="text-sm text-emerald-400 hover:text-emerald-300 transition cursor-pointer bg-transparent border-none p-0 font-semibold"
+              >
                 Forgot password?
-              </a>
+              </button>
             </div>
             <div className="pt-2">
               <AuthButton isLoading={isLoading}>

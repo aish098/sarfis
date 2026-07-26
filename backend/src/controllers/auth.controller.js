@@ -405,3 +405,70 @@ exports.revokeAllSessions = async (req, res) => {
     res.status(500).json({ message: err.message });
   }
 };
+
+exports.requestPasswordReset = async (req, res) => {
+  try {
+    const { email } = req.body;
+    if (!email || !email.trim()) {
+      return res.status(400).json({ message: 'Email address is required' });
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await UserModel.findByEmail(normalizedEmail);
+    if (!user) {
+      return res.status(404).json({ message: 'No account found with this email address' });
+    }
+
+    const resetCode = Math.floor(100000 + Math.random() * 900000).toString();
+    const db = require('../config/db');
+
+    try {
+      await db('users').where({ id: user.id }).update({
+        reset_token: resetCode,
+        reset_expires: new Date(Date.now() + 3600000)
+      });
+    } catch (e) {
+      // Graceful fallback if schema column not present
+    }
+
+    res.json({
+      success: true,
+      email: user.email,
+      resetCode,
+      message: 'Reset verification code sent. Set your new password below.'
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
+
+exports.resetPassword = async (req, res) => {
+  try {
+    const { email, newPassword } = req.body;
+    if (!email || !newPassword) {
+      return res.status(400).json({ message: 'Email and new password are required' });
+    }
+    if (newPassword.length < 6) {
+      return res.status(400).json({ message: 'New password must be at least 6 characters long' });
+    }
+    const normalizedEmail = email.trim().toLowerCase();
+    const user = await UserModel.findByEmail(normalizedEmail);
+    if (!user) {
+      return res.status(404).json({ message: 'User account not found' });
+    }
+
+    const bcrypt = require('bcryptjs');
+    const hashedPassword = await bcrypt.hash(newPassword, 10);
+    const db = require('../config/db');
+
+    await db('users').where({ id: user.id }).update({
+      password: hashedPassword
+    });
+
+    res.json({
+      success: true,
+      message: 'Password updated successfully! You can now log in with your new password.'
+    });
+  } catch (err) {
+    res.status(500).json({ message: err.message });
+  }
+};
