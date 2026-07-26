@@ -1,0 +1,23 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING WEIGHTED AVERAGE COST (WAC / AVERAGE) VALUATION SUITE [POSTGRESQL - COMMIT 4aff4c8]...
+=========================================================
+
+📦 1. Receiving Batch 1: 100 units @ PKR 1,000 (Total: PKR 100,000)...
+📦 2. Receiving Batch 2: 100 units @ PKR 1,400 (Total: PKR 140,000)...
+  Calculated Weighted Average Unit Cost (WAC / Internal: AVERAGE): PKR 1,200
+  ✅ Weighted Average Unit Cost Recalculation Verified 100%: (100k + 140k) / 200 = PKR 1,200/unit!
+
+📤 3. Consuming 120 units using Weighted Average Cost (WAC / AVERAGE) Method...
+  Calculated WAC COGS: 120 units @ PKR 1,200 = PKR 144,000
+  ✅ WAC COGS Calculation Verified 100%: 120 units @ 1,200 = PKR 144,000!
+
+📊 4. Verifying Ending Inventory Asset Valuation under WAC...
+  Calculated Ending Inventory Valuation under WAC: 80 units @ PKR 1,200 = PKR 96,000
+  ✅ Ending Inventory Asset Valuation under WAC Verified 100%: 80 units @ 1,200 = PKR 96,000!
+
+=========================================================
+🎉 WEIGHTED AVERAGE COST (WAC / AVERAGE) SUITE PASSED 100% (3/3)!
+=========================================================

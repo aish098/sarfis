@@ -1,0 +1,24 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING INVENTORY FIFO (FIRST-IN, FIRST-OUT) VALUATION SUITE [POSTGRESQL - COMMIT 4aff4c8]...
+=========================================================
+
+📦 1. Receiving Batch 1 (Oldest): 100 units @ PKR 1,000 (Total: PKR 100,000)...
+📦 2. Receiving Batch 2 (Newest): 100 units @ PKR 1,400 (Total: PKR 140,000)...
+  Total Stock on Hand: 200 units (Total Value: PKR 240,000)
+
+📤 3. Consuming 120 units using FIFO (First-In, First-Out) Strategy...
+  Calculated FIFO COGS: PKR 128,000
+  ✅ FIFO Layer Consumption Verified 100%: Oldest Batch 1 consumed first (100 @ 1,000) + 20 from Batch 2 = PKR 128,000 COGS!
+
+📊 4. Verifying Ending Inventory Asset Valuation under FIFO...
+  Layer ID 60 (Date: GRN-FIFO-BATCH-1): Remaining Qty = 0.0000 @ PKR 1000.0000
+  Layer ID 61 (Date: GRN-FIFO-BATCH-2): Remaining Qty = 80.0000 @ PKR 1400.0000
+  Calculated Ending Inventory Valuation: PKR 112,000
+  ✅ Ending Inventory Asset Valuation Verified 100%: 80 remaining units in Batch 2 @ 1,400 = PKR 112,000!
+
+=========================================================
+🎉 INVENTORY FIFO VALUATION SUITE PASSED 100% (3/3)!
+=========================================================

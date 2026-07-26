@@ -1,0 +1,22 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING INVENTORY-TO-GL RECONCILIATION SUITE [POSTGRESQL - COMMIT 4aff4c8]...
+=========================================================
+
+📦 1. Posting Stock Intake Goods Received Note (PKR 200,000)...
+📤 2. Posting Stock Issue / Delivery Note COGS (PKR 120,000)...
+
+📊 3. Verifying GL Inventory Asset Ending Balance vs Sub-Ledger Asset Valuation...
+  GL Inventory Asset Ending Balance: PKR 80,000
+  Sub-Ledger Inventory Asset Valuation: PKR 80,000
+  ✅ Inventory-to-GL Reconciliation Verified 100%: GL Asset balance (80k) matches sub-ledger inventory valuation exactly!
+
+⚖️ 4. Verifying GL Double-Entry Equilibrium...
+  Total Debits: PKR 320,000 | Total Credits: PKR 320,000
+  ✅ Double-Entry Equilibrium Verified 100%: Total Debits = Total Credits = PKR 320,000!
+
+=========================================================
+🎉 INVENTORY-TO-GL RECONCILIATION SUITE PASSED 100% (2/2)!
+=========================================================

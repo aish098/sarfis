@@ -1,0 +1,19 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING INVENTORY DECIMAL PRECISION & ROUNDING SUITE [POSTGRESQL - COMMIT 4aff4c8]...
+=========================================================
+
+📦 1. Receiving High-Precision Fractional Stock: 33.3333 units @ PKR 10.3333...
+📤 2. Consuming Fractional Quantity: 11.1111 units under FIFO Strategy...
+  Calculated Extended Cost: PKR 114.81432963 (Rounded: PKR 114.8143)
+  ✅ Decimal Precision Verified 100%: 4-decimal precision maintained on fractional inventory issue!
+
+📊 3. Verifying Remaining Layer Quantity Precision...
+  Remaining Layer Quantity: 22.2222 units
+  ✅ Fractional Rounding Safety Verified 100%: Remaining layer quantity matches 22.2222 units exactly!
+
+=========================================================
+🎉 INVENTORY DECIMAL PRECISION & ROUNDING SUITE PASSED 100% (2/2)!
+=========================================================
