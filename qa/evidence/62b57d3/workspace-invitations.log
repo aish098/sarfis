@@ -1,0 +1,36 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+🧪 Testing Workspace Invitations, Entitlements & SSO Domain Controls (PostgreSQL In-Process)...
+✅ Dynamically resolved admin user 40 (ayesha_1784915310324@sarfis.com) for Company 1
+
+📜 1. Testing GET Workspace Invitations & Entitlements...
+[REST] GET /api/admin/companies/1/invitations
+  GET Invitations HTTP Status: 200
+  License Usage: { used: 7, max: 50 }
+
+✉️ 2. Testing Authorize & Create New Workspace Invitation...
+[REST] POST /api/admin/companies/1/invitations
+  POST Invitation HTTP Status: 200
+  Created Invitation Details: { success: true, message: 'Workspace invitation sent successfully' }
+
+🔒 3. Testing Workspace SSO & Domain Controls Settings...
+[REST] GET /api/admin/companies/1/auth-settings
+  GET SSO Settings HTTP Status: 200
+  SSO Policy: {
+  id: '9',
+  company_id: '1',
+  google_login_enabled: false,
+  allow_google_account_linking: false,
+  allow_google_auto_provisioning: false,
+  requires_admin_approval: false,
+  allowed_google_domains: null,
+  created_at: '2026-07-24T21:33:01.131Z',
+  updated_at: '2026-07-26T07:41:55.917Z'
+}
+[REST] PUT /api/admin/companies/1/auth-settings
+  PUT SSO Settings HTTP Status: 200
+
+===========================================
+🎉 WORKSPACE INVITATIONS & SSO DOMAIN CONTROLS PASSED 100% CLEANLY!
+===========================================

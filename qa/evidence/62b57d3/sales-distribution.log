@@ -1,0 +1,93 @@
+🧪 Testing Sales & Distribution Module Endpoints & Linkages...
+
+✅ Logged in as Admin. Company ID: 65
+
+👤 1. Creating CRM Client / Customer...
+  Client Created | ID: 59 | Name: Apex Global Logistics
+
+🏭 2. Creating Warehouse & Product for Stock Allocation...
+  Warehouse Created | ID: 26 | Name: Central Distribution Hub
+  Product Created | ID: 63 | SKU: SKU-4749
+  Stock Purchase Intake Status: 201
+
+📦 3. Creating Sales Order (Sales Orders Submodule)...
+  Sales Order Created: {
+  id: 12,
+  so_number: 'SO-2026-00001',
+  status: 'DRAFT',
+  total_amount: '15000.00'
+}
+
+🎯 4. Confirming Sales Order & Verifying Order Tracking...
+  Sales Order Delivered State: DELIVERED
+  Order Tracking Details: {
+  id: 12,
+  so_number: 'SO-2026-00001',
+  client_name: 'Apex Global Logistics',
+  warehouse_name: 'Central Distribution Hub',
+  status: 'DELIVERED',
+  items_count: 1
+}
+
+🧾 5. Converting Sales Order to Financial Voucher / Invoice...
+  Convert to Voucher Status: 200
+  Conversion Result Voucher: { voucherId: 184, voucherNumber: 'SV-00001' }
+
+🚚 6. Creating Customer Delivery Note (Deliveries Submodule)...
+  Delivery Created: { id: 97, delivery_number: 'DO-00002', status: 'PENDING' }
+  Confirming Customer Delivery Note...
+  Confirm Delivery Note Code: 200
+  Confirmed Delivery Result: { success: true }
+  Marking Customer Delivery Note as DELIVERED...
+  Mark Delivered Code: 200
+  Marked Delivered Result: {
+  id: 97,
+  company_id: 65,
+  client_id: 59,
+  sector_id: null,
+  warehouse_id: 26,
+  delivery_number: 'DO-00002',
+  delivery_date: '2026-07-25T19:00:00.000Z',
+  status: 'DELIVERED',
+  total_amount: '7500.00',
+  total_cost: '4500.00',
+  journal_entry_id: 637,
+  notes: 'Dispatched via Express Courier',
+  created_by: 72,
+  created_at: '2026-07-25T19:28:15.141Z',
+  updated_at: '2026-07-25T19:28:15.258Z',
+  ar_account_id: 3534,
+  voucher_id: null,
+  sales_order_id: null,
+  driver_name: null,
+  vehicle_number: null,
+  courier_name: null,
+  tracking_number: null,
+  dispatch_time: null,
+  arrival_time: null,
+  receiver_name: null,
+  receiver_signature: null,
+  remarks: null
+}
+
+📊 7. Checking Sales & Distribution Analytics Dashboard & Top Clients...
+  Dashboard Stats: {
+  totalClients: 1,
+  pendingOrders: 0,
+  blockedClients: 0,
+  monthRevenue: 22500
+}
+  Top Clients List: [
+  {
+    id: 59,
+    name: 'Apex Global Logistics',
+    current_balance: '7500.00',
+    credit_limit: '100000.00',
+    order_count: '2',
+    total_revenue: '22500.00'
+  }
+]
+
+===========================================
+🎉 SALES & DISTRIBUTION MODULE VERIFIED 100% WORKING!
+===========================================

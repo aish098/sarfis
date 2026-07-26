@@ -1,0 +1,45 @@
+[dotenv@17.3.1] injecting env (7) from .env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+RUNNING UNIFIED WORKFLOW & APPROVAL ENGINE INTEGRATION TESTS...
+=========================================================
+[SETUP] Dynamic users resolved: Submitter=40, CFO=2, Delegate=3
+[SETUP] Seeding Workflow Document Types...
+✅ Seeded document types registry.
+[SETUP] Creating Workflow Definition & Stages...
+✅ Workflow stages created.
+
+[TEST A] Submitting low amount journal (PKR 50,000)...
+- Submission status: PENDING, Instance ID: 149
+[TEST A] Approving Stage 1 (Manager Review)...
+[WORKFLOW CALLBACK] Executing callback for JOURNAL #633: journal.service.postJournalEntry (Action: APPROVE, User: 40)
+- Stage Review Outcome status: APPROVED
+- Final Journal Status: POSTED
+✅ Test Case A passed (auto-posted low amount journal).
+
+[TEST B] Submitting high amount journal (PKR 150,000)...
+- Submission status: PENDING, Instance ID: 150
+[TEST B] Approving Stage 1 (Manager)...
+- Outcome B1 status: PENDING, Next Stage: CFO Final Approval
+[TEST B] Approving Stage 2 (CFO)...
+[WORKFLOW CALLBACK] Executing callback for JOURNAL #634: journal.service.postJournalEntry (Action: APPROVE, User: 40)
+- Outcome B2 status: APPROVED
+- Final Journal Status: POSTED
+✅ Test Case B passed (multi-stage approval and routing).
+
+[TEST C] Setting up approval delegation (Manager -> Assistant)...
+✅ Delegation ID 9 configured.
+[TEST C] Reviewing Stage 1 by Assistant (Acting as Delegate)...
+[WORKFLOW] User 3 is acting as delegate for user 40
+[WORKFLOW CALLBACK] Executing callback for JOURNAL #635: journal.service.postJournalEntry (Action: APPROVE, User: 40)
+- Review Outcome status: APPROVED
+- Final Journal Status: POSTED
+✅ Test Case C passed (delegation verification).
+
+[CLEANUP] Cleaning up test records...
+✅ Cleanup completed.
+
+=========================================================
+ALL UNIFIED WORKFLOW ENGINE INTEGRATION TESTS PASSED
+=========================================================
