@@ -28,6 +28,7 @@ export function PowerBIDonut({
   height = 200,
   currency = "PKR",
   hideLargestSegment = false,
+  disableTooltip = false,
 }) {
   const pieData = useMemo(() => normalizePieData(mergePieByName(data)), [data]);
   const total = useMemo(() => pieData.reduce((s, d) => s + (d.value || 0), 0), [pieData]);
@@ -57,21 +58,36 @@ export function PowerBIDonut({
                 <Cell key={i} fill={colors[i % colors.length]} style={{ outline: "none" }} />
               ))}
             </Pie>
-            <Tooltip
-              content={({ active, payload }) => {
-                if (!active || !payload?.length) return null;
-                const p = payload[0];
-                const pct = total > 0 ? ((p.value / total) * 100).toFixed(1) : 0;
-                return (
-                  <ChartTooltip
-                    active
-                    payload={[{ name: p.name, value: p.value, color: p.payload?.fill }]}
-                    label={p.payload?.payload?.fullName || p.name}
-                    formatter={(v) => `${currency} ${fmtChart(v)} (${pct}%)`}
-                  />
-                );
-              }}
-            />
+            {!disableTooltip && (
+              <Tooltip
+                content={({ active, payload }) => {
+                  if (!active || !payload?.length) return null;
+                  const p = payload[0];
+                  const pct = total > 0 ? ((p.value / total) * 100).toFixed(1) : 0;
+                  const name = p.payload?.payload?.fullName || p.name;
+                  return (
+                    <div style={{
+                      background: "rgba(15, 23, 42, 0.92)",
+                      backdropFilter: "blur(4px)",
+                      color: "#ffffff",
+                      borderRadius: 6,
+                      padding: "5px 9px",
+                      fontSize: 11,
+                      fontWeight: 600,
+                      boxShadow: "0 4px 12px rgba(0,0,0,0.18)",
+                      border: "1px solid rgba(255,255,255,0.1)",
+                      pointerEvents: "none",
+                      whiteSpace: "nowrap"
+                    }}>
+                      <div style={{ display: "flex", alignItems: "center", gap: 6 }}>
+                        <span style={{ width: 7, height: 7, borderRadius: 2, background: p.payload?.fill || p.color, display: "inline-block" }} />
+                        <span>{name}: <b style={{ color: "#38bdf8" }}>{currency} {fmtChart(p.value)}</b> ({pct}%)</span>
+                      </div>
+                    </div>
+                  );
+                }}
+              />
+            )}
           </PieChart>
         </ResponsiveContainer>
         <div style={{
