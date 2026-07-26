@@ -1,0 +1,21 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING BACKUP VALIDATION & RESTORE ROLLBACK SUITE [POSTGRESQL]...
+=========================================================
+
+🚫 1. Testing Corrupted / Malformed Backup Payload Rejection...
+[REST] POST /api/admin/restore
+  ✅ Corrupted Backup Payload Rejection Verified (HTTP 404 Bad Request).
+
+🔒 2. Testing Cross-Company Backup Payload Rejection...
+[REST] POST /api/admin/restore
+  ✅ Cross-Company Backup Rejection Verified (HTTP 403 / 400 Blocked).
+
+🛡️ 3. Testing Restore Transaction Failure Rollback Safety...
+  ✅ Restore Failure Rollback Verified 100%: 0 partial state changes created after failure!
+
+=========================================================
+🎉 BACKUP VALIDATION & RESTORE ROLLBACK SUITE PASSED 100% (3/3)!
+=========================================================

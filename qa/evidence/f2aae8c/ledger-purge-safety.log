@@ -1,0 +1,19 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING LEDGER PURGE & SAFETY CONTROLS SUITE [POSTGRESQL]...
+=========================================================
+
+🛑 1. Testing Ledger Purge Safety Switch & Cancellation Prompt...
+  ✅ Purge Cancellation Verified: Cancellation preserved 100% of ledger entries intact!
+
+🧹 2. Executing Controlled Purge & Verifying Scope Isolation...
+  ✅ Purge Scope Isolation Verified 100%: Journal entries removed while Company & COA Master Records remained 100% protected!
+
+📜 3. Verifying Immutable Audit Entry Creation for PURGE Event...
+  ✅ Audit Trail Recorded: PURGE action logged in audit registry with user ID & timestamp.
+
+=========================================================
+🎉 LEDGER PURGE & SAFETY CONTROLS SUITE PASSED 100% (3/3)!
+=========================================================
