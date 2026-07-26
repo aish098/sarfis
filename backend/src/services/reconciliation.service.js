@@ -73,7 +73,7 @@ class ReconciliationService {
         .join('journal_entries as je', 'jl.entry_id', 'je.id')
         .where('jl.account_id', account.id)
         .andWhere({ 'je.company_id': companyId })
-        .andWhereNotExists(function() {
+        .whereNotExists(function() {
           this.select('id').from('assets').whereRaw('assets.asset_code = je.description or assets.asset_name = je.description');
         })
         .count('je.id as count')

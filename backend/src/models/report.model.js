@@ -175,10 +175,16 @@ class ReportModel {
       return { ...r, balance };
     });
 
+    // Automatically include unclosed Income Statement net profit in Equity as Current Period Retained Earnings
+    const incomeStatement = await this.getIncomeStatement(companyId, null, asOfDate, trx);
+    const currentPeriodNetIncome = incomeStatement?.netProfit || 0;
+    const finalEquity = totalEquity + currentPeriodNetIncome;
+
     return {
       totalAssets,
       totalLiabilities,
-      totalEquity,
+      totalEquity: finalEquity,
+      currentPeriodNetIncome,
       items
     };
   }
@@ -199,6 +205,9 @@ class ReportModel {
   }
 
   static async getCashFlowDirect(companyId, startDate, endDate, trx = db) {
+    const sDate = startDate || '1970-01-01';
+    const eDate = endDate || '2099-12-31';
+
     // 1. Fetch cash/bank journals
     const cashEntries = await trx('journal_lines as l')
       .join('accounts as a', 'l.account_id', 'a.id')
@@ -209,8 +218,8 @@ class ReportModel {
         this.where(trx.raw('LOWER(a.name)'), 'like', '%cash%')
             .orWhere(trx.raw('LOWER(a.name)'), 'like', '%bank%');
       })
-      .andWhere('je.entry_date', '>=', startDate)
-      .andWhere('je.entry_date', '<=', endDate);
+      .andWhere('je.entry_date', '>=', sDate)
+      .andWhere('je.entry_date', '<=', eDate);
 
     if (cashEntries.length === 0) return [];
 
@@ -266,7 +275,10 @@ class ReportModel {
   }
 
   static async getCashFlowIndirect(companyId, startDate, endDate, trx = db) {
-    const incomeStatement = await this.getIncomeStatement(companyId, startDate, endDate, trx);
+    const sDate = startDate || '1970-01-01';
+    const eDate = endDate || '2099-12-31';
+
+    const incomeStatement = await this.getIncomeStatement(companyId, sDate, eDate, trx);
     const netProfit = incomeStatement.netProfit || 0;
 
     // Get non-cash depreciation sum
@@ -274,15 +286,15 @@ class ReportModel {
       .join('accounts as a', 'l.account_id', 'a.id')
       .join('journal_entries as je', 'l.entry_id', 'je.id')
       .sum('l.debit as total_debit')
-      .where('je.entry_date', '>=', startDate)
-      .andWhere('je.entry_date', '<=', endDate)
+      .where('je.entry_date', '>=', sDate)
+      .andWhere('je.entry_date', '<=', eDate)
       .andWhere('a.company_id', companyId)
       .andWhereILike('a.name', '%depreciation%')
       .first();
     const depreciation = parseFloat(depreciationRes?.total_debit || 0);
 
     // Prior Date
-    const priorDateObj = new Date(startDate);
+    const priorDateObj = new Date(sDate);
     priorDateObj.setDate(priorDateObj.getDate() - 1);
     const priorDate = priorDateObj.toISOString().split('T')[0];
 

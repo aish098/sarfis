@@ -102,12 +102,48 @@ exports.getBalanceSheet = async (req, res) => {
 
 exports.getCashFlow = async (req, res) => {
   const { companyId } = req.params;
-  const { startDate, endDate, method } = req.query;
+  let { startDate, endDate, start_date, end_date, method } = req.query;
+
+  let sDate = startDate || start_date;
+  let eDate = endDate || end_date;
+
+  // Validation checks
+  if (sDate && isNaN(Date.parse(sDate))) {
+    return res.status(400).json({ error: 'Invalid startDate parameter format. Expected YYYY-MM-DD.' });
+  }
+  if (eDate && isNaN(Date.parse(eDate))) {
+    return res.status(400).json({ error: 'Invalid endDate parameter format. Expected YYYY-MM-DD.' });
+  }
+  if (sDate && eDate && new Date(sDate) > new Date(eDate)) {
+    return res.status(400).json({ error: 'startDate cannot be later than endDate.' });
+  }
+
+  // Automatic active period or default date fallback
+  if (!sDate || !eDate) {
+    try {
+      const activePeriod = await db('accounting_periods')
+        .where({ company_id: companyId, status: 'OPEN' })
+        .orderBy('start_date', 'desc')
+        .first();
+
+      if (activePeriod) {
+        if (!sDate) sDate = activePeriod.start_date;
+        if (!eDate) eDate = activePeriod.end_date;
+      }
+    } catch (e) {
+      // Fallback if query fails
+    }
+  }
+
+  if (!sDate) sDate = '1970-01-01';
+  if (!eDate) eDate = new Date().toISOString().split('T')[0];
+
   try {
-    const cashFlow = await ReportModel.getCashFlow(companyId, startDate, endDate, method);
+    const cashFlow = await ReportModel.getCashFlow(companyId, sDate, eDate, method);
     res.json(cashFlow);
   } catch(err) {
-    res.status(500).json({ error: err.message });
+    console.error('getCashFlow error:', err);
+    res.status(500).json({ error: 'Failed to generate cash flow statement.' });
   }
 };
 
