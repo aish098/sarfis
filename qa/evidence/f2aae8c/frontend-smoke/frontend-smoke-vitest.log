@@ -1,0 +1,31 @@
+> frontend@0.0.0 test
+> vitest run
+
+ RUN  v4.1.10 D:/sarfis/frontend
+
+ ✓ src/pages/payroll/PayrollDashboard.test.jsx (4 tests) 401ms
+ ✓ src/tests/risk_smoke_suite.test.jsx (14 tests) 108ms
+
+=========================================================
+🎉 FRONTEND RISK-BASED SMOKE TEST SUITE PASSED 100% (18/18)!
+=========================================================
+
+1. Sign In & Sign Out UI: PASS
+2. Dashboard Cockpit Layout & KPI Widgets: PASS
+3. Company Context Switcher (Comp A <-> Comp B): PASS
+4. Journal Voucher Form & Posting Trigger: PASS
+5. Sales Orders & Delivery Notes UI: PASS
+6. Procurement 3-Way Match UI (PO -> GRN -> Invoice): PASS
+7. Inventory Movements & Stock Valuation UI: PASS
+8. Payroll Dashboard & Run Controls: PASS
+9. Fixed Assets & Depreciation UI: PASS
+10. Operating Budgets & Overspend Control UI: PASS
+11. Financial Reports UI (Balance Sheet & Income Statement): PASS
+12. Settings & Session Revocation UI: PASS
+13. Database Backup & Restore UI: PASS
+14. Page Refresh State Persistence: PASS
+
+ Test Files  2 passed (2)
+      Tests  18 passed (18)
+   Start at  17:09:26
+   Duration  3.69s
