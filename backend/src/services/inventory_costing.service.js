@@ -14,19 +14,109 @@ class InventoryCostingService {
   /**
    * Validates inventory costing policy against international compliance frameworks (e.g. IFRS IAS 2).
    */
-  static async validateCostingPolicy(trx, companyId, method) {
-    if (method === 'LIFO') {
-      const settings = await trx('company_accounting_settings').where({ company_id: companyId }).first();
-      const framework = settings?.accounting_framework || 'IFRS';
-      if (framework === 'IFRS') {
-        return {
-          allowed: false,
-          warning: 'IFRS Compliance Notice (IAS 2): LIFO is not an accepted cost formula for statutory financial statements under IFRS. Use FIFO or Weighted Average, or enable US GAAP / Internal Management Costing mode.',
-          framework
-        };
-      }
+  static async validateCostingPolicy(trx, companyId, method, frameworkOverride = null) {
+    const settings = await trx('company_accounting_settings').where({ company_id: companyId }).first();
+    const framework = frameworkOverride || settings?.accounting_framework || 'IFRS';
+    const normMethod = (method || '').toUpperCase();
+
+    if (normMethod === 'LIFO' && framework === 'IFRS') {
+      return {
+        allowed: false,
+        code: 'LIFO_NOT_ALLOWED_UNDER_IFRS',
+        message: 'LIFO cannot be used for statutory reporting under IFRS IAS 2. Select FIFO or Weighted Average Cost.',
+        framework
+      };
     }
-    return { allowed: true };
+    if (normMethod === 'LIFO' && framework === 'INTERNAL_MANAGEMENT') {
+      return {
+        allowed: true,
+        code: 'LIFO_INTERNAL_MANAGEMENT',
+        notice: 'LIFO enabled for Internal Management Costing non-statutory use.',
+        framework
+      };
+    }
+    return { allowed: true, framework };
+  }
+
+  /**
+   * Updates company inventory costing policy with IFRS IAS 2 hard blocks, audit logging, and posted transaction guards.
+   */
+  static async updateCostingPolicy(trx, companyId, { method, framework = 'IFRS', userId }) {
+    const validMethods = ['FIFO', 'LIFO', 'AVERAGE', 'WAC'];
+    const rawMethod = (method || '').toUpperCase();
+
+    if (!validMethods.includes(rawMethod)) {
+      const err = new Error(`Invalid inventory costing method '${method}'. Must be FIFO, LIFO, or AVERAGE/WAC.`);
+      err.code = 'INVALID_COSTING_METHOD';
+      err.status = 400;
+      throw err;
+    }
+
+    const normalizedMethod = rawMethod === 'WAC' ? 'AVERAGE' : rawMethod;
+
+    // 1. Hard Block for IFRS + LIFO
+    if (normalizedMethod === 'LIFO' && framework === 'IFRS') {
+      const err = new Error('LIFO cannot be used for statutory reporting under IFRS IAS 2. Select FIFO or Weighted Average Cost.');
+      err.code = 'LIFO_NOT_ALLOWED_UNDER_IFRS';
+      err.status = 400;
+      throw err;
+    }
+
+    // 2. Check for posted inventory transactions before allowing policy change
+    const postedLayersCount = await trx('inventory_layers')
+      .where({ company_id: companyId })
+      .where('remaining_qty', '<', trx.ref('received_qty'))
+      .count('* as cnt')
+      .first();
+
+    const existingSettings = await trx('company_accounting_settings').where({ company_id: companyId }).first();
+    const oldMethod = existingSettings?.inventory_costing_method || 'FIFO';
+
+    if (parseInt(postedLayersCount.cnt) > 0 && oldMethod !== normalizedMethod) {
+      const err = new Error('Unsafe costing policy change blocked: Company has active posted inventory consumption layers. Policy change requires controlled inventory revaluation.');
+      err.code = 'POSTED_TRANSACTIONS_EXIST';
+      err.status = 400;
+      throw err;
+    }
+
+    // 3. Upsert settings
+    if (existingSettings) {
+      await trx('company_accounting_settings')
+        .where({ company_id: companyId })
+        .update({
+          inventory_costing_method: normalizedMethod
+        });
+    } else {
+      await trx('company_accounting_settings').insert({
+        company_id: companyId,
+        inventory_costing_method: normalizedMethod
+      });
+    }
+
+    // 4. Log Audit Entry
+    await trx('audit_logs').insert({
+      company_id: companyId,
+      user_id: userId || null,
+      action: 'UPDATE_COSTING_POLICY',
+      entity: 'company_accounting_settings',
+      details: JSON.stringify({
+        old_method: oldMethod,
+        new_method: normalizedMethod,
+        framework,
+        notice: normalizedMethod === 'LIFO' && framework === 'INTERNAL_MANAGEMENT' ? 'LIFO enabled for Internal Management Costing non-statutory use.' : null
+      }),
+      created_at: trx.fn.now()
+    }).catch(() => {});
+
+    return {
+      success: true,
+      companyId,
+      method: normalizedMethod,
+      framework,
+      notice: normalizedMethod === 'LIFO' && framework === 'INTERNAL_MANAGEMENT' 
+        ? 'LIFO enabled for Internal Management Costing non-statutory use.' 
+        : null
+    };
   }
 
   /**
