@@ -13,7 +13,7 @@ import RequirePermission from '../../components/RequirePermission';
 import WorkspaceLayout from '../../components/layout/WorkspaceLayout';
 import StatusBadge from '../../components/ui/StatusBadge';
 
-function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onAccountNotFound, idx, onOpenChange }) {
+function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onAccountNotFound, idx }) {
   const [open, setOpen] = useState(false);
   const [q, setQ] = useState('');
   const ref = useRef();
@@ -30,12 +30,7 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
   }, [value, accounts]);
 
   useEffect(() => {
-    const handle = e => { 
-      if (ref.current && !ref.current.contains(e.target)) {
-        setOpen(false);
-        onOpenChange?.(false);
-      }
-    };
+    const handle = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
     document.addEventListener('mousedown', handle);
     return () => document.removeEventListener('mousedown', handle);
   }, []);
@@ -47,7 +42,7 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
       const viewportHeight = window.innerHeight;
       const spaceBelow = viewportHeight - rect.bottom;
       const spaceAbove = rect.top;
-      const dropdownHeight = 240;
+      const dropdownHeight = 260;
 
       if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
         setOpenUpward(true);
@@ -60,7 +55,6 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
   const handleSelect = (accId) => {
     onChange(accId);
     setOpen(false);
-    onOpenChange?.(false);
     setQ('');
   };
 
@@ -82,7 +76,6 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
       return;
     }
     setOpen(false);
-    onOpenChange?.(false);
     validateCode(inputValue);
   };
 
@@ -92,41 +85,43 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
   );
 
   return (
-    <div className={`relative ${open ? 'z-[999]' : 'z-10'}`} ref={ref}>
-      <input
-        ref={triggerRef}
-        id={id}
-        type="text"
-        disabled={disabled}
-        value={inputValue}
-        placeholder="Select or enter account code..."
-        onFocus={() => {
-          setOpen(true);
-          onOpenChange?.(true);
-          setQ('');
-        }}
-        onBlur={handleBlur}
-        onChange={(e) => {
-          setInputValue(e.target.value);
-          setQ(e.target.value);
-        }}
-        onKeyDown={(e) => {
-          if (disabled) return;
-          if (e.key === 'Enter') {
-            e.preventDefault();
-            validateCode(inputValue);
-            setOpen(false);
-            onKeyDown?.(e);
-          } else if (e.key === 'Escape') {
-            setOpen(false);
-          } else {
-            onKeyDown?.(e);
-          }
-        }}
-        className={`w-full px-3 py-1.5 rounded-lg transition-all text-[13px] text-slate-800 placeholder:text-slate-400 font-semibold bg-white border-2 border-slate-100 focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 outline-none focus:outline-none text-left ${
-          disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50'
-        }`}
-      />
+    <div className={`relative ${open ? 'z-[999]' : 'z-10'} w-full`} ref={ref}>
+      <div className="relative flex items-center">
+        <input
+          ref={triggerRef}
+          id={id}
+          type="text"
+          disabled={disabled}
+          value={inputValue}
+          placeholder="Select or enter account code..."
+          onFocus={() => {
+            setOpen(true);
+            setQ('');
+          }}
+          onBlur={handleBlur}
+          onChange={(e) => {
+            setInputValue(e.target.value);
+            setQ(e.target.value);
+          }}
+          onKeyDown={(e) => {
+            if (disabled) return;
+            if (e.key === 'Enter') {
+              e.preventDefault();
+              validateCode(inputValue);
+              setOpen(false);
+              onKeyDown?.(e);
+            } else if (e.key === 'Escape') {
+              setOpen(false);
+            } else {
+              onKeyDown?.(e);
+            }
+          }}
+          className={`w-full pr-8 px-3 py-1.5 rounded-lg transition-all text-[13px] text-slate-800 placeholder:text-slate-400 font-semibold bg-white border-2 border-slate-100 focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 outline-none focus:outline-none text-left truncate ${
+            disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50'
+          }`}
+        />
+        <ChevronDown size={14} className="absolute right-2.5 text-slate-400 pointer-events-none" />
+      </div>
       
       <AnimatePresence>
         {open && (
@@ -135,13 +130,13 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: openUpward ? -6 : 6, scale: 0.98 }}
             transition={{ duration: 0.12 }}
-            className={`absolute z-[999] w-full bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-200 min-w-[320px] ${
+            className={`absolute z-[999] left-0 right-0 w-full min-w-[340px] bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-200 ${
               openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
             }`}
           >
-            <div className="max-h-60 overflow-y-auto p-1.5 accountellence-scrollbar">
+            <div className="max-h-64 overflow-y-auto p-1.5 accountellence-scrollbar">
               {filtered.length === 0 ? (
-                <p className="text-[12px] text-slate-400 text-center py-3">No matches</p>
+                <p className="text-[12px] text-slate-400 text-center py-3">No matches found</p>
               ) : (
                 filtered.map(acc => (
                   <button
@@ -153,9 +148,9 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
                       String(value) === String(acc.id) ? 'bg-emerald-50 text-emerald-800 font-semibold' : 'hover:bg-slate-50 text-slate-700'
                     }`}
                   >
-                    <div className="flex items-center gap-2 min-w-0">
-                      <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold">{acc.code}</span>
-                      <span className="truncate">{acc.name}</span>
+                    <div className="flex items-center gap-2 min-w-0 flex-1">
+                      <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold shrink-0">{acc.code}</span>
+                      <span className="truncate font-medium">{acc.name}</span>
                     </div>
                     {String(value) === String(acc.id) && <Check size={13} className="text-emerald-600 flex-shrink-0" />}
                   </button>
@@ -201,7 +196,6 @@ export default function JournalEntryPage() {
   const [lines, setLines] = useState([genRow(), genRow()]);
   const [editingId, setEditingId] = useState(null);
   const [focusedField, setFocusedField] = useState({ index: null, field: null });
-  const [activeRowIdx, setActiveRowIdx] = useState(null);
 
   // Ledger Settings
   const [postingMode, setPostingMode] = useState('REALTIME'); // REALTIME | BATCH (saves draft)
@@ -820,15 +814,15 @@ export default function JournalEntryPage() {
             </div>
 
             {/* Excel-style spreadsheet grid */}
-            <div className="overflow-x-auto pb-48" style={{ minHeight: '480px' }}>
-              <table className="w-full" style={{ minWidth: 720 }}>
+            <div className="overflow-x-auto pb-48" style={{ minHeight: '520px' }}>
+              <table className="w-full" style={{ minWidth: 900 }}>
                 <thead>
                   <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
                     {['#', 'General Ledger Account', 'Line Description', 'Debit Amount', 'Credit Amount', ''].map((h, i) => (
                       <th key={i}
                         className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left"
                         style={{
-                          width: i === 0 ? 45 : i === 1 ? '35%' : i === 2 ? '30%' : i === 3 || i === 4 ? 165 : 45
+                          width: i === 0 ? 45 : i === 1 ? 360 : i === 2 ? '28%' : i === 3 || i === 4 ? 165 : 45
                         }}
                       >
                         {h}
@@ -839,11 +833,10 @@ export default function JournalEntryPage() {
                 <tbody className="divide-y divide-[#E6EBE8]">
                   {lines.map((line, idx) => {
                     const isRowFilled = line.accountId && (parseFloat(line.debit) > 0 || parseFloat(line.credit) > 0);
-                    const isActive = activeRowIdx === idx;
                     return (
                       <tr
                         key={line.id}
-                        style={{ position: 'relative', zIndex: isActive ? 9999 : lines.length - idx }}
+                        style={{ position: 'relative', zIndex: lines.length - idx }}
                         className={`group transition-colors ${idx % 2 === 0 ? 'bg-[#FFFDFB] hover:bg-emerald-50/15' : 'bg-[#FAFAF9] hover:bg-emerald-50/15'
                           }`}
                       >
@@ -856,7 +849,7 @@ export default function JournalEntryPage() {
                             idx + 1
                           )}
                         </td>
-                        <td className="px-2 py-1.5">
+                        <td className="px-2 py-1.5 min-w-[340px]">
                           <AccountSelect
                             id={`je-input-${idx}-account`}
                             accounts={accounts}
@@ -866,10 +859,6 @@ export default function JournalEntryPage() {
                             onKeyDown={e => handleKeyDown(e, idx, 'account')}
                             onAccountNotFound={handleAccountNotFound}
                             idx={idx}
-                            onOpenChange={(isOpen) => {
-                              if (isOpen) setActiveRowIdx(idx);
-                              else setActiveRowIdx(prev => prev === idx ? null : prev);
-                            }}
                           />
                         </td>
                         <td className="px-2 py-1.5">
