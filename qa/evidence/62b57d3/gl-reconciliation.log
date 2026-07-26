@@ -1,0 +1,55 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING GENERAL LEDGER & FINANCIAL REPORT RECONCILIATION (POSTGRESQL)...
+=========================================================
+[SETUP] Running Reconciliation for Company ID 1 (Ayesha Khan's Workspace)
+
+📊 1. Fetching Trial Balance & Verifying Double-Entry Equilibrium...
+[REST] GET /api/reports/trial-balance/1
+  Trial Balance HTTP Status: 200
+  Total Debits: PKR 8,681,041.32 | Total Credits: PKR 8,987,491.32
+  ❌ Trial Balance Imbalance or Error! Status: 200, Diff: PKR 306450
+
+🏦 2. Fetching Balance Sheet & Verifying Fundamental Equation...
+[REST] GET /api/reports/balance-sheet/1
+Failed to enrich note metadata for account 826: TypeError: db(...).join(...).where(...).andWhere(...).andWhereNotExists is not a function
+    at ReconciliationService.reconcileAccount (D:\sarfis\backend\src\services\reconciliation.service.js:76:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async FinancialNotesService.getAccountNote (D:\sarfis\backend\src\services\financial_notes.service.js:355:28)
+    at async D:\sarfis\backend\src\controllers\report.controller.js:69:28
+    at async Promise.all (index 15)
+    at async exports.getBalanceSheet (D:\sarfis\backend\src\controllers\report.controller.js:64:27)
+Failed to enrich note metadata for account 823: TypeError: db(...).join(...).where(...).andWhere(...).andWhereNotExists is not a function
+    at ReconciliationService.reconcileAccount (D:\sarfis\backend\src\services\reconciliation.service.js:76:10)
+    at process.processTicksAndRejections (node:internal/process/task_queues:104:5)
+    at async FinancialNotesService.getAccountNote (D:\sarfis\backend\src\services\financial_notes.service.js:355:28)
+    at async D:\sarfis\backend\src\controllers\report.controller.js:69:28
+    at async Promise.all (index 14)
+    at async exports.getBalanceSheet (D:\sarfis\backend\src\controllers\report.controller.js:64:27)
+  Balance Sheet HTTP Status: 200
+  Total Assets: PKR 3,188,571.34
+  Total Liabilities: PKR 3,646,300 | Total Equity: PKR 1,283,080
+  Liabilities + Equity: PKR 4,929,380
+  ❌ Balance Sheet Imbalance or Error! Status: 200, Diff: PKR 1740808.6600000001
+
+📈 3. Fetching Income Statement & Verifying Net Income Math...
+[REST] GET /api/reports/income-statement/1
+  Income Statement HTTP Status: 200
+  Total Revenue: PKR 0
+  Total Expenses: PKR 0
+  Net Profit Reported: PKR -1,188,125.34 | Net Profit Calculated: PKR 0
+  ❌ Income Statement Imbalance or Error! Status: 200, Diff: PKR 1188125.3400000003
+
+💵 4. Fetching Cash Flow Statement...
+[REST] GET /api/reports/cash-flow/1
+[ERROR] GET /api/reports/cash-flow/1 - Status: 500 - Body: {
+  "error": "Undefined binding(s) detected when compiling FIRST. Undefined column(s): [je.entry_date, je.entry_date] query: select sum(\"l\".\"debit\") as \"total_debit\" from \"journal_lines\" as \"l\" inner join \"accounts\" as \"a\" on \"l\".\"account_id\" = \"a\".\"id\" inner join \"journal_entries\" as \"je\" on \"l\".\"entry_id\" = \"je\".\"id\" where \"je\".\"entry_date\" >= ? and \"je\".\"entry_date\" <= ? and \"a\".\"company_id\" = ? and \"a\".\"name\" ilike ? limit ?"
+}
+  Cash Flow HTTP Status: 500
+  ❌ Cash Flow Statement Failed with Status 500
+
+=========================================================
+❌ Reconciliation completed with issues (0/4 Checks Passed).
+=========================================================
