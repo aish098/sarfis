@@ -21,7 +21,7 @@ async function assertCompanyAdmin(req, companyId, trx = null) {
     .join('roles as r', 'r.id', 'ur.role_id')
     .where('ur.company_id', companyId)
     .where('ur.user_id', req.user.id)
-    .whereIn('r.code', ['company_admin', 'admin', 'super_admin'])
+    .whereIn('r.name', ['company_admin', 'admin', 'super_admin', 'Company Admin', 'Admin', 'Super Admin', 'Owner', 'CEO'])
     .first();
 
   let hasAdminRole = await query;
@@ -51,7 +51,7 @@ async function checkLastAdminProtection(companyId, targetUserId, trx = null) {
       const admins = await transaction('user_roles as ur')
         .join('roles as r', 'r.id', 'ur.role_id')
         .where('ur.company_id', companyId)
-        .whereIn('r.code', ['company_admin', 'admin'])
+        .whereIn('r.name', ['company_admin', 'admin', 'super_admin', 'Company Admin', 'Admin', 'Super Admin', 'Owner', 'CEO'])
         .forUpdate();
       adminUserIds = admins.map(a => a.user_id);
     } catch (e) {
