@@ -1,4 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
+import { createPortal } from 'react-dom';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
 import {
@@ -18,7 +19,7 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
   const [q, setQ] = useState('');
   const ref = useRef();
   const triggerRef = useRef();
-  const [openUpward, setOpenUpward] = useState(false);
+  const [portalCoords, setPortalCoords] = useState({ top: 0, left: 0, width: 320 });
 
   const selected = accounts.find(a => String(a.id) === String(value));
   const [inputValue, setInputValue] = useState(selected ? `${selected.code} — ${selected.name}` : '');
@@ -29,28 +30,48 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
     setInputValue(selectedAcc ? `${selectedAcc.code} — ${selectedAcc.name}` : (value ? value : ''));
   }, [value, accounts]);
 
-  useEffect(() => {
-    const handle = e => { if (ref.current && !ref.current.contains(e.target)) setOpen(false); };
-    document.addEventListener('mousedown', handle);
-    return () => document.removeEventListener('mousedown', handle);
-  }, []);
-
-  useEffect(() => {
-    if (open && triggerRef.current) {
-      triggerRef.current.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  const updatePosition = () => {
+    if (triggerRef.current) {
       const rect = triggerRef.current.getBoundingClientRect();
       const viewportHeight = window.innerHeight;
       const spaceBelow = viewportHeight - rect.bottom;
-      const spaceAbove = rect.top;
       const dropdownHeight = 260;
+      const openUpward = spaceBelow < dropdownHeight && rect.top > spaceBelow;
 
-      if (spaceBelow < dropdownHeight && spaceAbove > spaceBelow) {
-        setOpenUpward(true);
-      } else {
-        setOpenUpward(false);
-      }
+      setPortalCoords({
+        top: openUpward ? Math.max(10, rect.top - dropdownHeight - 6) : rect.bottom + 6,
+        left: rect.left,
+        width: Math.max(rect.width, 320),
+      });
+    }
+  };
+
+  useEffect(() => {
+    if (open) {
+      updatePosition();
+      const handleScrollOrResize = () => updatePosition();
+      window.addEventListener('resize', handleScrollOrResize);
+      window.addEventListener('scroll', handleScrollOrResize, true);
+      return () => {
+        window.removeEventListener('resize', handleScrollOrResize);
+        window.removeEventListener('scroll', handleScrollOrResize, true);
+      };
     }
   }, [open]);
+
+  useEffect(() => {
+    const handleMouseDown = e => {
+      if (
+        ref.current && 
+        !ref.current.contains(e.target) && 
+        !e.target.closest(`.account-select-portal-${idx}`)
+      ) {
+        setOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleMouseDown);
+    return () => document.removeEventListener('mousedown', handleMouseDown);
+  }, [idx]);
 
   const handleSelect = (accId) => {
     onChange(accId);
@@ -72,7 +93,7 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
   };
 
   const handleBlur = (e) => {
-    if (ref.current && ref.current.contains(e.relatedTarget)) {
+    if (e.relatedTarget && e.relatedTarget.closest(`.account-select-portal-${idx}`)) {
       return;
     }
     setOpen(false);
@@ -85,81 +106,80 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
   );
 
   return (
-    <div className={`relative ${open ? 'z-[999]' : 'z-10'} w-full`} ref={ref}>
-      <div className="relative flex items-center">
-        <input
-          ref={triggerRef}
-          id={id}
-          type="text"
-          disabled={disabled}
-          value={inputValue}
-          placeholder="Select or enter account code..."
-          onFocus={() => {
-            setOpen(true);
-            setQ('');
+    <div className="relative w-full" ref={ref}>
+      <input
+        ref={triggerRef}
+        id={id}
+        type="text"
+        disabled={disabled}
+        value={inputValue}
+        placeholder="Select or enter account code..."
+        onFocus={() => {
+          setOpen(true);
+          setQ('');
+          updatePosition();
+        }}
+        onBlur={handleBlur}
+        onChange={(e) => {
+          setInputValue(e.target.value);
+          setQ(e.target.value);
+          if (!open) setOpen(true);
+          updatePosition();
+        }}
+        onKeyDown={(e) => {
+          if (disabled) return;
+          if (e.key === 'Enter') {
+            e.preventDefault();
+            validateCode(inputValue);
+            setOpen(false);
+            onKeyDown?.(e);
+          } else if (e.key === 'Escape') {
+            setOpen(false);
+          } else {
+            onKeyDown?.(e);
+          }
+        }}
+        className={`w-full px-3 py-1.5 rounded-lg transition-all text-[13px] text-slate-800 placeholder:text-slate-400 font-semibold bg-white border-2 border-slate-100 focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 outline-none focus:outline-none text-left ${
+          disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50'
+        }`}
+      />
+
+      {open && createPortal(
+        <div
+          className={`account-select-portal-${idx} fixed z-[99999] bg-white rounded-xl shadow-2xl border border-slate-200 shadow-slate-900/20 animate-in fade-in duration-100`}
+          style={{
+            top: `${portalCoords.top}px`,
+            left: `${portalCoords.left}px`,
+            width: `${portalCoords.width}px`,
+            maxHeight: '260px',
           }}
-          onBlur={handleBlur}
-          onChange={(e) => {
-            setInputValue(e.target.value);
-            setQ(e.target.value);
-          }}
-          onKeyDown={(e) => {
-            if (disabled) return;
-            if (e.key === 'Enter') {
-              e.preventDefault();
-              validateCode(inputValue);
-              setOpen(false);
-              onKeyDown?.(e);
-            } else if (e.key === 'Escape') {
-              setOpen(false);
-            } else {
-              onKeyDown?.(e);
-            }
-          }}
-          className={`w-full pr-8 px-3 py-1.5 rounded-lg transition-all text-[13px] text-slate-800 placeholder:text-slate-400 font-semibold bg-white border-2 border-slate-100 focus:border-emerald-500/50 focus:ring-4 focus:ring-emerald-500/5 outline-none focus:outline-none text-left truncate ${
-            disabled ? 'opacity-50 cursor-not-allowed' : 'hover:bg-slate-50'
-          }`}
-        />
-        <ChevronDown size={14} className="absolute right-2.5 text-slate-400 pointer-events-none" />
-      </div>
-      
-      <AnimatePresence>
-        {open && (
-          <motion.div
-            initial={{ opacity: 0, y: openUpward ? -6 : 6, scale: 0.98 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: openUpward ? -6 : 6, scale: 0.98 }}
-            transition={{ duration: 0.12 }}
-            className={`absolute z-[999] left-0 right-0 w-full min-w-[340px] bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-200 ${
-              openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
-            }`}
-          >
-            <div className="max-h-64 overflow-y-auto p-1.5 accountellence-scrollbar">
-              {filtered.length === 0 ? (
-                <p className="text-[12px] text-slate-400 text-center py-3">No matches found</p>
-              ) : (
-                filtered.map(acc => (
-                  <button
-                    key={acc.id}
-                    type="button"
-                    onMouseDown={(e) => e.preventDefault()}
-                    onClick={() => handleSelect(acc.id)}
-                    className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg cursor-pointer text-[13px] text-left transition-colors ${
-                      String(value) === String(acc.id) ? 'bg-emerald-50 text-emerald-800 font-semibold' : 'hover:bg-slate-50 text-slate-700'
-                    }`}
-                  >
-                    <div className="flex items-center gap-2 min-w-0 flex-1">
-                      <span className="font-mono text-[11px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-600 font-bold shrink-0">{acc.code}</span>
-                      <span className="truncate font-medium">{acc.name}</span>
-                    </div>
-                    {String(value) === String(acc.id) && <Check size={13} className="text-emerald-600 flex-shrink-0" />}
-                  </button>
-                ))
-              )}
-            </div>
-          </motion.div>
-        )}
-      </AnimatePresence>
+        >
+          <div className="max-h-60 overflow-y-auto p-1.5 accountellence-scrollbar bg-white rounded-xl">
+            {filtered.length === 0 ? (
+              <p className="text-[12px] text-slate-400 text-center py-3">No matches</p>
+            ) : (
+              filtered.map(acc => (
+                <button
+                  key={acc.id}
+                  type="button"
+                  onMouseDown={(e) => e.preventDefault()}
+                  onClick={() => handleSelect(acc.id)}
+                  className={`w-full flex items-center justify-between gap-2 px-3 py-2 rounded-lg cursor-pointer text-[13px] text-left transition-colors ${
+                    String(value) === String(acc.id) ? 'bg-emerald-50 text-emerald-800 font-semibold' : 'hover:bg-slate-50 text-slate-700'
+                  }`}
+                >
+                  <div className="flex items-center gap-2 min-w-0">
+                    <span className="font-mono text-[10px] px-1.5 py-0.5 rounded bg-slate-100 text-slate-500 font-bold">{acc.code}</span>
+                    <span className="truncate">{acc.name}</span>
+                  </div>
+                  {String(value) === String(acc.id) && <Check size={13} className="text-emerald-600 flex-shrink-0" />}
+                </button>
+              ))
+            )}
+          </div>
+        </div>,
+        document.body
+      )}
     </div>
   );
 }
@@ -814,15 +834,15 @@ export default function JournalEntryPage() {
             </div>
 
             {/* Excel-style spreadsheet grid */}
-            <div className="overflow-x-auto pb-48" style={{ minHeight: '520px' }}>
-              <table className="w-full" style={{ minWidth: 900 }}>
+            <div className="overflow-x-auto pb-48" style={{ minHeight: '480px' }}>
+              <table className="w-full" style={{ minWidth: 720 }}>
                 <thead>
                   <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
                     {['#', 'General Ledger Account', 'Line Description', 'Debit Amount', 'Credit Amount', ''].map((h, i) => (
                       <th key={i}
                         className="px-4 py-3 text-[10px] font-black uppercase tracking-widest text-[#2E4D3F] text-left"
                         style={{
-                          width: i === 0 ? 45 : i === 1 ? 360 : i === 2 ? '28%' : i === 3 || i === 4 ? 165 : 45
+                          width: i === 0 ? 45 : i === 1 ? '35%' : i === 2 ? '30%' : i === 3 || i === 4 ? 165 : 45
                         }}
                       >
                         {h}
@@ -849,7 +869,7 @@ export default function JournalEntryPage() {
                             idx + 1
                           )}
                         </td>
-                        <td className="px-2 py-1.5 min-w-[340px]">
+                        <td className="px-2 py-1.5">
                           <AccountSelect
                             id={`je-input-${idx}-account`}
                             accounts={accounts}
