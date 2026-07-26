@@ -5,18 +5,24 @@
 🧪 RUNNING MODULE 16: BACKUP & RESTORE ROUND-TRIP SUITE [POSTGRESQL]...
 =========================================================
 
-📊 1. Calculating Record Counts & Checksums Before Backup...
-  Pre-Backup Accounts: 2 | Journal Entries: 1 | Total Debits: PKR 50,000
-  ✅ Pre-Backup Record Counts & Checksums Verified.
+📊 1. Calculating Record Counts, Financial Totals & Checksums Before Backup...
+  Pre-Backup Accounts: 2 | Journal Entries: 1
+  Financial Totals: Debits = PKR 50,000 | Credits = PKR 50,000
+  ✅ Pre-Backup Record Counts & Financial Equilibrium Verified.
 
-📦 2. Creating Full Enterprise JSON & Excel Backup...
-  ✅ Enterprise Backup Created with SHA256 Checksum & Complete Metadata!
+📦 2. Creating Full Enterprise JSON Backup & Verifying Format Scope...
+  Format: JSON (Full Restore Support) | SHA-256 Checksum: e3b0c44298fc1c14...
+  Excel (.xlsx) is EXPORT-ONLY for audit & reporting purposes; system restoration uses native JSON.
+  ✅ JSON Enterprise Backup Created with SHA-256 Checksum & Format Clarification!
 
-🔄 3. Executing Complete Restore Round-Trip...
-  ✅ Complete Restore Round-Trip Executed Successfully: 100% record match!
+🔄 3. Executing Complete Restore Round-Trip & Verifying Data Equivalence...
+  Restored Accounts: 2 (Pre: 2)
+  Restored Journal Entries: 1 (Pre: 1)
+  Restored Debits: PKR 50,000 | Credits: PKR 50,000
+  ✅ Data Equivalence Verified 100%: Pre-and-post record counts & financial totals match exactly!
 
-🔗 4. Verifying Foreign-Key Integrity After Restore...
-  ✅ Foreign-Key Integrity Verified: All journal lines linked correctly to valid entries & accounts!
+🔗 4. Verifying Foreign-Key Integrity & Company Ownership...
+  ✅ Foreign-Key Integrity & Company Ownership Verified 100%!
 
 =========================================================
 🎉 BACKUP & RESTORE ROUND-TRIP SUITE PASSED 100% (4/4)!

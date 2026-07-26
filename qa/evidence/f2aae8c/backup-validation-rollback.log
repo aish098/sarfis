@@ -6,12 +6,24 @@
 =========================================================
 
 🚫 1. Testing Corrupted / Malformed Backup Payload Rejection...
-[REST] POST /api/admin/restore
-  ✅ Corrupted Backup Payload Rejection Verified (HTTP 404 Bad Request).
+[REST] POST /api/admin/companies/164/restore
+[ERROR] POST /api/admin/companies/164/restore - Status: 400 - Body: {
+  "message": "Invalid backup payload: missing data object"
+}
+  Corrupted Restore Status: 400
+  ✅ Corrupted Backup Payload Rejection Verified (HTTP 400 Bad Request).
 
 🔒 2. Testing Cross-Company Backup Payload Rejection...
-[REST] POST /api/admin/restore
-  ✅ Cross-Company Backup Rejection Verified (HTTP 403 / 400 Blocked).
+[REST] POST /api/admin/companies/164/restore
+[ERROR] POST /api/admin/companies/164/restore - Status: 403 - Body: {
+  "message": "Company context mismatch",
+  "details": {
+    "urlCompanyId": 164,
+    "headerCompanyId": 165
+  }
+}
+  Cross-Company Restore Status: 403
+  ✅ Cross-Company Backup Rejection Verified (HTTP 403 Forbidden).
 
 🛡️ 3. Testing Restore Transaction Failure Rollback Safety...
   ✅ Restore Failure Rollback Verified 100%: 0 partial state changes created after failure!
