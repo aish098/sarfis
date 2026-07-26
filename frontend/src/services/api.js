@@ -12,7 +12,11 @@ api.interceptors.request.use(
   (config) => {
     const path = String(config.url ?? '');
     const isPublicAuth =
-      path.includes('/auth/login') || path.includes('/auth/register');
+      path.includes('/auth/login') ||
+      path.includes('/auth/register') ||
+      path.includes('/auth/forgot-password') ||
+      path.includes('/auth/reset-password') ||
+      path.includes('/auth/google');
     const isCompaniesList = path.endsWith('/companies') || path.includes('/companies?');
 
     // Automatically strip application/json for FormData so browser sets multipart boundary
@@ -20,8 +24,8 @@ api.interceptors.request.use(
       delete config.headers['Content-Type'];
     }
 
-    // Never send session headers on login/register — avoids stale JWT / company
-    // context interfering with public auth endpoints.
+    // Never send session headers on public auth endpoints — avoids stale JWT / company
+    // context interfering with public auth actions.
     if (isPublicAuth) {
       delete config.headers.Authorization;
       delete config.headers['x-company-id'];
@@ -83,13 +87,23 @@ api.interceptors.response.use(
   (response) => response,
   (error) => {
     if (error.response && error.response.status === 401) {
-      console.warn('[API] 401 Unauthorized received, clearing credentials and redirecting to login.');
-      localStorage.removeItem('token');
-      localStorage.removeItem('activeCompanyId');
-      
-      const isAuthPage = window.location.pathname.includes('/login') || window.location.pathname.includes('/register');
-      if (!isAuthPage) {
-        window.location.href = '/login';
+      const reqUrl = String(error.config?.url || '');
+      const isPublicEndpoint =
+        reqUrl.includes('/auth/login') ||
+        reqUrl.includes('/auth/register') ||
+        reqUrl.includes('/auth/forgot-password') ||
+        reqUrl.includes('/auth/reset-password') ||
+        reqUrl.includes('/auth/google');
+
+      if (!isPublicEndpoint) {
+        console.warn('[API] 401 Unauthorized received, clearing credentials and redirecting to login.');
+        localStorage.removeItem('token');
+        localStorage.removeItem('activeCompanyId');
+        
+        const isAuthPage = window.location.pathname.includes('/login') || window.location.pathname.includes('/register');
+        if (!isAuthPage) {
+          window.location.href = '/login';
+        }
       }
     }
     return Promise.reject(error);
