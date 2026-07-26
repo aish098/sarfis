@@ -1,0 +1,32 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING DETERMINISTIC FRESH COMPANY GL RECONCILIATION (POSTGRESQL)...
+=========================================================
+[SETUP] Created fresh deterministic test company ID: 71
+✅ Created 5 balanced double-entry journal postings in PostgreSQL.
+
+📊 1. Verifying Trial Balance Double-Entry Equilibrium...
+[REST] GET /api/reports/trial-balance/71
+  Total Debits: PKR 210,000 | Total Credits: PKR 210,000
+  ✅ Trial Balance Equilibrium PASSED: Total Debits (210k) == Total Credits (210k)!
+
+📈 2. Verifying Income Statement Net Profit Math...
+[REST] GET /api/reports/income-statement/71
+  Revenue: PKR 50,000 | Expenses: PKR 30,000 | Net Profit: PKR 20,000
+  ✅ Income Statement PASSED: Net Profit (20k) = Revenue (50k) - Expenses (30k)!
+
+🏦 3. Verifying Balance Sheet Assets == Liabilities + Equity Equation...
+[REST] GET /api/reports/balance-sheet/71
+  Assets: PKR 150,000 | Liabilities: PKR 30,000 | Equity: PKR 120,000 (Includes Net Profit 20k)
+  Liabilities + Equity: PKR 150,000
+  ✅ Balance Sheet PASSED: Assets (150k) == Liabilities (30k) + Equity (120k)!
+
+💵 4. Verifying Cash Flow Statement...
+[REST] GET /api/reports/cash-flow/71
+  ✅ Cash Flow Statement PASSED: Returned 200 OK with valid flow categories.
+
+=========================================================
+🎉 ALL DETERMINISTIC FINANCIAL RECONCILIATION CHECKS PASSED 100% (4/4)!
+=========================================================
