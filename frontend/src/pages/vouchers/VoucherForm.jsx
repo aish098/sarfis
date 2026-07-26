@@ -75,6 +75,83 @@ export default function VoucherForm() {
   const [overrideRequesting, setOverrideRequesting] = useState(false);
   const [focusedField, setFocusedField] = useState({ index: null, field: null, group: null });
 
+  // Quick Add Partner Modals State
+  const [showQuickAddCustomerModal, setShowQuickAddCustomerModal] = useState(false);
+  const [quickCustomerForm, setQuickCustomerForm] = useState({ name: '', email: '', phone: '', credit_limit: 100000, address: '' });
+  const [quickCustLoading, setQuickCustLoading] = useState(false);
+  const [quickCustError, setQuickCustError] = useState('');
+  const [quickCustSuccess, setQuickCustSuccess] = useState('');
+
+  const [showQuickAddVendorModal, setShowQuickAddVendorModal] = useState(false);
+  const [quickVendorForm, setQuickVendorForm] = useState({ name: '', email: '', phone: '', payment_terms: 'NET_30', address: '' });
+  const [quickVendLoading, setQuickVendLoading] = useState(false);
+  const [quickVendError, setQuickVendError] = useState('');
+  const [quickVendSuccess, setQuickVendSuccess] = useState('');
+
+  const handleQuickAddCustomer = async (e) => {
+    e.preventDefault();
+    if (!quickCustomerForm.name.trim()) {
+      setQuickCustError('Customer Name is required');
+      return;
+    }
+    setQuickCustLoading(true);
+    setQuickCustError('');
+    try {
+      const res = await api.post(`/clients/${activeCompany.id}`, {
+        name: quickCustomerForm.name.trim(),
+        email: quickCustomerForm.email.trim() || null,
+        phone: quickCustomerForm.phone.trim() || null,
+        credit_limit: parseFloat(quickCustomerForm.credit_limit || 100000),
+        address: quickCustomerForm.address.trim() || null,
+        is_active: true
+      });
+      const newClient = res.data;
+      setClients(prev => [...prev, newClient]);
+      setClientId(String(newClient.id));
+      setQuickCustSuccess(`Customer "${newClient.name}" added & selected!`);
+      setTimeout(() => {
+        setShowQuickAddCustomerModal(false);
+        setQuickCustSuccess('');
+        setQuickCustomerForm({ name: '', email: '', phone: '', credit_limit: 100000, address: '' });
+      }, 900);
+    } catch (err) {
+      setQuickCustError(err.response?.data?.error || err.response?.data?.message || 'Failed to add customer.');
+    }
+    setQuickCustLoading(false);
+  };
+
+  const handleQuickAddVendor = async (e) => {
+    e.preventDefault();
+    if (!quickVendorForm.name.trim()) {
+      setQuickVendError('Supplier Name is required');
+      return;
+    }
+    setQuickVendLoading(true);
+    setQuickVendError('');
+    try {
+      const res = await api.post(`/vendors/${activeCompany.id}`, {
+        name: quickVendorForm.name.trim(),
+        email: quickVendorForm.email.trim() || null,
+        phone: quickVendorForm.phone.trim() || null,
+        payment_terms: quickVendorForm.payment_terms || 'NET_30',
+        address: quickVendorForm.address.trim() || null,
+        is_active: true
+      });
+      const newVendor = res.data;
+      setVendors(prev => [...prev, newVendor]);
+      setVendorId(String(newVendor.id));
+      setQuickVendSuccess(`Supplier "${newVendor.name}" added & selected!`);
+      setTimeout(() => {
+        setShowQuickAddVendorModal(false);
+        setQuickVendSuccess('');
+        setQuickVendorForm({ name: '', email: '', phone: '', payment_terms: 'NET_30', address: '' });
+      }, 900);
+    } catch (err) {
+      setQuickVendError(err.response?.data?.error || err.response?.data?.message || 'Failed to add supplier.');
+    }
+    setQuickVendLoading(false);
+  };
+
   // Fetch catalogs
   const fetchCatalogs = useCallback(async () => {
     if (!activeCompany) return;
@@ -839,7 +916,16 @@ export default function VoucherForm() {
                 {/* Conditional header fields */}
                 {['SALES', 'RECEIPT'].includes(type) && (
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Customer (Client) *</label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Customer (Client) *</label>
+                      <button
+                        type="button"
+                        onClick={() => setShowQuickAddCustomerModal(true)}
+                        className="text-[11px] font-extrabold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer transition hover:underline"
+                      >
+                        <Plus size={13} /> Add New Customer
+                      </button>
+                    </div>
                     <div className="relative">
                       <User size={14} className="absolute left-[14px] top-1/2 -translate-y-1/2 text-slate-400" />
                       <select 
@@ -857,7 +943,16 @@ export default function VoucherForm() {
 
                 {['PURCHASE', 'PAYMENT'].includes(type) && (
                   <div>
-                    <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400 mb-1.5">Supplier (Vendor) *</label>
+                    <div className="flex items-center justify-between mb-1.5">
+                      <label className="block text-[11px] font-bold uppercase tracking-wider text-slate-400">Supplier (Vendor) *</label>
+                      <button
+                        type="button"
+                        onClick={() => setShowQuickAddVendorModal(true)}
+                        className="text-[11px] font-extrabold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer transition hover:underline"
+                      >
+                        <Plus size={13} /> Add New Supplier
+                      </button>
+                    </div>
                     <div className="relative">
                       <User size={14} className="absolute left-[14px] top-1/2 -translate-y-1/2 text-slate-400" />
                       <select 
@@ -1488,6 +1583,215 @@ export default function VoucherForm() {
               </button>
             </div>
           </form>
+        </div>
+      )}
+      {/* Quick Add Customer Modal */}
+      {showQuickAddCustomerModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-3xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
+              <h3 className="text-[14px] font-bold flex items-center gap-2">
+                <User size={16} className="text-emerald-400" /> Quick Add New Customer
+              </h3>
+              <button type="button" onClick={() => setShowQuickAddCustomerModal(false)} className="text-slate-400 hover:text-white cursor-pointer">
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleQuickAddCustomer} className="p-5 space-y-4">
+              {quickCustError && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-100 text-[12px] text-red-700 font-bold flex items-center gap-2">
+                  <AlertTriangle size={14} className="shrink-0" /> {quickCustError}
+                </div>
+              )}
+              {quickCustSuccess && (
+                <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100 text-[12px] text-emerald-800 font-bold flex items-center gap-2">
+                  <CheckCircle size={14} className="shrink-0 text-emerald-600" /> {quickCustSuccess}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[11px] font-extrabold uppercase text-slate-500 mb-1">Customer / Company Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Acme Corporation"
+                  className="input-enterprise text-[13px]"
+                  value={quickCustomerForm.name}
+                  onChange={e => setQuickCustomerForm({ ...quickCustomerForm, name: e.target.value })}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-extrabold uppercase text-slate-500 mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    placeholder="client@company.com"
+                    className="input-enterprise text-[12.5px]"
+                    value={quickCustomerForm.email}
+                    onChange={e => setQuickCustomerForm({ ...quickCustomerForm, email: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-extrabold uppercase text-slate-500 mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    placeholder="+92 300 1234567"
+                    className="input-enterprise text-[12.5px]"
+                    value={quickCustomerForm.phone}
+                    onChange={e => setQuickCustomerForm({ ...quickCustomerForm, phone: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold uppercase text-slate-500 mb-1">Credit Limit (PKR)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1000"
+                  className="input-enterprise text-[12.5px] font-mono"
+                  value={quickCustomerForm.credit_limit}
+                  onChange={e => setQuickCustomerForm({ ...quickCustomerForm, credit_limit: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold uppercase text-slate-500 mb-1">Address / Details</label>
+                <input
+                  type="text"
+                  placeholder="Street address, City"
+                  className="input-enterprise text-[12.5px]"
+                  value={quickCustomerForm.address}
+                  onChange={e => setQuickCustomerForm({ ...quickCustomerForm, address: e.target.value })}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowQuickAddCustomerModal(false)}
+                  className="btn btn-secondary flex-1 py-2 text-[12px]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={quickCustLoading}
+                  className="btn btn-primary flex-1 py-2 text-[12px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                >
+                  {quickCustLoading ? <><RefreshCw size={13} className="animate-spin" /> Saving...</> : 'Save & Select'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Quick Add Supplier Modal */}
+      {showQuickAddVendorModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-3xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
+              <h3 className="text-[14px] font-bold flex items-center gap-2">
+                <User size={16} className="text-emerald-400" /> Quick Add New Supplier (Vendor)
+              </h3>
+              <button type="button" onClick={() => setShowQuickAddVendorModal(false)} className="text-slate-400 hover:text-white cursor-pointer">
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleQuickAddVendor} className="p-5 space-y-4">
+              {quickVendError && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-100 text-[12px] text-red-700 font-bold flex items-center gap-2">
+                  <AlertTriangle size={14} className="shrink-0" /> {quickVendError}
+                </div>
+              )}
+              {quickVendSuccess && (
+                <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100 text-[12px] text-emerald-800 font-bold flex items-center gap-2">
+                  <CheckCircle size={14} className="shrink-0 text-emerald-600" /> {quickVendSuccess}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[11px] font-extrabold uppercase text-slate-500 mb-1">Supplier / Company Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Apex Industrial Supplies"
+                  className="input-enterprise text-[13px]"
+                  value={quickVendorForm.name}
+                  onChange={e => setQuickVendorForm({ ...quickVendorForm, name: e.target.value })}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-extrabold uppercase text-slate-500 mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    placeholder="sales@vendor.com"
+                    className="input-enterprise text-[12.5px]"
+                    value={quickVendorForm.email}
+                    onChange={e => setQuickVendorForm({ ...quickVendorForm, email: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-extrabold uppercase text-slate-500 mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    placeholder="+92 300 9876543"
+                    className="input-enterprise text-[12.5px]"
+                    value={quickVendorForm.phone}
+                    onChange={e => setQuickVendorForm({ ...quickVendorForm, phone: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold uppercase text-slate-500 mb-1">Payment Terms</label>
+                <select
+                  className="input-enterprise text-[12.5px]"
+                  value={quickVendorForm.payment_terms}
+                  onChange={e => setQuickVendorForm({ ...quickVendorForm, payment_terms: e.target.value })}
+                >
+                  <option value="IMMEDIATE">Immediate / Cash</option>
+                  <option value="NET_15">Net 15 Days</option>
+                  <option value="NET_30">Net 30 Days</option>
+                  <option value="NET_60">Net 60 Days</option>
+                </select>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold uppercase text-slate-500 mb-1">Address / Location</label>
+                <input
+                  type="text"
+                  placeholder="Industrial Zone, City"
+                  className="input-enterprise text-[12.5px]"
+                  value={quickVendorForm.address}
+                  onChange={e => setQuickVendorForm({ ...quickVendorForm, address: e.target.value })}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowQuickAddVendorModal(false)}
+                  className="btn btn-secondary flex-1 py-2 text-[12px]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={quickVendLoading}
+                  className="btn btn-primary flex-1 py-2 text-[12px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                >
+                  {quickVendLoading ? <><RefreshCw size={13} className="animate-spin" /> Saving...</> : 'Save & Select'}
+                </button>
+              </div>
+            </form>
+          </div>
         </div>
       )}
     </div>

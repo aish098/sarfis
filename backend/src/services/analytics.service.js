@@ -913,6 +913,7 @@ async function getFinancialRatios(companyId, period = null) {
 
   return {
     revenue: parseFloat(revenue.toFixed(2)),
+    expenses: parseFloat(expenses.toFixed(2)),
     netIncome: parseFloat(netIncome.toFixed(2)),
     equity: parseFloat(equity.toFixed(2)),
     inventory: parseFloat(inventory.toFixed(2)),

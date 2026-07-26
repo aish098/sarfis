@@ -297,12 +297,12 @@ function DashboardOverview() {
   const trendLayout = computeChartLayout(cashLabels, { valueMagnitudes: chartData.flatMap(d => [d.revenue, d.expenses]), minHeight: 220, forceVertical: true });
 
   const totalRev = parseFloat(metrics?.revenue || 0);
-  const netProfit = parseFloat(metrics?.netIncome || 0);
-  const totalExp = totalRev - netProfit;
+  const totalExp = parseFloat(metrics?.expenses !== undefined ? metrics.expenses : (totalRev - parseFloat(metrics?.netIncome || 0)));
+  const netProfit = totalRev - totalExp;
   const cashBal = parseFloat(metrics?.currentAssets || 0);
-  const profitMargin = metrics?.profitMargin || '0';
+  const profitMargin = totalRev !== 0 ? ((netProfit / totalRev) * 100).toFixed(1) : (metrics?.profitMargin || '0');
 
-  const pieProfit = Math.max(0, chartData.reduce((a, c) => a + (c.revenue || 0), 0) - chartData.reduce((a, c) => a + (c.expenses || 0), 0));
+  const pieProfit = Math.max(0, netProfit);
 
   return (
     <div className="p-5 lg:p-7 space-y-5 pb-16 min-h-full" style={{ background: '#faf9f8' }}>

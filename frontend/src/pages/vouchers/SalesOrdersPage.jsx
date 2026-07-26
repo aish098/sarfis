@@ -42,6 +42,45 @@ export default function SalesOrdersPage() {
   const [isSaving, setIsSaving] = useState(false);
   const [formError, setFormError] = useState('');
 
+  // Quick Add Customer State
+  const [showQuickAddCustomerModal, setShowQuickAddCustomerModal] = useState(false);
+  const [quickCustomerForm, setQuickCustomerForm] = useState({ name: '', email: '', phone: '', credit_limit: 100000, address: '' });
+  const [quickCustLoading, setQuickCustLoading] = useState(false);
+  const [quickCustError, setQuickCustError] = useState('');
+  const [quickCustSuccess, setQuickCustSuccess] = useState('');
+
+  const handleQuickAddCustomer = async (e) => {
+    e.preventDefault();
+    if (!quickCustomerForm.name.trim()) {
+      setQuickCustError('Customer Name is required');
+      return;
+    }
+    setQuickCustLoading(true);
+    setQuickCustError('');
+    try {
+      const res = await api.post(`/clients/${activeCompany.id}`, {
+        name: quickCustomerForm.name.trim(),
+        email: quickCustomerForm.email.trim() || null,
+        phone: quickCustomerForm.phone.trim() || null,
+        credit_limit: parseFloat(quickCustomerForm.credit_limit || 100000),
+        address: quickCustomerForm.address.trim() || null,
+        is_active: true
+      });
+      const newClient = res.data;
+      setClients(prev => [...prev, newClient]);
+      setSoForm(prev => ({ ...prev, clientId: String(newClient.id) }));
+      setQuickCustSuccess(`Customer "${newClient.name}" added & selected!`);
+      setTimeout(() => {
+        setShowQuickAddCustomerModal(false);
+        setQuickCustSuccess('');
+        setQuickCustomerForm({ name: '', email: '', phone: '', credit_limit: 100000, address: '' });
+      }, 900);
+    } catch (err) {
+      setQuickCustError(err.response?.data?.error || err.response?.data?.message || 'Failed to add customer.');
+    }
+    setQuickCustLoading(false);
+  };
+
   // Form State
   const [soForm, setSoForm] = useState({
     clientId: '',
@@ -695,7 +734,16 @@ export default function SalesOrdersPage() {
 
               <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                 <div>
-                  <label className="field-label">Customer / Client *</label>
+                  <div className="flex items-center justify-between mb-1">
+                    <label className="field-label mb-0">Customer / Client *</label>
+                    <button
+                      type="button"
+                      onClick={() => setShowQuickAddCustomerModal(true)}
+                      className="text-[11px] font-extrabold text-emerald-600 hover:text-emerald-700 flex items-center gap-1 cursor-pointer transition hover:underline"
+                    >
+                      <Plus size={13} /> Add New Customer
+                    </button>
+                  </div>
                   <select 
                     required 
                     className="input-enterprise" 
@@ -868,6 +916,109 @@ export default function SalesOrdersPage() {
         partnerName={selectedSubledgerPartner?.name}
         onSaveSuccess={loadData}
       />
+      {/* Quick Add Customer Modal */}
+      {showQuickAddCustomerModal && (
+        <div className="fixed inset-0 bg-slate-900/40 backdrop-blur-3xs z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-xl border border-slate-200 w-full max-w-md overflow-hidden animate-in fade-in zoom-in duration-200">
+            <div className="px-5 py-4 bg-slate-900 text-white flex items-center justify-between">
+              <h3 className="text-[14px] font-bold flex items-center gap-2">
+                <User size={16} className="text-emerald-400" /> Quick Add New Customer
+              </h3>
+              <button type="button" onClick={() => setShowQuickAddCustomerModal(false)} className="text-slate-400 hover:text-white cursor-pointer">
+                <X size={16} />
+              </button>
+            </div>
+
+            <form onSubmit={handleQuickAddCustomer} className="p-5 space-y-4">
+              {quickCustError && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-100 text-[12px] text-red-700 font-bold flex items-center gap-2">
+                  <AlertTriangle size={14} className="shrink-0" /> {quickCustError}
+                </div>
+              )}
+              {quickCustSuccess && (
+                <div className="p-3 rounded-lg bg-emerald-50 border border-emerald-100 text-[12px] text-emerald-800 font-bold flex items-center gap-2">
+                  <CheckCircle size={14} className="shrink-0 text-emerald-600" /> {quickCustSuccess}
+                </div>
+              )}
+
+              <div>
+                <label className="block text-[11px] font-extrabold uppercase text-slate-500 mb-1">Customer / Company Name *</label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Acme Corporation"
+                  className="input-enterprise text-[13px]"
+                  value={quickCustomerForm.name}
+                  onChange={e => setQuickCustomerForm({ ...quickCustomerForm, name: e.target.value })}
+                />
+              </div>
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-[11px] font-extrabold uppercase text-slate-500 mb-1">Email Address</label>
+                  <input
+                    type="email"
+                    placeholder="client@company.com"
+                    className="input-enterprise text-[12.5px]"
+                    value={quickCustomerForm.email}
+                    onChange={e => setQuickCustomerForm({ ...quickCustomerForm, email: e.target.value })}
+                  />
+                </div>
+                <div>
+                  <label className="block text-[11px] font-extrabold uppercase text-slate-500 mb-1">Phone Number</label>
+                  <input
+                    type="text"
+                    placeholder="+92 300 1234567"
+                    className="input-enterprise text-[12.5px]"
+                    value={quickCustomerForm.phone}
+                    onChange={e => setQuickCustomerForm({ ...quickCustomerForm, phone: e.target.value })}
+                  />
+                </div>
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold uppercase text-slate-500 mb-1">Credit Limit (PKR)</label>
+                <input
+                  type="number"
+                  min="0"
+                  step="1000"
+                  className="input-enterprise text-[12.5px] font-mono"
+                  value={quickCustomerForm.credit_limit}
+                  onChange={e => setQuickCustomerForm({ ...quickCustomerForm, credit_limit: e.target.value })}
+                />
+              </div>
+
+              <div>
+                <label className="block text-[11px] font-extrabold uppercase text-slate-500 mb-1">Address / Details</label>
+                <input
+                  type="text"
+                  placeholder="Street address, City"
+                  className="input-enterprise text-[12.5px]"
+                  value={quickCustomerForm.address}
+                  onChange={e => setQuickCustomerForm({ ...quickCustomerForm, address: e.target.value })}
+                />
+              </div>
+
+              <div className="flex gap-2 pt-3 border-t border-slate-100">
+                <button
+                  type="button"
+                  onClick={() => setShowQuickAddCustomerModal(false)}
+                  className="btn btn-secondary flex-1 py-2 text-[12px]"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  disabled={quickCustLoading}
+                  className="btn btn-primary flex-1 py-2 text-[12px] font-bold bg-emerald-600 hover:bg-emerald-700 text-white cursor-pointer"
+                >
+                  {quickCustLoading ? <><RefreshCw size={13} className="animate-spin" /> Saving...</> : 'Save & Select'}
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </>
   );
 }
