@@ -85,7 +85,7 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
   );
 
   return (
-    <div className="relative focus-within:z-[50]" ref={ref}>
+    <div className={`relative ${open ? 'z-[999]' : 'z-10'}`} ref={ref}>
       <input
         ref={triggerRef}
         id={id}
@@ -127,11 +127,11 @@ function AccountSelect({ id, accounts, value, onChange, disabled, onKeyDown, onA
             animate={{ opacity: 1, y: 0, scale: 1 }}
             exit={{ opacity: 0, y: openUpward ? -6 : 6, scale: 0.98 }}
             transition={{ duration: 0.12 }}
-            className={`absolute z-50 w-full bg-white rounded-xl shadow-card-lg overflow-hidden border border-slate-100 min-w-[280px] ${
+            className={`absolute z-[999] w-full bg-white rounded-xl shadow-2xl overflow-hidden border border-slate-200 min-w-[320px] ${
               openUpward ? 'bottom-full mb-1.5' : 'top-full mt-1.5'
             }`}
           >
-            <div className="max-h-52 overflow-y-auto p-1.5 accountellence-scrollbar">
+            <div className="max-h-60 overflow-y-auto p-1.5 accountellence-scrollbar">
               {filtered.length === 0 ? (
                 <p className="text-[12px] text-slate-400 text-center py-3">No matches</p>
               ) : (
@@ -811,7 +811,7 @@ export default function JournalEntryPage() {
             </div>
 
             {/* Excel-style spreadsheet grid */}
-            <div className="overflow-x-auto pb-24" style={{ minHeight: '380px' }}>
+            <div className="overflow-x-auto pb-48" style={{ minHeight: '480px' }}>
               <table className="w-full" style={{ minWidth: 720 }}>
                 <thead>
                   <tr style={{ background: '#EBF2EE', borderBottom: '2px solid #D1E0D8' }}>
@@ -833,6 +833,7 @@ export default function JournalEntryPage() {
                     return (
                       <tr
                         key={line.id}
+                        style={{ position: 'relative', zIndex: lines.length - idx }}
                         className={`group transition-colors ${idx % 2 === 0 ? 'bg-[#FFFDFB] hover:bg-emerald-50/15' : 'bg-[#FAFAF9] hover:bg-emerald-50/15'
                           }`}
                       >

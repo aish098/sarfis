@@ -1332,7 +1332,7 @@ export default function VoucherForm() {
                     </button>
                   </div>
 
-                  <div className="border border-slate-200 rounded-2xl overflow-hidden shadow-sm">
+                  <div className="border border-slate-200 rounded-2xl overflow-visible shadow-sm">
                     {/* Header */}
                     <div className="hidden md:grid grid-cols-12 gap-2.5 px-4 py-3 bg-[#EBF2EE] border-b-[2px] border-[#D1E0D8] text-[10px] font-black uppercase tracking-widest text-[#2E4D3F]">
                       <div className="col-span-6">General Ledger Account</div>
