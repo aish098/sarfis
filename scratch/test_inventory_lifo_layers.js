@@ -65,9 +65,8 @@ async function runInventoryLifoSuite() {
       });
 
       const totalLifoCogs = parseFloat(lifoConsumption.totalCost);
-      const avgUnitCost = parseFloat(lifoConsumption.averageUnitCost);
 
-      console.log(`  Calculated LIFO COGS: PKR ${totalLifoCogs.toLocaleString()} (Average Unit Cost: PKR ${avgUnitCost.toFixed(2)})`);
+      console.log(`  Calculated LIFO COGS: PKR ${totalLifoCogs.toLocaleString()}`);
 
       // LIFO Check: 100 @ 1,400 + 20 @ 1,000 = 140,000 + 20,000 = PKR 160,000
       if (totalLifoCogs === 160000) {
@@ -94,13 +93,23 @@ async function runInventoryLifoSuite() {
         console.log('  ✅ Ending Inventory Asset Valuation Verified 100%: 80 remaining units in Batch 1 @ 1,000 = PKR 80,000!');
         passedCount++;
       }
+
+      // 5. IFRS IAS 2 COMPLIANCE CONTROL CHECK
+      console.log('\n🏛️ 5. Verifying IFRS IAS 2 Compliance Control for LIFO...');
+      const complianceCheck = await InventoryCostingService.validateCostingPolicy(trx, companyId, 'LIFO');
+      console.log('  Compliance Check Result:', complianceCheck);
+
+      if (complianceCheck.allowed === false && complianceCheck.warning.includes('IAS 2')) {
+        console.log('  ✅ IFRS IAS 2 Compliance Control Verified: LIFO flagged with statutory warning for IFRS financial reporting!');
+        passedCount++;
+      }
     });
 
     console.log('\n=========================================================');
-    if (passedCount === 3) {
-      console.log('🎉 INVENTORY LIFO VALUATION SUITE PASSED 100% (3/3)!');
+    if (passedCount === 4) {
+      console.log('🎉 INVENTORY LIFO VALUATION & IFRS IAS 2 COMPLIANCE SUITE PASSED 100% (4/4)!');
     } else {
-      console.error(`❌ Suite completed with ${3 - passedCount} issues.`);
+      console.error(`❌ Suite completed with ${4 - passedCount} issues.`);
     }
     console.log('=========================================================');
 

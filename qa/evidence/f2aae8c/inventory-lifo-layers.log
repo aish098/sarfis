@@ -14,11 +14,19 @@
   ✅ LIFO Layer Consumption Verified 100%: Newest Batch 2 consumed first (100 @ 1,400) + 20 from Batch 1 = PKR 160,000 COGS!
 
 📊 4. Verifying Ending Inventory Asset Valuation under LIFO...
-  Layer ID 55 (Date: GRN-BATCH-1): Remaining Qty = 80.0000 @ PKR 1000.0000
-  Layer ID 56 (Date: GRN-BATCH-2): Remaining Qty = 0.0000 @ PKR 1400.0000
+  Layer ID 57 (Date: GRN-BATCH-1): Remaining Qty = 80.0000 @ PKR 1000.0000
+  Layer ID 58 (Date: GRN-BATCH-2): Remaining Qty = 0.0000 @ PKR 1400.0000
   Calculated Ending Inventory Valuation: PKR 80,000
   ✅ Ending Inventory Asset Valuation Verified 100%: 80 remaining units in Batch 1 @ 1,000 = PKR 80,000!
 
+🏛️ 5. Verifying IFRS IAS 2 Compliance Control for LIFO...
+  Compliance Check Result: {
+  allowed: false,
+  warning: 'IFRS Compliance Notice (IAS 2): LIFO is not an accepted cost formula for statutory financial statements under IFRS. Use FIFO or Weighted Average, or enable US GAAP / Internal Management Costing mode.',
+  framework: 'IFRS'
+}
+  ✅ IFRS IAS 2 Compliance Control Verified: LIFO flagged with statutory warning for IFRS financial reporting!
+
 =========================================================
-🎉 INVENTORY LIFO VALUATION SUITE PASSED 100% (3/3)!
+🎉 INVENTORY LIFO VALUATION & IFRS IAS 2 COMPLIANCE SUITE PASSED 100% (4/4)!
 =========================================================

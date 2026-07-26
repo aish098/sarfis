@@ -12,6 +12,24 @@ class InventoryCostingService {
   }
 
   /**
+   * Validates inventory costing policy against international compliance frameworks (e.g. IFRS IAS 2).
+   */
+  static async validateCostingPolicy(trx, companyId, method) {
+    if (method === 'LIFO') {
+      const settings = await trx('company_accounting_settings').where({ company_id: companyId }).first();
+      const framework = settings?.accounting_framework || 'IFRS';
+      if (framework === 'IFRS') {
+        return {
+          allowed: false,
+          warning: 'IFRS Compliance Notice (IAS 2): LIFO is not an accepted cost formula for statutory financial statements under IFRS. Use FIFO or Weighted Average, or enable US GAAP / Internal Management Costing mode.',
+          framework
+        };
+      }
+    }
+    return { allowed: true };
+  }
+
+  /**
    * Records a new acquisition (receipt of inventory).
    * Creates a new purchase layer in inventory_layers and updates the weighted average balance.
    */
