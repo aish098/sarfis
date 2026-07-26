@@ -1,0 +1,24 @@
+[dotenv@17.3.1] injecting env (7) from backend\.env
+[dotenv@17.3.1] injecting env (0) from .env
+[DB] Initializing in development mode...
+=========================================================
+🧪 RUNNING INVENTORY LIFO (LAST-IN, FIRST-OUT) VALUATION SUITE [POSTGRESQL]...
+=========================================================
+
+📦 1. Receiving Batch 1 (Oldest): 100 units @ PKR 1,000 (Total: PKR 100,000)...
+📦 2. Receiving Batch 2 (Newest): 100 units @ PKR 1,400 (Total: PKR 140,000)...
+  Total Stock on Hand: 200 units (Total Value: PKR 240,000)
+
+📤 3. Consuming 120 units using LIFO (Last-In, First-Out) Strategy...
+  Calculated LIFO COGS: PKR 160,000
+  ✅ LIFO Layer Consumption Verified 100%: Newest Batch 2 consumed first (100 @ 1,400) + 20 from Batch 1 = PKR 160,000 COGS!
+
+📊 4. Verifying Ending Inventory Asset Valuation under LIFO...
+  Layer ID 55 (Date: GRN-BATCH-1): Remaining Qty = 80.0000 @ PKR 1000.0000
+  Layer ID 56 (Date: GRN-BATCH-2): Remaining Qty = 0.0000 @ PKR 1400.0000
+  Calculated Ending Inventory Valuation: PKR 80,000
+  ✅ Ending Inventory Asset Valuation Verified 100%: 80 remaining units in Batch 1 @ 1,000 = PKR 80,000!
+
+=========================================================
+🎉 INVENTORY LIFO VALUATION SUITE PASSED 100% (3/3)!
+=========================================================
