@@ -438,8 +438,8 @@ export default function LeadershipPage() {
                     size="w-44 h-44" 
                     borderAccent="border-emerald-500/60" 
                     glowColor="rgba(6,182,212,0.15)"
-                    objectPosition="center"
-                    imageScale={1}
+                    objectPosition="center 35%"
+                    imageScale={1.15}
                   />
                   <h3 className="text-xl sm:text-2xl font-extrabold text-white mt-4" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
                     Professor Muhammad Rehan Anjum
