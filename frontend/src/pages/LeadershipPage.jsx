@@ -73,8 +73,9 @@ function ExecutiveAvatar({ initials, src, size = "w-36 h-36", borderAccent = "bo
                 transform: hovered 
                   ? `translateY(${offsetY}) scale(${imageScale * 1.1})` 
                   : `translateY(${offsetY}) scale(${imageScale})`,
-                imageRendering: 'high-quality',
-                filter: 'contrast(102%) brightness(102%)'
+                imageRendering: '-webkit-optimize-contrast',
+                WebkitBackfaceVisibility: 'hidden',
+                filter: 'contrast(103%) brightness(102%) saturate(102%)'
               }}
               onError={() => setImageError(true)}
             />
