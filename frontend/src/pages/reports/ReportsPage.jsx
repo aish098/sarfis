@@ -414,15 +414,15 @@ export default function ReportsPage() {
       
       kpis = [
         { label: 'TOTAL REVENUE', value: `PKR ${fmt(totalRev)}`, color: 'emerald' },
-        { label: 'TOTAL EXPENSES', value: `PKR ${fmt(totalExp)}`, color: 'rose' },
+        { label: 'TOTAL EXPENSES', value: `PKR ${fmt(Math.abs(totalExp))}`, color: 'rose' },
         { label: 'NET PROFIT', value: `PKR ${fmt(totalRev - totalExp)}`, color: 'blue' }
       ];
 
       rows = [
         ...rev.map(r => [r.name, 'Revenue', fmt(r.net)]),
         ['Total Revenue', 'Summary', fmt(totalRev)],
-        ...exp.map(e => [e.name, 'Expense', fmt(e.net)]),
-        ['Total Expenses', 'Summary', fmt(totalExp)],
+        ...exp.map(e => [e.name, 'Expense', fmt(Math.abs(e.net))]),
+        ['Total Expenses', 'Summary', fmt(Math.abs(totalExp))],
         ['NET INCOME', 'Net Summary', fmt(totalRev - totalExp)]
       ];
     } else if (tab === 'balance_sheet') {
@@ -1196,14 +1196,14 @@ function IncomeStatement({ data, companyName, startDate, endDate }) {
               }`}
             >
               <span className={e.is_contra ? 'ml-4 text-slate-400' : ''}>{e.name}</span>
-              <span className="font-mono font-bold text-slate-800">{fmt(e.net)}</span>
+              <span className="font-mono font-bold text-slate-800">{fmt(Math.abs(e.net))}</span>
             </div>
           ))}
           {exp.length === 0 && <p className="text-[12.5px] text-slate-400 italic py-3 px-3">No expenses recorded</p>}
         </div>
         <div className="flex justify-between items-center mt-2 px-3 py-2.5 rounded-xl font-black text-[13.5px] bg-cyan-50 border border-cyan-100">
           <span className="text-cyan-900 uppercase tracking-wider text-[10px] font-black">Total Expenses</span>
-          <span className="font-mono text-cyan-800 font-black text-[15px]">{fmt(totalExp)}</span>
+          <span className="font-mono text-cyan-800 font-black text-[15px]">{fmt(Math.abs(totalExp))}</span>
         </div>
       </div>
       
