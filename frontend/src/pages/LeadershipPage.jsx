@@ -67,10 +67,12 @@ function ExecutiveAvatar({ initials, src, size = "w-36 h-36", borderAccent = "bo
               src={src} 
               alt="Profile" 
               draggable="false"
-              className="w-full h-full object-cover pointer-events-none transition-transform duration-500 ease-out origin-center"
+              className="w-full h-full object-cover pointer-events-none transition-transform duration-500 ease-out origin-center select-none"
               style={{ 
                 objectPosition,
-                transform: hovered ? `scale(${imageScale * 1.1})` : `scale(${imageScale})`
+                transform: hovered ? `scale(${imageScale * 1.1})` : `scale(${imageScale})`,
+                imageRendering: 'high-quality',
+                filter: 'contrast(102%) brightness(102%)'
               }}
               onError={() => setImageError(true)}
             />
@@ -433,10 +435,11 @@ export default function LeadershipPage() {
                   <ExecutiveAvatar 
                     initials="RA" 
                     src="/images/leadership/Rehan 2.jpeg" 
-                    size="w-44 h-44" 
-                    borderAccent="border-emerald-500/60" 
-                    glowColor="rgba(6,182,212,0.15)"
-                    objectPosition="center"
+                    size="w-48 h-48" 
+                    borderAccent="border-emerald-500/80" 
+                    glowColor="rgba(6,182,212,0.25)"
+                    objectPosition="center 15%"
+                    imageScale={1.05}
                   />
                   <h3 className="text-xl sm:text-2xl font-extrabold text-white mt-4" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
                     Professor Muhammad Rehan Anjum
