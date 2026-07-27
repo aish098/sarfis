@@ -31,7 +31,7 @@ export default function FinancialSummaryCard({ summary }) {
           </span>
           <div>
             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block">Total Expenses</span>
-            <span className="text-sm font-black text-slate-800 font-mono">PKR {fmt(summary.expenses)}</span>
+            <span className="text-sm font-black text-slate-800 font-mono">PKR {fmt(Math.abs(summary.expenses))}</span>
           </div>
         </div>
 

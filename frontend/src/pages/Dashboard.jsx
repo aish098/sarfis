@@ -297,7 +297,8 @@ function DashboardOverview() {
   const trendLayout = computeChartLayout(cashLabels, { valueMagnitudes: chartData.flatMap(d => [d.revenue, d.expenses]), minHeight: 220, forceVertical: true });
 
   const totalRev = parseFloat(metrics?.revenue || 0);
-  const totalExp = parseFloat(metrics?.expenses !== undefined ? metrics.expenses : (totalRev - parseFloat(metrics?.netIncome || 0)));
+  const rawExp = parseFloat(metrics?.expenses !== undefined ? metrics.expenses : (totalRev - parseFloat(metrics?.netIncome || 0)));
+  const totalExp = Math.abs(rawExp);
   const netProfit = totalRev - totalExp;
   const cashBal = parseFloat(metrics?.currentAssets || 0);
   const profitMargin = totalRev !== 0 ? ((netProfit / totalRev) * 100).toFixed(1) : (metrics?.profitMargin || '0');
