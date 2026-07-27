@@ -37,7 +37,16 @@ const diagonalUpRightVariants = {
 };
 
 // Avatar component supporting circular photos with initials fallback and a thin gradient ring
-function ExecutiveAvatar({ initials, src, size = "w-36 h-36", borderAccent = "border-emerald-500", glowColor = "rgba(16,185,129,0.15)", objectPosition = "center", imageScale = 1 }) {
+function ExecutiveAvatar({ 
+  initials, 
+  src, 
+  size = "w-36 h-36", 
+  borderAccent = "border-emerald-500", 
+  glowColor = "rgba(16,185,129,0.15)", 
+  objectPosition = "center", 
+  imageScale = 1,
+  rounded = "rounded-full"
+}) {
   const [imageError, setImageError] = useState(false);
   const [hovered, setHovered] = useState(false);
 
@@ -52,14 +61,14 @@ function ExecutiveAvatar({ initials, src, size = "w-36 h-36", borderAccent = "bo
     <div 
       onMouseEnter={() => setHovered(true)}
       onMouseLeave={() => setHovered(false)}
-      className={`relative flex items-center justify-center p-[2px] rounded-full bg-gradient-to-tr ${gradientClass} ${size} shadow-lg transition-all duration-300 ease-out`}
+      className={`relative flex items-center justify-center p-[2px] ${rounded} bg-gradient-to-tr ${gradientClass} ${size} shadow-lg transition-all duration-300 ease-out`}
       style={{
         boxShadow: hovered ? `0 10px 25px -5px ${glowColor}, 0 0 20px ${glowColor}` : '0 4px 12px rgba(0,0,0,0.15)',
-        transform: hovered ? "scale(1.05)" : "scale(1)"
+        transform: hovered ? "scale(1.04)" : "scale(1)"
       }}
     >
       <div 
-        className="w-full h-full relative flex items-center justify-center bg-[#050f21] rounded-full overflow-hidden"
+        className={`w-full h-full relative flex items-center justify-center bg-[#050f21] ${rounded} overflow-hidden`}
       >
         {src && !imageError ? (
           <div className="relative w-full h-full">
@@ -87,7 +96,7 @@ function ExecutiveAvatar({ initials, src, size = "w-36 h-36", borderAccent = "bo
         )}
         {/* Dynamic Glow Overlay matching section theme */}
         <div 
-          className={`absolute inset-0 transition-opacity duration-300 pointer-events-none rounded-full ${hovered ? 'opacity-100' : 'opacity-0'}`}
+          className={`absolute inset-0 transition-opacity duration-300 pointer-events-none ${rounded} ${hovered ? 'opacity-100' : 'opacity-0'}`}
           style={{
             boxShadow: `inset 0 0 20px ${glowColor}`
           }}
@@ -382,10 +391,12 @@ export default function LeadershipPage() {
                   <ExecutiveAvatar 
                     initials="SM" 
                     src="/images/leadership/saad.jpg" 
-                    size="w-44 h-44" 
+                    size="w-48 h-56" 
+                    rounded="rounded-3xl"
                     borderAccent="border-emerald-500/60" 
                     glowColor="rgba(6,182,212,0.15)"
                     objectPosition="center 15%"
+                    imageScale={0.96}
                   />
                   <h3 className="text-xl sm:text-2xl font-extrabold text-white mt-4" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
                     Professor Saad Anwar Mughal
@@ -435,11 +446,12 @@ export default function LeadershipPage() {
                   <ExecutiveAvatar 
                     initials="RA" 
                     src="/images/leadership/Rehan 2.jpeg" 
-                    size="w-48 h-48" 
+                    size="w-48 h-56" 
+                    rounded="rounded-3xl"
                     borderAccent="border-emerald-500/80" 
                     glowColor="rgba(6,182,212,0.25)"
-                    objectPosition="center 15%"
-                    imageScale={1.05}
+                    objectPosition="center 10%"
+                    imageScale={0.96}
                   />
                   <h3 className="text-xl sm:text-2xl font-extrabold text-white mt-4" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
                     Professor Muhammad Rehan Anjum
