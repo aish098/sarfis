@@ -37,7 +37,7 @@ const diagonalUpRightVariants = {
 };
 
 // Avatar component supporting circular photos with initials fallback and a thin gradient ring
-function ExecutiveAvatar({ initials, src, size = "w-36 h-36", borderAccent = "border-emerald-500", glowColor = "rgba(16,185,129,0.15)", objectPosition = "center", imageScale = 1 }) {
+function ExecutiveAvatar({ initials, src, size = "w-36 h-36", borderAccent = "border-emerald-500", glowColor = "rgba(16,185,129,0.15)", objectPosition = "center", imageScale = 1, offsetY = "0px" }) {
   const [imageError, setImageError] = useState(false);
   const [hovered, setHovered] = useState(false);
 
@@ -70,7 +70,9 @@ function ExecutiveAvatar({ initials, src, size = "w-36 h-36", borderAccent = "bo
               className="w-full h-full object-cover pointer-events-none transition-transform duration-500 ease-out origin-center select-none"
               style={{ 
                 objectPosition,
-                transform: hovered ? `scale(${imageScale * 1.1})` : `scale(${imageScale})`,
+                transform: hovered 
+                  ? `translateY(${offsetY}) scale(${imageScale * 1.1})` 
+                  : `translateY(${offsetY}) scale(${imageScale})`,
                 imageRendering: 'high-quality',
                 filter: 'contrast(102%) brightness(102%)'
               }}
@@ -438,8 +440,9 @@ export default function LeadershipPage() {
                     size="w-44 h-44" 
                     borderAccent="border-emerald-500/60" 
                     glowColor="rgba(6,182,212,0.15)"
-                    objectPosition="51.5% 8%"
+                    objectPosition="51.5% 18%"
                     imageScale={1.1}
+                    offsetY="-25%"
                   />
                   <h3 className="text-xl sm:text-2xl font-extrabold text-white mt-4" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
                     Professor Muhammad Rehan Anjum
