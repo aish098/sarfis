@@ -434,11 +434,11 @@ export default function LeadershipPage() {
                 <div className="flex flex-col items-center text-center">
                   <ExecutiveAvatar 
                     initials="RA" 
-                    src="/images/leadership/prof_rehan_official.jpg" 
+                    src="/images/leadership/Prof Rehan.jpg" 
                     size="w-44 h-44" 
                     borderAccent="border-emerald-500/60" 
                     glowColor="rgba(6,182,212,0.15)"
-                    objectPosition="center"
+                    objectPosition="center 18%"
                     imageScale={1}
                   />
                   <h3 className="text-xl sm:text-2xl font-extrabold text-white mt-4" style={{ fontFamily: "'Sora', system-ui, sans-serif" }}>
