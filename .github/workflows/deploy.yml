@@ -1,4 +1,3 @@
-# Accountellence ERP Production Deployment Pipeline (Active)
 name: Deploy to Production
 
 on:
@@ -12,14 +11,8 @@ jobs:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.0.0
         with:
-          host: ${{ secrets.VPS_HOST || '187.127.132.124' }}
-          username: ${{ secrets.VPS_USER || 'ali' }}
+          host: ${{ secrets.VPS_HOST }}
+          username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
-          port: 22
-          script: |
-            if [ -f ~/accountellence_fld/deploy.sh ]; then
-              bash ~/accountellence_fld/deploy.sh
-            else
-              mkdir -p ~/accountellence_fld
-              echo "VPS Directory Ready: ~/accountellence_fld"
-            fi
+          port: ${{ secrets.VPS_PORT }}
+          script: bash ~/accountellence_fld/deploy.sh
