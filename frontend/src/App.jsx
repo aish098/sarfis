@@ -22,7 +22,12 @@ function AnimatedRoutes() {
 
   useEffect(() => {
     window.scrollTo(0, 0);
-  }, [location.pathname]);
+    if (typeof window.gtag === 'function') {
+      window.gtag('config', 'G-QQQQJ7VTPE', {
+        page_path: location.pathname + location.search
+      });
+    }
+  }, [location.pathname, location.search]);
 
   return (
     <AnimatePresence mode="wait" initial={false}>
