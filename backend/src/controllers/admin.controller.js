@@ -893,6 +893,14 @@ exports.restoreCompanyBackup = async (req, res) => {
               mapped.sales_order_id = idMaps.sales_orders[mapped.sales_order_id];
             }
           }
+          if (tableName === 'clients') {
+            if (mapped.sector_id && idMaps.sectors[mapped.sector_id]) {
+              mapped.sector_id = idMaps.sectors[mapped.sector_id];
+            } else if (mapped.sector_id) {
+              const secExists = await trx('sectors').where('id', mapped.sector_id).first().catch(() => null);
+              if (!secExists) mapped.sector_id = null;
+            }
+          }
           if (tableName === 'deliveries') {
             if (mapped.client_id && idMaps.clients[mapped.client_id]) {
               mapped.client_id = idMaps.clients[mapped.client_id];
@@ -931,13 +939,22 @@ exports.restoreCompanyBackup = async (req, res) => {
             }
           }
 
-          const result = await trx(tableName).insert(mapped).returning('id').catch(async () => {
+          let insertedId;
+          try {
+            const result = await trx(tableName).insert(mapped).returning('id');
+            if (Array.isArray(result) && result.length > 0) {
+              insertedId = typeof result[0] === 'object' ? result[0].id : result[0];
+            } else {
+              insertedId = result;
+            }
+          } catch (insertErr) {
             delete mapped.id;
-            return await trx(tableName).insert(mapped).returning('id');
-          });
-          let insertedId = result;
-          if (Array.isArray(result) && result.length > 0) {
-            insertedId = typeof result[0] === 'object' ? result[0].id : result[0];
+            const result = await trx(tableName).insert(mapped).returning('id').catch(() => []);
+            if (Array.isArray(result) && result.length > 0) {
+              insertedId = typeof result[0] === 'object' ? result[0].id : result[0];
+            } else {
+              insertedId = result;
+            }
           }
 
           if (origId !== undefined && insertedId !== undefined && idMaps[tableName]) {
@@ -965,10 +982,12 @@ exports.restoreCompanyBackup = async (req, res) => {
       if (data.company_tax_settings) await insertTableSafely('company_tax_settings', data.company_tax_settings);
       if (data.accounting_periods) await insertTableSafely('accounting_periods', data.accounting_periods);
       if (data.fiscal_years) await insertTableSafely('fiscal_years', data.fiscal_years);
+      if (data.sectors) await insertTableSafely('sectors', data.sectors);
       if (data.accounts) await insertTableSafely('accounts', data.accounts);
       if (data.clients) await insertTableSafely('clients', data.clients);
       if (data.vendors) await insertTableSafely('vendors', data.vendors);
       if (data.warehouses) await insertTableSafely('warehouses', data.warehouses);
+      if (data.asset_categories) await insertTableSafely('asset_categories', data.asset_categories);
       if (data.products) await insertTableSafely('products', data.products);
       if (data.inventory) await insertTableSafely('inventory', data.inventory);
       if (data.inventory_layers) await insertTableSafely('inventory_layers', data.inventory_layers);
@@ -985,7 +1004,6 @@ exports.restoreCompanyBackup = async (req, res) => {
       if (data.goods_receipt_items) await insertTableSafely('goods_receipt_items', data.goods_receipt_items);
       if (data.sales_orders) await insertTableSafely('sales_orders', data.sales_orders);
       if (data.sales_order_items) await insertTableSafely('sales_order_items', data.sales_order_items);
-      if (data.sectors) await insertTableSafely('sectors', data.sectors);
       if (data.deliveries) await insertTableSafely('deliveries', data.deliveries);
       if (data.delivery_items) await insertTableSafely('delivery_items', data.delivery_items);
       if (data.employees) await insertTableSafely('employees', data.employees);
@@ -993,7 +1011,6 @@ exports.restoreCompanyBackup = async (req, res) => {
       if (data.payroll_runs) await insertTableSafely('payroll_runs', data.payroll_runs);
       if (data.employee_payslips) await insertTableSafely('employee_payslips', data.employee_payslips);
       if (data.employee_loans) await insertTableSafely('employee_loans', data.employee_loans);
-      if (data.asset_categories) await insertTableSafely('asset_categories', data.asset_categories);
       if (data.assets) await insertTableSafely('assets', data.assets);
       if (data.fixed_assets) await insertTableSafely('fixed_assets', data.fixed_assets);
       if (data.budgets) await insertTableSafely('budgets', data.budgets);
