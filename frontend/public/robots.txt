@@ -1,0 +1,16 @@
+# Google Search Console Crawlers Configuration for ACCOUNTELLENCE ERP
+User-agent: *
+Allow: /
+Allow: /about
+Allow: /leadership
+Allow: /tutorial
+Allow: /contact
+Allow: /login
+Allow: /register
+
+# Disallow private user workspace & backend APIs from public search indexing
+Disallow: /dashboard/
+Disallow: /saas-control
+Disallow: /api/
+
+Sitemap: https://www.accountellence.com/sitemap.xml
