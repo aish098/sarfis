@@ -1,4 +1,4 @@
-# Accountellence ERP Automated Production Deployment Workflow
+# Accountellence ERP Production SSH Deployment Workflow
 name: Deploy to Production
 
 on:
