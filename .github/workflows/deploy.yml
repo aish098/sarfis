@@ -16,4 +16,10 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           port: ${{ secrets.VPS_PORT }}
-          script: bash ~/accountellence_fld/deploy.sh
+          script: |
+            if [ -f ~/accountellence_fld/deploy.sh ]; then
+              bash ~/accountellence_fld/deploy.sh
+            else
+              mkdir -p ~/accountellence_fld
+              echo "VPS Directory Ready: ~/accountellence_fld"
+            fi
