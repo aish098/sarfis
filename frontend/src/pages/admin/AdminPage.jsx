@@ -606,7 +606,10 @@ export default function AdminPage() {
         headers: { 'x-company-id': String(activeCompanyId) }
       });
 
-      setMessage({ type: 'success', text: 'Company state successfully restored. Rollback point downloaded.' });
+      setMessage({ 
+        type: 'success', 
+        text: '🎉 Backup data successfully saved into your website database! (A safety rollback JSON file was automatically downloaded as a restore point).' 
+      });
       setRestoreFile(null);
       setRestorePreview(null);
       setRestoreConfirmInput('');
