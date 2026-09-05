@@ -585,20 +585,7 @@ export default function AdminPage() {
     setSaving(true);
     setMessage(null);
     try {
-      // 1. Automatically extract rollback restore point backup for the client first
-      const rollbackRes = await api.get(`/admin/companies/${activeCompanyId}/backup?type=full`, {
-        headers: { 'x-company-id': String(activeCompanyId) }
-      });
-      const rollbackBlob = new Blob([JSON.stringify(rollbackRes.data, null, 2)], { type: 'application/json' });
-      const rollbackUrl = URL.createObjectURL(rollbackBlob);
-      const rollbackLink = document.createElement('a');
-      rollbackLink.href = rollbackUrl;
-      rollbackLink.download = `ROLLBACK_RESTORE_POINT_${activeCompanyName.replace(/\s+/g, '_')}_${Date.now()}.json`;
-      document.body.appendChild(rollbackLink);
-      rollbackLink.click();
-      document.body.removeChild(rollbackLink);
-
-      // 2. Perform the database restore
+      // Perform the database restore directly without generating rollback JSON
       await api.post(`/admin/companies/${activeCompanyId}/restore`, {
         backupType: restorePreview.backupType,
         data: restorePreview.rawPayload.data
@@ -608,7 +595,7 @@ export default function AdminPage() {
 
       setMessage({ 
         type: 'success', 
-        text: '🎉 Backup data successfully saved into your website database! (A safety rollback JSON file was automatically downloaded as a restore point).' 
+        text: '🎉 Backup data successfully restored into your workspace database!' 
       });
       setRestoreFile(null);
       setRestorePreview(null);
@@ -1746,7 +1733,7 @@ export default function AdminPage() {
                 </div>
                 <div className="p-5 space-y-4">
                   <p className="text-[12px] text-slate-500 leading-relaxed">
-                    Upload a valid `.xlsx` or `.json` backup file to restore company state. Restore point will be downloaded automatically as safety rollback before apply.
+                    Upload a valid `.xlsx` or `.json` backup file to restore company state.
                   </p>
 
                   <div className="border-2 border-dashed border-slate-200 rounded-lg p-6 flex flex-col items-center justify-center bg-slate-50/30 hover:bg-slate-50 hover:border-emerald-400 transition relative">
