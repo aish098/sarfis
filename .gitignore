@@ -41,5 +41,7 @@ test_server_debug.js
 debug.log
 scratch/
 saas-admin-backend/scratch_*.js
-
-
+*.sqlite3
+**/*.sqlite3
+*.zip
+.codex/

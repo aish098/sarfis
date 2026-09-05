@@ -1,0 +1,30 @@
+databases:
+  - name: sarfis-db
+    databaseName: sarfis
+    user: sarfis_user
+    plan: free
+
+services:
+  - type: web
+    name: sarfis-erp
+    runtime: node
+    plan: free
+    buildCommand: npm run build
+    startCommand: npm start
+    envVars:
+      - key: DATABASE_URL
+        fromDatabase:
+          name: sarfis-db
+          property: connectionString
+      - key: NODE_ENV
+        value: production
+      - key: JWT_SECRET
+        value: sarfis_super_secret_jwt_key_2026_render
+      - key: JWT_ACCESS_SECRET
+        value: saas_admin_jwt_access_token_min_32_chars_key_2026_render
+      - key: JWT_REFRESH_SECRET
+        value: saas_admin_jwt_refresh_token_min_32_chars_key_2026_render
+      - key: INITIAL_ADMIN_EMAIL
+        value: admin@sarfis.com
+      - key: INITIAL_ADMIN_PASSWORD
+        value: AdminPass123!
