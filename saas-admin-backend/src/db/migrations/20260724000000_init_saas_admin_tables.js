@@ -56,14 +56,33 @@ exports.up = async function (knex) {
   await createIfMissing('companies', table => {
     table.increments('id').primary();
     table.string('name').notNullable();
-    table.string('slug').notNullable().unique();
+    table.string('slug').nullable().unique();
     table.string('status').notNullable().defaultTo('ACTIVE'); // ACTIVE, TRIAL, SUSPENDED
     table.string('owner_user_id');
     table.timestamps(true, true);
   });
 
+  const hasSlug = await knex.schema.hasColumn('companies', 'slug');
+  if (!hasSlug) {
+    await knex.schema.table('companies', table => {
+      table.string('slug').nullable();
+    });
+  }
+  const hasCompanyStatus = await knex.schema.hasColumn('companies', 'status');
+  if (!hasCompanyStatus) {
+    await knex.schema.table('companies', table => {
+      table.string('status').notNullable().defaultTo('ACTIVE');
+    });
+  }
+  const hasOwnerUserId = await knex.schema.hasColumn('companies', 'owner_user_id');
+  if (!hasOwnerUserId) {
+    await knex.schema.table('companies', table => {
+      table.string('owner_user_id').nullable();
+    });
+  }
+
   await createIfMissing('users', table => {
-    table.string('id').primary(); // UUID
+    table.increments('id').primary();
     table.string('name').notNullable();
     table.string('email').notNullable().unique();
     table.string('status').notNullable().defaultTo('ACTIVE'); // ACTIVE, BLOCKED, PENDING, INVITED, SUSPENDED, DELETED
@@ -78,6 +97,29 @@ exports.up = async function (knex) {
 
     table.index(['status', 'role']);
   });
+
+  const hasUserStatus = await knex.schema.hasColumn('users', 'status');
+  if (!hasUserStatus) {
+    await knex.schema.table('users', table => {
+      table.string('status').notNullable().defaultTo('ACTIVE');
+    });
+  }
+  const hasUserCompanyId = await knex.schema.hasColumn('users', 'company_id');
+  if (!hasUserCompanyId) {
+    await knex.schema.table('users', table => {
+      table.integer('company_id').unsigned().nullable();
+    });
+  }
+  const hasBlockedAdminId = await knex.schema.hasColumn('users', 'blocked_by_admin_id');
+  if (!hasBlockedAdminId) {
+    await knex.schema.table('users', table => {
+      table.integer('blocked_by_admin_id').unsigned().nullable();
+      table.string('blocked_reason').nullable();
+      table.timestamp('blocked_at').nullable();
+      table.timestamp('last_login_at').nullable();
+      table.integer('login_count').defaultTo(0);
+    });
+  }
 
   // 3. Plans & Subscriptions
   await createIfMissing('plans', table => {

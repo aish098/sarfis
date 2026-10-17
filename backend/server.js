@@ -50,6 +50,9 @@ async function startServer() {
         const saasSeedsDir = path.join(__dirname, '../saas-admin-backend/src/db/seeds');
 
         console.log('[SaaS Admin] Running SaaS Admin migrations from:', saasMigrationsDir);
+        try {
+          await saasDb.migrate.forceFreeConnection();
+        } catch (_) {}
         await saasDb.migrate.latest({
           directory: saasMigrationsDir,
           tableName: 'saas_admin_knex_migrations'
@@ -97,6 +100,31 @@ async function startServer() {
         console.log('[SaaS Admin] Master Admin credentials synced successfully.');
       } catch (saasErr) {
         console.error('[SaaS Admin] Startup init error:', saasErr);
+      }
+
+      // Auto-seed Default ERP Admin user and Company Workspace if not existing
+      try {
+        const AuthService = require('./src/services/auth.service');
+        const adminEmail = (process.env.INITIAL_ADMIN_EMAIL || 'admin@sarfis.com').toLowerCase().trim();
+        const adminPassword = process.env.INITIAL_ADMIN_PASSWORD || 'AdminPass123!';
+        const existingErpUser = await db('users').whereRaw('LOWER(TRIM(email)) = ?', [adminEmail]).first();
+        if (!existingErpUser) {
+          console.log(`[ERP Seed] Seeding default ERP Admin user (${adminEmail})...`);
+          await AuthService.registerUser({
+            name: 'Master Admin',
+            email: adminEmail,
+            password: adminPassword,
+            role: 'Company Admin'
+          });
+          console.log('[ERP Seed] Default ERP Admin workspace and accounts initialized successfully.');
+        } else {
+          const bcrypt = require('bcryptjs');
+          const passwordHash = await bcrypt.hash(adminPassword, 10);
+          await db('users').where({ id: existingErpUser.id }).update({ password: passwordHash });
+          console.log('[ERP Seed] Default ERP Admin password synced.');
+        }
+      } catch (erpUserErr) {
+        console.error('[ERP Seed] Error initializing ERP user:', erpUserErr.message);
       }
 
       // Seed default document types if missing
