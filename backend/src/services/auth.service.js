@@ -59,6 +59,21 @@ class AuthService {
       // Seed the company with COA data
       await AccountModel.seedCoa(company.id, coa_data, trx);
 
+      // Seed 2026 monthly open accounting periods for the new workspace
+      const periodData = [];
+      for (let month = 1; month <= 12; month++) {
+        const monthStr = month < 10 ? `0${month}` : `${month}`;
+        const endDateObj = new Date(2026, month, 0);
+        periodData.push({
+          company_id: company.id,
+          period_name: `2026-${monthStr}`,
+          start_date: `2026-${monthStr}-01`,
+          end_date: `2026-${monthStr}-${endDateObj.getDate()}`,
+          status: 'OPEN'
+        });
+      }
+      await trx('accounting_periods').insert(periodData).catch(() => {});
+
       // Create initial active session
       const [session] = await trx('user_sessions')
         .insert({

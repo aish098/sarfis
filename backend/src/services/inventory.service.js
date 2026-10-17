@@ -15,11 +15,64 @@ const processPurchase = async ({
 }) => {
   const product = await inventoryModel.getProductById(productId, companyId);
   if (!product) throw new Error('Product not found');
-  if (!product.inventory_account_id) throw new Error('Product has no inventory COA account linked');
+
+  const SettingsModel = require('../models/settings.model');
+  const settings = await SettingsModel.getSettings(companyId).catch(() => ({}));
+
+  let targetInvAccountId = product.inventory_account_id;
+  if (!targetInvAccountId) {
+    if (settings.default_inventory_account_id) {
+      targetInvAccountId = parseInt(settings.default_inventory_account_id);
+    } else {
+      const invAcc = await db('accounts')
+        .where({ company_id: companyId })
+        .andWhere(b => b.whereILike('name', '%inventory%').orWhere('code', '1200'))
+        .first();
+      if (invAcc) targetInvAccountId = invAcc.id;
+    }
+  }
+  if (!targetInvAccountId) throw new Error(`Product "${product.name}" has no inventory COA account linked and no default inventory account exists.`);
+
+  let targetApAccountId = apAccountId;
+  if (!targetApAccountId) {
+    if (settings.default_ap_account_id) {
+      targetApAccountId = parseInt(settings.default_ap_account_id);
+    } else {
+      const apAcc = await db('accounts')
+        .where({ company_id: companyId })
+        .andWhere(b => b.whereILike('name', '%payable%').orWhere('code', '2020').orWhere('code', '2000'))
+        .first();
+      if (apAcc) targetApAccountId = apAcc.id;
+    }
+  }
+  if (!targetApAccountId) throw new Error('Please select an Accounts Payable account, or configure a default AP account in Settings.');
+
+  let targetWarehouseId = warehouseId;
+  if (!targetWarehouseId) {
+    const defaultWh = await db('warehouses').where({ company_id: companyId, is_active: true }).first();
+    if (defaultWh) {
+      targetWarehouseId = defaultWh.id;
+    } else {
+      const [newWh] = await db('warehouses').insert({
+        company_id: companyId,
+        name: 'Main Warehouse',
+        code: 'WH-01',
+        is_active: true
+      }).returning('*');
+      targetWarehouseId = newWh.id;
+    }
+  }
 
   const totalCost = parseFloat(quantity) * parseFloat(unitCost);
+  if (isNaN(totalCost) || totalCost <= 0) {
+    throw new Error('Quantity and unit cost must be positive numbers.');
+  }
 
   return db.transaction(async (trx) => {
+    // Validate accounting period (auto-opens if year missing)
+    const PeriodValidationService = require('./period_validation.service');
+    await PeriodValidationService.validateDate(companyId, new Date(), trx);
+
     // Lock the product row for cost updates
     const lockedProduct = await trx('products')
       .where({ id: productId, company_id: companyId })
@@ -38,13 +91,13 @@ const processPurchase = async ({
     await trx('journal_lines').insert([
       {
         entry_id: je.id,
-        account_id: lockedProduct.inventory_account_id,
+        account_id: targetInvAccountId,
         debit: totalCost,
         credit: 0,
       },
       {
         entry_id: je.id,
-        account_id: apAccountId,
+        account_id: targetApAccountId,
         debit: 0,
         credit: totalCost,
       },
@@ -72,12 +125,12 @@ const processPurchase = async ({
       .update({ cost_price: newWAC, updated_at: trx.fn.now() });
 
     // 3. Update inventory
-    const newQty = await inventoryModel.upsertInventory(trx, productId, warehouseId, parseFloat(quantity));
+    const newQty = await inventoryModel.upsertInventory(trx, productId, targetWarehouseId, parseFloat(quantity));
 
     // 4. Stock log
     const stockLog = await inventoryModel.insertStockLog(trx, {
       product_id: productId,
-      warehouse_id: warehouseId,
+      warehouse_id: targetWarehouseId,
       type: 'PURCHASE',
       quantity_change: parseFloat(quantity),
       quantity_after: newQty,
@@ -91,7 +144,7 @@ const processPurchase = async ({
     // Create cost layer for purchase
     await require('./inventory_costing.service').recordAcquisition(trx, {
       companyId,
-      warehouseId,
+      warehouseId: targetWarehouseId,
       productId,
       quantity: parseFloat(quantity),
       unitCost: parseFloat(unitCost),

@@ -31,11 +31,46 @@ class PeriodValidationService {
       }
     }
 
-    const period = await trx('accounting_periods')
+    let period = await trx('accounting_periods')
       .where('company_id', companyId)
       .andWhere('start_date', '<=', targetDate)
       .andWhere('end_date', '>=', targetDate)
       .first();
+
+    if (!period) {
+      // Auto-provision 12 monthly OPEN accounting periods for this calendar year
+      const year = parsedDate.getFullYear();
+      const periodData = [];
+      for (let m = 1; m <= 12; m++) {
+        const mStr = m < 10 ? `0${m}` : `${m}`;
+        const pName = `${year}-${mStr}`;
+        const endDay = new Date(year, m, 0).getDate();
+        periodData.push({
+          company_id: companyId,
+          period_name: pName,
+          start_date: `${year}-${mStr}-01`,
+          end_date: `${year}-${mStr}-${endDay}`,
+          status: 'OPEN'
+        });
+      }
+      try {
+        await trx('accounting_periods').insert(periodData).onConflict(['company_id', 'period_name']).ignore();
+      } catch (_) {
+        // Fallback without onConflict for sqlite or existing constraints
+        for (const p of periodData) {
+          const exists = await trx('accounting_periods').where({ company_id: companyId, period_name: p.period_name }).first();
+          if (!exists) {
+            await trx('accounting_periods').insert(p).catch(() => {});
+          }
+        }
+      }
+
+      period = await trx('accounting_periods')
+        .where('company_id', companyId)
+        .andWhere('start_date', '<=', targetDate)
+        .andWhere('end_date', '>=', targetDate)
+        .first();
+    }
 
     if (!period) {
       throw new Error(`No financial accounting period found for the date ${targetDate}.`);
