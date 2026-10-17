@@ -246,6 +246,11 @@ class NotificationService {
     isProcessingQueue = true;
 
     try {
+      const hasTable = await db.schema.hasTable('notification_queue');
+      if (!hasTable) {
+        return;
+      }
+
       const pendingItems = await db('notification_queue')
         .whereIn('status', ['PENDING', 'RETRY'])
         .andWhere('attempts', '<', db.ref('max_attempts'))

@@ -123,7 +123,7 @@ exports.up = async function (knex) {
     table.increments('id').primary();
     table.string('coupon_id').references('id').inTable('coupons').onDelete('CASCADE');
     table.integer('company_id').unsigned().references('id').inTable('companies').onDelete('SET NULL');
-    table.string('user_id').references('id').inTable('users').onDelete('SET NULL');
+    table.integer('user_id').unsigned().references('id').inTable('users').onDelete('SET NULL');
     table.decimal('discount_applied', 10, 2).defaultTo(0);
     table.timestamp('redeemed_at').defaultTo(knex.fn.now());
   });

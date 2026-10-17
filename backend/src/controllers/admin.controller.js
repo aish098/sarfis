@@ -17,6 +17,10 @@ async function assertCompanyAdmin(req, companyId, trx = null) {
   // Super Admin overrides everything
   if (req.user.role === 'Super Admin' || req.userCompanyRole === 'Super Admin') return;
 
+  // Company owner check
+  const company = await (trx || db)('companies').where({ id: companyId }).first().catch(() => null);
+  if (company && company.owner_id === req.user.id) return;
+
   const query = (trx || db)('user_roles as ur')
     .join('roles as r', 'r.id', 'ur.role_id')
     .where('ur.company_id', companyId)
@@ -928,14 +932,65 @@ exports.restoreCompanyBackup = async (req, res) => {
 
           // SANITIZE: Filter out any columns not present in the DB schema
           const sanitized = {};
-          for (const [col, val] of Object.entries(mapped)) {
-            if (validColumns.has(col)) {
-              sanitized[col] = val;
+          for (const [col, rawVal] of Object.entries(mapped)) {
+            if (!validColumns.has(col)) continue;
+
+            let val = rawVal;
+            const colType = (columnInfo[col]?.type || '').toLowerCase();
+
+            // Convert empty strings to null for non-text columns (prevents Postgres date/integer cast errors)
+            if (val === '') {
+              if (colType.includes('int') || colType.includes('date') || colType.includes('time') || 
+                  colType.includes('num') || colType.includes('float') || colType.includes('bool') || 
+                  col.endsWith('_id')) {
+                val = null;
+              }
             }
+
+            // Handle json/jsonb columns
+            if ((colType === 'json' || colType === 'jsonb') && typeof val === 'string') {
+              try { val = JSON.parse(val); } catch {}
+            }
+
+            sanitized[col] = val;
           }
 
           // Strip id so database generates fresh non-colliding auto-increment ID
           delete sanitized.id;
+
+          // Handle upsert tables with unique constraints
+          if (targetTableName === 'settings' && validColumns.has('scope') && validColumns.has('target_id')) {
+            await trx('settings').insert(sanitized).onConflict(['scope', 'target_id']).merge();
+            continue;
+          }
+          if (targetTableName === 'company_accounting_settings' && validColumns.has('company_id')) {
+            await trx('company_accounting_settings').insert(sanitized).onConflict(['company_id']).merge();
+            continue;
+          }
+          if (targetTableName === 'company_tax_settings' && validColumns.has('company_id')) {
+            await trx('company_tax_settings').insert(sanitized).onConflict(['company_id']).merge();
+            continue;
+          }
+          if (targetTableName === 'company_auth_settings' && validColumns.has('company_id')) {
+            await trx('company_auth_settings').insert(sanitized).onConflict(['company_id']).merge();
+            continue;
+          }
+          if (targetTableName === 'accounting_periods' && validColumns.has('company_id') && validColumns.has('period_name')) {
+            const [result] = await trx('accounting_periods').insert(sanitized).onConflict(['company_id', 'period_name']).merge().returning('id');
+            const newId = typeof result === 'object' && result !== null ? result.id : result;
+            if (origId !== undefined && newId !== undefined) {
+              idMaps.accounting_periods[origId] = newId;
+            }
+            continue;
+          }
+          if (targetTableName === 'accounts' && validColumns.has('company_id') && validColumns.has('code')) {
+            const [result] = await trx('accounts').insert(sanitized).onConflict(['company_id', 'code']).merge().returning('id');
+            const newId = typeof result === 'object' && result !== null ? result.id : result;
+            if (origId !== undefined && newId !== undefined) {
+              idMaps.accounts[origId] = newId;
+            }
+            continue;
+          }
 
           const [result] = await trx(targetTableName).insert(sanitized).returning('id');
           const newId = typeof result === 'object' && result !== null ? result.id : result;

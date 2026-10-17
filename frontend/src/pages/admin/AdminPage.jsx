@@ -1828,12 +1828,27 @@ export default function AdminPage() {
                           <Input value={restoreConfirmInput} onChange={setRestoreConfirmInput} placeholder="Type RESTORE in uppercase" />
                         </Field>
 
+                        {message && (
+                          <div className={`rounded-lg p-3 text-[12px] font-bold flex items-center gap-2 ${message.type === 'success' ? 'bg-emerald-50 text-emerald-800 border border-emerald-200' : 'bg-red-50 text-red-800 border border-red-200'}`}>
+                            {message.type === 'success' ? <CheckCircle2 size={16} /> : <AlertTriangle size={16} />}
+                            <span>{message.text}</span>
+                          </div>
+                        )}
+
                         <button
                           onClick={executeRestore}
                           disabled={saving || restoreConfirmInput !== 'RESTORE'}
                           className="w-full inline-flex items-center justify-center gap-2 h-10 rounded-lg bg-red-600 text-white text-[13px] font-bold hover:bg-red-700 disabled:opacity-50"
                         >
-                          <FileUp size={15} /> Confirm & Execute Restore
+                          {saving ? (
+                            <>
+                              <RefreshCw size={15} className="animate-spin" /> Restoring Database Records...
+                            </>
+                          ) : (
+                            <>
+                              <FileUp size={15} /> Confirm & Execute Restore
+                            </>
+                          )}
                         </button>
                       </div>
                     </Motion.div>
